@@ -60,6 +60,7 @@ encode (Inst opcode operands) = do
   let opcodeBits = encodeOpcode opcode
   return $ opcodeBits .|. operandBits
 
+-- TODO: Would this be faster with a standalone Data.Map?
 encodeOpcode :: forall (k :: Format). Opcode k -> Word32
 encodeOpcode Add  = 0x00000033
 encodeOpcode Sub  = 0x40000033
@@ -88,28 +89,31 @@ encodeOpcode Slli  = 0x00001013
 encodeOpcode Srli  = 0x00005013
 encodeOpcode Srai  = 0x40005013
 
-encodeOpcode Fence = 0x0000000F
+encodeOpcode Fence   = 0x0000000F
 encodeOpcode Fence_i = 0x0000100F
-encodeOpcode Ecall = 0x00000073
-encodeOpcode Ebreak = 0x00100073
--- encodeOpcode Csrrw = 0x0000
--- encodeOpcode Csrrs = 0x
--- encodeOpcode Csrrc = 0x
--- encodeOpcode Csrrwi = 0x
--- encodeOpcode Csrrsi = 0x
--- encodeOpcode Csrrci = 0x
--- encodeOpcode Sb = 0x
--- encodeOpcode Sh = 0x
--- encodeOpcode Sw = 0x
--- encodeOpcode Beq = 0x
--- encodeOpcode Bne = 0x
--- encodeOpcode Blt = 0x
--- encodeOpcode Bge = 0x
--- encodeOpcode Bltu = 0x
--- encodeOpcode Bgeu = 0x
--- encodeOpcode Lui = 0x
--- encodeOpcode Addui = 0x
--- encodeOpcode Jal = 0x
+encodeOpcode Ecall   = 0x00000073
+encodeOpcode Ebreak  = 0x00100073
+encodeOpcode Csrrw   = 0x00001073
+encodeOpcode Csrrs   = 0x00002073
+encodeOpcode Csrrc   = 0x00003073
+encodeOpcode Csrrwi  = 0x00005073
+encodeOpcode Csrrsi  = 0x00006073
+encodeOpcode Csrrci  = 0x00007073
+
+encodeOpcode Sb = 0x00000023
+encodeOpcode Sh = 0x00001023
+encodeOpcode Sw = 0x00002023
+
+encodeOpcode Beq   = 0x00000063
+encodeOpcode Bne   = 0x00001063
+encodeOpcode Blt   = 0x00004063
+encodeOpcode Bge   = 0x00005063
+encodeOpcode Bltu  = 0x00006063
+encodeOpcode Bgeu  = 0x00007063
+encodeOpcode Lui   = 0x00000037
+encodeOpcode Addui = 0x00000017
+
+encodeOpcode Jal = 0x0000006F
 
 encodeOperands :: forall (k :: Format). Operands k -> Maybe Word32
 encodeOperands (ROperands rd rs1 rs2) = do
@@ -179,21 +183,5 @@ placeImmJBits (Imm20 imm) = do
   imm11    <- placeBitsSigned 20 20 (imm .&. 0x00000800)
   imm19_12 <- placeBitsSigned 12 19 (imm .&. 0x000FF000)
   return $ imm20 .|. imm10_1 .|. imm11 .|. imm19_12
-
-placeOpcode1 :: Integer -> Maybe Word32
-placeOpcode1 opcode = placeBitsUnsigned 0 6 opcode
-
-placeOpcode2 :: Integer -> Integer -> Maybe Word32
-placeOpcode2 opcode funct3 = do
-  opcodeBits <- placeBitsUnsigned 0  6 opcode
-  funct3Bits <- placeBitsUnsigned 12 14 funct3
-  return $ opcodeBits .|. funct3Bits
-
-placeOpcode3 :: Integer -> Integer -> Integer -> Maybe Word32
-placeOpcode3 opcode funct3 funct7 = do
-  opcodeBits <- placeBitsUnsigned 0  6  opcode
-  funct3Bits <- placeBitsUnsigned 12 14 funct3
-  funct7Bits <- placeBitsUnsigned 25 31 funct7
-  return $ opcodeBits .|. funct3Bits .|. funct7Bits
 
 
