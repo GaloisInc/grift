@@ -14,8 +14,11 @@ cabal-version:       >=1.10
 extra-source-files:  README.md
 
 library
-  exposed-modules:     RISCV.Encode
+  exposed-modules:     RISCV
+                     , RISCV.Assemble
+                     , RISCV.Encode
                      , RISCV.Instruction
+                     , RISCV.Utils
   build-depends:       base >= 4.7 && < 5
                      , parameterized-utils
   hs-source-dirs:      src

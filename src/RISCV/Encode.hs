@@ -12,7 +12,8 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-TODO module description
+This module defines a function 'encode' that converts an internal 'Instruction' into
+a 'Word32'.
 -}
 
 module RISCV.Encode
@@ -20,9 +21,7 @@ module RISCV.Encode
   ) where
 
 import Data.Bits
--- import Data.Parameterized.NatRepr
 import Data.Word (Word32)
--- import GHC.TypeLits
 
 import RISCV.Instruction
 
@@ -154,8 +153,6 @@ placeRs1Bits (RegId rs1) = placeBitsUnsigned 15 18 rs1
 placeRs2Bits :: RegId -> Maybe Word32
 placeRs2Bits (RegId rs2) = placeBitsUnsigned 20 24 rs2
 
--- TODO: Verify that all immediates are interpreted as signed integers. Even sltiu, I
--- believe, expands the value as a signed integer before comparison.
 placeImmIBits :: Imm12 -> Maybe Word32
 placeImmIBits (Imm12 imm) = placeBitsSigned 31 20 imm
 

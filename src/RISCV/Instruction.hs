@@ -1,7 +1,8 @@
-{-# LANGUAGE DataKinds      #-}
-{-# LANGUAGE GADTs          #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE RankNTypes     #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE KindSignatures    #-}
+{-# LANGUAGE RankNTypes        #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -12,8 +13,8 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-Defines data types for instructions, opcodes, and the like. Currently only implements
-RV32I.
+Defines internal representations for instructions, opcodes, and the like. Currently
+only implements RV32I.
 -}
 
 module RISCV.Instruction
@@ -27,12 +28,11 @@ module RISCV.Instruction
   , Instruction(..)
   ) where
 
--- import Data.Parameterized.NatRepr
--- import Data.Parameterized.Some
--- import GHC.TypeLits
-import           Numeric (showHex)
+import Data.Parameterized
 
--- | Register identifier
+import RISCV.Utils
+
+-- | 5-bit immediate operand (usually a register identifier)
 newtype RegId = RegId Integer
   deriving (Show, Eq, Ord)
 -- | 12-bit immediate operand
@@ -54,6 +54,32 @@ data Operands :: Format -> * where
   BOperands :: RegId -> RegId -> Imm12 -> Operands 'B
   UOperands :: RegId -> Imm20          -> Operands 'U
   JOperands :: RegId -> Imm20          -> Operands 'J
+
+instance Show (Operands k) where
+  show (ROperands (RegId rd) (RegId rs1) (RegId rs2)) =
+    "[ rd = "  ++ prettyHex rd ++
+    ", rs1 = " ++ prettyHex rs1 ++
+    ", rs2 = " ++ prettyHex rs2 ++ " ]"
+  show (IOperands (RegId rd) (RegId rs1) (Imm12 imm)) =
+    "[ rd = "  ++ prettyHex rd ++
+    ", rs1 = " ++ prettyHex rs1 ++
+    ", imm = " ++ prettyHex imm ++ " ]"
+  show (SOperands (RegId rs1) (RegId rs2) (Imm12 imm)) =
+    "[ rs1 = " ++ prettyHex rs1 ++
+    ", rs2 = " ++ prettyHex rs2 ++
+    ", imm = " ++ prettyHex imm ++ " ]"
+  show (BOperands (RegId rs1) (RegId rs2) (Imm12 imm)) =
+    "[ rs1 = " ++ prettyHex rs1 ++
+    ", rs2 = " ++ prettyHex rs2 ++
+    ", imm = " ++ prettyHex imm ++ " ]"
+  show (UOperands (RegId rd) (Imm20 imm)) =
+    "[ rd = "  ++ prettyHex rd ++
+    ", imm = " ++ prettyHex imm ++ " ]"
+  show (JOperands (RegId rd) (Imm20 imm)) =
+    "[ rd = "  ++ prettyHex rd ++
+    ", imm = " ++ prettyHex imm ++ " ]"
+
+instance ShowF Operands
 
 -- FIXME: Instead of using a Nat to encode the entire Word32 representing the opcode,
 -- we could instead check out KnownRepr; that might actually be able to use a data
@@ -121,11 +147,75 @@ data Opcode (f :: Format) :: * where
   -- J type
   Jal :: Opcode 'J
 
+
+instance Show (Opcode k) where
+  -- R type
+  show Add  = "Add"
+  show Sub  = "Sub"
+  show Sll  = "Sll"
+  show Slt  = "Slt"
+  show Sltu = "Sltu"
+  show Xor  = "Xor"
+  show Srl  = "Srl"
+  show Sra  = "Sra"
+  show Or   = "Or"
+  show And  = "And"
+
+  -- I type
+  show Jalr    = "Jalr"
+  show Lb      = "Lb"
+  show Lh      = "Lh"
+  show Lw      = "Lw"
+  show Lbu     = "Lbu"
+  show Lhu     = "Lhu"
+  show Addi    = "Addi"
+  show Slti    = "Slti"
+  show Sltiu   = "Sltiu"
+  show Xori    = "Xori"
+  show Ori     = "Ori"
+  show Andi    = "Andi"
+  show Slli    = "Slli"
+  show Srli    = "Srli"
+  show Srai    = "Srai"
+  show Fence   = "Fence"
+  show Fence_i = "Fence.i"
+  show Ecall   = "Ecall"
+  show Ebreak  = "Ebreak"
+  show Csrrw   = "Csrrw"
+  show Csrrs   = "Csrrs"
+  show Csrrc   = "Csrrc"
+  show Csrrwi  = "Csrrwi"
+  show Csrrsi  = "Csrrsi"
+  show Csrrci  = "Csrrci"
+
+  -- S type
+  show Sb = "Sb"
+  show Sh = "Sh"
+  show Sw = "Sw"
+
+  -- B type
+  show Beq  = "Beq"
+  show Bne  = "Bne"
+  show Blt  = "Blt"
+  show Bge  = "Bge"
+  show Bltu = "Bltu"
+  show Bgeu = "Bgeu"
+
+  -- U type
+  show Lui   = "Lui"
+  show Addui = "Addui"
+
+  -- J type
+  show Jal = "Jal"
+
+instance ShowF Opcode
+
 -- | RV32I Instruction, parameterized by format.
 data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k
                                       , instOperands :: Operands k
                                       }
 
--- | Print an integral value in hex with a leading "0x"
-prettyHex :: (Show a, Integral a) => a -> String
-prettyHex x = "0x" ++ showHex x ""
+instance Show (Instruction k) where
+  show (Inst opcode operands) = show opcode ++ " " ++ show operands
+
+instance ShowF Instruction
