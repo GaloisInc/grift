@@ -2,9 +2,20 @@
 {-# LANGUAGE GADTs          #-}
 {-# LANGUAGE KindSignatures #-}
 
-module RISCV.Instruction
-  ()
-  where
+{-|
+Module      : RISCV.Instruction
+Description : Defines data types for instructions, opcodes, and the like.
+Copyright   : (c) Benjamin Selfridge, 2018
+                  Galois Inc.
+License     : None (yet)
+Maintainer  : benselfridge@galois.com
+Stability   : experimental
+Portability : portable
+
+Defines data types for instructions, opcodes, and the like. Currently only implements
+RV32I.
+-}
+module RISCV.Instruction where
 
 newtype RegId = RegId Integer
 newtype Imm12 = Imm12 Integer
