@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds      #-}
 {-# LANGUAGE GADTs          #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes     #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -21,10 +22,15 @@ module RISCV.Instruction
     -- * Operands
   , Operands(..)
   , Format(..)
-  , RegId, Imm12, Imm20
+  , RegId(..), Imm12(..), Imm20(..)
     -- * Instructions
   , Instruction(..)
   ) where
+
+-- import Data.Parameterized.NatRepr
+-- import Data.Parameterized.Some
+-- import GHC.TypeLits
+import           Numeric (showHex)
 
 -- | Register identifier
 newtype RegId = RegId Integer
@@ -46,11 +52,15 @@ data Operands :: Format -> * where
   IOperands :: RegId -> RegId -> Imm12 -> Operands 'I
   SOperands :: RegId -> RegId -> Imm12 -> Operands 'S
   BOperands :: RegId -> RegId -> Imm12 -> Operands 'B
-  UOperands :: RegId -> Imm20 ->          Operands 'U
-  JOperands :: RegId -> Imm20 ->          Operands 'J
+  UOperands :: RegId -> Imm20          -> Operands 'U
+  JOperands :: RegId -> Imm20          -> Operands 'J
+
+-- FIXME: Instead of using a Nat to encode the entire Word32 representing the opcode,
+-- we could instead check out KnownRepr; that might actually be able to use a data
+-- structure with the opcode, funct3, and funct7 fields in it separately.
 
 -- | RV32I Opcode, parameterized by format.
-data Opcode :: Format -> * where
+data Opcode (f :: Format) :: * where
 
   -- R type
   Add  :: Opcode 'R
@@ -112,6 +122,10 @@ data Opcode :: Format -> * where
   Jal :: Opcode 'J
 
 -- | RV32I Instruction, parameterized by format.
-data Instruction (k :: Format) = Inst { opcode   :: Opcode k
-                                      , operands :: Operands k
+data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k
+                                      , instOperands :: Operands k
                                       }
+
+-- | Print an integral value in hex with a leading "0x"
+prettyHex :: (Show a, Integral a) => a -> String
+prettyHex x = "0x" ++ showHex x ""
