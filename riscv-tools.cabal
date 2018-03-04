@@ -14,7 +14,10 @@ cabal-version:       >=1.10
 extra-source-files:  README.md
 
 library
-  exposed-modules:     RISCV.Instruction
+  exposed-modules:     RISCV.Encode
+                     , RISCV.Instruction
   build-depends:       base >= 4.7 && < 5
+--                     , parameterized-utils
   hs-source-dirs:      src
   default-language:    Haskell2010
+  ghc-options:         -Wall
