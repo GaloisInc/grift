@@ -1,6 +1,6 @@
 # riscv-tools
 
-A RISC-V library for binary tooling support.
+A WIP RISC-V library for binary tooling support.
 
 ## Overview
 The RISC-V ISA (instruction set architecture) is an open-source ISA developed at UC
@@ -18,7 +18,7 @@ stack build
 
 Nothing to run, this is a library.
 
-## Random notes
+## Current status
 Instruction encoding is complete and seems kind of nice. Next up is going to be
 decoding, then some sort of semantics. Perhaps it will be as simple as a list of
 low-level operations.
