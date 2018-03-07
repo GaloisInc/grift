@@ -25,23 +25,13 @@ import Data.Bits
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
-import Text.Printf
+
+import RISCV.Utils
 
 ----------------------------------------
 -- A few utilities
 
 -- TODO: put this in Utils
-
-lowMask :: (Integral a, Bits b) => a -> b
-lowMask numBits = complement (complement zeroBits `shiftL` fromIntegral numBits)
-
-truncBits :: (Integral a, Bits b) => a -> b -> b
-truncBits width b = b .&. lowMask width
-
-prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
-prettyHex width val = printf format val width
-  where numDigits = (width+3) `div` 4
-        format = "0x%." ++ show numDigits ++ "x<%d>"
 
 ----------------------------------------
 -- BitVector data type definitions
@@ -51,7 +41,7 @@ data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
 -- | Construct a bit vector in a context where the width is known
-bv :: (KnownNat w) => Integer -> BitVector w
+bv :: KnownNat w => Integer -> BitVector w
 bv x = BV repr (truncBits width (fromIntegral x))
   where repr  = knownNat
         width = natValue repr

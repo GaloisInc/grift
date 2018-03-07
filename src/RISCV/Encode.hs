@@ -112,21 +112,40 @@ encodeOpcode Jal = bv 0x0000006F
 encodeOperands :: forall (k :: Format). Operands k -> BitVector 32
 encodeOperands (ROperands rd rs1 rs2) =
   (bv 0 :: BitVector 7) `bvConcat`
-  rs2 `bvConcat`
-  rs1 `bvConcat`
+  rs2                   `bvConcat`
+  rs1                   `bvConcat`
   (bv 0 :: BitVector 3) `bvConcat`
-  rd `bvConcat`
+  rd                    `bvConcat`
   (bv 0 :: BitVector 7)
 encodeOperands (IOperands rd rs1 imm) =
-  imm `bvConcat`
-  rs1 `bvConcat`
+  imm                   `bvConcat`
+  rs1                   `bvConcat`
   (bv 0 :: BitVector 3) `bvConcat`
-  rd `bvConcat`
+  rd                    `bvConcat`
   (bv 0 :: BitVector 7)
-encodeOperands (SOperands _rs1 _rs2 _imm) = undefined
-encodeOperands (BOperands _rs1 _rs2 _imm) = undefined
-encodeOperands (UOperands _rd  _imm) = undefined
-encodeOperands (JOperands _rd  _imm) = undefined
+encodeOperands (SOperands rs1 rs2 imm) =
+  (bvExtract 5 imm :: BitVector 7) `bvConcat`
+  rs2                              `bvConcat`
+  rs1                              `bvConcat`
+  (bv 0 :: BitVector 3)            `bvConcat`
+  (bvExtract 0 imm :: BitVector 5) `bvConcat`
+  (bv 0 :: BitVector 7)
+encodeOperands (BOperands rs1 rs2 imm) =
+  (bvExtract 5 imm :: BitVector 7) `bvConcat`
+  rs2                              `bvConcat`
+  rs1                              `bvConcat`
+  (bv 0 :: BitVector 3)            `bvConcat`
+  (bvExtract 0 imm :: BitVector 5) `bvConcat`
+  (bv 0 :: BitVector 7)
+encodeOperands (UOperands rd imm) =
+  imm `bvConcat` rd `bvConcat` (bv 0 :: BitVector 7)
+encodeOperands (JOperands rd imm) =
+  (bvExtract 19 imm :: BitVector 1)  `bvConcat`
+  (bvExtract 0  imm :: BitVector 10) `bvConcat`
+  (bvExtract 10 imm :: BitVector 1)  `bvConcat`
+  (bvExtract 11 imm :: BitVector 8)  `bvConcat`
+  rd                                 `bvConcat`
+  (bv 0 :: BitVector 7)
 
 
 -- TODO: Replace all this code with code that uses the extract function.

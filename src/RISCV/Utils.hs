@@ -13,6 +13,8 @@ A few utility functions.
 module RISCV.Utils
   ( -- * Bits
     extract
+  , lowMask
+  , truncBits
   , fitsBitsSigned
   , fitsBitsUnsigned
   , placeBitsSigned
@@ -23,13 +25,15 @@ module RISCV.Utils
 
 import Data.Bits
 import Data.Word
-import Numeric (showHex)
+import Text.Printf
 
 ----------------------------------------
 -- Pretty Printing
 -- | Print an integral value in hex with a leading "0x"
-prettyHex :: (Show a, Integral a) => a -> String
-prettyHex x = "0x" ++ showHex x ""
+prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
+prettyHex width val = printf format val width
+  where numDigits = (width+3) `div` 4
+        format = "0x%." ++ show numDigits ++ "x<%d>"
 
 ----------------------------------------
 -- Bits
@@ -37,6 +41,12 @@ prettyHex x = "0x" ++ showHex x ""
 -- | Extract a slice from a 32-bit word.
 extract :: Integral a => Int -> Int -> Word32 -> a
 extract low hgh x = fromIntegral $ x `shiftR` low .&. complement (0xffffffff `shiftL` (hgh-low+1))
+
+lowMask :: (Integral a, Bits b) => a -> b
+lowMask numBits = complement (complement zeroBits `shiftL` fromIntegral numBits)
+
+truncBits :: (Integral a, Bits b) => a -> b -> b
+truncBits width b = b .&. lowMask width
 
 -- | Determine if a signed integer fits in the specified number of bits.
 fitsBitsSigned :: Integer -> Int -> Bool
