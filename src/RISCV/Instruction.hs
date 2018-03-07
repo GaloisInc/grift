@@ -23,24 +23,23 @@ module RISCV.Instruction
     -- * Operands
   , Operands(..)
   , Format(..)
-  , RegId(..), Imm12(..), Imm20(..)
     -- * Instructions
   , Instruction(..)
   ) where
 
 import Data.Parameterized
 
-import RISCV.Utils
+import RISCV.BitVector
 
--- | 5-bit immediate operand (usually a register identifier)
-newtype RegId = RegId Integer
-  deriving (Show, Eq, Ord)
--- | 12-bit immediate operand
-newtype Imm12 = Imm12 Integer
-  deriving (Show, Eq, Ord)
--- | 20-bit immediate operand
-newtype Imm20 = Imm20 Integer
-  deriving (Show, Eq, Ord)
+-- -- | 5-bit immediate operand (usually a register identifier)
+-- newtype RegId = RegId Integer
+--   deriving (Show, Eq, Ord)
+-- -- | 12-bit immediate operand
+-- newtype Imm12 = Imm12 Integer
+--   deriving (Show, Eq, Ord)
+-- -- | 20-bit immediate operand
+-- newtype BitVector 20 = BitVector 20 Integer
+--   deriving (Show, Eq, Ord)
 
 -- | RV32I Instruction formats
 data Format = R | I | S | B | U | J
@@ -48,36 +47,36 @@ data Format = R | I | S | B | U | J
 -- | RV32I Operand lists, parameterized by format. There is exactly one constructor
 -- per format.
 data Operands :: Format -> * where
-  ROperands :: RegId -> RegId -> RegId -> Operands 'R
-  IOperands :: RegId -> RegId -> Imm12 -> Operands 'I
-  SOperands :: RegId -> RegId -> Imm12 -> Operands 'S
-  BOperands :: RegId -> RegId -> Imm12 -> Operands 'B
-  UOperands :: RegId -> Imm20          -> Operands 'U
-  JOperands :: RegId -> Imm20          -> Operands 'J
+  ROperands :: BitVector 5 -> BitVector 5  -> BitVector 5  -> Operands 'R
+  IOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands 'I
+  SOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands 'S
+  BOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands 'B
+  UOperands :: BitVector 5 -> BitVector 20                 -> Operands 'U
+  JOperands :: BitVector 5 -> BitVector 20                 -> Operands 'J
 
 instance Show (Operands k) where
-  show (ROperands (RegId rd) (RegId rs1) (RegId rs2)) =
-    "[ rd = "  ++ prettyHex rd ++
-    ", rs1 = " ++ prettyHex rs1 ++
-    ", rs2 = " ++ prettyHex rs2 ++ " ]"
-  show (IOperands (RegId rd) (RegId rs1) (Imm12 imm)) =
-    "[ rd = "  ++ prettyHex rd ++
-    ", rs1 = " ++ prettyHex rs1 ++
-    ", imm = " ++ prettyHex imm ++ " ]"
-  show (SOperands (RegId rs1) (RegId rs2) (Imm12 imm)) =
-    "[ rs1 = " ++ prettyHex rs1 ++
-    ", rs2 = " ++ prettyHex rs2 ++
-    ", imm = " ++ prettyHex imm ++ " ]"
-  show (BOperands (RegId rs1) (RegId rs2) (Imm12 imm)) =
-    "[ rs1 = " ++ prettyHex rs1 ++
-    ", rs2 = " ++ prettyHex rs2 ++
-    ", imm = " ++ prettyHex imm ++ " ]"
-  show (UOperands (RegId rd) (Imm20 imm)) =
-    "[ rd = "  ++ prettyHex rd ++
-    ", imm = " ++ prettyHex imm ++ " ]"
-  show (JOperands (RegId rd) (Imm20 imm)) =
-    "[ rd = "  ++ prettyHex rd ++
-    ", imm = " ++ prettyHex imm ++ " ]"
+  show (ROperands rd rs1 rs2) =
+    "[ rd = "  ++ show rd ++
+    ", rs1 = " ++ show rs1 ++
+    ", rs2 = " ++ show rs2 ++ " ]"
+  show (IOperands rd rs1 imm) =
+    "[ rd = "  ++ show rd ++
+    ", rs1 = " ++ show rs1 ++
+    ", imm = " ++ show imm ++ " ]"
+  show (SOperands rs1 rs2 imm) =
+    "[ rs1 = " ++ show rs1 ++
+    ", rs2 = " ++ show rs2 ++
+    ", imm = " ++ show imm ++ " ]"
+  show (BOperands rs1 rs2 imm) =
+    "[ rs1 = " ++ show rs1 ++
+    ", rs2 = " ++ show rs2 ++
+    ", imm = " ++ show imm ++ " ]"
+  show (UOperands rd imm) =
+    "[ rd = "  ++ show rd ++
+    ", imm = " ++ show imm ++ " ]"
+  show (JOperands rd imm) =
+    "[ rd = "  ++ show rd ++
+    ", imm = " ++ show imm ++ " ]"
 
 instance ShowF Operands
 

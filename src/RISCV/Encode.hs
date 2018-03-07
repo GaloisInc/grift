@@ -142,37 +142,37 @@ encodeOperands (JOperands rd imm) = do
 
 -- TODO: Replace all this code with code that uses the extract function. 
 
-placeRdBits :: RegId -> Maybe Word32
-placeRdBits (RegId rd) = placeBitsUnsigned 7 11 rd
+placeRdBits :: BitVector 5 -> Maybe Word32
+placeRdBits (BitVector 5 rd) = placeBitsUnsigned 7 11 rd
 
-placeRs1Bits :: RegId -> Maybe Word32
-placeRs1Bits (RegId rs1) = placeBitsUnsigned 15 18 rs1
+placeRs1Bits :: BitVector 5 -> Maybe Word32
+placeRs1Bits (BitVector 5 rs1) = placeBitsUnsigned 15 18 rs1
 
-placeRs2Bits :: RegId -> Maybe Word32
-placeRs2Bits (RegId rs2) = placeBitsUnsigned 20 24 rs2
+placeRs2Bits :: BitVector 5 -> Maybe Word32
+placeRs2Bits (BitVector 5 rs2) = placeBitsUnsigned 20 24 rs2
 
-placeImmIBits :: Imm12 -> Maybe Word32
-placeImmIBits (Imm12 imm) = placeBitsSigned 20 31 imm
+placeImmIBits :: BitVector 12 -> Maybe Word32
+placeImmIBits (BitVector 12 imm) = placeBitsSigned 20 31 imm
 
-placeImmSBits :: Imm12 -> Maybe Word32
-placeImmSBits (Imm12 imm) = do
+placeImmSBits :: BitVector 12 -> Maybe Word32
+placeImmSBits (BitVector 12 imm) = do
   imm11_5 <- placeBitsSigned 25 31 (imm .&. 0xFE0)
   imm4_0  <- placeBitsSigned 7  11 (imm .&. 0x01F)
   return $ imm11_5 .|. imm4_0
 
-placeImmBBits :: Imm12 -> Maybe Word32
-placeImmBBits (Imm12 imm) = do
+placeImmBBits :: BitVector 12 -> Maybe Word32
+placeImmBBits (BitVector 12 imm) = do
   imm12   <- placeBitsSigned 31 31 (imm .&. 0x1000)
   imm10_5 <- placeBitsSigned 25 30 (imm .&. 0x07E0)
   imm4_1  <- placeBitsSigned 8  11 (imm .&. 0x001E)
   imm11   <- placeBitsSigned 7  7  (imm .&. 0x0800)
   return $ imm12 .|. imm10_5 .|. imm4_1 .|. imm11
 
-placeImmUBits :: Imm20 -> Maybe Word32
-placeImmUBits (Imm20 imm) = placeBitsSigned 12 31 ((imm .&. 0xFFFFF000) `shiftR` 12)
+placeImmUBits :: BitVector 20 -> Maybe Word32
+placeImmUBits (BitVector 20 imm) = placeBitsSigned 12 31 ((imm .&. 0xFFFFF000) `shiftR` 12)
 
-placeImmJBits :: Imm20 -> Maybe Word32
-placeImmJBits (Imm20 imm) = do
+placeImmJBits :: BitVector 20 -> Maybe Word32
+placeImmJBits (BitVector 20 imm) = do
   imm20    <- placeBitsSigned 31 31 (imm .&. 0x00100000)
   imm10_1  <- placeBitsSigned 21 30 (imm .&. 0x000007FE)
   imm11    <- placeBitsSigned 20 20 (imm .&. 0x00000800)

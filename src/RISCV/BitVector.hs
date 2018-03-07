@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeOperators #-}
 
 module RISCV.BitVector
   ( -- * BitVector type
@@ -14,6 +15,7 @@ module RISCV.BitVector
   , bvTestBit
   , bvBit
   , bvPopCount
+  , bvConcat
   ) where
 
 import Data.Bits
@@ -86,6 +88,11 @@ bvBit b = bv (bit b)
 
 bvPopCount :: BitVector w -> Int
 bvPopCount (BV _ x) = popCount x
+
+-- | Concatenate two bit vectors.
+bvConcat :: BitVector v -> BitVector w -> BitVector (v+w)
+bvConcat (BV xRepr x) (BV yRepr y) = BV (xRepr `addNat` yRepr) ((x `shiftL` fromIntegral yWidth) .|. y)
+  where yWidth = natValue yRepr
 
 ----------------------------------------
 -- Class instances
