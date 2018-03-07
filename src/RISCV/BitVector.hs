@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
 module RISCV.BitVector
@@ -8,14 +9,16 @@ module RISCV.BitVector
     BitVector
   , bv
     -- * Bitwise ops
-  , bvAnd, bvOr, bvXor
-  , bvComplement
-  , bvShift, bvRotate
-  , bvWidth
-  , bvTestBit
-  , bvBit
-  , bvPopCount
+  -- , bvAnd, bvOr, bvXor
+  -- , bvComplement
+  -- , bvShift, bvRotate
+  -- , bvWidth
+  -- , bvTestBit
+  -- , bvBit
+  -- , bvPopCount
   , bvConcat
+  , bvTrunc
+  , bvExtract
   ) where
 
 import Data.Bits
@@ -93,10 +96,25 @@ bvPopCount (BV _ x) = popCount x
 
 -- | Concatenate two bit vectors.
 bvConcat :: BitVector v -> BitVector w -> BitVector (v+w)
-bvConcat (BV hiRepr hi) (BV loRepr lo) = BV (hiRepr `addNat` loRepr) ((hi `shiftL` fromIntegral loWidth) .|. lo)
+bvConcat (BV hiRepr hi) (BV loRepr lo) =
+  BV (hiRepr `addNat` loRepr) ((hi `shiftL` fromIntegral loWidth) .|. lo)
   where loWidth = natValue loRepr
 
--- TODO: write bvConcatList and bvExtract.
+-- | Truncate a bit vector to one of smaller length. If the input has shorter length
+-- than the result type, this function zero extends the vector.
+bvTrunc :: forall w w' . (KnownNat w')
+        => BitVector w
+        -> BitVector w'
+bvTrunc (BV _ x) = bv x -- bv function handles the truncation.
+
+-- | Slice out a smaller bit vector from a larger one. The lowest significant bit is
+-- given explicitly as an argument of type 'Int', and the width of the result type is
+-- inferred from a type-level context.
+bvExtract :: forall w w' . (KnownNat w')
+          => Int
+          -> BitVector w
+          -> BitVector w'
+bvExtract pos bvec = bvTrunc (bvShift bvec (- pos))
 
 ----------------------------------------
 -- Class instances

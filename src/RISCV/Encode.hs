@@ -123,6 +123,11 @@ encodeOperands (IOperands rd rs1 imm) =
   (bv 0 :: BitVector 3) `bvConcat`
   rd `bvConcat`
   (bv 0 :: BitVector 7)
+encodeOperands (SOperands _rs1 _rs2 _imm) = undefined
+encodeOperands (BOperands _rs1 _rs2 _imm) = undefined
+encodeOperands (UOperands _rd  _imm) = undefined
+encodeOperands (JOperands _rd  _imm) = undefined
+
 
 -- TODO: Replace all this code with code that uses the extract function.
 
