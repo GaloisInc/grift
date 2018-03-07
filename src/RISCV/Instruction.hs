@@ -27,22 +27,28 @@ module RISCV.Instruction
   , Instruction(..)
   ) where
 
-import Data.Parameterized
+import           Data.Parameterized
 
 import RISCV.BitVector
 
--- -- | 5-bit immediate operand (usually a register identifier)
--- newtype RegId = RegId Integer
---   deriving (Show, Eq, Ord)
--- -- | 12-bit immediate operand
--- newtype Imm12 = Imm12 Integer
---   deriving (Show, Eq, Ord)
--- -- | 20-bit immediate operand
--- newtype BitVector 20 = BitVector 20 Integer
---   deriving (Show, Eq, Ord)
+----------------------------------------
+-- Formats
 
--- | RV32I Instruction formats
-data Format = R | I | S | B | U | J
+-- | The seven RV32I instruction formats. Each RV32I opcode has one of seven encoding
+-- formats, corresponding to its operands and the way those operands are laid out as
+-- bits in the instruction word.
+--
+-- NOTE: Although the RISC-V spec only lists 6, in our formulation, the ecall and
+-- ebreak instructions are slightly distinct from the other I-format instructions; in
+-- particular, they don't have any operands, and they each actually use the same
+-- opcode AND funct3 bits, and therefore have to have one extra bit to distinguish
+-- between the two of them. Therefore, we invented an extra format, E, to represent
+-- them.
+
+data Format = R | I | S | B | U | J | E
+
+----------------------------------------
+-- Operands
 
 -- | RV32I Operand lists, parameterized by format. There is exactly one constructor
 -- per format.
@@ -53,6 +59,7 @@ data Operands :: Format -> * where
   BOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands 'B
   UOperands :: BitVector 5 -> BitVector 20                 -> Operands 'U
   JOperands :: BitVector 5 -> BitVector 20                 -> Operands 'J
+  EOperands ::                                                Operands 'E
 
 instance Show (Operands k) where
   show (ROperands rd rs1 rs2) =
@@ -77,14 +84,14 @@ instance Show (Operands k) where
   show (JOperands rd imm) =
     "[ rd = "  ++ show rd ++
     ", imm = " ++ show imm ++ " ]"
-
+  show (EOperands) = "[]"
 instance ShowF Operands
 
--- FIXME: Instead of using a Nat to encode the entire Word32 representing the opcode,
--- we could instead check out KnownRepr; that might actually be able to use a data
--- structure with the opcode, funct3, and funct7 fields in it separately.
 
--- | RV32I Opcode, parameterized by format.
+----------------------------------------
+-- Opcodes
+
+-- | RV32I Opcodes, parameterized by format.
 data Opcode (f :: Format) :: * where
 
   -- R type
@@ -117,8 +124,6 @@ data Opcode (f :: Format) :: * where
   Srai    :: Opcode 'I
   Fence   :: Opcode 'I
   Fence_i :: Opcode 'I
-  Ecall   :: Opcode 'I
-  Ebreak  :: Opcode 'I
   Csrrw   :: Opcode 'I
   Csrrs   :: Opcode 'I
   Csrrc   :: Opcode 'I
@@ -141,11 +146,14 @@ data Opcode (f :: Format) :: * where
 
   -- U type
   Lui   :: Opcode 'U
-  Addui :: Opcode 'U
+  Auipc :: Opcode 'U
 
   -- J type
   Jal :: Opcode 'J
 
+  -- E type
+  Ecall   :: Opcode 'E
+  Ebreak  :: Opcode 'E
 
 instance Show (Opcode k) where
   -- R type
@@ -178,8 +186,6 @@ instance Show (Opcode k) where
   show Srai    = "Srai"
   show Fence   = "Fence"
   show Fence_i = "Fence.i"
-  show Ecall   = "Ecall"
-  show Ebreak  = "Ebreak"
   show Csrrw   = "Csrrw"
   show Csrrs   = "Csrrs"
   show Csrrc   = "Csrrc"
@@ -202,12 +208,19 @@ instance Show (Opcode k) where
 
   -- U type
   show Lui   = "Lui"
-  show Addui = "Addui"
+  show Auipc = "Auipc"
 
   -- J type
   show Jal = "Jal"
 
+  -- E typ
+  show Ecall   = "Ecall"
+  show Ebreak  = "Ebreak"
+
 instance ShowF Opcode
+
+----------------------------------------
+-- Instructions
 
 -- | RV32I Instruction, parameterized by format.
 data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k

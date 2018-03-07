@@ -1,3 +1,4 @@
+{-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -17,13 +18,16 @@ a 'Word32'.
 -}
 
 module RISCV.Encode
-  -- ( encode
-  -- , encodeOpcode
-  -- , encodeOperands
-  -- ) where
-  where -- temporarily exporting everything for debugging purposes
+  ( -- * Functions
+    encode
+  , encodeOpBits
+  , encodeOperands
+    -- * OpBits
+  , OpBits(..)
+  ) where
 
 import Data.Bits
+import Data.Parameterized.Classes
 
 import RISCV.BitVector
 import RISCV.Instruction
@@ -36,7 +40,7 @@ import RISCV.Instruction
 -- independently if we know the format.
 --
 -- We have two internal functions, encodeOpcode and encodeOperands. These each create
--- separate Word32 than can then be OR-ed together to create the full instruction
+-- separate Word32's than can then be OR-ed together to create the full instruction
 -- word.
 --
 -- encodeOpcode technically does a bit more than JUST the opcode, since many
@@ -47,68 +51,14 @@ import RISCV.Instruction
 -- encodeOperands also uses the specific format to guide how to lay the bits down for
 -- where the various operands need to go in the instruction.
 
+----------------------------------------
+-- Encoding
 -- | Encode an RV32I instruction as a 32-bit word.
 encode :: forall (k :: Format). Instruction k -> BitVector 32
-encode (Inst opcode operands) = encodeOperands operands .|. encodeOpcode opcode
+encode (Inst opcode operands) =
+  encodeOperands operands .|. encodeOpBits (opBits opcode)
 
--- TODO: Would this be faster with a standalone Data.Map?
--- TODO: Would it make sense to make a separate encoding function for each format?
--- that way we could give each encodeOpcode function a different argument list with
--- different types, and it would lay it down nicely.
-encodeOpcode :: forall (k :: Format). Opcode k -> BitVector 32
-encodeOpcode Add  = bv 0x00000033
-encodeOpcode Sub  = bv 0x40000033
-encodeOpcode Sll  = bv 0x00001033
-encodeOpcode Slt  = bv 0x00002033
-encodeOpcode Sltu = bv 0x00003033
-encodeOpcode Xor  = bv 0x00004033
-encodeOpcode Srl  = bv 0x00005033
-encodeOpcode Sra  = bv 0x40005033
-encodeOpcode Or   = bv 0x00006033
-encodeOpcode And  = bv 0x00007033
-
-encodeOpcode Jalr  = bv 0x00000067
-encodeOpcode Lb    = bv 0x00000003
-encodeOpcode Lh    = bv 0x00001003
-encodeOpcode Lw    = bv 0x00002003
-encodeOpcode Lbu   = bv 0x00004003
-encodeOpcode Lhu   = bv 0x00005003
-encodeOpcode Addi  = bv 0x00000013
-encodeOpcode Slti  = bv 0x00002013
-encodeOpcode Sltiu = bv 0x00003013
-encodeOpcode Xori  = bv 0x00004013
-encodeOpcode Ori   = bv 0x00006013
-encodeOpcode Andi  = bv 0x00007013
-encodeOpcode Slli  = bv 0x00001013
-encodeOpcode Srli  = bv 0x00005013
-encodeOpcode Srai  = bv 0x40005013
-
-encodeOpcode Fence   = bv 0x0000000F
-encodeOpcode Fence_i = bv 0x0000100F
-encodeOpcode Ecall   = bv 0x00000073
-encodeOpcode Ebreak  = bv 0x00100073
-encodeOpcode Csrrw   = bv 0x00001073
-encodeOpcode Csrrs   = bv 0x00002073
-encodeOpcode Csrrc   = bv 0x00003073
-encodeOpcode Csrrwi  = bv 0x00005073
-encodeOpcode Csrrsi  = bv 0x00006073
-encodeOpcode Csrrci  = bv 0x00007073
-
-encodeOpcode Sb = bv 0x00000023
-encodeOpcode Sh = bv 0x00001023
-encodeOpcode Sw = bv 0x00002023
-
-encodeOpcode Beq   = bv 0x00000063
-encodeOpcode Bne   = bv 0x00001063
-encodeOpcode Blt   = bv 0x00004063
-encodeOpcode Bge   = bv 0x00005063
-encodeOpcode Bltu  = bv 0x00006063
-encodeOpcode Bgeu  = bv 0x00007063
-encodeOpcode Lui   = bv 0x00000037
-encodeOpcode Addui = bv 0x00000017
-
-encodeOpcode Jal = bv 0x0000006F
-
+-- | Encode the operands of an instruction.
 encodeOperands :: forall (k :: Format). Operands k -> BitVector 32
 encodeOperands (ROperands rd rs1 rs2) =
   (bv 0 :: BitVector 7) `bvConcat`
@@ -146,45 +96,145 @@ encodeOperands (JOperands rd imm) =
   (bvExtract 11 imm :: BitVector 8)  `bvConcat`
   rd                                 `bvConcat`
   (bv 0 :: BitVector 7)
+encodeOperands (EOperands) = bv 0 :: BitVector 32
 
+-- | Encode the OpBits of a particular opcode.
+encodeOpBits :: forall (k :: Format). OpBits k -> BitVector 32
+encodeOpBits (ROpBits opcode funct3 funct7) =
+  funct7 `bvConcat`
+  (bv 0 :: BitVector 10) `bvConcat`
+  funct3 `bvConcat`
+  (bv 0 :: BitVector 5) `bvConcat`
+  opcode
+encodeOpBits (IOpBits opcode funct3) =
+  (bv 0 :: BitVector 17) `bvConcat`
+  funct3 `bvConcat`
+  (bv 0 :: BitVector 5) `bvConcat`
+  opcode
+encodeOpBits (SOpBits opcode funct3) =
+  (bv 0 :: BitVector 17) `bvConcat`
+  funct3 `bvConcat`
+  (bv 0 :: BitVector 5) `bvConcat`
+  opcode
+encodeOpBits (BOpBits opcode funct3) =
+  (bv 0 :: BitVector 17) `bvConcat`
+  funct3 `bvConcat`
+  (bv 0 :: BitVector 5) `bvConcat`
+  opcode
+encodeOpBits (UOpBits opcode) =
+  (bv 0 :: BitVector 25) `bvConcat`
+  opcode
+encodeOpBits (JOpBits opcode) =
+  (bv 0 :: BitVector 25) `bvConcat`
+  opcode
+encodeOpBits (EOpBits opcode b) =
+  (bv 0 :: BitVector 11) `bvConcat`
+  b `bvConcat`
+  (bv 0 :: BitVector 13) `bvConcat`
+  opcode
 
--- TODO: Replace all this code with code that uses the extract function.
+----------------------------------------
+-- OpBits
 
--- placeRdBits :: BitVector 5 -> Maybe Word32
--- placeRdBits (BitVector 5 rd) = placeBitsUnsigned 7 11 rd
+-- | Bits fixed by an opcode.
+-- Holds all the bits that are fixed by a particular opcode. Each format maps to a
+-- potentially different set of bits.
+data OpBits :: Format -> * where
+  ROpBits :: BitVector 7 -> BitVector 3 -> BitVector 7 -> OpBits 'R
+  IOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'I
+  SOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'S
+  BOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'B
+  UOpBits :: BitVector 7                               -> OpBits 'U
+  JOpBits :: BitVector 7                               -> OpBits 'J
+  EOpBits :: BitVector 7 -> BitVector 1                -> OpBits 'E
 
--- placeRs1Bits :: BitVector 5 -> Maybe Word32
--- placeRs1Bits (BitVector 5 rs1) = placeBitsUnsigned 15 18 rs1
+instance Show (OpBits k) where
+  show (ROpBits opcode funct3 funct7) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++
+    ", funct7 = " ++ show funct7 ++ "]"
+  show (IOpBits opcode funct3) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++ "]"
+  show (SOpBits opcode funct3) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++ "]"
+  show (BOpBits opcode funct3) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++ "]"
+  show (UOpBits opcode) =
+    "[ opcode = " ++ show opcode ++ "]"
+  show (JOpBits opcode) =
+    "[ opcode = " ++ show opcode ++ "]"
+  show (EOpBits opcode b) =
+    "[ opcode = " ++ show opcode ++
+    ", b = " ++ show b ++ "]"
 
--- placeRs2Bits :: BitVector 5 -> Maybe Word32
--- placeRs2Bits (BitVector 5 rs2) = placeBitsUnsigned 20 24 rs2
+instance ShowF OpBits
 
--- placeImmIBits :: BitVector 12 -> Maybe Word32
--- placeImmIBits (BitVector 12 imm) = placeBitsSigned 20 31 imm
+----------------------------------------
+-- Opcode -> OpBits map
 
--- placeImmSBits :: BitVector 12 -> Maybe Word32
--- placeImmSBits (BitVector 12 imm) = do
---   imm11_5 <- placeBitsSigned 25 31 (imm .&. 0xFE0)
---   imm4_0  <- placeBitsSigned 7  11 (imm .&. 0x01F)
---   return $ imm11_5 .|. imm4_0
+-- | Maps opcodes to the OpBit bit patterns they map to in an instruction.
+opBits :: forall k . Opcode k -> OpBits k
 
--- placeImmBBits :: BitVector 12 -> Maybe Word32
--- placeImmBBits (BitVector 12 imm) = do
---   imm12   <- placeBitsSigned 31 31 (imm .&. 0x1000)
---   imm10_5 <- placeBitsSigned 25 30 (imm .&. 0x07E0)
---   imm4_1  <- placeBitsSigned 8  11 (imm .&. 0x001E)
---   imm11   <- placeBitsSigned 7  7  (imm .&. 0x0800)
---   return $ imm12 .|. imm10_5 .|. imm4_1 .|. imm11
+-- R type
+opBits Add  = ROpBits (bv 0b0110011) (bv 0b000) (bv 0b0000000)
+opBits Sub  = ROpBits (bv 0b0110011) (bv 0b000) (bv 0b0100000)
+opBits Sll  = ROpBits (bv 0b0110011) (bv 0b001) (bv 0b0000000)
+opBits Slt  = ROpBits (bv 0b0110011) (bv 0b010) (bv 0b0000000)
+opBits Sltu = ROpBits (bv 0b0110011) (bv 0b011) (bv 0b0000000)
+opBits Xor  = ROpBits (bv 0b0110011) (bv 0b100) (bv 0b0000000)
+opBits Srl  = ROpBits (bv 0b0110011) (bv 0b101) (bv 0b0000000)
+opBits Sra  = ROpBits (bv 0b0110011) (bv 0b101) (bv 0b0100000)
+opBits Or   = ROpBits (bv 0b0110011) (bv 0b110) (bv 0b0000000)
+opBits And  = ROpBits (bv 0b0110011) (bv 0b111) (bv 0b0000000)
 
--- placeImmUBits :: BitVector 20 -> Maybe Word32
--- placeImmUBits (BitVector 20 imm) = placeBitsSigned 12 31 ((imm .&. 0xFFFFF000) `shiftR` 12)
+-- I type
+opBits Jalr    = IOpBits (bv 0b1100111) (bv 0b000)
+opBits Lb      = IOpBits (bv 0b0000011) (bv 0b000)
+opBits Lh      = IOpBits (bv 0b0000011) (bv 0b001)
+opBits Lw      = IOpBits (bv 0b0000011) (bv 0b010)
+opBits Lbu     = IOpBits (bv 0b0000011) (bv 0b100)
+opBits Lhu     = IOpBits (bv 0b0000011) (bv 0b101)
+opBits Addi    = IOpBits (bv 0b0010011) (bv 0b000)
+opBits Slti    = IOpBits (bv 0b0010011) (bv 0b010)
+opBits Sltiu   = IOpBits (bv 0b0010011) (bv 0b011)
+opBits Xori    = IOpBits (bv 0b0010011) (bv 0b100)
+opBits Ori     = IOpBits (bv 0b0010011) (bv 0b110)
+opBits Andi    = IOpBits (bv 0b0010011) (bv 0b111)
+opBits Slli    = IOpBits (bv 0b0010011) (bv 0b001)
+opBits Srli    = IOpBits (bv 0b0010011) (bv 0b101)
+opBits Srai    = IOpBits (bv 0b0010011) (bv 0b101)
+opBits Fence   = IOpBits (bv 0b0001111) (bv 0b000)
+opBits Fence_i = IOpBits (bv 0b0001111) (bv 0b001)
+opBits Csrrw   = IOpBits (bv 0b1110011) (bv 0b001)
+opBits Csrrs   = IOpBits (bv 0b1110011) (bv 0b010)
+opBits Csrrc   = IOpBits (bv 0b1110011) (bv 0b011)
+opBits Csrrwi  = IOpBits (bv 0b1110011) (bv 0b101)
+opBits Csrrsi  = IOpBits (bv 0b1110011) (bv 0b110)
+opBits Csrrci  = IOpBits (bv 0b1110011) (bv 0b111)
 
--- placeImmJBits :: BitVector 20 -> Maybe Word32
--- placeImmJBits (BitVector 20 imm) = do
---   imm20    <- placeBitsSigned 31 31 (imm .&. 0x00100000)
---   imm10_1  <- placeBitsSigned 21 30 (imm .&. 0x000007FE)
---   imm11    <- placeBitsSigned 20 20 (imm .&. 0x00000800)
---   imm19_12 <- placeBitsSigned 12 19 (imm .&. 0x000FF000)
---   return $ imm20 .|. imm10_1 .|. imm11 .|. imm19_12
+-- S type
+opBits Sb = SOpBits (bv 0b0100011) (bv 0b000)
+opBits Sh = SOpBits (bv 0b0100011) (bv 0b001)
+opBits Sw = SOpBits (bv 0b0100011) (bv 0b010)
 
+-- B type
+opBits Beq  = BOpBits (bv 1100011) (bv 0b000)
+opBits Bne  = BOpBits (bv 1100011) (bv 0b001)
+opBits Blt  = BOpBits (bv 1100011) (bv 0b100)
+opBits Bge  = BOpBits (bv 1100011) (bv 0b101)
+opBits Bltu = BOpBits (bv 1100011) (bv 0b110)
+opBits Bgeu = BOpBits (bv 1100011) (bv 0b111)
 
+-- U type
+opBits Lui   = UOpBits (bv 0b0110111)
+opBits Auipc = UOpBits (bv 0b0010111)
+
+-- J typep
+opBits Jal = JOpBits (bv 0b1101111)
+
+-- E type
+opBits Ecall  = EOpBits (bv 0b1110011) (bv 0b0)
+opBits Ebreak = EOpBits (bv 0b1110011) (bv 0b1)

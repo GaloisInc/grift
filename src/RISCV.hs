@@ -7,15 +7,15 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-A library of tools for RISC-V.
+A library of tools for the RISC-V instruction set architecture.
 -}
 
 module RISCV
-  ( module RISCV.Instruction
+  ( module RISCV.BitVector
+  , module RISCV.Instruction
   , module RISCV.Encode
---  , module RISCV.Assemble
   ) where
 
---import RISCV.Assemble
-import RISCV.Encode
+import RISCV.BitVector
 import RISCV.Instruction
+import RISCV.Encode

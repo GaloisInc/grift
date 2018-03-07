@@ -1,5 +1,5 @@
 {-|
-Module      : RISCV.Instruction
+Module      : RISCV.Assemble
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : None (yet)

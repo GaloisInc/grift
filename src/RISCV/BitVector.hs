@@ -4,18 +4,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
+{-|
+Module      : RISCV.BitVector
+Copyright   : (c) Benjamin Selfridge, 2018
+                  Galois Inc.
+License     : None (yet)
+Maintainer  : benselfridge@galois.com
+Stability   : experimental
+Portability : portable
+
+This module defines a width-parameterized `BitVector` type and various associated
+operations.
+-}
+
 module RISCV.BitVector
   ( -- * BitVector type
     BitVector
   , bv
     -- * Bitwise ops
-  -- , bvAnd, bvOr, bvXor
-  -- , bvComplement
-  -- , bvShift, bvRotate
-  -- , bvWidth
-  -- , bvTestBit
-  -- , bvBit
-  -- , bvPopCount
   , bvConcat
   , bvTrunc
   , bvExtract
@@ -29,61 +35,25 @@ import GHC.TypeLits
 import RISCV.Utils
 
 ----------------------------------------
--- A few utilities
-
--- TODO: put this in Utils
-
-----------------------------------------
 -- BitVector data type definitions
 
--- | BitVector datatype
+-- | BitVector datatype, parameterized by width.
 data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
--- | Construct a bit vector in a context where the width is known
+-- TODO: add example to documentation
+-- | Construct a bit vector in a context where the width is known. If the width is
+-- not large enough to hold the integer in 2's complement representation, we silently
+-- truncate it to fit.
 bv :: KnownNat w => Integer -> BitVector w
 bv x = BV repr (truncBits width (fromIntegral x))
   where repr  = knownNat
         width = natValue repr
 
 ----------------------------------------
--- BitVector bit operations
+-- BitVector operations
 
-bvAnd :: BitVector w -> BitVector w -> BitVector w
-bvAnd (BV repr x) (BV _ y) = BV repr (x .&. y)
-
-bvOr :: BitVector w -> BitVector w -> BitVector w
-bvOr (BV repr x) (BV _ y) = BV repr (x .|. y)
-
-bvXor :: BitVector w -> BitVector w -> BitVector w
-bvXor (BV repr x) (BV _ y) = BV repr (x `xor` y)
-
-bvComplement :: BitVector w -> BitVector w
-bvComplement (BV repr x) = BV repr (truncBits width (complement x))
-  where width = natValue repr
-
-bvShift :: BitVector w -> Int -> BitVector w
-bvShift (BV repr x) shf = BV repr (truncBits width (x `shift` shf))
-  where width = natValue repr
-
-bvRotate :: BitVector w -> Int -> BitVector w
-bvRotate bvec rot' = leftChunk `bvOr` rightChunk
-  where rot = rot' `mod` (bvWidth bvec)
-        leftChunk = bvShift bvec rot
-        rightChunk = bvShift bvec (rot - bvWidth bvec)
-
-bvWidth :: BitVector w -> Int
-bvWidth (BV repr _) = fromIntegral (natValue repr)
-
-bvTestBit :: BitVector w -> Int -> Bool
-bvTestBit (BV _ x) b = testBit x b
-
-bvBit :: KnownNat w => Int -> BitVector w
-bvBit b = bv (bit b)
-
-bvPopCount :: BitVector w -> Int
-bvPopCount (BV _ x) = popCount x
-
+-- TODO work out associativity with bvConcat.
 -- | Concatenate two bit vectors.
 bvConcat :: BitVector v -> BitVector w -> BitVector (v+w)
 bvConcat (BV hiRepr hi) (BV loRepr lo) =
@@ -134,3 +104,39 @@ instance KnownNat w => Bits (BitVector w) where
   testBit      = bvTestBit
   bit          = bvBit
   popCount     = bvPopCount
+
+
+bvAnd :: BitVector w -> BitVector w -> BitVector w
+bvAnd (BV repr x) (BV _ y) = BV repr (x .&. y)
+
+bvOr :: BitVector w -> BitVector w -> BitVector w
+bvOr (BV repr x) (BV _ y) = BV repr (x .|. y)
+
+bvXor :: BitVector w -> BitVector w -> BitVector w
+bvXor (BV repr x) (BV _ y) = BV repr (x `xor` y)
+
+bvComplement :: BitVector w -> BitVector w
+bvComplement (BV repr x) = BV repr (truncBits width (complement x))
+  where width = natValue repr
+
+bvShift :: BitVector w -> Int -> BitVector w
+bvShift (BV repr x) shf = BV repr (truncBits width (x `shift` shf))
+  where width = natValue repr
+
+bvRotate :: BitVector w -> Int -> BitVector w
+bvRotate bvec rot' = leftChunk `bvOr` rightChunk
+  where rot = rot' `mod` (bvWidth bvec)
+        leftChunk = bvShift bvec rot
+        rightChunk = bvShift bvec (rot - bvWidth bvec)
+
+bvWidth :: BitVector w -> Int
+bvWidth (BV repr _) = fromIntegral (natValue repr)
+
+bvTestBit :: BitVector w -> Int -> Bool
+bvTestBit (BV _ x) b = testBit x b
+
+bvBit :: KnownNat w => Int -> BitVector w
+bvBit b = bv (bit b)
+
+bvPopCount :: BitVector w -> Int
+bvPopCount (BV _ x) = popCount x
