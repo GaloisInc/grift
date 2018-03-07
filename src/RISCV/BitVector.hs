@@ -27,6 +27,8 @@ import Text.Printf
 ----------------------------------------
 -- A few utilities
 
+-- TODO: put this in Utils
+
 lowMask :: (Integral a, Bits b) => a -> b
 lowMask numBits = complement (complement zeroBits `shiftL` fromIntegral numBits)
 
@@ -91,8 +93,10 @@ bvPopCount (BV _ x) = popCount x
 
 -- | Concatenate two bit vectors.
 bvConcat :: BitVector v -> BitVector w -> BitVector (v+w)
-bvConcat (BV xRepr x) (BV yRepr y) = BV (xRepr `addNat` yRepr) ((x `shiftL` fromIntegral yWidth) .|. y)
-  where yWidth = natValue yRepr
+bvConcat (BV hiRepr hi) (BV loRepr lo) = BV (hiRepr `addNat` loRepr) ((hi `shiftL` fromIntegral loWidth) .|. lo)
+  where loWidth = natValue loRepr
+
+-- TODO: write bvConcatList and bvExtract.
 
 ----------------------------------------
 -- Class instances
