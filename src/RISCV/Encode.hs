@@ -17,14 +17,36 @@ a 'Word32'.
 -}
 
 module RISCV.Encode
-  ( encode
-  ) where
+  -- ( encode
+  -- , encodeOpcode
+  -- , encodeOperands
+  -- ) where
+  where -- temporarily exporting everything for debugging purposes
 
 import Data.Bits
 import Data.Word (Word32)
 
 import RISCV.Instruction
 import RISCV.Utils
+
+----------------------------------------
+-- Instruction encoding
+--
+-- Because of the clean way RISC-V classifies the different instruction formats, we
+-- can encode the opcode and the operand list of an instruction completely
+-- independently if we know the format.
+--
+-- We have two internal functions, encodeOpcode and encodeOperands. These each create
+-- separate Word32 than can then be OR-ed together to create the full instruction
+-- word.
+--
+-- encodeOpcode technically does a bit more than JUST the opcode, since many
+-- instructions have additional "funct" bits (formats R, I, S, B all have the funct3
+-- field and format R also has an additional funct7 field). These bits are encoded as
+-- well for the formats that use them. Everything else is 0.
+--
+-- encodeOperands also uses the specific format to guide how to lay the bits down for
+-- where the various operands need to go in the instruction.
 
 -- | Encode an RV32I instruction as a 32-bit word.
 encode :: forall (k :: Format). Instruction k -> Maybe Word32
@@ -118,6 +140,8 @@ encodeOperands (JOperands rd imm) = do
   immBits <- placeImmJBits imm
   return $ rdBits .|. immBits
 
+-- TODO: Replace all this code with code that uses the extract function. 
+
 placeRdBits :: RegId -> Maybe Word32
 placeRdBits (RegId rd) = placeBitsUnsigned 7 11 rd
 
@@ -128,7 +152,7 @@ placeRs2Bits :: RegId -> Maybe Word32
 placeRs2Bits (RegId rs2) = placeBitsUnsigned 20 24 rs2
 
 placeImmIBits :: Imm12 -> Maybe Word32
-placeImmIBits (Imm12 imm) = placeBitsSigned 31 20 imm
+placeImmIBits (Imm12 imm) = placeBitsSigned 20 31 imm
 
 placeImmSBits :: Imm12 -> Maybe Word32
 placeImmSBits (Imm12 imm) = do
@@ -139,13 +163,13 @@ placeImmSBits (Imm12 imm) = do
 placeImmBBits :: Imm12 -> Maybe Word32
 placeImmBBits (Imm12 imm) = do
   imm12   <- placeBitsSigned 31 31 (imm .&. 0x1000)
-  imm10_5 <- placeBitsSigned 30 25 (imm .&. 0x07E0)
+  imm10_5 <- placeBitsSigned 25 30 (imm .&. 0x07E0)
   imm4_1  <- placeBitsSigned 8  11 (imm .&. 0x001E)
-  imm11   <- placeBitsSigned 11 11 (imm .&. 0x0800)
+  imm11   <- placeBitsSigned 7  7  (imm .&. 0x0800)
   return $ imm12 .|. imm10_5 .|. imm4_1 .|. imm11
 
 placeImmUBits :: Imm20 -> Maybe Word32
-placeImmUBits (Imm20 imm) = placeBitsSigned 31 12 (imm .&. 0xFFFFF000)
+placeImmUBits (Imm20 imm) = placeBitsSigned 12 31 ((imm .&. 0xFFFFF000) `shiftR` 12)
 
 placeImmJBits :: Imm20 -> Maybe Word32
 placeImmJBits (Imm20 imm) = do

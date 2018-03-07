@@ -12,7 +12,8 @@ A few utility functions.
 
 module RISCV.Utils
   ( -- * Bits
-    fitsBitsSigned
+    extract
+  , fitsBitsSigned
   , fitsBitsUnsigned
   , placeBitsSigned
   , placeBitsUnsigned
@@ -32,6 +33,10 @@ prettyHex x = "0x" ++ showHex x ""
 
 ----------------------------------------
 -- Bits
+
+-- | Extract a slice from a 32-bit word.
+extract :: Integral a => Int -> Int -> Word32 -> a
+extract low hgh x = fromIntegral $ x `shiftR` low .&. complement (0xffffffff `shiftL` (hgh-low+1))
 
 -- | Determine if a signed integer fits in the specified number of bits.
 fitsBitsSigned :: Integer -> Int -> Bool
