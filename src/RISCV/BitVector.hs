@@ -37,6 +37,10 @@ module RISCV.BitVector
   , bvWidth
   , bvTestBit
   , bvPopCount
+    -- * Bit arithmetic ops (width-preserving)
+  , bvAdd, bvMul
+  , bvAbs, bvNegate
+  , bvSignum
     -- * Bitwise ops (variable width)
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat
@@ -116,8 +120,10 @@ bvComplement (BV wRepr x) = BV wRepr (truncBits width (complement x))
 
 -- | Bitwise shift
 bvShift :: BitVector w -> Int -> BitVector w
-bvShift (BV wRepr x) shf = BV wRepr (truncBits width (x `shift` shf))
+bvShift bvec@(BV wRepr _) shf = BV wRepr (truncBits width (x `shift` shf))
   where width = natValue wRepr
+        -- use signed representation so right shifts are arithmetic
+        x     = bvIntegerS bvec
 
 -- | Bitwise rotate
 bvRotate :: BitVector w -> Int -> BitVector w
@@ -139,6 +145,32 @@ bvPopCount :: BitVector w -> Int
 bvPopCount (BV _ x) = popCount x
 
 ----------------------------------------
+-- BitVector w arithmetic operations (fixed width)
+
+bvAdd :: BitVector w -> BitVector w -> BitVector w
+bvAdd (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x + y))
+  where width = natValue wRepr
+
+-- TODO: Is this correct for signed as well? (think it is)
+bvMul :: BitVector w -> BitVector w -> BitVector w
+bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
+  where width = natValue wRepr
+
+bvAbs :: BitVector w -> BitVector w
+bvAbs bvec@(BV wRepr _) = BV wRepr abs_x
+  where width = natValue wRepr
+        x     = bvIntegerS bvec
+        abs_x = truncBits width (abs x) -- this is necessary
+
+bvNegate :: BitVector w -> BitVector w
+bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
+  where width = fromIntegral (natValue wRepr) :: Integer
+
+bvSignum :: BitVector w -> BitVector w
+bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
+  where width = fromIntegral (natValue wRepr)
+
+----------------------------------------
 -- Width-changing operations
 
 -- TODO work out associativity with bvConcat.
@@ -148,8 +180,8 @@ bvPopCount (BV _ x) = popCount x
 -- 0xaabcdef0<32>
 bvConcat :: BitVector v -> BitVector w -> BitVector (v+w)
 bvConcat (BV hiWRepr hi) (BV loWRepr lo) =
-  BV (hiWRepr `addNat` loWRepr) ((hi `shiftL` fromIntegral loWidth) .|. lo)
-  where loWidth = natValue loWRepr
+  BV (hiWRepr `addNat` loWRepr) ((hi `shiftL` loWidth) .|. lo)
+  where loWidth = fromIntegral (natValue loWRepr)
 
 -- | Slice out a smaller bit vector from a larger one. The lowest significant bit is
 -- given explicitly as an argument of type 'Int', and the length of the slice is
@@ -213,11 +245,16 @@ instance KnownNat w => Bits (BitVector w) where
   bitSizeMaybe = Just . bvWidth
   isSigned     = const False
   testBit      = bvTestBit
-  bit          = bvBit
+  bit          = bv . bit
   popCount     = bvPopCount
 
-bvBit :: KnownNat w => Int -> BitVector w
-bvBit b = bv (bit b)
+instance KnownNat w => Num (BitVector w) where
+  (+) = bvAdd
+  (*) = bvMul
+  abs = bvAbs
+  signum = bvSignum
+  fromInteger = bv
+  negate = bvNegate
 
 ----------------------------------------
 -- Pretty Printing
