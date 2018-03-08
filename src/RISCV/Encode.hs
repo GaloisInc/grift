@@ -14,124 +14,92 @@ Stability   : experimental
 Portability : portable
 
 This module defines a function 'encode' that converts an internal 'Instruction' into
-a 'Word32'.
+a 'BitVector' @32@.
 -}
 
 module RISCV.Encode
   ( -- * Functions
     encode
-  , encodeOpBits
-  , encodeOperands
     -- * OpBits
   , OpBits(..)
+  , opBits
   ) where
 
-import Data.Bits
 import Data.Parameterized.Classes
 
 import RISCV.BitVector
 import RISCV.Instruction
 
 ----------------------------------------
--- Instruction encoding
---
--- Because of the clean way RISC-V classifies the different instruction formats, we
--- can encode the opcode and the operand list of an instruction completely
--- independently if we know the format.
---
--- We have two internal functions, encodeOpcode and encodeOperands. These each create
--- separate Word32's than can then be OR-ed together to create the full instruction
--- word.
---
--- encodeOpcode technically does a bit more than JUST the opcode, since many
--- instructions have additional "funct" bits (formats R, I, S, B all have the funct3
--- field and format R also has an additional funct7 field). These bits are encoded as
--- well for the formats that use them. Everything else is 0.
---
--- encodeOperands also uses the specific format to guide how to lay the bits down for
--- where the various operands need to go in the instruction.
-
-----------------------------------------
 -- Encoding
 -- | Encode an RV32I instruction as a 32-bit word.
 encode :: forall (k :: Format). Instruction k -> BitVector 32
-encode (Inst opcode operands) =
-  encodeOperands operands .|. encodeOpBits (opBits opcode)
-
--- | Encode the operands of an instruction.
-encodeOperands :: forall (k :: Format). Operands k -> BitVector 32
-encodeOperands (ROperands rd rs1 rs2) =
-  (bv 0 :: BitVector 7) `bvConcat`
-  rs2                   `bvConcat`
-  rs1                   `bvConcat`
-  (bv 0 :: BitVector 3) `bvConcat`
-  rd                    `bvConcat`
-  (bv 0 :: BitVector 7)
-encodeOperands (IOperands rd rs1 imm) =
-  imm                   `bvConcat`
-  rs1                   `bvConcat`
-  (bv 0 :: BitVector 3) `bvConcat`
-  rd                    `bvConcat`
-  (bv 0 :: BitVector 7)
-encodeOperands (SOperands rs1 rs2 imm) =
-  (bvExtract 5 imm :: BitVector 7) `bvConcat`
-  rs2                              `bvConcat`
-  rs1                              `bvConcat`
-  (bv 0 :: BitVector 3)            `bvConcat`
-  (bvExtract 0 imm :: BitVector 5) `bvConcat`
-  (bv 0 :: BitVector 7)
-encodeOperands (BOperands rs1 rs2 imm) =
-  (bvExtract 5 imm :: BitVector 7) `bvConcat`
-  rs2                              `bvConcat`
-  rs1                              `bvConcat`
-  (bv 0 :: BitVector 3)            `bvConcat`
-  (bvExtract 0 imm :: BitVector 5) `bvConcat`
-  (bv 0 :: BitVector 7)
-encodeOperands (UOperands rd imm) =
-  imm `bvConcat` rd `bvConcat` (bv 0 :: BitVector 7)
-encodeOperands (JOperands rd imm) =
-  (bvExtract 19 imm :: BitVector 1)  `bvConcat`
-  (bvExtract 0  imm :: BitVector 10) `bvConcat`
-  (bvExtract 10 imm :: BitVector 1)  `bvConcat`
-  (bvExtract 11 imm :: BitVector 8)  `bvConcat`
-  rd                                 `bvConcat`
-  (bv 0 :: BitVector 7)
-encodeOperands (EOperands) = bv 0 :: BitVector 32
-
--- | Encode the OpBits of a particular opcode.
-encodeOpBits :: forall (k :: Format). OpBits k -> BitVector 32
-encodeOpBits (ROpBits opcode funct3 funct7) =
-  funct7 `bvConcat`
-  (bv 0 :: BitVector 10) `bvConcat`
-  funct3 `bvConcat`
-  (bv 0 :: BitVector 5) `bvConcat`
-  opcode
-encodeOpBits (IOpBits opcode funct3) =
-  (bv 0 :: BitVector 17) `bvConcat`
-  funct3 `bvConcat`
-  (bv 0 :: BitVector 5) `bvConcat`
-  opcode
-encodeOpBits (SOpBits opcode funct3) =
-  (bv 0 :: BitVector 17) `bvConcat`
-  funct3 `bvConcat`
-  (bv 0 :: BitVector 5) `bvConcat`
-  opcode
-encodeOpBits (BOpBits opcode funct3) =
-  (bv 0 :: BitVector 17) `bvConcat`
-  funct3 `bvConcat`
-  (bv 0 :: BitVector 5) `bvConcat`
-  opcode
-encodeOpBits (UOpBits opcode) =
-  (bv 0 :: BitVector 25) `bvConcat`
-  opcode
-encodeOpBits (JOpBits opcode) =
-  (bv 0 :: BitVector 25) `bvConcat`
-  opcode
-encodeOpBits (EOpBits opcode b) =
-  (bv 0 :: BitVector 11) `bvConcat`
-  b `bvConcat`
-  (bv 0 :: BitVector 13) `bvConcat`
-  opcode
+encode (Inst opcode (ROperands rd  rs1 rs2)) =
+  -- R type
+  case opBits opcode of
+    ROpBits opcodeBits funct3 funct7 ->
+      funct7 `bvConcat`
+      rs2    `bvConcat`
+      rs1    `bvConcat`
+      funct3 `bvConcat`
+      rd     `bvConcat`
+      opcodeBits
+encode (Inst opcode (IOperands rd  rs1 imm)) =
+  -- I type
+  case opBits opcode of
+    IOpBits opcodeBits funct3 ->
+      imm    `bvConcat`
+      rs1    `bvConcat`
+      funct3 `bvConcat`
+      rd     `bvConcat`
+      opcodeBits
+encode (Inst opcode (SOperands rs1 rs2 imm)) =
+  -- S type
+  case opBits opcode of
+    SOpBits opcodeBits funct3 ->
+      (bvExtract 5 imm :: BitVector 7) `bvConcat`
+      rs2                              `bvConcat`
+      rs1                              `bvConcat`
+      funct3                           `bvConcat`
+      (bvExtract 0 imm :: BitVector 5) `bvConcat`
+      opcodeBits
+encode (Inst opcode (BOperands rs1 rs2 imm)) =
+  -- B type
+  case opBits opcode of
+    BOpBits opcodeBits funct3 ->
+      (bvExtract 11 imm :: BitVector 1) `bvConcat`
+      (bvExtract 4  imm :: BitVector 6) `bvConcat`
+      rs2                               `bvConcat`
+      rs1                               `bvConcat`
+      funct3                            `bvConcat`
+      (bvExtract 0  imm :: BitVector 4) `bvConcat`
+      (bvExtract 10 imm :: BitVector 1) `bvConcat`
+      opcodeBits
+encode (Inst opcode (UOperands rd      imm)) =
+  -- U type
+  case opBits opcode of
+    UOpBits opcodeBits ->
+      imm `bvConcat`
+      rd `bvConcat`
+      opcodeBits
+encode (Inst opcode (JOperands rd      imm)) =
+  -- J type
+  case opBits opcode of
+    JOpBits opcodeBits ->
+      (bvExtract 19 imm :: BitVector 1)  `bvConcat`
+      (bvExtract 0  imm :: BitVector 10) `bvConcat`
+      (bvExtract 10 imm :: BitVector 1)  `bvConcat`
+      (bvExtract 11 imm :: BitVector 8)  `bvConcat`
+      rd `bvConcat`
+      opcodeBits
+encode (Inst opcode (EOperands )) =
+  -- E type
+  case opBits opcode of
+    EOpBits opcodeBits b ->
+      (bv 0 :: BitVector 11) `bvConcat`
+      b `bvConcat`
+      (bv 0 :: BitVector 13) `bvConcat`
+      opcodeBits
 
 ----------------------------------------
 -- OpBits
@@ -175,7 +143,7 @@ instance ShowF OpBits
 ----------------------------------------
 -- Opcode -> OpBits map
 
--- | Maps opcodes to the OpBit bit patterns they map to in an instruction.
+-- | Maps opcodes to the OpBit bit patterns they fix in an instruction.
 opBits :: forall k . Opcode k -> OpBits k
 
 -- R type

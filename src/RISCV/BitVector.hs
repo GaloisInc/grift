@@ -200,7 +200,9 @@ instance Eq (BitVector w) where
   (BV _ x) == (BV _ y) = x == y
 
 instance EqF BitVector where
-  (BV _ x) `eqF` (BV _ y) = x == y
+  (BV wRepr x) `eqF` (BV wRepr' y) =
+    natValue wRepr == natValue wRepr' &&
+    x == y
 
 instance KnownNat w => Bits (BitVector w) where
   (.&.)        = bvAnd

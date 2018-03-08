@@ -122,6 +122,10 @@ data Opcode (f :: Format) :: * where
   Slli    :: Opcode 'I
   Srli    :: Opcode 'I
   Srai    :: Opcode 'I
+  -- TODO: Fence and Fence_i are both slightly wonky; we might need to separate them
+  -- out into separate formats like we did with Ecall and Ebreak. Fence uses the
+  -- immediate bits to encode additional operands and Fence_i requires them to be 0,
+  -- so ideally we'd capture that in the type.
   Fence   :: Opcode 'I
   Fence_i :: Opcode 'I
   Csrrw   :: Opcode 'I
