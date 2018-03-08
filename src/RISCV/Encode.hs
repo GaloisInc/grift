@@ -44,7 +44,7 @@ encode (Inst opcode (ROperands rd  rs1 rs2)) =
       funct3 <:>
       rd     <:>
       opcodeBits
-encode (Inst opcode (IOperands rd  rs1 imm)) =
+encode (Inst opcode (IOperands rd rs1 imm)) =
   -- I type
   case opBits opcode of
     IOpBits opcodeBits funct3 ->
@@ -75,14 +75,14 @@ encode (Inst opcode (BOperands rs1 rs2 imm)) =
       (bvExtract 0  imm :: BitVector 4) <:>
       (bvExtract 10 imm :: BitVector 1) <:>
       opcodeBits
-encode (Inst opcode (UOperands rd      imm)) =
+encode (Inst opcode (UOperands rd imm)) =
   -- U type
   case opBits opcode of
     UOpBits opcodeBits ->
       imm <:>
-      rd <:>
+      rd  <:>
       opcodeBits
-encode (Inst opcode (JOperands rd      imm)) =
+encode (Inst opcode (JOperands rd imm)) =
   -- J type
   case opBits opcode of
     JOpBits opcodeBits ->
@@ -97,7 +97,7 @@ encode (Inst opcode (EOperands )) =
   case opBits opcode of
     EOpBits opcodeBits b ->
       (bv 0 :: BitVector 11) <:>
-      b <:>
+      b                      <:>
       (bv 0 :: BitVector 13) <:>
       opcodeBits
 
@@ -114,6 +114,11 @@ data OpBits :: Format -> * where
   BOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'B
   UOpBits :: BitVector 7                               -> OpBits 'U
   JOpBits :: BitVector 7                               -> OpBits 'J
+  -- TODO: Still haven't quite gotten this right. The key here is that the *real*
+  -- reason we needed a separate format is that the upper bits were fixed rather than
+  -- variable. But everything else is pretty much the same... Just be sure that
+  -- whatever is fixed by the opcode gets captured here, and whatever isn't fixed
+  -- gets captured elsewhere.
   EOpBits :: BitVector 7 -> BitVector 1                -> OpBits 'E
 
 instance Show (OpBits k) where
