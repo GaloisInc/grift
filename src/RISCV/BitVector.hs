@@ -15,17 +15,13 @@ Portability : portable
 
 This module defines a width-parameterized 'BitVector' type and various associated
 operations that assume a 2's complement representation.
-
-Along with a 'Bits' instance for every @BitVector w@ type where @w@ is known at
-compile time, we also provide a few additional operations for conversion between
-bitvectors of different lengths.
 -}
 
 module RISCV.BitVector
   ( -- * BitVector type
     BitVector
   , bv
-    -- * Bitwise ops (width-preserving)
+    -- * Bitwise operations (width-preserving)
     -- | These are alternative versions of some of the 'Bits' functions where we do
     -- not need to know the width at compile time. They are all width-preserving.
   , bvAnd
@@ -37,11 +33,11 @@ module RISCV.BitVector
   , bvWidth
   , bvTestBit
   , bvPopCount
-    -- * Bit arithmetic ops (width-preserving)
+    -- * Arithmetic operations (width-preserving)
   , bvAdd, bvMul
   , bvAbs, bvNegate
   , bvSignum
-    -- * Bitwise ops (variable width)
+    -- * Bitwise operations (variable width)
     -- | These are functions that involve bit vectors of different lengths.
   , bvConcat
   , bvExtract
@@ -147,25 +143,31 @@ bvPopCount (BV _ x) = popCount x
 ----------------------------------------
 -- BitVector w arithmetic operations (fixed width)
 
+-- | Bitwise add
 bvAdd :: BitVector w -> BitVector w -> BitVector w
 bvAdd (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x + y))
   where width = natValue wRepr
 
 -- TODO: Is this correct for signed as well? (think it is)
+-- | Bitwise multiply
 bvMul :: BitVector w -> BitVector w -> BitVector w
 bvMul (BV wRepr x) (BV _ y) = BV wRepr (truncBits width (x * y))
   where width = natValue wRepr
 
+-- | Bitwise absolute value
 bvAbs :: BitVector w -> BitVector w
 bvAbs bvec@(BV wRepr _) = BV wRepr abs_x
   where width = natValue wRepr
         x     = bvIntegerS bvec
         abs_x = truncBits width (abs x) -- this is necessary
 
+-- TODO: I could do the ~x + 1 thing, might be cleaner
+-- | Bitwise negation
 bvNegate :: BitVector w -> BitVector w
 bvNegate (BV wRepr x) = BV wRepr (truncBits width (-x))
   where width = fromIntegral (natValue wRepr) :: Integer
 
+-- | Get the sign bit as a 'BitVector'
 bvSignum :: BitVector w -> BitVector w
 bvSignum bvec@(BV wRepr _) = (bvShift bvec (1 - width)) `bvAnd` (BV wRepr 0x1)
   where width = fromIntegral (natValue wRepr)
@@ -230,9 +232,7 @@ instance Eq (BitVector w) where
   (BV _ x) == (BV _ y) = x == y
 
 instance EqF BitVector where
-  (BV wRepr x) `eqF` (BV wRepr' y) =
-    natValue wRepr == natValue wRepr' &&
-    x == y
+  (BV _ x) `eqF` (BV _ y) = x == y
 
 instance KnownNat w => Bits (BitVector w) where
   (.&.)        = bvAnd
@@ -247,6 +247,9 @@ instance KnownNat w => Bits (BitVector w) where
   testBit      = bvTestBit
   bit          = bv . bit
   popCount     = bvPopCount
+
+instance KnownNat w => FiniteBits (BitVector w) where
+  finiteBitSize = bvWidth
 
 instance KnownNat w => Num (BitVector w) where
   (+) = bvAdd
