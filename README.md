@@ -8,9 +8,12 @@ Berkeley. riscv-tools is a Haskell library that encodes the core of the ISA -- t
 encoding and decoding of instructions, as well as their semantics. The intent is to
 facilitate easy assembler/disassembler/simulator building.
 
-## Building
+## Getting/Building
 
 ```
+git clone git@github.com:benjaminselfridge/riscv-tools.git
+git submodule init
+git submodule update
 stack build
 ```
 
