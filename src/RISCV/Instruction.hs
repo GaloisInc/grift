@@ -27,9 +27,8 @@ module RISCV.Instruction
   , Instruction(..)
   ) where
 
-import           Data.Parameterized
-
-import RISCV.BitVector
+import Data.BitVector.Sized
+import Data.Parameterized
 
 ----------------------------------------
 -- Formats

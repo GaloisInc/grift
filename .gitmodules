@@ -1,0 +1,3 @@
+[submodule "submodules/bv-sized"]
+	path = submodules/bv-sized
+	url = git@github.com:benjaminselfridge/bv-sized.git

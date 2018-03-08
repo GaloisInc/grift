@@ -1,11 +1,11 @@
 
 name:                riscv-tools
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:
+description:
 homepage:            https://github.com/benjaminselfridge/riscv-tools#readme
--- license:             BSD3
--- license-file:        LICENSE
+license:             BSD3
+license-file:        LICENSE
 author:              Ben Selfridge
 maintainer:          benselfridge@galois.com
 copyright:           March 2018
@@ -16,10 +16,10 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     RISCV
-                     , RISCV.BitVector
                      , RISCV.Encode
                      , RISCV.Instruction
   build-depends:       base >= 4.7 && < 5
+                     , bv-sized
                      , bytestring >= 0.10.0 && < 0.11.0
                      , parameterized-utils
   hs-source-dirs:      src

@@ -25,9 +25,9 @@ module RISCV.Encode
   , opBits
   ) where
 
+import Data.BitVector.Sized
 import Data.Parameterized.Classes
 
-import RISCV.BitVector
 import RISCV.Instruction
 
 ----------------------------------------
