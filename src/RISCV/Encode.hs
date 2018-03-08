@@ -38,67 +38,67 @@ encode (Inst opcode (ROperands rd  rs1 rs2)) =
   -- R type
   case opBits opcode of
     ROpBits opcodeBits funct3 funct7 ->
-      funct7 `bvConcat`
-      rs2    `bvConcat`
-      rs1    `bvConcat`
-      funct3 `bvConcat`
-      rd     `bvConcat`
+      funct7 <:>
+      rs2    <:>
+      rs1    <:>
+      funct3 <:>
+      rd     <:>
       opcodeBits
 encode (Inst opcode (IOperands rd  rs1 imm)) =
   -- I type
   case opBits opcode of
     IOpBits opcodeBits funct3 ->
-      imm    `bvConcat`
-      rs1    `bvConcat`
-      funct3 `bvConcat`
-      rd     `bvConcat`
+      imm    <:>
+      rs1    <:>
+      funct3 <:>
+      rd     <:>
       opcodeBits
 encode (Inst opcode (SOperands rs1 rs2 imm)) =
   -- S type
   case opBits opcode of
     SOpBits opcodeBits funct3 ->
-      (bvExtract 5 imm :: BitVector 7) `bvConcat`
-      rs2                              `bvConcat`
-      rs1                              `bvConcat`
-      funct3                           `bvConcat`
-      (bvExtract 0 imm :: BitVector 5) `bvConcat`
+      (bvExtract 5 imm :: BitVector 7) <:>
+      rs2                              <:>
+      rs1                              <:>
+      funct3                           <:>
+      (bvExtract 0 imm :: BitVector 5) <:>
       opcodeBits
 encode (Inst opcode (BOperands rs1 rs2 imm)) =
   -- B type
   case opBits opcode of
     BOpBits opcodeBits funct3 ->
-      (bvExtract 11 imm :: BitVector 1) `bvConcat`
-      (bvExtract 4  imm :: BitVector 6) `bvConcat`
-      rs2                               `bvConcat`
-      rs1                               `bvConcat`
-      funct3                            `bvConcat`
-      (bvExtract 0  imm :: BitVector 4) `bvConcat`
-      (bvExtract 10 imm :: BitVector 1) `bvConcat`
+      (bvExtract 11 imm :: BitVector 1) <:>
+      (bvExtract 4  imm :: BitVector 6) <:>
+      rs2                               <:>
+      rs1                               <:>
+      funct3                            <:>
+      (bvExtract 0  imm :: BitVector 4) <:>
+      (bvExtract 10 imm :: BitVector 1) <:>
       opcodeBits
 encode (Inst opcode (UOperands rd      imm)) =
   -- U type
   case opBits opcode of
     UOpBits opcodeBits ->
-      imm `bvConcat`
-      rd `bvConcat`
+      imm <:>
+      rd <:>
       opcodeBits
 encode (Inst opcode (JOperands rd      imm)) =
   -- J type
   case opBits opcode of
     JOpBits opcodeBits ->
-      (bvExtract 19 imm :: BitVector 1)  `bvConcat`
-      (bvExtract 0  imm :: BitVector 10) `bvConcat`
-      (bvExtract 10 imm :: BitVector 1)  `bvConcat`
-      (bvExtract 11 imm :: BitVector 8)  `bvConcat`
-      rd `bvConcat`
+      (bvExtract 19 imm :: BitVector 1)  <:>
+      (bvExtract 0  imm :: BitVector 10) <:>
+      (bvExtract 10 imm :: BitVector 1)  <:>
+      (bvExtract 11 imm :: BitVector 8)  <:>
+      rd <:>
       opcodeBits
 encode (Inst opcode (EOperands )) =
   -- E type
   case opBits opcode of
     EOpBits opcodeBits b ->
-      (bv 0 :: BitVector 11) `bvConcat`
-      b `bvConcat`
-      (bv 0 :: BitVector 13) `bvConcat`
+      (bv 0 :: BitVector 11) <:>
+      b <:>
+      (bv 0 :: BitVector 13) <:>
       opcodeBits
 
 ----------------------------------------
