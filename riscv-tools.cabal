@@ -16,11 +16,9 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     RISCV
-                     , RISCV.Assemble
                      , RISCV.BitVector
                      , RISCV.Encode
                      , RISCV.Instruction
-                     , RISCV.Utils
   build-depends:       base >= 4.7 && < 5
                      , bytestring >= 0.10.0 && < 0.11.0
                      , parameterized-utils

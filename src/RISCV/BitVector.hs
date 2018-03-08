@@ -53,8 +53,7 @@ import Data.Bits
 import Data.Parameterized.Classes
 import Data.Parameterized.NatRepr
 import GHC.TypeLits
-
-import RISCV.Utils
+import Text.Printf
 
 ----------------------------------------
 -- BitVector data type definitions
@@ -63,7 +62,6 @@ import RISCV.Utils
 data BitVector (w :: Nat) :: * where
   BV :: NatRepr w -> Integer -> BitVector w
 
--- TODO: add example to documentation
 -- | Construct a bit vector in a context where the width is inferrable from the type
 -- context. If the width is not large enough to hold the integer in 2's complement
 -- representation, we silently truncate it to fit.
@@ -220,3 +218,23 @@ instance KnownNat w => Bits (BitVector w) where
 
 bvBit :: KnownNat w => Int -> BitVector w
 bvBit b = bv (bit b)
+
+----------------------------------------
+-- Pretty Printing
+
+-- | Print an integral value in hex with a leading "0x"
+prettyHex :: (Integral a, PrintfArg a, Show a) => a -> Integer -> String
+prettyHex width val = printf format val width
+  where numDigits = (width+3) `div` 4
+        format = "0x%." ++ show numDigits ++ "x<%d>"
+
+----------------------------------------
+-- Bits
+
+-- | Mask for a specified number of lower bits.
+lowMask :: (Integral a, Bits b) => a -> b
+lowMask numBits = complement (complement zeroBits `shiftL` fromIntegral numBits)
+
+-- | Truncate to a specified number of lower bits.
+truncBits :: (Integral a, Bits b) => a -> b -> b
+truncBits width b = b .&. lowMask width
