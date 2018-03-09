@@ -16,6 +16,7 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     RISCV
+                     , RISCV.Decode
                      , RISCV.Encode
                      , RISCV.Instruction
   build-depends:       base >= 4.7 && < 5

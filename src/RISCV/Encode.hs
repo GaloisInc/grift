@@ -90,16 +90,13 @@ encode (Inst opcode (JOperands rd imm)) =
       (bvExtract 0  imm :: BitVector 10) <:>
       (bvExtract 10 imm :: BitVector 1)  <:>
       (bvExtract 11 imm :: BitVector 8)  <:>
-      rd <:>
+      rd                                 <:>
       opcodeBits
 encode (Inst opcode (EOperands )) =
   -- E type
   case opBits opcode of
-    EOpBits opcodeBits b ->
-      (bv 0 :: BitVector 11) <:>
-      b                      <:>
-      (bv 0 :: BitVector 13) <:>
-      opcodeBits
+    EOpBits opcodeBits eBits -> eBits <:> opcodeBits
+encode (Inst _ (XOperands ill)) = ill
 
 ----------------------------------------
 -- OpBits
@@ -114,12 +111,8 @@ data OpBits :: Format -> * where
   BOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'B
   UOpBits :: BitVector 7                               -> OpBits 'U
   JOpBits :: BitVector 7                               -> OpBits 'J
-  -- TODO: Still haven't quite gotten this right. The key here is that the *real*
-  -- reason we needed a separate format is that the upper bits were fixed rather than
-  -- variable. But everything else is pretty much the same... Just be sure that
-  -- whatever is fixed by the opcode gets captured here, and whatever isn't fixed
-  -- gets captured elsewhere.
-  EOpBits :: BitVector 7 -> BitVector 1                -> OpBits 'E
+  EOpBits :: BitVector 7 -> BitVector 25               -> OpBits 'E
+  XOpBits ::                                              OpBits 'X
 
 instance Show (OpBits k) where
   show (ROpBits opcode funct3 funct7) =
@@ -142,6 +135,7 @@ instance Show (OpBits k) where
   show (EOpBits opcode b) =
     "[ opcode = " ++ show opcode ++
     ", b = " ++ show b ++ "]"
+  show (XOpBits) = "[]"
 
 instance ShowF OpBits
 
@@ -205,9 +199,12 @@ opBits Bgeu = BOpBits (bv 1100011) (bv 0b111)
 opBits Lui   = UOpBits (bv 0b0110111)
 opBits Auipc = UOpBits (bv 0b0010111)
 
--- J typep
+-- J type
 opBits Jal = JOpBits (bv 0b1101111)
 
 -- E type
-opBits Ecall  = EOpBits (bv 0b1110011) (bv 0b0)
-opBits Ebreak = EOpBits (bv 0b1110011) (bv 0b1)
+opBits Ecall  = EOpBits (bv 0b1110011) (bv 0b0000000000000000000000000)
+opBits Ebreak = EOpBits (bv 0b1110011) (bv 0b0000000000010000000000000)
+
+-- X type
+opBits Illegal = XOpBits

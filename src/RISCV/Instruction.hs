@@ -35,7 +35,8 @@ import Data.Parameterized
 
 -- | The seven RV32I instruction formats. Each RV32I opcode has one of seven encoding
 -- formats, corresponding to its operands and the way those operands are laid out as
--- bits in the instruction word.
+-- bits in the instruction word. We include an additional (eighth) format, X,
+-- inhabited only by an illegal instruction.
 --
 -- NOTE: Although the RISC-V spec only lists 6, in our formulation, the ecall and
 -- ebreak instructions are slightly distinct from the other I-format instructions; in
@@ -44,7 +45,7 @@ import Data.Parameterized
 -- between the two of them. Therefore, we invented an extra format, E, to represent
 -- them.
 
-data Format = R | I | S | B | U | J | E
+data Format = R | I | S | B | U | J | E | X
 
 ----------------------------------------
 -- Operands
@@ -59,6 +60,7 @@ data Operands :: Format -> * where
   UOperands :: BitVector 5 -> BitVector 20                 -> Operands 'U
   JOperands :: BitVector 5 -> BitVector 20                 -> Operands 'J
   EOperands ::                                                Operands 'E
+  XOperands :: BitVector 32                                -> Operands 'X
 
 instance Show (Operands k) where
   show (ROperands rd rs1 rs2) =
@@ -84,6 +86,7 @@ instance Show (Operands k) where
     "[ rd = "  ++ show rd ++
     ", imm = " ++ show imm ++ " ]"
   show (EOperands) = "[]"
+  show (XOperands ill) = "[ ill = " ++ show ill ++ "]"
 instance ShowF Operands
 
 
@@ -158,6 +161,9 @@ data Opcode (f :: Format) :: * where
   Ecall   :: Opcode 'E
   Ebreak  :: Opcode 'E
 
+  -- X type (illegal instruction)
+  Illegal :: Opcode 'X
+
 instance Show (Opcode k) where
   -- R type
   show Add  = "Add"
@@ -216,9 +222,12 @@ instance Show (Opcode k) where
   -- J type
   show Jal = "Jal"
 
-  -- E typ
+  -- E type
   show Ecall   = "Ecall"
   show Ebreak  = "Ebreak"
+
+  -- X type (illegal instruction)
+  show Illegal = "Illegal"
 
 instance ShowF Opcode
 
