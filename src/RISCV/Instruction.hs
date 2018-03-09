@@ -50,6 +50,10 @@ data Format = R | I | S | B | U | J | E | X
 ----------------------------------------
 -- Operands
 
+-- TODO: Consider encapsulating BitVector w with another type, Operand w, also
+-- parameterized over width. This would contain the bitvector as well as an Int index
+-- into the instruction word where this operand goes in the word. It should be
+-- possible to use this information cleverly in both the encoding AND the decoding.
 -- | RV32I Operand lists, parameterized by format. There is exactly one constructor
 -- per format.
 data Operands :: Format -> * where
