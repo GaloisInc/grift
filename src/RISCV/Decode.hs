@@ -94,10 +94,10 @@ decode bvec = case (opcodeBits, funct3Bits, funct7Bits, eBits) of
   -- X type (illegal instruction)
   _ -> Some $ Inst Illegal (XOperands bvec)
   where dBits      = getDecodeBits bvec
-        opcodeBits = bvIntegerS (dOpcode dBits)
-        funct3Bits = bvIntegerS (dFunct3 dBits)
-        funct7Bits = bvIntegerS (dFunct7 dBits)
-        eBits      = bvIntegerS (dEBits  dBits)
+        opcodeBits = bvIntegerU (dOpcode dBits)
+        funct3Bits = bvIntegerU (dFunct3 dBits)
+        funct7Bits = bvIntegerU (dFunct7 dBits)
+        eBits      = bvIntegerU (dEBits  dBits)
         rOperands  = ROperands
           (bvExtract 7  bvec)
           (bvExtract 15 bvec)
@@ -133,6 +133,7 @@ data DecodeBits = DBits { dOpcode :: BitVector 7
                         , dFunct7 :: BitVector 7
                         , dEBits  :: BitVector 25
                         }
+  deriving Show
 
 getDecodeBits :: BitVector 32 -> DecodeBits
 getDecodeBits bvec = DBits
