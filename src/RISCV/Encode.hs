@@ -188,12 +188,12 @@ opBits Sh = SOpBits (bv 0b0100011) (bv 0b001)
 opBits Sw = SOpBits (bv 0b0100011) (bv 0b010)
 
 -- B type
-opBits Beq  = BOpBits (bv 1100011) (bv 0b000)
-opBits Bne  = BOpBits (bv 1100011) (bv 0b001)
-opBits Blt  = BOpBits (bv 1100011) (bv 0b100)
-opBits Bge  = BOpBits (bv 1100011) (bv 0b101)
-opBits Bltu = BOpBits (bv 1100011) (bv 0b110)
-opBits Bgeu = BOpBits (bv 1100011) (bv 0b111)
+opBits Beq  = BOpBits (bv 0b1100011) (bv 0b000)
+opBits Bne  = BOpBits (bv 0b1100011) (bv 0b001)
+opBits Blt  = BOpBits (bv 0b1100011) (bv 0b100)
+opBits Bge  = BOpBits (bv 0b1100011) (bv 0b101)
+opBits Bltu = BOpBits (bv 0b1100011) (bv 0b110)
+opBits Bgeu = BOpBits (bv 0b1100011) (bv 0b111)
 
 -- U type
 opBits Lui   = UOpBits (bv 0b0110111)

@@ -121,6 +121,8 @@ data Opcode (f :: Format) :: * where
   Xori    :: Opcode 'I
   Ori     :: Opcode 'I
   Andi    :: Opcode 'I
+  -- TODO: the shift instructions are also a slightly different format, we accept
+  -- that for the time being.
   Slli    :: Opcode 'I
   Srli    :: Opcode 'I
   Srai    :: Opcode 'I
