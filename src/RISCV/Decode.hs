@@ -2,7 +2,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 
@@ -99,12 +98,35 @@ decode bvec = case (opcodeBits, funct3Bits, funct7Bits, eBits) of
         funct3Bits = bvIntegerS (dFunct3 dBits)
         funct7Bits = bvIntegerS (dFunct7 dBits)
         eBits      = bvIntegerS (dEBits  dBits)
-        rOperands  = undefined
-        iOperands  = undefined
-        sOperands  = undefined
-        bOperands  = undefined
-        uOperands  = undefined
-        jOperands  = undefined
+        rOperands  = ROperands
+          (bvExtract 7  bvec)
+          (bvExtract 15 bvec)
+          (bvExtract 20 bvec)
+        iOperands  = IOperands
+          (bvExtract 7  bvec)
+          (bvExtract 15 bvec)
+          (bvExtract 20 bvec)
+        sOperands  = SOperands
+          (bvExtract 15 bvec)
+          (bvExtract 20 bvec)
+          ( (bvExtract 25 bvec :: BitVector 7) <:>
+            (bvExtract 7  bvec :: BitVector 5) )
+        bOperands  = BOperands
+          (bvExtract 15 bvec)
+          (bvExtract 20 bvec)
+          ( (bvExtract 31 bvec :: BitVector 1) <:>
+            (bvExtract 7  bvec :: BitVector 1) <:>
+            (bvExtract 25 bvec :: BitVector 6) <:>
+            (bvExtract 8  bvec :: BitVector 4) )
+        uOperands = UOperands
+          (bvExtract 7  bvec :: BitVector 5)
+          (bvExtract 12 bvec :: BitVector 20)
+        jOperands = JOperands
+          (bvExtract 7 bvec :: BitVector 5)
+          ( (bvExtract 31 bvec :: BitVector 1) <:>
+            (bvExtract 12 bvec :: BitVector 8) <:>
+            (bvExtract 20 bvec :: BitVector 1) <:>
+            (bvExtract 21 bvec :: BitVector 10) )
 
 data DecodeBits = DBits { dOpcode :: BitVector 7
                         , dFunct3 :: BitVector 3

@@ -32,6 +32,8 @@ import RISCV.Instruction
 
 ----------------------------------------
 -- Encoding
+-- TODO: consider annotating every single variable with the type in each case for
+-- clarity.
 -- | Encode an RV32I instruction as a 32-bit word.
 encode :: forall (k :: Format). Instruction k -> BitVector 32
 encode (Inst opcode (ROperands rd  rs1 rs2)) =
