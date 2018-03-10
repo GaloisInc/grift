@@ -169,3 +169,4 @@ opBits Ebreak = EOpBits (bv 0b1110011) (bv 0b0000000000010000000000000)
 
 -- X type
 opBits Illegal = XOpBits
+

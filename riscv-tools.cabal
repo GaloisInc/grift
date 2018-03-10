@@ -19,6 +19,7 @@ library
                      , RISCV.Decode
                      , RISCV.Encode
                      , RISCV.Instruction
+  other-modules:
   build-depends:       base >= 4.7 && < 5
                      , bv-sized
                      , bytestring >= 0.10.0 && < 0.11.0
