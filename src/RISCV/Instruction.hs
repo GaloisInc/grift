@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE KindSignatures    #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -32,8 +33,11 @@ module RISCV.Instruction
 
 import Control.Lens
 import Data.BitVector.Sized
+import Data.BitVector.Sized.Internal ( BitVector(BV) )
 import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
+import qualified Data.Parameterized.Map as Map
+import           Data.Parameterized.Map ( MapF )
 
 ----------------------------------------
 -- Formats
@@ -55,10 +59,7 @@ data Format = R | I | S | B | U | J | E | X
 ----------------------------------------
 -- Operands
 
--- TODO: Consider encapsulating BitVector w with another type, Operand w, also
--- parameterized over width. This would contain the bitvector as well as an Int index
--- into the instruction word where this operand goes in the word. It should be
--- possible to use this information cleverly in both the encoding AND the decoding.
+-- TODO: Consider making the operand arguments lists of bit vector types???
 -- | RV32I Operand lists, parameterized by format. There is exactly one constructor
 -- per format.
 data Operands :: Format -> * where
@@ -241,6 +242,85 @@ instance Show (Opcode k) where
 
 instance ShowF Opcode
 
+instance EqF Opcode where
+  -- R type
+  Add `eqF` Add = True
+  Sub `eqF` Sub = True
+  Sub `eqF` Sub = True
+  Slt `eqF` Slt = True
+  Sltu `eqF` Sltu = True
+  Xor `eqF` Xor = True
+  Srl `eqF` Srl = True
+  Sra `eqF` Sra = True
+  Or `eqF` Or = True
+  And `eqF` And = True
+
+  -- I type
+  Jalr `eqF` Jalr = True
+  Lb `eqF` Lb = True
+  Lh `eqF` Lh = True
+  Lw `eqF` Lw = True
+  Lbu `eqF` Lbu = True
+  Lhu `eqF` Lhu = True
+  Addi `eqF` Addi = True
+  Slti `eqF` Slti = True
+  Sltiu `eqF` Sltiu = True
+  Xori `eqF` Xori = True
+  Ori `eqF` Ori = True
+  Andi `eqF` Andi = True
+  -- TODO: the shift instructions are also a slightly different format, we accept
+  -- that for the time being.
+  Slli `eqF` Slli = True
+  Srli `eqF` Srli = True
+  Srai `eqF` Srai = True
+  -- TODO: Fence and Fence_i are both slightly wonky; we might need to separate them
+  -- out into separate formats like we did with Ecall and Ebreak. Fence uses the
+  -- immediate bits to encode additional operands and Fence_i requires them to be 0,
+  -- so ideally we'd capture that in the type.
+  Fence `eqF` Fence = True
+  Fence `eqF` Fence = True
+  Csrrw `eqF` Csrrw = True
+  Csrrs `eqF` Csrrs = True
+  Csrrc `eqF` Csrrc = True
+  Csrrwi `eqF` Csrrwi = True
+  Csrrsi `eqF` Csrrsi = True
+  Csrrci `eqF` Csrrci = True
+
+  -- S type
+  Sb `eqF` Sb = True
+  Sh `eqF` Sh = True
+  Sw `eqF` Sw = True
+
+  -- B type
+  Beq `eqF` Beq = True
+  Bne `eqF` Bne = True
+  Blt `eqF` Blt = True
+  Bge `eqF` Bge = True
+  Bltu `eqF` Bltu = True
+  Bgeu `eqF` Bgeu = True
+
+  -- U type
+  Lui `eqF` Lui = True
+  Auipc `eqF` Auipc = True
+
+  -- J type
+  Jal `eqF` Jal = True
+
+  -- E type
+  Ecall `eqF` Ecall = True
+  Ebreak `eqF` Ebreak = True
+
+  -- X type (illegal instruction)
+  Illegal `eqF` Illegal = True
+
+  _ `eqF` _ = False
+
+instance TestEquality Opcode where
+  testEquality = undefined
+
+instance OrdF Opcode where
+  compareF = undefined
+
 ----------------------------------------
 -- OpBits
 
@@ -302,17 +382,28 @@ instance ShowF Instruction
 -- Might be useful: a Map (BitVector 7) (Some Opcode), and perhaps a Map (Opcode k)
 -- (BitVector 7).
 
-data OperandLayout (k :: Format) where
-  ROperandLayout :: BitLayout 32 5
-                 -> BitLayout 32 5
-                 -> BitLayout 32 5
-                 -> OperandLayout 'R
+type RegIdLayout = BitLayout 32 5
+type Imm12Layout = BitLayout 32 12
+type Imm20Layout = BitLayout 32 20
+type XLayout     = BitLayout 32 32
+
+-- TODO: not sure if this is at all useful, but it is kinda interesting
+type family Layout (r :: Format -> *) :: * where
+  Layout (r l) = BitLayout 32 l
+
+type OpcodeLayout = BitLayout 32 7
+type Funct3Layout = BitLayout 32 3
+type Funct7Layout = BitLayout 32 7
+type ELayout      = BitLayout 32 25
 
 data OpBitsLayout (k :: Format) where
-  ROpBitsLayout :: BitLayout 32 7
-                -> BitLayout 32 3
-                -> BitLayout 32 7
-                -> OpBitsLayout 'R
+  ROpBitsLayout :: OpcodeLayout -> Funct3Layout -> Funct7Layout -> OpBitsLayout 'R
+  IOpBitsLayout :: OpcodeLayout -> Funct3Layout                 -> OpBitsLayout 'I
+  SOpBitsLayout :: OpcodeLayout -> Funct3Layout                 -> OpBitsLayout 'S
+  BOpBitsLayout :: OpcodeLayout -> Funct3Layout                 -> OpBitsLayout 'B
+  UOpBitsLayout :: OpcodeLayout                                 -> OpBitsLayout 'U
+  JOpBitsLayout :: OpcodeLayout                                 -> OpBitsLayout 'J
+  EOpBitsLayout :: OpcodeLayout -> ELayout                      -> OpBitsLayout 'E
 
 data FormatRepr (k :: Format) where
   RRepr :: FormatRepr 'R
@@ -324,29 +415,87 @@ data FormatRepr (k :: Format) where
   ERepr :: FormatRepr 'E
   XRepr :: FormatRepr 'X
 
+-- TODO: KnownRepr instance
+
+instance Show (FormatRepr k) where
+  show RRepr = "RRepr"
+  show IRepr = "IRepr"
+  show SRepr = "SRepr"
+  show BRepr = "BRepr"
+  show URepr = "URepr"
+  show JRepr = "JRepr"
+  show ERepr = "ERepr"
+  show XRepr = "XRepr"
+
+instance ShowF FormatRepr
+
+opcodeLayout :: BitLayout 32 7
+opcodeLayout = (chunk 0 <: empty)
+
+funct3Layout :: BitLayout 32 3
+funct3Layout = (chunk 12 <: empty)
+
+funct7Layout :: BitLayout 32 7
+funct7Layout = (chunk 25 <: empty)
+
+rdLayout :: BitLayout 32 5
+rdLayout = (chunk 7 <: empty)
+
+rs1Layout :: BitLayout 32 5
+rs1Layout = (chunk 15 <: empty)
+
+rs2Layout :: BitLayout 32 5
+rs2Layout = (chunk 20 <: empty)
+
+imm12ILayout :: BitLayout 32 12
+imm12ILayout = (chunk 20 <: empty)
+
+imm12SLayout :: BitLayout 32 12
+imm12SLayout = (chunk 25 :: Chunk 7) <: (chunk 7  :: Chunk 5) <: empty
+
+imm12BLayout :: BitLayout 32 12
+imm12BLayout =
+  (chunk 31 :: Chunk 1) <: (chunk 7  :: Chunk 1) <:
+  (chunk 25 :: Chunk 6) <: (chunk 8  :: Chunk 4) <:
+  empty
+
+imm20ULayout :: BitLayout 32 20
+imm20ULayout = chunk 12 <: empty
+
+imm20JLayout :: BitLayout 32 20
+imm20JLayout =
+  (chunk 31 :: Chunk 1)  <: (chunk 12 :: Chunk 8)  <:
+  (chunk 20 :: Chunk 1)  <: (chunk 21 :: Chunk 10) <:
+  empty
+
+illegalLayout :: BitLayout 32 32
+illegalLayout = chunk 0 <: empty
+
+-- lenses
+
 opcodeLens :: Simple Lens (BitVector 32) (BitVector 7)
-opcodeLens = layoutLens (chunk 0 <: empty)
+opcodeLens = layoutLens $ (chunk 0 <: empty)
 
-funct3 :: Simple Lens (BitVector 32) (BitVector 3)
-funct3 = layoutLens (chunk 12 <: empty)
+funct3Lens :: Simple Lens (BitVector 32) (BitVector 3)
+funct3Lens = layoutLens $ (chunk 12 <: empty)
 
-funct7 :: Simple Lens (BitVector 32) (BitVector 7)
-funct7 = layoutLens (chunk 25 <: empty)
+funct7Lens :: Simple Lens (BitVector 32) (BitVector 7)
+funct7Lens = layoutLens $ (chunk 25 <: empty)
 
-rd :: Simple Lens (BitVector 32) (BitVector 5)
-rd = layoutLens (chunk 7 <: empty)
+rdLens :: Simple Lens (BitVector 32) (BitVector 5)
+rdLens = layoutLens $ (chunk 7 <: empty)
 
-rs1 :: Simple Lens (BitVector 32) (BitVector 5)
-rs1 = layoutLens (chunk 15 <: empty)
+rs1Lens :: Simple Lens (BitVector 32) (BitVector 5)
+rs1Lens = layoutLens $ (chunk 15 <: empty)
 
-rs2 :: Simple Lens (BitVector 32) (BitVector 5)
-rs2 = layoutLens (chunk 20 <: empty)
+rs2Lens :: Simple Lens (BitVector 32) (BitVector 5)
+rs2Lens = layoutLens $ (chunk 20 <: empty)
 
-imm12I :: Simple Lens (BitVector 32) (BitVector 12)
-imm12I = layoutLens (chunk 20 <: empty)
+imm12ILens :: Simple Lens (BitVector 32) (BitVector 12)
+imm12ILens = layoutLens $ (chunk 20 <: empty)
 
-imm12S :: Simple Lens (BitVector 32) (BitVector 12)
-imm12S = layoutLens $ (chunk 25 :: Chunk 7) <: (chunk 7  :: Chunk 5) <: empty
+imm12SLens :: Simple Lens (BitVector 32) (BitVector 12)
+imm12SLens = layoutLens $ (chunk 25 :: Chunk 7) <: (chunk 7  :: Chunk 5) <: empty
 
 imm12BLens :: Simple Lens (BitVector 32) (BitVector 12)
 imm12BLens = layoutLens $
@@ -366,15 +515,25 @@ imm20JLens = layoutLens $
 illegalLens :: Simple Lens (BitVector 32) (BitVector 32)
 illegalLens = layoutLens $ chunk 0 <: empty
 
-decodeOpcode :: BitVector 7 -> Some Opcode
-decodeOpcode = undefined
-
-decodeFormat :: Some Opcode -> Some FormatRepr
-decodeFormat = undefined
+data OperandLayout (k :: Format) where
+  ROperandLayout :: RegIdLayout -> RegIdLayout -> RegIdLayout -> OperandLayout 'R
+  IOperandLayout :: RegIdLayout -> RegIdLayout -> Imm12Layout -> OperandLayout 'I
+  SOperandLayout :: RegIdLayout -> RegIdLayout -> Imm12Layout -> OperandLayout 'S
+  BOperandLayout :: RegIdLayout -> RegIdLayout -> Imm12Layout -> OperandLayout 'B
+  UOperandLayout :: RegIdLayout -> Imm20Layout                -> OperandLayout 'U
+  JOperandLayout :: RegIdLayout -> Imm20Layout                -> OperandLayout 'J
+  EOperandLayout ::                                              OperandLayout 'E
+  XOperandLayout :: XLayout                                   -> OperandLayout 'X
 
 formatOperandLayout :: FormatRepr k -> OperandLayout k
-formatOperandLayout = undefined
-
+formatOperandLayout RRepr = ROperandLayout rdLayout  rs1Layout rs2Layout
+formatOperandLayout IRepr = IOperandLayout rdLayout  rs1Layout imm12ILayout
+formatOperandLayout SRepr = SOperandLayout rs1Layout rs2Layout imm12SLayout
+formatOperandLayout BRepr = BOperandLayout rs1Layout rs2Layout imm12BLayout
+formatOperandLayout URepr = UOperandLayout rdLayout  imm20ULayout
+formatOperandLayout JRepr = JOperandLayout rdLayout  imm20JLayout
+formatOperandLayout ERepr = EOperandLayout
+formatOperandLayout XRepr = XOperandLayout illegalLayout
 formatOpBitsLayout :: FormatRepr k -> OperandLayout k
 formatOpBitsLayout = undefined
 
@@ -390,3 +549,52 @@ instOperandLayout (Inst _ (UOperands {})) = undefined
 instOperandLayout (Inst _ (JOperands {})) = undefined
 instOperandLayout (Inst _ (EOperands {})) = undefined
 instOperandLayout (Inst _ (XOperands {})) = undefined
+
+
+-- DECODING
+
+-- | First, get the format
+decodeFormat :: BitVector 32 -> Some FormatRepr
+decodeFormat bvec = case bvExtract 0 bvec :: BitVector 7 of
+  BV _ 0b0110011 -> Some RRepr
+
+  BV _ 0b1100111 -> Some IRepr
+  BV _ 0b0000011 -> Some IRepr
+  BV _ 0b0010011 -> Some IRepr
+  BV _ 0b0001111 -> Some IRepr
+  BV _ 0b1110011 -> Some IRepr
+
+  BV _ 0b0100011 -> Some SRepr
+
+  BV _ 0b1100011 -> Some BRepr
+
+  BV _ 0b0110111 -> Some URepr
+  BV _ 0b0010111 -> Some URepr
+
+  BV _ 0b1101111 -> Some JRepr
+
+  BV _ 0b1110011 -> Some ERepr
+
+  _ ->              Some XRepr
+
+decodeOperands :: FormatRepr k -> BitVector 32 -> Operands k
+decodeOperands repr bvec = case repr of
+  RRepr -> ROperands (bvec ^. rdLens)  (bvec ^. rs1Lens) (bvec ^. rs2Lens)
+  IRepr -> IOperands (bvec ^. rdLens)  (bvec ^. rs1Lens) (bvec ^. imm12ILens)
+  SRepr -> SOperands (bvec ^. rs1Lens) (bvec ^. rs2Lens) (bvec ^. imm12SLens)
+  BRepr -> BOperands (bvec ^. rs1Lens) (bvec ^. rs2Lens) (bvec ^. imm12BLens)
+  URepr -> UOperands (bvec ^. rdLens)  (bvec ^. imm20ULens)
+  JRepr -> JOperands (bvec ^. rdLens)  (bvec ^. imm20JLens)
+  ERepr -> EOperands
+  XRepr -> XOperands (bvec ^. illegalLens)
+  _ -> undefined
+
+swap :: Pair k v -> Pair v k
+swap (Pair k v) = Pair v k
+
+transMap :: OrdF v => MapF k v -> MapF v k
+transMap = Map.fromList . map swap . Map.toList
+
+opcodeOpBitsMap :: MapF Opcode OpBits
+opcodeOpBitsMap = Map.fromList $
+  []
