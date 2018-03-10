@@ -20,14 +20,19 @@ only implements RV32I.
 module RISCV.Instruction
   ( -- * Opcodes
     Opcode(..)
+  , OpBits(..)
     -- * Operands
   , Operands(..)
   , Format(..)
     -- * Instructions
   , Instruction(..)
+  , OperandLayout(..)
+  , instOperandLayout
   ) where
 
+import Control.Lens
 import Data.BitVector.Sized
+import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
 
 ----------------------------------------
@@ -92,7 +97,6 @@ instance Show (Operands k) where
   show (EOperands) = "[]"
   show (XOperands ill) = "[ ill = " ++ show ill ++ "]"
 instance ShowF Operands
-
 
 ----------------------------------------
 -- Opcodes
@@ -238,6 +242,47 @@ instance Show (Opcode k) where
 instance ShowF Opcode
 
 ----------------------------------------
+-- OpBits
+
+-- | Bits fixed by an opcode.
+-- Holds all the bits that are fixed by a particular opcode. Each format maps to a
+-- potentially different set of bits.
+data OpBits :: Format -> * where
+  ROpBits :: BitVector 7 -> BitVector 3 -> BitVector 7 -> OpBits 'R
+  IOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'I
+  SOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'S
+  BOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'B
+  UOpBits :: BitVector 7                               -> OpBits 'U
+  JOpBits :: BitVector 7                               -> OpBits 'J
+  EOpBits :: BitVector 7 -> BitVector 25               -> OpBits 'E
+  XOpBits ::                                              OpBits 'X
+
+instance Show (OpBits k) where
+  show (ROpBits opcode funct3 funct7) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++
+    ", funct7 = " ++ show funct7 ++ "]"
+  show (IOpBits opcode funct3) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++ "]"
+  show (SOpBits opcode funct3) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++ "]"
+  show (BOpBits opcode funct3) =
+    "[ opcode = " ++ show opcode ++
+    ", funct3 = " ++ show funct3 ++ "]"
+  show (UOpBits opcode) =
+    "[ opcode = " ++ show opcode ++ "]"
+  show (JOpBits opcode) =
+    "[ opcode = " ++ show opcode ++ "]"
+  show (EOpBits opcode b) =
+    "[ opcode = " ++ show opcode ++
+    ", b = " ++ show b ++ "]"
+  show (XOpBits) = "[]"
+
+instance ShowF OpBits
+
+----------------------------------------
 -- Instructions
 
 -- | RV32I Instruction, parameterized by format.
@@ -249,3 +294,99 @@ instance Show (Instruction k) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
 
 instance ShowF Instruction
+
+----------------------------------------
+-- Encode/Decode
+
+-- experimental stuff here, trying to use BitLayouts for encode/decode.
+-- Might be useful: a Map (BitVector 7) (Some Opcode), and perhaps a Map (Opcode k)
+-- (BitVector 7).
+
+data OperandLayout (k :: Format) where
+  ROperandLayout :: BitLayout 32 5
+                 -> BitLayout 32 5
+                 -> BitLayout 32 5
+                 -> OperandLayout 'R
+
+data OpBitsLayout (k :: Format) where
+  ROpBitsLayout :: BitLayout 32 7
+                -> BitLayout 32 3
+                -> BitLayout 32 7
+                -> OpBitsLayout 'R
+
+data FormatRepr (k :: Format) where
+  RRepr :: FormatRepr 'R
+  IRepr :: FormatRepr 'I
+  SRepr :: FormatRepr 'S
+  BRepr :: FormatRepr 'B
+  URepr :: FormatRepr 'U
+  JRepr :: FormatRepr 'J
+  ERepr :: FormatRepr 'E
+  XRepr :: FormatRepr 'X
+
+opcodeLens :: Simple Lens (BitVector 32) (BitVector 7)
+opcodeLens = layoutLens (chunk 0 <: empty)
+
+funct3 :: Simple Lens (BitVector 32) (BitVector 3)
+funct3 = layoutLens (chunk 12 <: empty)
+
+funct7 :: Simple Lens (BitVector 32) (BitVector 7)
+funct7 = layoutLens (chunk 25 <: empty)
+
+rd :: Simple Lens (BitVector 32) (BitVector 5)
+rd = layoutLens (chunk 7 <: empty)
+
+rs1 :: Simple Lens (BitVector 32) (BitVector 5)
+rs1 = layoutLens (chunk 15 <: empty)
+
+rs2 :: Simple Lens (BitVector 32) (BitVector 5)
+rs2 = layoutLens (chunk 20 <: empty)
+
+imm12I :: Simple Lens (BitVector 32) (BitVector 12)
+imm12I = layoutLens (chunk 20 <: empty)
+
+imm12S :: Simple Lens (BitVector 32) (BitVector 12)
+imm12S = layoutLens $ (chunk 25 :: Chunk 7) <: (chunk 7  :: Chunk 5) <: empty
+
+imm12BLens :: Simple Lens (BitVector 32) (BitVector 12)
+imm12BLens = layoutLens $
+  (chunk 31 :: Chunk 1) <: (chunk 7  :: Chunk 1) <:
+  (chunk 25 :: Chunk 6) <: (chunk 8  :: Chunk 4) <:
+  empty
+
+imm20ULens :: Simple Lens (BitVector 32) (BitVector 20)
+imm20ULens = layoutLens $ chunk 12 <: empty
+
+imm20JLens :: Simple Lens (BitVector 32) (BitVector 20)
+imm20JLens = layoutLens $
+  (chunk 31 :: Chunk 1)  <: (chunk 12 :: Chunk 8)  <:
+  (chunk 20 :: Chunk 1)  <: (chunk 21 :: Chunk 10) <:
+  empty
+
+illegalLens :: Simple Lens (BitVector 32) (BitVector 32)
+illegalLens = layoutLens $ chunk 0 <: empty
+
+decodeOpcode :: BitVector 7 -> Some Opcode
+decodeOpcode = undefined
+
+decodeFormat :: Some Opcode -> Some FormatRepr
+decodeFormat = undefined
+
+formatOperandLayout :: FormatRepr k -> OperandLayout k
+formatOperandLayout = undefined
+
+formatOpBitsLayout :: FormatRepr k -> OperandLayout k
+formatOpBitsLayout = undefined
+
+opcodeFormat :: Opcode k -> FormatRepr k
+opcodeFormat = undefined
+
+instOperandLayout :: Instruction k -> OperandLayout k
+instOperandLayout (Inst _ (ROperands {})) = undefined
+instOperandLayout (Inst _ (IOperands {})) = undefined
+instOperandLayout (Inst _ (SOperands {})) = undefined
+instOperandLayout (Inst _ (BOperands {})) = undefined
+instOperandLayout (Inst _ (UOperands {})) = undefined
+instOperandLayout (Inst _ (JOperands {})) = undefined
+instOperandLayout (Inst _ (EOperands {})) = undefined
+instOperandLayout (Inst _ (XOperands {})) = undefined

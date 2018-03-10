@@ -56,8 +56,8 @@ decode bvec = case (opcodeBits, funct3Bits, funct7Bits, eBits) of
   (0b0010011, 0b110, _, _) -> Some $ Inst Ori   iOperands
   (0b0010011, 0b111, _, _) -> Some $ Inst Andi  iOperands
   -- TODO: the shifts are also a different format, since the decoding actually
-  -- depends on the immediates. That is why we have overlapping cases here. I'm
-  -- leaving this as-is for now.
+  -- depends on the immediates. That is why we have overlapping cases for
+  -- Srli/Srai here. I'm leaving this as-is for now.
   (0b0010011, 0b001, _, _) -> Some $ Inst Slli iOperands
   (0b0010011, 0b101, _, _) -> Some $ Inst Srli iOperands
   -- (0b0010011, 0b101, _, _) -> Some $ Inst Srai iOperands
