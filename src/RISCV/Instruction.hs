@@ -17,7 +17,6 @@ module RISCV.Instruction
   , OpBits(..)
     -- * Operands
   , Operands(..)
-
     -- * Opcode / OpBits conversion
   , opcodeFromOpBits
   , opBitsFromOpcode
@@ -46,6 +45,18 @@ import Data.Parameterized.TH.GADT
 -- them.
 
 data Format = R | I | S | B | U | J | E | X
+
+-- | A type-level representative of the format. Particularly useful when decoding
+-- instructions since we won't know ahead of time what format to classify them as.
+data FormatRepr (k :: Format) where
+  RRepr :: FormatRepr 'R
+  IRepr :: FormatRepr 'I
+  SRepr :: FormatRepr 'S
+  BRepr :: FormatRepr 'B
+  URepr :: FormatRepr 'U
+  JRepr :: FormatRepr 'J
+  ERepr :: FormatRepr 'E
+  XRepr :: FormatRepr 'X
 
 ----------------------------------------
 -- Operands
@@ -163,101 +174,14 @@ data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k
                                       , instOperands :: Operands k
                                       }
 
--- Force types to be in context.
-$(return [])
-
-----------------------------------------
--- Encode/Decode
-
--- experimental stuff here, trying to use BitLayouts for encode/decode.
--- Might be useful: a Map (BitVector 7) (Some Opcode), and perhaps a Map (Opcode k)
--- (BitVector 7).
-
--- type RegIdLayout = BitLayout 32 5
--- type Imm12Layout = BitLayout 32 12
--- type Imm20Layout = BitLayout 32 20
--- type XLayout     = BitLayout 32 32
-
--- -- TODO: not sure if this is at all useful, but it is kinda interesting
--- type family Layout (r :: Format -> *) :: * where
---   Layout (r l) = BitLayout 32 l
-
--- type OpcodeLayout = BitLayout 32 7
--- type Funct3Layout = BitLayout 32 3
--- type Funct7Layout = BitLayout 32 7
--- type ELayout      = BitLayout 32 25
-
--- data OpBitsLayout (k :: Format) where
---   ROpBitsLayout :: OpcodeLayout -> Funct3Layout -> Funct7Layout -> OpBitsLayout 'R
---   IOpBitsLayout :: OpcodeLayout -> Funct3Layout                 -> OpBitsLayout 'I
---   SOpBitsLayout :: OpcodeLayout -> Funct3Layout                 -> OpBitsLayout 'S
---   BOpBitsLayout :: OpcodeLayout -> Funct3Layout                 -> OpBitsLayout 'B
---   UOpBitsLayout :: OpcodeLayout                                 -> OpBitsLayout 'U
---   JOpBitsLayout :: OpcodeLayout                                 -> OpBitsLayout 'J
---   EOpBitsLayout :: OpcodeLayout -> ELayout                      -> OpBitsLayout 'E
---   XOpBitsLayout ::                                                 OpBitsLayout 'X
-
--- formatOpBitsLayout :: FormatRepr k -> OpBitsLayout k
--- formatOpBitsLayout RRepr = ROpBitsLayout opcodeLayout funct3Layout funct7Layout
--- formatOpBitsLayout IRepr = IOpBitsLayout opcodeLayout funct3Layout
--- formatOpBitsLayout SRepr = SOpBitsLayout opcodeLayout funct3Layout
--- formatOpBitsLayout BRepr = BOpBitsLayout opcodeLayout funct3Layout
--- formatOpBitsLayout URepr = UOpBitsLayout opcodeLayout
--- formatOpBitsLayout JRepr = JOpBitsLayout opcodeLayout
--- formatOpBitsLayout ERepr = EOpBitsLayout opcodeLayout eLayout
--- formatOpBitsLayout XRepr = XOpBitsLayout
-
-
--- data OperandLayout (k :: Format) where
---   ROperandLayout :: RegIdLayout -> RegIdLayout -> RegIdLayout -> OperandLayout 'R
---   IOperandLayout :: RegIdLayout -> RegIdLayout -> Imm12Layout -> OperandLayout 'I
---   SOperandLayout :: RegIdLayout -> RegIdLayout -> Imm12Layout -> OperandLayout 'S
---   BOperandLayout :: RegIdLayout -> RegIdLayout -> Imm12Layout -> OperandLayout 'B
---   UOperandLayout :: RegIdLayout -> Imm20Layout                -> OperandLayout 'U
---   JOperandLayout :: RegIdLayout -> Imm20Layout                -> OperandLayout 'J
---   EOperandLayout ::                                              OperandLayout 'E
---   XOperandLayout :: XLayout                                   -> OperandLayout 'X
-
--- formatOperandLayout :: FormatRepr k -> OperandLayout k
--- formatOperandLayout RRepr = ROperandLayout rdLayout  rs1Layout rs2Layout
--- formatOperandLayout IRepr = IOperandLayout rdLayout  rs1Layout imm12ILayout
--- formatOperandLayout SRepr = SOperandLayout rs1Layout rs2Layout imm12SLayout
--- formatOperandLayout BRepr = BOperandLayout rs1Layout rs2Layout imm12BLayout
--- formatOperandLayout URepr = UOperandLayout rdLayout  imm20ULayout
--- formatOperandLayout JRepr = JOperandLayout rdLayout  imm20JLayout
--- formatOperandLayout ERepr = EOperandLayout
--- formatOperandLayout XRepr = XOperandLayout illegalLayout
-
-data FormatRepr (k :: Format) where
-  RRepr :: FormatRepr 'R
-  IRepr :: FormatRepr 'I
-  SRepr :: FormatRepr 'S
-  BRepr :: FormatRepr 'B
-  URepr :: FormatRepr 'U
-  JRepr :: FormatRepr 'J
-  ERepr :: FormatRepr 'E
-  XRepr :: FormatRepr 'X
-
--- TODO: KnownRepr instance
-
-instance Show (FormatRepr k) where
-  show RRepr = "RRepr"
-  show IRepr = "IRepr"
-  show SRepr = "SRepr"
-  show BRepr = "BRepr"
-  show URepr = "URepr"
-  show JRepr = "JRepr"
-  show ERepr = "ERepr"
-  show XRepr = "XRepr"
-
-instance ShowF FormatRepr
-
 swap :: Pair (k :: Format -> *) (v :: Format -> *) -> Pair v k
 swap (Pair k v) = Pair v k
 
 transMap :: OrdF v => MapF (k :: Format -> *) (v :: Format -> *) -> MapF v k
 transMap = Map.fromList . map swap . Map.toList
 
+-- | Get the OpBits of an Opcode (the bits that are fixed by that opcode in all
+-- instances)
 opBitsFromOpcode :: Opcode k -> OpBits k
 opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
   Just opBits -> opBits
@@ -265,6 +189,7 @@ opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
                  "does not have corresponding OpBits defined."
 
 -- TODO: fix this; if we get Nothing we need to return an illegal instruction?
+-- | Get the Opcode of an OpBits. Throws an error if given an invalid OpBits.
 opcodeFromOpBits :: OpBits k -> Opcode k
 opcodeFromOpBits opBits = fromJust $ Map.lookup opBits opBitsOpcodeMap
 
@@ -338,7 +263,25 @@ opcodeOpBitsMap = Map.fromList $
 opBitsOpcodeMap :: MapF OpBits Opcode
 opBitsOpcodeMap = transMap opcodeOpBitsMap
 
+----------------------------------------
 -- Instances
+
+-- Force types to be in context for TH stuff below.
+$(return [])
+
+instance Show (FormatRepr k) where
+  show RRepr = "RRepr"
+  show IRepr = "IRepr"
+  show SRepr = "SRepr"
+  show BRepr = "BRepr"
+  show URepr = "URepr"
+  show JRepr = "JRepr"
+  show ERepr = "ERepr"
+  show XRepr = "XRepr"
+
+instance ShowF FormatRepr
+
+-- TODO: KnownRepr instance for FormatRepr?
 
 
 instance Show (Operands k) where
