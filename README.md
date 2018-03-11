@@ -22,6 +22,4 @@ stack build
 Nothing to run, this is a library.
 
 ## Current status
-Instruction encoding is complete and seems kind of nice. Next up is going to be
-decoding, then some sort of semantics. Perhaps it will be as simple as a list of
-low-level operations.
+Encoding/decoding are complete; semantics is coming next.
