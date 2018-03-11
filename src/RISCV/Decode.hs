@@ -25,7 +25,6 @@ module RISCV.Decode
 
 import Control.Lens
 import Data.BitVector.Sized
-import Data.BitVector.Sized.Internal ( BitVector(BV) )
 import Data.Parameterized
 
 import RISCV.Instruction
