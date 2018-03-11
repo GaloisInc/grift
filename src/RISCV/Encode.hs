@@ -22,76 +22,67 @@ module RISCV.Encode
     encode
   ) where
 
+import Control.Lens
 import Data.BitVector.Sized
 
 import RISCV.Instruction
+import RISCV.Instruction.Lens
 
 ----------------------------------------
 -- Encoding
--- TODO: consider annotating every single variable with the type in each case for
--- clarity.
--- | Encode an RV32I instruction as a 32-bit word.
+
 encode :: forall (k :: Format). Instruction k -> BitVector 32
-encode (Inst opcode (ROperands rd  rs1 rs2)) =
-  -- R type
-  case opBitsFromOpcode opcode of
-    ROpBits opcodeBits funct3 funct7 ->
-      funct7 <:>
-      rs2    <:>
-      rs1    <:>
-      funct3 <:>
-      rd     <:>
-      opcodeBits
-encode (Inst opcode (IOperands rd rs1 imm)) =
-  -- I type
-  case opBitsFromOpcode opcode of
-    IOpBits opcodeBits funct3 ->
-      imm    <:>
-      rs1    <:>
-      funct3 <:>
-      rd     <:>
-      opcodeBits
-encode (Inst opcode (SOperands rs1 rs2 imm)) =
-  -- S type
-  case opBitsFromOpcode opcode of
-    SOpBits opcodeBits funct3 ->
-      (bvExtract 5 imm :: BitVector 7) <:>
-      rs2                              <:>
-      rs1                              <:>
-      funct3                           <:>
-      (bvExtract 0 imm :: BitVector 5) <:>
-      opcodeBits
-encode (Inst opcode (BOperands rs1 rs2 imm)) =
-  -- B type
-  case opBitsFromOpcode opcode of
-    BOpBits opcodeBits funct3 ->
-      (bvExtract 11 imm :: BitVector 1) <:>
-      (bvExtract 4  imm :: BitVector 6) <:>
-      rs2                               <:>
-      rs1                               <:>
-      funct3                            <:>
-      (bvExtract 0  imm :: BitVector 4) <:>
-      (bvExtract 10 imm :: BitVector 1) <:>
-      opcodeBits
-encode (Inst opcode (UOperands rd imm)) =
-  -- U type
-  case opBitsFromOpcode opcode of
-    UOpBits opcodeBits ->
-      imm <:>
-      rd  <:>
-      opcodeBits
-encode (Inst opcode (JOperands rd imm)) =
-  -- J type
-  case opBitsFromOpcode opcode of
-    JOpBits opcodeBits ->
-      (bvExtract 19 imm :: BitVector 1)  <:>
-      (bvExtract 0  imm :: BitVector 10) <:>
-      (bvExtract 10 imm :: BitVector 1)  <:>
-      (bvExtract 11 imm :: BitVector 8)  <:>
-      rd                                 <:>
-      opcodeBits
-encode (Inst opcode (EOperands )) =
-  -- E type
-  case opBitsFromOpcode opcode of
-    EOpBits opcodeBits eBits -> eBits <:> opcodeBits
-encode (Inst _ (XOperands ill)) = ill
+encode inst = case inst of
+  Inst opcode (ROperands rd rs1 rs2) ->
+    case opBitsFromOpcode opcode of
+      ROpBits o f3 f7 -> bv 0 &
+        opcodeLens .~ o   &
+        funct3Lens .~ f3  &
+        funct7Lens .~ f7  &
+        rdLens     .~ rd  &
+        rs1Lens    .~ rs1 &
+        rs2Lens    .~ rs2
+  Inst opcode (IOperands rd rs1 imm12) ->
+    case opBitsFromOpcode opcode of
+      IOpBits o f3 -> bv 0 &
+        opcodeLens .~ o &
+        funct3Lens .~ f3 &
+        rdLens  .~ rd &
+        rs1Lens .~ rs1 &
+        imm12ILens .~ imm12
+  Inst opcode (SOperands rs1 rs2 imm12) ->
+    case opBitsFromOpcode opcode of
+      SOpBits o f3 -> bv 0 &
+        opcodeLens .~ o &
+        funct3Lens .~ f3 &
+        rs1Lens .~ rs1 &
+        rs2Lens .~ rs2 &
+        imm12SLens .~ imm12
+  Inst opcode (BOperands rs1 rs2 imm12) ->
+    case opBitsFromOpcode opcode of
+      BOpBits o f3 -> bv 0 &
+        opcodeLens .~ o &
+        funct3Lens .~ f3 &
+        rs1Lens .~ rs1 &
+        rs2Lens .~ rs2 &
+        imm12BLens .~ imm12
+  Inst opcode (UOperands rd imm20) ->
+    case opBitsFromOpcode opcode of
+      UOpBits o -> bv 0 &
+        opcodeLens .~ o &
+        rdLens .~ rd &
+        imm20ULens .~ imm20
+  Inst opcode (JOperands rd imm20) ->
+    case opBitsFromOpcode opcode of
+      JOpBits o -> bv 0 &
+        opcodeLens .~ o &
+        rdLens .~ rd &
+        imm20JLens .~ imm20
+  Inst opcode (EOperands) ->
+    case opBitsFromOpcode opcode of
+      EOpBits o eBits -> bv 0 &
+        opcodeLens .~ o &
+        eLens .~ eBits
+  Inst opcode (XOperands illBits) ->
+    case opBitsFromOpcode opcode of
+      XOpBits -> bv 0 & illegalLens .~ illBits
