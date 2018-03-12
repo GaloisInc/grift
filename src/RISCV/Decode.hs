@@ -23,7 +23,7 @@ module RISCV.Decode
     decode
   ) where
 
-import Control.Lens
+import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.Parameterized
 
@@ -32,7 +32,9 @@ import RISCV.Instruction.Lens
 
 decode :: BitVector 32 -> Some Instruction
 decode bvec = case decodeFormat bvec of
-  Some repr -> Some $ Inst (decodeOpcode repr bvec) (decodeOperands repr bvec)
+  Some repr -> case decodeOpcode repr bvec of
+    Right op     -> Some $ Inst op (decodeOperands repr bvec)
+    Left Illegal -> Some $ Inst Illegal (decodeOperands XRepr bvec)
 
 -- | First, get the format
 decodeFormat :: BitVector 32 -> Some FormatRepr
@@ -83,5 +85,5 @@ decodeOpBits repr bvec = case repr of
   ERepr -> EOpBits (bvec ^. opcodeLens) (bvec ^. eLens)
   XRepr -> XOpBits
 
-decodeOpcode :: FormatRepr k -> BitVector 32 -> Opcode k
+decodeOpcode :: FormatRepr k -> BitVector 32 -> Either (Opcode 'X) (Opcode k)
 decodeOpcode repr bvec = opcodeFromOpBits (decodeOpBits repr bvec)

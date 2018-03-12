@@ -188,10 +188,11 @@ opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
   Nothing     -> error $ "Opcode " ++ show opcode ++
                  "does not have corresponding OpBits defined."
 
--- TODO: fix this; if we get Nothing we need to return an illegal instruction?
+-- TODO: fix this; if we get Nothing we need to return an illegal instruction? Either
+-- (Opcode 'X) Opcode k?
 -- | Get the Opcode of an OpBits. Throws an error if given an invalid OpBits.
-opcodeFromOpBits :: OpBits k -> Opcode k
-opcodeFromOpBits opBits = fromJust $ Map.lookup opBits opBitsOpcodeMap
+opcodeFromOpBits :: OpBits k -> Either (Opcode 'X) (Opcode k)
+opcodeFromOpBits opBits = maybe (Left Illegal) Right $ Map.lookup opBits opBitsOpcodeMap
 
 opcodeOpBitsMap :: MapF Opcode OpBits
 opcodeOpBitsMap = Map.fromList $
