@@ -35,7 +35,7 @@ encode :: forall (k :: Format). Instruction k -> BitVector 32
 encode inst = case inst of
   Inst opcode (ROperands rd rs1 rs2) ->
     case opBitsFromOpcode opcode of
-      ROpBits o f3 f7 -> bv 0 &
+      ROpBits o f3 f7 -> 0 &
         opcodeLens .~ o   &
         funct3Lens .~ f3  &
         funct7Lens .~ f7  &
@@ -44,7 +44,7 @@ encode inst = case inst of
         rs2Lens    .~ rs2
   Inst opcode (IOperands rd rs1 imm12) ->
     case opBitsFromOpcode opcode of
-      IOpBits o f3 -> bv 0 &
+      IOpBits o f3 -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
         rdLens  .~ rd &
@@ -52,7 +52,7 @@ encode inst = case inst of
         imm12ILens .~ imm12
   Inst opcode (SOperands rs1 rs2 imm12) ->
     case opBitsFromOpcode opcode of
-      SOpBits o f3 -> bv 0 &
+      SOpBits o f3 -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
         rs1Lens .~ rs1 &
@@ -60,7 +60,7 @@ encode inst = case inst of
         imm12SLens .~ imm12
   Inst opcode (BOperands rs1 rs2 imm12) ->
     case opBitsFromOpcode opcode of
-      BOpBits o f3 -> bv 0 &
+      BOpBits o f3 -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
         rs1Lens .~ rs1 &
@@ -68,21 +68,21 @@ encode inst = case inst of
         imm12BLens .~ imm12
   Inst opcode (UOperands rd imm20) ->
     case opBitsFromOpcode opcode of
-      UOpBits o -> bv 0 &
+      UOpBits o -> 0 &
         opcodeLens .~ o &
         rdLens .~ rd &
         imm20ULens .~ imm20
   Inst opcode (JOperands rd imm20) ->
     case opBitsFromOpcode opcode of
-      JOpBits o -> bv 0 &
+      JOpBits o -> 0 &
         opcodeLens .~ o &
         rdLens .~ rd &
         imm20JLens .~ imm20
   Inst opcode (EOperands) ->
     case opBitsFromOpcode opcode of
-      EOpBits o eBits -> bv 0 &
+      EOpBits o eBits -> 0 &
         opcodeLens .~ o &
         eLens .~ eBits
   Inst opcode (XOperands illBits) ->
     case opBitsFromOpcode opcode of
-      XOpBits -> bv 0 & illegalLens .~ illBits
+      XOpBits -> 0 & illegalLens .~ illBits

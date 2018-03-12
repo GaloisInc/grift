@@ -1,11 +1,12 @@
-{-# LANGUAGE BinaryLiterals    #-}
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE KindSignatures    #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE BinaryLiterals     #-}
+{-# LANGUAGE DataKinds          #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE GADTs              #-}
+{-# LANGUAGE KindSignatures     #-}
+{-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell    #-}
+{-# LANGUAGE TypeFamilies       #-}
 
 module RISCV.Instruction
   ( -- * Instructions
@@ -23,7 +24,6 @@ module RISCV.Instruction
   ) where
 
 import Data.BitVector.Sized
-import Data.Maybe (fromJust)
 import Data.Parameterized
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized.Map (MapF)
@@ -197,65 +197,65 @@ opcodeFromOpBits opBits = maybe (Left Illegal) Right $ Map.lookup opBits opBitsO
 opcodeOpBitsMap :: MapF Opcode OpBits
 opcodeOpBitsMap = Map.fromList $
 
-  [ Pair Add (ROpBits (bv 0b0110011) (bv 0b000) (bv 0b0000000))
-  , Pair Sub (ROpBits (bv 0b0110011) (bv 0b000) (bv 0b0100000))
-  , Pair Sll (ROpBits (bv 0b0110011) (bv 0b001) (bv 0b0000000))
-  , Pair Slt (ROpBits (bv 0b0110011) (bv 0b010) (bv 0b0000000))
-  , Pair Sltu (ROpBits (bv 0b0110011) (bv 0b011) (bv 0b0000000))
-  , Pair Xor (ROpBits (bv 0b0110011) (bv 0b100) (bv 0b0000000))
-  , Pair Srl (ROpBits (bv 0b0110011) (bv 0b101) (bv 0b0000000))
-  , Pair Sra (ROpBits (bv 0b0110011) (bv 0b101) (bv 0b0100000))
-  , Pair Or (ROpBits (bv 0b0110011) (bv 0b110) (bv 0b0000000))
-  , Pair And (ROpBits (bv 0b0110011) (bv 0b111) (bv 0b0000000))
+  [ Pair Add  (ROpBits 0b0110011 0b000 0b0000000)
+  , Pair Sub  (ROpBits 0b0110011 0b000 0b0100000)
+  , Pair Sll  (ROpBits 0b0110011 0b001 0b0000000)
+  , Pair Slt  (ROpBits 0b0110011 0b010 0b0000000)
+  , Pair Sltu (ROpBits 0b0110011 0b011 0b0000000)
+  , Pair Xor  (ROpBits 0b0110011 0b100 0b0000000)
+  , Pair Srl  (ROpBits 0b0110011 0b101 0b0000000)
+  , Pair Sra  (ROpBits 0b0110011 0b101 0b0100000)
+  , Pair Or   (ROpBits 0b0110011 0b110 0b0000000)
+  , Pair And  (ROpBits 0b0110011 0b111 0b0000000)
 
 -- I type
-  , Pair Jalr (IOpBits (bv 0b1100111) (bv 0b000))
-  , Pair Lb (IOpBits (bv 0b0000011) (bv 0b000))
-  , Pair Lh (IOpBits (bv 0b0000011) (bv 0b001))
-  , Pair Lw (IOpBits (bv 0b0000011) (bv 0b010))
-  , Pair Lbu (IOpBits (bv 0b0000011) (bv 0b100))
-  , Pair Lhu (IOpBits (bv 0b0000011) (bv 0b101))
-  , Pair Addi (IOpBits (bv 0b0010011) (bv 0b000))
-  , Pair Slti (IOpBits (bv 0b0010011) (bv 0b010))
-  , Pair Sltiu (IOpBits (bv 0b0010011) (bv 0b011))
-  , Pair Xori (IOpBits (bv 0b0010011) (bv 0b100))
-  , Pair Ori (IOpBits (bv 0b0010011) (bv 0b110))
-  , Pair Andi (IOpBits (bv 0b0010011) (bv 0b111))
-  , Pair Slli (IOpBits (bv 0b0010011) (bv 0b001))
-  , Pair Srli (IOpBits (bv 0b0010011) (bv 0b101))
-  , Pair Srai (IOpBits (bv 0b0010011) (bv 0b101))
-  , Pair Fence (IOpBits (bv 0b0001111) (bv 0b000))
-  , Pair Fence (IOpBits (bv 0b0001111) (bv 0b001))
-  , Pair Csrrw (IOpBits (bv 0b1110011) (bv 0b001))
-  , Pair Csrrs (IOpBits (bv 0b1110011) (bv 0b010))
-  , Pair Csrrc (IOpBits (bv 0b1110011) (bv 0b011))
-  , Pair Csrrwi (IOpBits (bv 0b1110011) (bv 0b101))
-  , Pair Csrrsi (IOpBits (bv 0b1110011) (bv 0b110))
-  , Pair Csrrci (IOpBits (bv 0b1110011) (bv 0b111))
+  , Pair Jalr   (IOpBits 0b1100111 0b000)
+  , Pair Lb     (IOpBits 0b0000011 0b000)
+  , Pair Lh     (IOpBits 0b0000011 0b001)
+  , Pair Lw     (IOpBits 0b0000011 0b010)
+  , Pair Lbu    (IOpBits 0b0000011 0b100)
+  , Pair Lhu    (IOpBits 0b0000011 0b101)
+  , Pair Addi   (IOpBits 0b0010011 0b000)
+  , Pair Slti   (IOpBits 0b0010011 0b010)
+  , Pair Sltiu  (IOpBits 0b0010011 0b011)
+  , Pair Xori   (IOpBits 0b0010011 0b100)
+  , Pair Ori    (IOpBits 0b0010011 0b110)
+  , Pair Andi   (IOpBits 0b0010011 0b111)
+  , Pair Slli   (IOpBits 0b0010011 0b001)
+  , Pair Srli   (IOpBits 0b0010011 0b101)
+  , Pair Srai   (IOpBits 0b0010011 0b101)
+  , Pair Fence  (IOpBits 0b0001111 0b000)
+  , Pair Fence  (IOpBits 0b0001111 0b001)
+  , Pair Csrrw  (IOpBits 0b1110011 0b001)
+  , Pair Csrrs  (IOpBits 0b1110011 0b010)
+  , Pair Csrrc  (IOpBits 0b1110011 0b011)
+  , Pair Csrrwi (IOpBits 0b1110011 0b101)
+  , Pair Csrrsi (IOpBits 0b1110011 0b110)
+  , Pair Csrrci (IOpBits 0b1110011 0b111)
 
 -- S type
-  , Pair Sb (SOpBits (bv 0b0100011) (bv 0b000))
-  , Pair Sh (SOpBits (bv 0b0100011) (bv 0b001))
-  , Pair Sw (SOpBits (bv 0b0100011) (bv 0b010))
+  , Pair Sb (SOpBits 0b0100011 0b000)
+  , Pair Sh (SOpBits 0b0100011 0b001)
+  , Pair Sw (SOpBits 0b0100011 0b010)
 
 -- B type
-  , Pair Beq (BOpBits (bv 0b1100011) (bv 0b000))
-  , Pair Bne (BOpBits (bv 0b1100011) (bv 0b001))
-  , Pair Blt (BOpBits (bv 0b1100011) (bv 0b100))
-  , Pair Bge (BOpBits (bv 0b1100011) (bv 0b101))
-  , Pair Bltu (BOpBits (bv 0b1100011) (bv 0b110))
-  , Pair Bgeu (BOpBits (bv 0b1100011) (bv 0b111))
+  , Pair Beq  (BOpBits 0b1100011 0b000)
+  , Pair Bne  (BOpBits 0b1100011 0b001)
+  , Pair Blt  (BOpBits 0b1100011 0b100)
+  , Pair Bge  (BOpBits 0b1100011 0b101)
+  , Pair Bltu (BOpBits 0b1100011 0b110)
+  , Pair Bgeu (BOpBits 0b1100011 0b111)
 
 -- U type
-  , Pair Lui (UOpBits (bv 0b0110111))
-  , Pair Auipc (UOpBits (bv 0b0010111))
+  , Pair Lui   (UOpBits 0b0110111)
+  , Pair Auipc (UOpBits 0b0010111)
 
 -- J type
-  , Pair Jal (JOpBits (bv 0b1101111))
+  , Pair Jal (JOpBits 0b1101111)
 
 -- E type
-  , Pair Ecall (EOpBits (bv 0b1110011) (bv 0b0000000000000000000000000))
-  , Pair Ebreak (EOpBits (bv 0b1110011) (bv 0b0000000000010000000000000))
+  , Pair Ecall  (EOpBits 0b1110011 0b0000000000000000000000000)
+  , Pair Ebreak (EOpBits 0b1110011 0b0000000000010000000000000)
 
 -- X type
   , Pair Illegal (XOpBits)
@@ -313,139 +313,14 @@ instance Show (Operands k) where
 
 instance ShowF Operands
 
-instance Show (Opcode k) where
-  -- R type
-  show Add  = "Add"
-  show Sub  = "Sub"
-  show Sll  = "Sll"
-  show Slt  = "Slt"
-  show Sltu = "Sltu"
-  show Xor  = "Xor"
-  show Srl  = "Srl"
-  show Sra  = "Sra"
-  show Or   = "Or"
-  show And  = "And"
-
-  -- I type
-  show Jalr    = "Jalr"
-  show Lb      = "Lb"
-  show Lh      = "Lh"
-  show Lw      = "Lw"
-  show Lbu     = "Lbu"
-  show Lhu     = "Lhu"
-  show Addi    = "Addi"
-  show Slti    = "Slti"
-  show Sltiu   = "Sltiu"
-  show Xori    = "Xori"
-  show Ori     = "Ori"
-  show Andi    = "Andi"
-  show Slli    = "Slli"
-  show Srli    = "Srli"
-  show Srai    = "Srai"
-  show Fence   = "Fence"
-  show Fence_i = "Fence.i"
-  show Csrrw   = "Csrrw"
-  show Csrrs   = "Csrrs"
-  show Csrrc   = "Csrrc"
-  show Csrrwi  = "Csrrwi"
-  show Csrrsi  = "Csrrsi"
-  show Csrrci  = "Csrrci"
-
-  -- S type
-  show Sb = "Sb"
-  show Sh = "Sh"
-  show Sw = "Sw"
-
-  -- B type
-  show Beq  = "Beq"
-  show Bne  = "Bne"
-  show Blt  = "Blt"
-  show Bge  = "Bge"
-  show Bltu = "Bltu"
-  show Bgeu = "Bgeu"
-
-  -- U type
-  show Lui   = "Lui"
-  show Auipc = "Auipc"
-
-  -- J type
-  show Jal = "Jal"
-
-  -- E type
-  show Ecall   = "Ecall"
-  show Ebreak  = "Ebreak"
-
-  -- X type (illegal instruction)
-  show Illegal = "Illegal"
+deriving instance Show (Opcode k)
 
 instance ShowF Opcode
 
+deriving instance Eq (Opcode k)
+
 instance EqF Opcode where
-  -- R type
-  Add `eqF` Add = True
-  Sub `eqF` Sub = True
-  Slt `eqF` Slt = True
-  Sltu `eqF` Sltu = True
-  Xor `eqF` Xor = True
-  Srl `eqF` Srl = True
-  Sra `eqF` Sra = True
-  Or `eqF` Or = True
-  And `eqF` And = True
-
-  -- I type
-  Jalr `eqF` Jalr = True
-  Lb `eqF` Lb = True
-  Lh `eqF` Lh = True
-  Lw `eqF` Lw = True
-  Lbu `eqF` Lbu = True
-  Lhu `eqF` Lhu = True
-  Addi `eqF` Addi = True
-  Slti `eqF` Slti = True
-  Sltiu `eqF` Sltiu = True
-  Xori `eqF` Xori = True
-  Ori `eqF` Ori = True
-  Andi `eqF` Andi = True
-  Slli `eqF` Slli = True
-  Srli `eqF` Srli = True
-  Srai `eqF` Srai = True
-  Fence `eqF` Fence = True
-  Fence_i `eqF` Fence_i = True
-  Csrrw `eqF` Csrrw = True
-  Csrrs `eqF` Csrrs = True
-  Csrrc `eqF` Csrrc = True
-  Csrrwi `eqF` Csrrwi = True
-  Csrrsi `eqF` Csrrsi = True
-  Csrrci `eqF` Csrrci = True
-
-  -- S type
-  Sb `eqF` Sb = True
-  Sh `eqF` Sh = True
-  Sw `eqF` Sw = True
-
-  -- B type
-  Beq `eqF` Beq = True
-  Bne `eqF` Bne = True
-  Blt `eqF` Blt = True
-  Bge `eqF` Bge = True
-  Bltu `eqF` Bltu = True
-  Bgeu `eqF` Bgeu = True
-
-  -- U type
-  Lui `eqF` Lui = True
-  Auipc `eqF` Auipc = True
-
-  -- J type
-  Jal `eqF` Jal = True
-
-  -- E type
-  Ecall `eqF` Ecall = True
-  Ebreak `eqF` Ebreak = True
-
-  -- X type (illegal instruction)
-  Illegal `eqF` Illegal = True
-
-  _ `eqF` _ = False
-
+  x `eqF` y = x == y
 
 instance TestEquality Opcode where
   testEquality = $(structuralTypeEquality [t|Opcode|] [])
