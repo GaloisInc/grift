@@ -1,6 +1,6 @@
 # riscv-tools
 
-A WIP RISC-V library for binary tooling support.
+A general-purpose RISC-V library for Haskell
 
 ## Overview
 The RISC-V ISA (instruction set architecture) is an open-source ISA developed at UC
@@ -22,4 +22,14 @@ stack build
 Nothing to run, this is a library.
 
 ## Current status
-Encoding/decoding are complete; semantics is coming next.
+Encoding/decoding are complete for the base ISA (RV32I).
+
+Current TODOS:
+  - work out a story for semantics
+  - start adding extensions
+  - generalize instruction word length to multiples of 16; perhaps just create a data
+    wrapper type around BitVector with 32-bit and 16-bit constructors.
+  - Work out encoding/decoding for the RV32C/RV64C compressed instructions. Perhaps a
+    flag in the encode function for whether the compression is enabled.
+  - come up with a story for the various privilege levels (this might be
+    semantics-side only)

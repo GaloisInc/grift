@@ -71,7 +71,6 @@ data FormatRepr (k :: Format) where
   ERepr :: FormatRepr 'E
   XRepr :: FormatRepr 'X
 
-
 -- Instances
 $(return [])
 deriving instance Show (FormatRepr k)
@@ -134,6 +133,7 @@ instance OrdF Operands where
 -- | RV32I Opcodes, parameterized by format.
 data Opcode (f :: Format) :: * where
 
+  -- RV32I
   -- R type
   Add  :: Opcode 'R
   Sub  :: Opcode 'R
@@ -273,7 +273,7 @@ instance TestEquality Instruction where
       (Just Refl, Just Refl) -> Just Refl
       _ -> Nothing
 instance OrdF Instruction where
-  Inst opcode operands `compareF` Inst opcode' operands' = 
+  Inst opcode operands `compareF` Inst opcode' operands' =
     case opcode `compareF` opcode' of
       EQF -> operands `compareF` operands'
       cmp -> cmp
@@ -307,7 +307,9 @@ opcodeFromOpBits opBits = maybe (Left Illegal) Right $ Map.lookup opBits opBitsO
 opcodeOpBitsMap :: MapF Opcode OpBits
 opcodeOpBitsMap = Map.fromList $
 
-  [ Pair Add  (ROpBits 0b0110011 0b000 0b0000000)
+  [ -- RV32I
+    -- R type
+    Pair Add  (ROpBits 0b0110011 0b000 0b0000000)
   , Pair Sub  (ROpBits 0b0110011 0b000 0b0100000)
   , Pair Sll  (ROpBits 0b0110011 0b001 0b0000000)
   , Pair Slt  (ROpBits 0b0110011 0b010 0b0000000)
@@ -318,7 +320,7 @@ opcodeOpBitsMap = Map.fromList $
   , Pair Or   (ROpBits 0b0110011 0b110 0b0000000)
   , Pair And  (ROpBits 0b0110011 0b111 0b0000000)
 
--- I type
+  -- I type
   , Pair Jalr   (IOpBits 0b1100111 0b000)
   , Pair Lb     (IOpBits 0b0000011 0b000)
   , Pair Lh     (IOpBits 0b0000011 0b001)
@@ -343,12 +345,12 @@ opcodeOpBitsMap = Map.fromList $
   , Pair Csrrsi (IOpBits 0b1110011 0b110)
   , Pair Csrrci (IOpBits 0b1110011 0b111)
 
--- S type
+  -- S type
   , Pair Sb (SOpBits 0b0100011 0b000)
   , Pair Sh (SOpBits 0b0100011 0b001)
   , Pair Sw (SOpBits 0b0100011 0b010)
 
--- B type
+  -- B type
   , Pair Beq  (BOpBits 0b1100011 0b000)
   , Pair Bne  (BOpBits 0b1100011 0b001)
   , Pair Blt  (BOpBits 0b1100011 0b100)
@@ -356,18 +358,18 @@ opcodeOpBitsMap = Map.fromList $
   , Pair Bltu (BOpBits 0b1100011 0b110)
   , Pair Bgeu (BOpBits 0b1100011 0b111)
 
--- U type
+  -- U type
   , Pair Lui   (UOpBits 0b0110111)
   , Pair Auipc (UOpBits 0b0010111)
 
--- J type
+  -- J type
   , Pair Jal (JOpBits 0b1101111)
 
--- E type
+  -- E type
   , Pair Ecall  (EOpBits 0b1110011 0b0000000000000000000000000)
   , Pair Ebreak (EOpBits 0b1110011 0b0000000000010000000000000)
 
--- X type
+  -- X type
   , Pair Illegal (XOpBits)
   ]
 

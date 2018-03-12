@@ -38,6 +38,8 @@ decode bvec = case decodeFormat bvec of
     Right op     -> Some $ Inst op (decodeOperands repr bvec)
     Left Illegal -> Some $ Inst Illegal (decodeOperands XRepr bvec)
 
+-- TODO: We could probably automatically derive this from opcodeOpBitsMap somehow,
+-- but this seems simpler.
 -- | First, get the format
 decodeFormat :: BitVector 32 -> Some FormatRepr
 decodeFormat bvec = case ( bvExtract 0  bvec :: BitVector 7
