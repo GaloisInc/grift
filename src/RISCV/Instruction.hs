@@ -1,12 +1,25 @@
-{-# LANGUAGE BinaryLiterals     #-}
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE GADTs              #-}
-{-# LANGUAGE KindSignatures     #-}
-{-# LANGUAGE RankNTypes         #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeFamilies       #-}
+{-# LANGUAGE BinaryLiterals        #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+
+{-|
+Module      : RISCV.Instruction
+Copyright   : (c) Benjamin Selfridge, 2018
+                  Galois Inc.
+License     : None (yet)
+Maintainer  : benselfridge@galois.com
+Stability   : experimental
+Portability : portable
+
+AST for Instruction data type, parameterized by instruction format (R, I, S, ...).
+-}
 
 module RISCV.Instruction
   ( -- * Instructions
@@ -58,6 +71,28 @@ data FormatRepr (k :: Format) where
   ERepr :: FormatRepr 'E
   XRepr :: FormatRepr 'X
 
+
+-- Instances
+$(return [])
+deriving instance Show (FormatRepr k)
+instance ShowF FormatRepr
+instance KnownRepr FormatRepr 'R where
+  knownRepr = RRepr
+instance KnownRepr FormatRepr 'I where
+  knownRepr = IRepr
+instance KnownRepr FormatRepr 'S where
+  knownRepr = SRepr
+instance KnownRepr FormatRepr 'B where
+  knownRepr = BRepr
+instance KnownRepr FormatRepr 'U where
+  knownRepr = URepr
+instance KnownRepr FormatRepr 'J where
+  knownRepr = JRepr
+instance KnownRepr FormatRepr 'E where
+  knownRepr = ERepr
+instance KnownRepr FormatRepr 'X where
+  knownRepr = XRepr
+
 ----------------------------------------
 -- Operands
 
@@ -73,6 +108,18 @@ data Operands :: Format -> * where
   JOperands :: BitVector 5 -> BitVector 20                 -> Operands 'J
   EOperands ::                                                Operands 'E
   XOperands :: BitVector 32                                -> Operands 'X
+
+-- Instances
+$(return [])
+deriving instance Show (Operands k)
+instance ShowF Operands
+deriving instance Eq (Operands k)
+instance EqF Operands where
+  eqF = (==)
+instance TestEquality Operands where
+  testEquality = $(structuralTypeEquality [t|Operands|] [])
+instance OrdF Operands where
+  compareF = $(structuralTypeOrd [t|Operands|] [])
 
 ----------------------------------------
 -- Opcodes
@@ -113,7 +160,10 @@ data Opcode (f :: Format) :: * where
   -- TODO: Fence and Fence_i are both slightly wonky; we might need to separate them
   -- out into separate formats like we did with Ecall and Ebreak. Fence uses the
   -- immediate bits to encode additional operands and Fence_i requires them to be 0,
-  -- so ideally we'd capture that in the type.
+  -- so ideally we'd capture that in the type. It's still possible to fit them into
+  -- the I format for now, but it's actually the case (just like with shifts) only
+  -- certain operands are allowed (in the case of Fence.i, all the operands *must* be
+  -- 0).
   Fence   :: Opcode 'I
   Fence_i :: Opcode 'I
   Csrrw   :: Opcode 'I
@@ -150,6 +200,18 @@ data Opcode (f :: Format) :: * where
   -- X type (illegal instruction)
   Illegal :: Opcode 'X
 
+-- Instances
+$(return [])
+deriving instance Show (Opcode k)
+instance ShowF Opcode
+deriving instance Eq (Opcode k)
+instance EqF Opcode where
+  eqF = (==)
+instance TestEquality Opcode where
+  testEquality = $(structuralTypeEquality [t|Opcode|] [])
+instance OrdF Opcode where
+  compareF = $(structuralTypeOrd [t|Opcode|] [])
+
 ----------------------------------------
 -- OpBits
 
@@ -166,6 +228,18 @@ data OpBits :: Format -> * where
   EOpBits :: BitVector 7 -> BitVector 25               -> OpBits 'E
   XOpBits ::                                              OpBits 'X
 
+-- Instances
+$(return [])
+deriving instance Show (OpBits k)
+instance ShowF OpBits
+deriving instance Eq (OpBits k)
+instance EqF OpBits where
+  eqF = (==)
+instance TestEquality OpBits where
+  testEquality = $(structuralTypeEquality [t|OpBits|] [])
+instance OrdF OpBits where
+  compareF = $(structuralTypeOrd [t|OpBits|] [])
+
 ----------------------------------------
 -- Instructions
 
@@ -173,6 +247,36 @@ data OpBits :: Format -> * where
 data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k
                                       , instOperands :: Operands k
                                       }
+
+$(return [])
+
+-- Instances
+instance Show (Instruction k) where
+  show (Inst opcode operands) = show opcode ++ " " ++ show operands
+instance ShowF Instruction
+instance Eq (Instruction k) where
+  Inst opcode operands == Inst opcode' operands' =
+    opcode == opcode' && operands == operands'
+instance EqF Instruction where
+  eqF = (==)
+instance TestEquality Instruction where
+  (Inst opcode operands) `testEquality` (Inst opcode' operands') =
+    case (opcode   `testEquality` opcode',
+          operands `testEquality` operands') of
+      (Just Refl, Just Refl) -> Just Refl
+      _ -> Nothing
+instance OrdF Instruction where
+  Inst opcode operands `compareF` Inst opcode' operands' = 
+    case opcode `compareF` opcode' of
+      EQF -> operands `compareF` operands'
+      cmp -> cmp
+
+----------------------------------------
+-- Opcode/OpBits correspondence
+--
+-- We encode this correspondence with a parameterized Map (MapF), which we then
+-- invert via transMap to get a (sort of) bijective correspondence. Going from Opcode
+-- -> OpBits is a total function, but OpBits -> Opcode is only partial.
 
 swap :: Pair (k :: Format -> *) (v :: Format -> *) -> Pair v k
 swap (Pair k v) = Pair v k
@@ -188,9 +292,8 @@ opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
   Nothing     -> error $ "Opcode " ++ show opcode ++
                  "does not have corresponding OpBits defined."
 
--- TODO: fix this; if we get Nothing we need to return an illegal instruction? Either
--- (Opcode 'X) Opcode k?
--- | Get the Opcode of an OpBits. Throws an error if given an invalid OpBits.
+-- | Get the Opcode of an OpBits. Returns an illegal instruction if there is no
+-- corresponding opcode.
 opcodeFromOpBits :: OpBits k -> Either (Opcode 'X) (Opcode k)
 opcodeFromOpBits opBits = maybe (Left Illegal) Right $ Map.lookup opBits opBitsOpcodeMap
 
@@ -263,103 +366,3 @@ opcodeOpBitsMap = Map.fromList $
 
 opBitsOpcodeMap :: MapF OpBits Opcode
 opBitsOpcodeMap = transMap opcodeOpBitsMap
-
-----------------------------------------
--- Instances
-
--- Force types to be in context for TH stuff below.
-$(return [])
-
-instance Show (FormatRepr k) where
-  show RRepr = "RRepr"
-  show IRepr = "IRepr"
-  show SRepr = "SRepr"
-  show BRepr = "BRepr"
-  show URepr = "URepr"
-  show JRepr = "JRepr"
-  show ERepr = "ERepr"
-  show XRepr = "XRepr"
-
-instance ShowF FormatRepr
-
--- TODO: KnownRepr instance for FormatRepr?
-
-
-instance Show (Operands k) where
-  show (ROperands rd rs1 rs2) =
-    "[ rd = "  ++ show rd ++
-    ", rs1 = " ++ show rs1 ++
-    ", rs2 = " ++ show rs2 ++ " ]"
-  show (IOperands rd rs1 imm) =
-    "[ rd = "  ++ show rd ++
-    ", rs1 = " ++ show rs1 ++
-    ", imm = " ++ show imm ++ " ]"
-  show (SOperands rs1 rs2 imm) =
-    "[ rs1 = " ++ show rs1 ++
-    ", rs2 = " ++ show rs2 ++
-    ", imm = " ++ show imm ++ " ]"
-  show (BOperands rs1 rs2 imm) =
-    "[ rs1 = " ++ show rs1 ++
-    ", rs2 = " ++ show rs2 ++
-    ", imm = " ++ show imm ++ " ]"
-  show (UOperands rd imm) =
-    "[ rd = "  ++ show rd ++
-    ", imm = " ++ show imm ++ " ]"
-  show (JOperands rd imm) =
-    "[ rd = "  ++ show rd ++
-    ", imm = " ++ show imm ++ " ]"
-  show (EOperands) = "[]"
-  show (XOperands ill) = "[ ill = " ++ show ill ++ "]"
-
-instance ShowF Operands
-
-deriving instance Show (Opcode k)
-
-instance ShowF Opcode
-
-deriving instance Eq (Opcode k)
-
-instance EqF Opcode where
-  x `eqF` y = x == y
-
-instance TestEquality Opcode where
-  testEquality = $(structuralTypeEquality [t|Opcode|] [])
-
-instance OrdF Opcode where
-  compareF = $(structuralTypeOrd [t|Opcode|] [])
-
-instance Show (OpBits k) where
-  show (ROpBits opcode funct3 funct7) =
-    "[ opcode = " ++ show opcode ++
-    ", funct3 = " ++ show funct3 ++
-    ", funct7 = " ++ show funct7 ++ "]"
-  show (IOpBits opcode funct3) =
-    "[ opcode = " ++ show opcode ++
-    ", funct3 = " ++ show funct3 ++ "]"
-  show (SOpBits opcode funct3) =
-    "[ opcode = " ++ show opcode ++
-    ", funct3 = " ++ show funct3 ++ "]"
-  show (BOpBits opcode funct3) =
-    "[ opcode = " ++ show opcode ++
-    ", funct3 = " ++ show funct3 ++ "]"
-  show (UOpBits opcode) =
-    "[ opcode = " ++ show opcode ++ "]"
-  show (JOpBits opcode) =
-    "[ opcode = " ++ show opcode ++ "]"
-  show (EOpBits opcode b) =
-    "[ opcode = " ++ show opcode ++
-    ", b = " ++ show b ++ "]"
-  show (XOpBits) = "[]"
-
-instance ShowF OpBits
-
-instance TestEquality OpBits where
-  testEquality = $(structuralTypeEquality [t|OpBits|] [])
-
-instance OrdF OpBits where
-  compareF = $(structuralTypeOrd [t|OpBits|] [])
-
-instance Show (Instruction k) where
-  show (Inst opcode operands) = show opcode ++ " " ++ show operands
-
-instance ShowF Instruction
