@@ -76,6 +76,13 @@ data FormatRepr (k :: Format) where
 $(return [])
 deriving instance Show (FormatRepr k)
 instance ShowF FormatRepr
+deriving instance Eq (FormatRepr k)
+instance EqF FormatRepr where
+  eqF = (==)
+instance TestEquality FormatRepr where
+  testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
+instance OrdF FormatRepr where
+  compareF = $(structuralTypeOrd [t|FormatRepr|] [])
 instance KnownRepr FormatRepr 'R where
   knownRepr = RRepr
 instance KnownRepr FormatRepr 'I where

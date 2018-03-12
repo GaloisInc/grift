@@ -30,6 +30,8 @@ import Data.Parameterized
 import RISCV.Instruction
 import RISCV.Instruction.Lens
 
+-- | Decode an instruction word. Since we won't know the format ahead of time, we
+-- have to hide the format parameter of the return type with 'Some'.
 decode :: BitVector 32 -> Some Instruction
 decode bvec = case decodeFormat bvec of
   Some repr -> case decodeOpcode repr bvec of

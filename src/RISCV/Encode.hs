@@ -31,7 +31,8 @@ import RISCV.Instruction.Lens
 ----------------------------------------
 -- Encoding
 
-encode :: forall (k :: Format). Instruction k -> BitVector 32
+-- | Encode an 'Instruction' as a 32-bit instruction word.
+encode :: Instruction k -> BitVector 32
 encode inst = case inst of
   Inst opcode (ROperands rd rs1 rs2) ->
     case opBitsFromOpcode opcode of
