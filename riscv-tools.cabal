@@ -20,6 +20,7 @@ library
                      , RISCV.Encode
                      , RISCV.Instruction
                      , RISCV.Instruction.Lens
+                     , RISCV.Semantics
   build-depends:       base >= 4.7 && < 5
                      , bv-sized
                      , bytestring >= 0.10.0 && < 0.11.0

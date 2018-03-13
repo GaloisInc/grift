@@ -255,9 +255,9 @@ data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k
                                       , instOperands :: Operands k
                                       }
 
+-- Instances
 $(return [])
 
--- Instances
 instance Show (Instruction k) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
 instance ShowF Instruction
@@ -370,7 +370,7 @@ opcodeOpBitsMap = Map.fromList $
   , Pair Ebreak (EOpBits 0b1110011 0b0000000000010000000000000)
 
   -- X type
-  , Pair Illegal (XOpBits)
+  , Pair Illegal XOpBits
   ]
 
 opBitsOpcodeMap :: MapF OpBits Opcode
