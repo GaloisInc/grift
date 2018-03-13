@@ -7,6 +7,19 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 
+{-|
+Module      : RISCV.Instruction.Lens
+Copyright   : (c) Benjamin Selfridge, 2018
+                  Galois Inc.
+License     : None (yet)
+Maintainer  : benselfridge@galois.com
+Stability   : experimental
+Portability : portable
+
+This module defines a variety of lenses for getting/setting fields in an instruction
+word.
+-}
+
 module RISCV.Instruction.Lens
   ( -- * OpBits lenses
     opcodeLens

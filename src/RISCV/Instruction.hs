@@ -285,10 +285,10 @@ instance OrdF Instruction where
 -- invert via transMap to get a (sort of) bijective correspondence. Going from Opcode
 -- -> OpBits is a total function, but OpBits -> Opcode is only partial.
 
-swap :: Pair (k :: Format -> *) (v :: Format -> *) -> Pair v k
+swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
 swap (Pair k v) = Pair v k
 
-transMap :: OrdF v => MapF (k :: Format -> *) (v :: Format -> *) -> MapF v k
+transMap :: OrdF v => MapF (k :: t -> *) (v :: t -> *) -> MapF v k
 transMap = Map.fromList . map swap . Map.toList
 
 -- | Get the OpBits of an Opcode (the bits that are fixed by that opcode in all
