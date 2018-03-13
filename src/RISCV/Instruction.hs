@@ -61,7 +61,7 @@ data Format = R | I | S | B | U | J | E | X
 
 -- | A type-level representative of the format. Particularly useful when decoding
 -- instructions since we won't know ahead of time what format to classify them as.
-data FormatRepr (k :: Format) where
+data FormatRepr :: Format -> * where
   RRepr :: FormatRepr 'R
   IRepr :: FormatRepr 'I
   SRepr :: FormatRepr 'S
@@ -131,7 +131,7 @@ instance OrdF Operands where
 -- Opcodes
 
 -- | RV32I Opcodes, parameterized by format.
-data Opcode (f :: Format) :: * where
+data Opcode :: Format -> * where
 
   -- RV32I
   -- R type
@@ -251,9 +251,9 @@ instance OrdF OpBits where
 -- Instructions
 
 -- | RV32I Instruction, parameterized by format.
-data Instruction (k :: Format) = Inst { instOpcode   :: Opcode k
-                                      , instOperands :: Operands k
-                                      }
+data Instruction (fmt :: Format) = Inst { instOpcode   :: Opcode fmt
+                                        , instOperands :: Operands fmt
+                                        }
 
 -- Instances
 $(return [])
@@ -293,7 +293,7 @@ transMap = Map.fromList . map swap . Map.toList
 
 -- | Get the OpBits of an Opcode (the bits that are fixed by that opcode in all
 -- instances)
-opBitsFromOpcode :: Opcode k -> OpBits k
+opBitsFromOpcode :: Opcode fmt -> OpBits fmt
 opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
   Just opBits -> opBits
   Nothing     -> error $ "Opcode " ++ show opcode ++
@@ -301,7 +301,7 @@ opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
 
 -- | Get the Opcode of an OpBits. Returns an illegal instruction if there is no
 -- corresponding opcode.
-opcodeFromOpBits :: OpBits k -> Either (Opcode 'X) (Opcode k)
+opcodeFromOpBits :: OpBits fmt -> Either (Opcode 'X) (Opcode fmt)
 opcodeFromOpBits opBits = maybe (Left Illegal) Right $ Map.lookup opBits opBitsOpcodeMap
 
 opcodeOpBitsMap :: MapF Opcode OpBits
