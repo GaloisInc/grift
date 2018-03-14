@@ -53,5 +53,5 @@ step = do
       rOp (\bv1 bv2 -> bv1 `bvShiftRL` fromIntegral (bvIntegerU bv2)) operands
 
     -- I type
-    Some (Inst Jalr operands) -> undefined
+--    Some (Inst Jalr operands) -> undefined
     _ -> undefined
