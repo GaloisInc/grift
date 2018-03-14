@@ -2,11 +2,11 @@
 
 module Main where
 
-import Data.Parameterized
-import GHC.TypeLits
-import Test.QuickCheck
+-- import Data.Parameterized
+-- import GHC.TypeLits
+-- import Test.QuickCheck
 
-import RISCV
+-- import RISCV
 
 main :: IO ()
 main = return ()

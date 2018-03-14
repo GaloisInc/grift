@@ -31,5 +31,4 @@ Current TODOS:
     wrapper type around BitVector with 32-bit and 16-bit constructors.
   - Work out encoding/decoding for the RV32C/RV64C compressed instructions. Perhaps a
     flag in the encode function for whether the compression is enabled.
-  - come up with a story for the various privilege levels (this might be
-    semantics-side only)
+  - come up with a story for the various privilege levels (this is semantics-side only)
