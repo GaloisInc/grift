@@ -1,6 +1,6 @@
 # riscv-tools
 
-A general-purpose RISC-V library for Haskell
+A general-purpose RISC-V library for Haskell (for use in SSITH)
 
 ## Overview
 The RISC-V ISA (instruction set architecture) is an open-source ISA developed at UC
