@@ -23,7 +23,6 @@ module RISCV.Encode
   ) where
 
 import Control.Lens
-import Data.BitVector.Sized
 
 import RISCV.Instruction
 import RISCV.Instruction.Lens
@@ -32,7 +31,7 @@ import RISCV.Instruction.Lens
 -- Encoding
 
 -- | Encode an 'Instruction' as a 32-bit instruction word.
-encode :: Instruction k -> BitVector 32
+encode :: Instruction k -> InstWord 2
 encode inst = case inst of
   Inst opcode (ROperands rd rs1 rs2) ->
     case opBitsFromOpcode opcode of

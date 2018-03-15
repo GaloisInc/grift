@@ -8,6 +8,7 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -26,6 +27,7 @@ module RISCV.Instruction
     Instruction(..)
   , Format(..)
   , FormatRepr(..)
+  , InstWord
     -- * Opcodes
   , Opcode(..)
   , OpBits(..)
@@ -41,6 +43,7 @@ import Data.Parameterized
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized.Map (MapF)
 import Data.Parameterized.TH.GADT
+import GHC.TypeLits
 
 ----------------------------------------
 -- Formats
@@ -416,3 +419,6 @@ opBitsOpcodeMap = transMap opcodeOpBitsMap
 -- Now that I'm really thinking about it, I believe the above is exactly the right
 -- approach. It captures the fact that these compressed guys are being embedded into
 -- a larger instruction word.
+
+-- | Type for instruction words. These can be any multiple of 16.
+type InstWord (n :: Nat) = BitVector (16 * n)

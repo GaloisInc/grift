@@ -24,7 +24,6 @@ module RISCV.Decode
   ) where
 
 import Control.Lens ( (^.) )
-import Data.BitVector.Sized
 import Data.Parameterized
 
 import RISCV.Instruction
@@ -32,7 +31,7 @@ import RISCV.Instruction.Lens
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.
-decode :: BitVector 32 -> Some Instruction
+decode :: InstWord 2 -> Some Instruction
 decode bv = case decodeFormat bv of
   Some repr -> case decodeOpcode repr bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
@@ -41,31 +40,31 @@ decode bv = case decodeFormat bv of
 -- TODO: We could probably automatically derive this from opcodeOpBitsMap somehow,
 -- but this seems simpler.
 -- | First, get the format
-decodeFormat :: BitVector 32 -> Some FormatRepr
+decodeFormat :: InstWord 2 -> Some FormatRepr
 decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
-  (BV _ 0b0110011, _) -> Some RRepr
+  (0b0110011, _) -> Some RRepr
 
-  (BV _ 0b1110011, 0b000) -> Some ERepr -- special case.
+  (0b1110011, 0b000) -> Some ERepr -- special case.
 
-  (BV _ 0b1100111, _) -> Some IRepr
-  (BV _ 0b0000011, _) -> Some IRepr
-  (BV _ 0b0010011, _) -> Some IRepr
-  (BV _ 0b0001111, _) -> Some IRepr
-  (BV _ 0b1110011, _) -> Some IRepr
+  (0b1100111, _) -> Some IRepr
+  (0b0000011, _) -> Some IRepr
+  (0b0010011, _) -> Some IRepr
+  (0b0001111, _) -> Some IRepr
+  (0b1110011, _) -> Some IRepr
 
-  (BV _ 0b0100011, _) -> Some SRepr
+  (0b0100011, _) -> Some SRepr
 
-  (BV _ 0b1100011, _) -> Some BRepr
+  (0b1100011, _) -> Some BRepr
 
-  (BV _ 0b0110111, _) -> Some URepr
-  (BV _ 0b0010111, _) -> Some URepr
+  (0b0110111, _) -> Some URepr
+  (0b0010111, _) -> Some URepr
 
-  (BV _ 0b1101111, _) -> Some JRepr
+  (0b1101111, _) -> Some JRepr
 
   _ ->              Some XRepr
 
 -- | From the format, get the operands
-decodeOperands :: FormatRepr k -> BitVector 32 -> Operands k
+decodeOperands :: FormatRepr k -> InstWord 2 -> Operands k
 decodeOperands repr bv = case repr of
   RRepr -> ROperands (bv ^. rdLens)  (bv ^. rs1Lens) (bv ^. rs2Lens)
   IRepr -> IOperands (bv ^. rdLens)  (bv ^. rs1Lens) (bv ^. imm12ILens)
@@ -77,7 +76,7 @@ decodeOperands repr bv = case repr of
   XRepr -> XOperands (bv ^. illegalLens)
 
 -- | From the format, get the opbits
-decodeOpBits :: FormatRepr k -> BitVector 32 -> OpBits k
+decodeOpBits :: FormatRepr k -> InstWord 2 -> OpBits k
 decodeOpBits repr bv = case repr of
   RRepr -> ROpBits (bv ^. opcodeLens) (bv ^. funct3Lens) (bv ^. funct7Lens)
   IRepr -> IOpBits (bv ^. opcodeLens) (bv ^. funct3Lens)
@@ -88,5 +87,5 @@ decodeOpBits repr bv = case repr of
   ERepr -> EOpBits (bv ^. opcodeLens) (bv ^. eLens)
   XRepr -> XOpBits
 
-decodeOpcode :: FormatRepr k -> BitVector 32 -> Either (Opcode 'X) (Opcode k)
+decodeOpcode :: FormatRepr k -> InstWord 2 -> Either (Opcode 'X) (Opcode k)
 decodeOpcode repr bv = opcodeFromOpBits (decodeOpBits repr bv)
