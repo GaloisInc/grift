@@ -375,3 +375,44 @@ opcodeOpBitsMap = Map.fromList $
 
 opBitsOpcodeMap :: MapF OpBits Opcode
 opBitsOpcodeMap = transMap opcodeOpBitsMap
+
+----------------------------------------
+-- TODO: Add compressed instructions
+--
+-- This task is a little different from just adding an extension. In fact, it's
+-- really orthogonal to it, because we aren't adding *any* new instructions! Instead,
+-- we define a separate opcodeOpBits mapping for those special instructions. Since
+-- those mappings will under-specify the instruction word in a sense, we will need to
+-- encode a predicate that determines whether a particular instruction instance is
+-- compressable or not. The encode function will have to take some kind of flag, and
+-- check both the flag and the compressability of the instruction before determining
+-- how to encode it.
+--
+-- Another approach would be to use bit lenses to, instead of creating lenses mapping
+-- the operands into a 16-bit instruction word, map the 16-bit instruction word into
+-- the 32-bit one. Then we could create a separate function, maybe called compress,
+-- that would compress those instructions that could be compressed. This might be a
+-- slicker approach. We'd still need the compressibility predicate; I'm not sure if
+-- there is a clever way to weave that predicate in with the BitLayout stuff. Have to
+-- think about it. My feeling is that it makes more sense to just define one
+-- "compressible" function and see if that looks adequate.
+--
+-- Do I want the decoder to know whether it is "allowed" to decode compressed
+-- instructions, or any extension for that matter? My current feeling is that we
+-- might as well not bother making a distinction between the various extensions in
+-- the encoding/decoding end of things if we can help it. It would be nice to somehow
+-- tag instructions with the extensions they belong to, though, if only for error
+-- reporting purposes.
+--
+-- On the decoding end of things, it's a little trickier. Right now the decoder takes
+-- a 32-bit word. I'm thinking maybe I should have a separate
+--
+--   decodeC :: BitVector 16 -> Maybe (BitVector 32)
+--
+-- which returns the full 32-bit word that the compressed instruction would expand
+-- to. This is assuming I use the bit lens approach rather than creating an entirely
+-- separate mapping for compressed instructions into the Instruction type.
+--
+-- Now that I'm really thinking about it, I believe the above is exactly the right
+-- approach. It captures the fact that these compressed guys are being embedded into
+-- a larger instruction word.
