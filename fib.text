@@ -1,0 +1,47 @@
+
+code/fib.o:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <fib_slow>:
+   0:	fe010113          	addi	sp,sp,-32
+   4:	00112e23          	sw	ra,28(sp)
+   8:	00812c23          	sw	s0,24(sp)
+   c:	00912a23          	sw	s1,20(sp)
+  10:	02010413          	addi	s0,sp,32
+  14:	fea42623          	sw	a0,-20(s0)
+  18:	fec42783          	lw	a5,-20(s0)
+  1c:	00f04663          	bgtz	a5,28 <.L2>
+  20:	00000793          	li	a5,0
+  24:	04c0006f          	j	70 <.L3>
+
+00000028 <.L2>:
+  28:	fec42703          	lw	a4,-20(s0)
+  2c:	00100793          	li	a5,1
+  30:	00f71663          	bne	a4,a5,3c <.L4>
+  34:	00100793          	li	a5,1
+  38:	0380006f          	j	70 <.L3>
+
+0000003c <.L4>:
+  3c:	fec42783          	lw	a5,-20(s0)
+  40:	fff78793          	addi	a5,a5,-1
+  44:	00078513          	mv	a0,a5
+  48:	00000097          	auipc	ra,0x0
+  4c:	000080e7          	jalr	ra
+  50:	00050493          	mv	s1,a0
+  54:	fec42783          	lw	a5,-20(s0)
+  58:	ffe78793          	addi	a5,a5,-2
+  5c:	00078513          	mv	a0,a5
+  60:	00000097          	auipc	ra,0x0
+  64:	000080e7          	jalr	ra
+  68:	00050793          	mv	a5,a0
+  6c:	00f487b3          	add	a5,s1,a5
+
+00000070 <.L3>:
+  70:	00078513          	mv	a0,a5
+  74:	01c12083          	lw	ra,28(sp)
+  78:	01812403          	lw	s0,24(sp)
+  7c:	01412483          	lw	s1,20(sp)
+  80:	02010113          	addi	sp,sp,32
+  84:	00008067          	ret

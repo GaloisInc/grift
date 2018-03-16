@@ -29,9 +29,43 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable riscv-asm
+-- executable riscv-asm
+--   hs-source-dirs:      src
+--   main-is:             MainAssemble.hs
+--   other-modules:       RISCV
+--                      , RISCV.Decode
+--                      , RISCV.Encode
+--                      , RISCV.Instruction
+--                      , RISCV.Instruction.Lens
+--                      , RISCV.Semantics
+--   default-language:    Haskell2010
+--   build-depends:       base >= 4.7 && < 5
+--                      , bv-sized >= 0.1.1 && < 0.2
+--                      , bytestring >= 0.10.8 && < 0.10.9
+--                      , elf-edit
+--                      , lens >= 4 && < 5
+--                      , parameterized-utils
+
+-- executable riscv-sim
+--   hs-source-dirs:      src
+--   main-is:             MainSimulator.hs
+--   other-modules:       RISCV
+--                      , RISCV.Decode
+--                      , RISCV.Encode
+--                      , RISCV.Instruction
+--                      , RISCV.Instruction.Lens
+--                      , RISCV.Semantics
+--   default-language:    Haskell2010
+--   build-depends:       base >= 4.7 && < 5
+--                      , bv-sized >= 0.1.1 && < 0.2
+--                      , bytestring >= 0.10.8 && < 0.10.9
+--                      , elf-edit
+--                      , lens >= 4 && < 5
+--                      , parameterized-utils
+
+executable riscv-dis
   hs-source-dirs:      src
-  main-is:             MainAssemble.hs
+  main-is:             MainDisassembler.hs
   other-modules:       RISCV
                      , RISCV.Decode
                      , RISCV.Encode
