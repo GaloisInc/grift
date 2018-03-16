@@ -1,3 +1,6 @@
 [submodule "submodules/bv-sized"]
 	path = submodules/bv-sized
 	url = git@github.com:benjaminselfridge/bv-sized.git
+[submodule "submodules/elf-edit"]
+	path = submodules/elf-edit
+	url = git@github.com:GaloisInc/elf-edit.git

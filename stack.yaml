@@ -3,11 +3,12 @@ resolver: lts-10.7
 packages:
 - .
 - submodules/bv-sized
+- submodules/elf-edit
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-#- bytestring-0.10.8.2
+- bytestring-0.10.8.2
 - containers-0.5.11.0
 - lens-4.16
 - parameterized-utils-1.0.0
