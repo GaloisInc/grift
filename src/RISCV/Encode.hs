@@ -48,42 +48,42 @@ encode inst = case inst of
       IOpBits o f3 -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
-        rdLens  .~ rd &
-        rs1Lens .~ rs1 &
+        rdLens     .~ rd &
+        rs1Lens    .~ rs1 &
         imm12ILens .~ imm12
   Inst opcode (SOperands rs1 rs2 imm12) ->
     case opBitsFromOpcode base opcode of
       SOpBits o f3 -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
-        rs1Lens .~ rs1 &
-        rs2Lens .~ rs2 &
+        rs1Lens    .~ rs1 &
+        rs2Lens    .~ rs2 &
         imm12SLens .~ imm12
   Inst opcode (BOperands rs1 rs2 imm12) ->
     case opBitsFromOpcode base opcode of
       BOpBits o f3 -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
-        rs1Lens .~ rs1 &
-        rs2Lens .~ rs2 &
+        rs1Lens    .~ rs1 &
+        rs2Lens    .~ rs2 &
         imm12BLens .~ imm12
   Inst opcode (UOperands rd imm20) ->
     case opBitsFromOpcode base opcode of
       UOpBits o -> 0 &
         opcodeLens .~ o &
-        rdLens .~ rd &
+        rdLens     .~ rd &
         imm20ULens .~ imm20
   Inst opcode (JOperands rd imm20) ->
     case opBitsFromOpcode base opcode of
       JOpBits o -> 0 &
         opcodeLens .~ o &
-        rdLens .~ rd &
+        rdLens     .~ rd &
         imm20JLens .~ imm20
   Inst opcode (EOperands) ->
     case opBitsFromOpcode base opcode of
       EOpBits o eBits -> 0 &
         opcodeLens .~ o &
-        eLens .~ eBits
+        eLens      .~ eBits
   Inst opcode (XOperands illBits) ->
     case opBitsFromOpcode base opcode of
       XOpBits -> 0 & illegalLens .~ illBits
