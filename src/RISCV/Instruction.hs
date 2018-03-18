@@ -25,6 +25,9 @@ AST for Instruction data type, parameterized by instruction format (R, I, S, ...
 module RISCV.Instruction
   ( -- * Instructions
     Instruction(..)
+  , InstructionSet(..)
+  , instructionSet
+  , RegWidth(..)
   , Format(..)
   , FormatRepr(..)
   , InstWord
@@ -48,7 +51,7 @@ import GHC.TypeLits
 ----------------------------------------
 -- Formats
 
--- | The seven RV32I instruction formats. Each RV32I opcode has one of seven encoding
+-- | The RISC-V instruction formats. Each RISC-V opcode has one of seven encoding
 -- formats, corresponding to its operands and the way those operands are laid out as
 -- bits in the instruction word. We include an additional (eighth) format, X,
 -- inhabited only by an illegal instruction.
@@ -106,7 +109,7 @@ instance KnownRepr FormatRepr 'X where
 -- Operands
 
 -- TODO: Consider making the operand arguments lists of bit vector types???
--- | RV32I Operand lists, parameterized by format. There is exactly one constructor
+-- | RISC-V Operand lists, parameterized by format. There is exactly one constructor
 -- per format.
 data Operands :: Format -> * where
   ROperands :: BitVector 5 -> BitVector 5  -> BitVector 5  -> Operands 'R
@@ -133,21 +136,29 @@ instance OrdF Operands where
 ----------------------------------------
 -- Opcodes
 
--- | RV32I Opcodes, parameterized by format.
+-- | RISC-V Opcodes, parameterized by format.
 data Opcode :: Format -> * where
 
-  -- RV32I
   -- R type
-  Add  :: Opcode 'R
-  Sub  :: Opcode 'R
-  Sll  :: Opcode 'R
-  Slt  :: Opcode 'R
-  Sltu :: Opcode 'R
-  Xor  :: Opcode 'R
-  Srl  :: Opcode 'R
-  Sra  :: Opcode 'R
-  Or   :: Opcode 'R
-  And  :: Opcode 'R
+  Add    :: Opcode 'R
+  Sub    :: Opcode 'R
+  Sll    :: Opcode 'R
+  Slt    :: Opcode 'R
+  Sltu   :: Opcode 'R
+  Xor    :: Opcode 'R
+  Srl    :: Opcode 'R
+  Sra    :: Opcode 'R
+  Or     :: Opcode 'R
+  And    :: Opcode 'R
+  Mul    :: Opcode 'R
+  Mulh   :: Opcode 'R
+  Mulhsu :: Opcode 'R
+  Mulhu  :: Opcode 'R
+  Div    :: Opcode 'R
+  Divu   :: Opcode 'R
+  Rem    :: Opcode 'R
+  Remu   :: Opcode 'R
+
 
   -- I type
   Jalr    :: Opcode 'I
@@ -253,7 +264,7 @@ instance OrdF OpBits where
 ----------------------------------------
 -- Instructions
 
--- | RV32I Instruction, parameterized by format.
+-- | RISC-V Instruction, parameterized by format.
 data Instruction (fmt :: Format) = Inst { instOpcode   :: Opcode fmt
                                         , instOperands :: Operands fmt
                                         }
@@ -281,12 +292,38 @@ instance OrdF Instruction where
       EQF -> operands `compareF` operands'
       cmp -> cmp
 
-----------------------------------------
--- Opcode/OpBits correspondence
---
--- We encode this correspondence with a parameterized Map (MapF), which we then
--- invert via transMap to get a (sort of) bijective correspondence. Going from Opcode
--- -> OpBits is a total function, but OpBits -> Opcode is only partial.
+-- | Minimum required width of registers for an instruction set.
+data RegWidth = Width32  -- ^ 32-bit registers/addrs
+              | Width64  -- ^ 64-bit registers/addrs
+              | Width128 -- ^ 128-bit registers/addrs
+  deriving (Eq, Ord, Show)
+
+-- | Instruction encoding, mapping each opcode to its associated 'OpBits', the bits
+-- it fixes in an instruction word.
+type EncodeMap = MapF Opcode OpBits
+
+-- | Reverse of 'EncodeMap'
+type DecodeMap = MapF OpBits Opcode
+
+-- | A set of RISC-V instructions. We use this type to group the various instructions
+-- into categories based on extension and register width.
+data InstructionSet = InstructionSet { isRegWidth  :: RegWidth
+                                     , isEncodeMap :: EncodeMap
+                                     , isDecodeMap :: DecodeMap
+                                     }
+
+instance Monoid InstructionSet where
+  mempty = InstructionSet Width32 Map.empty Map.empty
+
+  InstructionSet w1 em1 _ `mappend` InstructionSet w2 em2 _ = InstructionSet
+    (max w1 w2)
+    newEM
+    (transMap newEM)
+    where newEM = em1 `Map.union` em2
+
+-- | Construction an instructionSet from only an EncodeMap
+instructionSet :: RegWidth -> EncodeMap -> InstructionSet
+instructionSet rw em = InstructionSet rw em (transMap em)
 
 swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
 swap (Pair k v) = Pair v k
@@ -294,90 +331,20 @@ swap (Pair k v) = Pair v k
 transMap :: OrdF v => MapF (k :: t -> *) (v :: t -> *) -> MapF v k
 transMap = Map.fromList . map swap . Map.toList
 
--- | Get the OpBits of an Opcode (the bits that are fixed by that opcode in all
--- instances)
-opBitsFromOpcode :: Opcode fmt -> OpBits fmt
-opBitsFromOpcode opcode = case Map.lookup opcode opcodeOpBitsMap of
+-- | Given an instruction set, obtain the fixed bits of an opcode (encoding)
+opBitsFromOpcode :: InstructionSet -> Opcode fmt -> OpBits fmt
+opBitsFromOpcode is opcode = case Map.lookup opcode (isEncodeMap is) of
   Just opBits -> opBits
   Nothing     -> error $ "Opcode " ++ show opcode ++
                  "does not have corresponding OpBits defined."
 
--- | Get the Opcode of an OpBits. Returns an illegal instruction if there is no
--- corresponding opcode.
-opcodeFromOpBits :: OpBits fmt -> Either (Opcode 'X) (Opcode fmt)
-opcodeFromOpBits opBits = maybe (Left Illegal) Right $ Map.lookup opBits opBitsOpcodeMap
+-- | Given an instruction set, obtain the opcode from its fixed bits (decoding)
+opcodeFromOpBits :: InstructionSet -> OpBits fmt -> Either (Opcode 'X) (Opcode fmt)
+opcodeFromOpBits is opBits =
+  maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
 
-opcodeOpBitsMap :: MapF Opcode OpBits
-opcodeOpBitsMap = Map.fromList $
-
-  [ -- RV32I
-    -- R type
-    Pair Add  (ROpBits 0b0110011 0b000 0b0000000)
-  , Pair Sub  (ROpBits 0b0110011 0b000 0b0100000)
-  , Pair Sll  (ROpBits 0b0110011 0b001 0b0000000)
-  , Pair Slt  (ROpBits 0b0110011 0b010 0b0000000)
-  , Pair Sltu (ROpBits 0b0110011 0b011 0b0000000)
-  , Pair Xor  (ROpBits 0b0110011 0b100 0b0000000)
-  , Pair Srl  (ROpBits 0b0110011 0b101 0b0000000)
-  , Pair Sra  (ROpBits 0b0110011 0b101 0b0100000)
-  , Pair Or   (ROpBits 0b0110011 0b110 0b0000000)
-  , Pair And  (ROpBits 0b0110011 0b111 0b0000000)
-
-  -- I type
-  , Pair Jalr   (IOpBits 0b1100111 0b000)
-  , Pair Lb     (IOpBits 0b0000011 0b000)
-  , Pair Lh     (IOpBits 0b0000011 0b001)
-  , Pair Lw     (IOpBits 0b0000011 0b010)
-  , Pair Lbu    (IOpBits 0b0000011 0b100)
-  , Pair Lhu    (IOpBits 0b0000011 0b101)
-  , Pair Addi   (IOpBits 0b0010011 0b000)
-  , Pair Slti   (IOpBits 0b0010011 0b010)
-  , Pair Sltiu  (IOpBits 0b0010011 0b011)
-  , Pair Xori   (IOpBits 0b0010011 0b100)
-  , Pair Ori    (IOpBits 0b0010011 0b110)
-  , Pair Andi   (IOpBits 0b0010011 0b111)
-  , Pair Slli   (IOpBits 0b0010011 0b001)
-  , Pair Srli   (IOpBits 0b0010011 0b101)
-  , Pair Srai   (IOpBits 0b0010011 0b101)
-  , Pair Fence  (IOpBits 0b0001111 0b000)
-  , Pair Fence  (IOpBits 0b0001111 0b001)
-  , Pair Csrrw  (IOpBits 0b1110011 0b001)
-  , Pair Csrrs  (IOpBits 0b1110011 0b010)
-  , Pair Csrrc  (IOpBits 0b1110011 0b011)
-  , Pair Csrrwi (IOpBits 0b1110011 0b101)
-  , Pair Csrrsi (IOpBits 0b1110011 0b110)
-  , Pair Csrrci (IOpBits 0b1110011 0b111)
-
-  -- S type
-  , Pair Sb (SOpBits 0b0100011 0b000)
-  , Pair Sh (SOpBits 0b0100011 0b001)
-  , Pair Sw (SOpBits 0b0100011 0b010)
-
-  -- B type
-  , Pair Beq  (BOpBits 0b1100011 0b000)
-  , Pair Bne  (BOpBits 0b1100011 0b001)
-  , Pair Blt  (BOpBits 0b1100011 0b100)
-  , Pair Bge  (BOpBits 0b1100011 0b101)
-  , Pair Bltu (BOpBits 0b1100011 0b110)
-  , Pair Bgeu (BOpBits 0b1100011 0b111)
-
-  -- U type
-  , Pair Lui   (UOpBits 0b0110111)
-  , Pair Auipc (UOpBits 0b0010111)
-
-  -- J type
-  , Pair Jal (JOpBits 0b1101111)
-
-  -- E type
-  , Pair Ecall  (EOpBits 0b1110011 0b0000000000000000000000000)
-  , Pair Ebreak (EOpBits 0b1110011 0b0000000000010000000000000)
-
-  -- X type
-  , Pair Illegal XOpBits
-  ]
-
-opBitsOpcodeMap :: MapF OpBits Opcode
-opBitsOpcodeMap = transMap opcodeOpBitsMap
+-- | Type for instruction words. These can be any multiple of 16.
+type InstWord (n :: Nat) = BitVector (16 * n)
 
 ----------------------------------------
 -- TODO: Add compressed instructions
@@ -419,6 +386,3 @@ opBitsOpcodeMap = transMap opcodeOpBitsMap
 -- Now that I'm really thinking about it, I believe the above is exactly the right
 -- approach. It captures the fact that these compressed guys are being embedded into
 -- a larger instruction word.
-
--- | Type for instruction words. These can be any multiple of 16.
-type InstWord (n :: Nat) = BitVector (16 * n)

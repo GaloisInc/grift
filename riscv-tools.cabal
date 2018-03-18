@@ -16,8 +16,10 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     RISCV
+                     , RISCV.Base
                      , RISCV.Decode
                      , RISCV.Encode
+                     , RISCV.ExtM
                      , RISCV.Instruction
                      , RISCV.Instruction.Lens
                      , RISCV.Semantics
@@ -67,8 +69,10 @@ executable riscv-dis
   hs-source-dirs:      src
   main-is:             MainDisassembler.hs
   other-modules:       RISCV
+                     , RISCV.Base
                      , RISCV.Decode
                      , RISCV.Encode
+                     , RISCV.ExtM
                      , RISCV.Instruction
                      , RISCV.Instruction.Lens
                      , RISCV.Semantics
@@ -86,8 +90,10 @@ test-suite riscv-tests
   ghc-options: -Wall
   main-is: Test.hs
   other-modules:       RISCV
+                     , RISCV.Base
                      , RISCV.Decode
                      , RISCV.Encode
+                     , RISCV.ExtM
                      , RISCV.Instruction
                      , RISCV.Instruction.Lens
   hs-source-dirs: test, src

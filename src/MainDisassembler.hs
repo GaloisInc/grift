@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Module      : MainDisassembler
@@ -65,12 +66,10 @@ disFile fileName = do
 
 disElf :: ElfWidthConstraints w => Elf w -> IO [(Some Instruction, BitVector 32)]
 disElf e = do
-  let codeSections = filter isCodeSection $  e ^.. elfSections
-      isCodeSection sec =
-        (elfSectionFlags sec .&. shf_execinstr) /= zeroBits
-      bss = elfSectionData <$> codeSections
-      dis = concat $ disInstructions <$> bss
-  return $ dis
+  let [textSection] = findSectionByName ".text" e
+      bs  = elfSectionData textSection
+      dis = disInstructions bs
+  return dis
 
 -- | Decode a single instruction from a bytestring and returns the instruction along
 -- with the remaining bytes and the number of bytes consumed. Since we currently only

@@ -13,11 +13,13 @@ A library of tools for the RISC-V instruction set architecture.
 module RISCV
   ( module Data.BitVector.Sized
   , module RISCV.Instruction
+  , module RISCV.Base
   , module RISCV.Decode
   , module RISCV.Encode
   ) where
 
 import Data.BitVector.Sized
 import RISCV.Instruction
+import RISCV.Base
 import RISCV.Decode
 import RISCV.Encode

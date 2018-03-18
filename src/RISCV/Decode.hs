@@ -24,8 +24,11 @@ module RISCV.Decode
   ) where
 
 import Control.Lens ( (^.) )
+import Data.Monoid
 import Data.Parameterized
 
+import RISCV.Base
+import RISCV.ExtM
 import RISCV.Instruction
 import RISCV.Instruction.Lens
 
@@ -37,8 +40,7 @@ decode bv = case decodeFormat bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
     Left Illegal -> Some $ Inst Illegal (decodeOperands XRepr bv)
 
--- TODO: We could probably automatically derive this from opcodeOpBitsMap somehow,
--- but this seems simpler.
+-- TODO: Decide whether we want to abstract this guy
 -- | First, get the format
 decodeFormat :: InstWord 2 -> Some FormatRepr
 decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
@@ -88,4 +90,4 @@ decodeOpBits repr bv = case repr of
   XRepr -> XOpBits
 
 decodeOpcode :: FormatRepr k -> InstWord 2 -> Either (Opcode 'X) (Opcode k)
-decodeOpcode repr bv = opcodeFromOpBits (decodeOpBits repr bv)
+decodeOpcode repr bv = opcodeFromOpBits (base <> m) (decodeOpBits repr bv)
