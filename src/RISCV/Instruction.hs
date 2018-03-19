@@ -64,8 +64,8 @@ import GHC.TypeLits
 -- instruction are). In the manual, some instructions which have the same format
 -- actually have different numbers of operands! For example: add (from RV32I) has
 -- three operands, and fadd.s (from RV32F) has four operands (the additional one
--- being the rounding mode). Here, "operand" means "bit segment(s) tied to a
--- particular value needed to implement the semantics of the instruction."
+-- being the rounding mode). Here, "operand" means "bit vector(s) tied to a
+-- particular input for the instruction's semantics."
 
 data Format = R | I | S | B | U | J | E | X
 
