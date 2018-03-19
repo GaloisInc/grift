@@ -27,6 +27,7 @@ module RISCV.Instruction
     Instruction(..)
   , InstructionSet(..)
   , instructionSet
+  , EncodeMap, DecodeMap
   , RegWidth(..)
   , Format(..)
   , FormatRepr(..)
@@ -51,17 +52,20 @@ import GHC.TypeLits
 ----------------------------------------
 -- Formats
 
--- | The RISC-V instruction formats. Each RISC-V opcode has one of seven encoding
--- formats, corresponding to its operands and the way those operands are laid out as
--- bits in the instruction word. We include an additional (eighth) format, X,
+-- | The RISC-V instruction formats. Each RISC-V instruction has one of several
+-- encoding formats, corresponding to its operands and the way those operands are
+-- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 --
--- NOTE: Although the RISC-V spec only lists 6, in our formulation, the ecall and
--- ebreak instructions are slightly distinct from the other I-format instructions; in
--- particular, they don't have any operands, and they each actually use the same
--- opcode AND funct3 bits, and therefore have to have one extra bit to distinguish
--- between the two of them. Therefore, we invented an extra format, E, to represent
--- them.
+-- NOTE: Our formats differ somewhat from the RISC-V ISA manual. The manual
+-- classifies instructions into formats based on <TODO: what?>. Our formats, while
+-- very close to those in the manual, more exactly specify bits that are fixed by the
+-- instruction (i.e. the ones that never vary, no matter what the operands of the
+-- instruction are). In the manual, some instructions which have the same format
+-- actually have different numbers of operands! For example: add (from RV32I) has
+-- three operands, and fadd.s (from RV32F) has four operands (the additional one
+-- being the rounding mode). Here, "operand" means "bit segment(s) tied to a
+-- particular value needed to implement the semantics of the instruction."
 
 data Format = R | I | S | B | U | J | E | X
 
@@ -88,22 +92,14 @@ instance TestEquality FormatRepr where
   testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
 instance OrdF FormatRepr where
   compareF = $(structuralTypeOrd [t|FormatRepr|] [])
-instance KnownRepr FormatRepr 'R where
-  knownRepr = RRepr
-instance KnownRepr FormatRepr 'I where
-  knownRepr = IRepr
-instance KnownRepr FormatRepr 'S where
-  knownRepr = SRepr
-instance KnownRepr FormatRepr 'B where
-  knownRepr = BRepr
-instance KnownRepr FormatRepr 'U where
-  knownRepr = URepr
-instance KnownRepr FormatRepr 'J where
-  knownRepr = JRepr
-instance KnownRepr FormatRepr 'E where
-  knownRepr = ERepr
-instance KnownRepr FormatRepr 'X where
-  knownRepr = XRepr
+instance KnownRepr FormatRepr 'R where knownRepr = RRepr
+instance KnownRepr FormatRepr 'I where knownRepr = IRepr
+instance KnownRepr FormatRepr 'S where knownRepr = SRepr
+instance KnownRepr FormatRepr 'B where knownRepr = BRepr
+instance KnownRepr FormatRepr 'U where knownRepr = URepr
+instance KnownRepr FormatRepr 'J where knownRepr = JRepr
+instance KnownRepr FormatRepr 'E where knownRepr = ERepr
+instance KnownRepr FormatRepr 'X where knownRepr = XRepr
 
 ----------------------------------------
 -- Operands
@@ -140,7 +136,7 @@ instance OrdF Operands where
 data Opcode :: Format -> * where
 
   -- R type
-  Add    :: Opcode 'R
+  Add    :: Opcode 'R -- RV32I
   Sub    :: Opcode 'R
   Sll    :: Opcode 'R
   Slt    :: Opcode 'R
@@ -150,7 +146,7 @@ data Opcode :: Format -> * where
   Sra    :: Opcode 'R
   Or     :: Opcode 'R
   And    :: Opcode 'R
-  Mul    :: Opcode 'R
+  Mul    :: Opcode 'R -- RV32M
   Mulh   :: Opcode 'R
   Mulhsu :: Opcode 'R
   Mulhu  :: Opcode 'R
@@ -159,9 +155,8 @@ data Opcode :: Format -> * where
   Rem    :: Opcode 'R
   Remu   :: Opcode 'R
 
-
   -- I type
-  Jalr    :: Opcode 'I
+  Jalr    :: Opcode 'I -- RV32I
   Lb      :: Opcode 'I
   Lh      :: Opcode 'I
   Lw      :: Opcode 'I
@@ -195,12 +190,12 @@ data Opcode :: Format -> * where
   Csrrci  :: Opcode 'I
 
   -- S type
-  Sb :: Opcode 'S
+  Sb :: Opcode 'S -- RV32I
   Sh :: Opcode 'S
   Sw :: Opcode 'S
 
   -- B type
-  Beq  :: Opcode 'B
+  Beq  :: Opcode 'B -- RV32I
   Bne  :: Opcode 'B
   Blt  :: Opcode 'B
   Bge  :: Opcode 'B
@@ -208,18 +203,18 @@ data Opcode :: Format -> * where
   Bgeu :: Opcode 'B
 
   -- U type
-  Lui   :: Opcode 'U
+  Lui   :: Opcode 'U -- RV32I
   Auipc :: Opcode 'U
 
   -- J type
-  Jal :: Opcode 'J
+  Jal :: Opcode 'J -- RV32I
 
   -- E type
-  Ecall   :: Opcode 'E
+  Ecall   :: Opcode 'E -- RV32I
   Ebreak  :: Opcode 'E
 
   -- X type (illegal instruction)
-  Illegal :: Opcode 'X
+  Illegal :: Opcode 'X -- RV32I
 
 -- Instances
 $(return [])
@@ -271,7 +266,6 @@ data Instruction (fmt :: Format) = Inst { instOpcode   :: Opcode fmt
 
 -- Instances
 $(return [])
-
 instance Show (Instruction k) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
 instance ShowF Instruction
@@ -315,21 +309,18 @@ data InstructionSet = InstructionSet { isRegWidth  :: RegWidth
 instance Monoid InstructionSet where
   mempty = InstructionSet Width32 Map.empty Map.empty
 
-  InstructionSet w1 em1 _ `mappend` InstructionSet w2 em2 _ = InstructionSet
+  InstructionSet w1 em1 dm1 `mappend` InstructionSet w2 em2 dm2 = InstructionSet
     (max w1 w2)
-    newEM
-    (transMap newEM)
-    where newEM = em1 `Map.union` em2
+    (em1 `Map.union` em2)
+    (dm1 `Map.union` dm2)
 
 -- | Construction an instructionSet from only an EncodeMap
 instructionSet :: RegWidth -> EncodeMap -> InstructionSet
 instructionSet rw em = InstructionSet rw em (transMap em)
-
-swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
-swap (Pair k v) = Pair v k
-
-transMap :: OrdF v => MapF (k :: t -> *) (v :: t -> *) -> MapF v k
-transMap = Map.fromList . map swap . Map.toList
+  where swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
+        swap (Pair k v) = Pair v k
+        transMap :: OrdF v => MapF (k :: t -> *) (v :: t -> *) -> MapF v k
+        transMap = Map.fromList . map swap . Map.toList
 
 -- | Given an instruction set, obtain the fixed bits of an opcode (encoding)
 opBitsFromOpcode :: InstructionSet -> Opcode fmt -> OpBits fmt

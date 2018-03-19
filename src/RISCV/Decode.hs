@@ -30,7 +30,7 @@ import Data.Parameterized
 import RISCV.Base
 import RISCV.ExtM
 import RISCV.Instruction
-import RISCV.Instruction.Lens
+import RISCV.Instruction.Layouts
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.

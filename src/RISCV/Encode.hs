@@ -26,7 +26,7 @@ import Control.Lens
 
 import RISCV.Base
 import RISCV.Instruction
-import RISCV.Instruction.Lens
+import RISCV.Instruction.Layouts
 
 ----------------------------------------
 -- Encoding
