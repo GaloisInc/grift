@@ -11,5 +11,6 @@ extra-deps:
 - bytestring-0.10.8.2
 - containers-0.5.11.0
 - lens-4.16
+- mtl-2.2.2
 - parameterized-utils-1.0.0
 - QuickCheck-2.11.3

@@ -27,6 +27,7 @@ library
                      , bv-sized >= 0.1.1 && < 0.2
                      , containers >= 0.5.11 && < 0.5.12
                      , lens >= 4 && < 5
+                     , mtl >= 2.2 && < 2.3
                      , parameterized-utils
   hs-source-dirs:      src
   default-language:    Haskell2010
@@ -50,6 +51,7 @@ executable riscv-dis
                      , containers >= 0.5.11 && < 0.5.12
                      , elf-edit
                      , lens >= 4 && < 5
+                     , mtl >= 2.2 && < 2.3
                      , parameterized-utils
   
 test-suite riscv-tests
@@ -69,5 +71,6 @@ test-suite riscv-tests
                      , bv-sized >= 0.1.1 && < 0.2
                      , containers >= 0.5.11 && < 0.5.12
                      , lens >= 4 && < 5
+                     , mtl >= 2.2 && < 2.3
                      , parameterized-utils
                      , QuickCheck >= 2.11 && < 2.12
