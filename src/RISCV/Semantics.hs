@@ -16,6 +16,8 @@ import Control.Lens ( (%=) )
 import Control.Lens.TH (makeLenses)
 import Control.Monad.State
 import Data.BitVector.Sized
+import Data.Foldable (toList)
+import Data.List (intercalate)
 import Data.Parameterized
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
@@ -37,7 +39,8 @@ type family ArchWidth (arch :: Arch) :: Nat where
 data Parameter (arch :: Arch) (w :: Nat)
   = Parameter (NatRepr w) String
 
-deriving instance Show (Parameter arch w)
+instance Show (Parameter arch w) where
+  show (Parameter _repr name) = name
 instance ShowF (Parameter arch)
 
 data BVExpr (arch :: Arch) (w :: Nat) where
@@ -59,6 +62,16 @@ data BVExpr (arch :: Arch) (w :: Nat) where
       -> BVExpr arch w
       -> BVExpr arch w
 
+instance Show (BVExpr arch w) where
+  show (LitBV bv) = show bv
+  show (ParamBV p) = show p
+  show (RegRead r) = "x[" ++ show r ++ "]"
+  show (MemRead addr) = "M[" ++ show addr ++ "]"
+  show (Add e1 e2) = show e1 ++ " + " ++ show e2
+  show (Ite t e1 e2) =
+    "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
+instance ShowF (BVExpr arch)
+
 -- | A 'Stmt' represents an atomic state transformation.
 data Stmt (arch :: Arch) where
   AssignReg :: BVExpr arch 5 -> BVExpr arch (ArchWidth arch) -> Stmt arch
@@ -69,10 +82,20 @@ data Stmt (arch :: Arch) where
 
   CondStmt  :: BVExpr arch 1 -> Stmt arch -> Stmt arch
 
+instance Show (Stmt arch) where
+  show (AssignReg r e) = "x[" ++ show r ++ "] = " ++ show e
+  show (AssignMem addr e) = "M[" ++ show addr ++ "] = " ++ show e
+  show (AssignPC pc) = "pc = " ++ show pc
+  show (CondStmt t stmt) = "if (" ++ show t ++ ") " ++ show stmt
+
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- parameters (potentially zero), which represent the input to the formula. These are
 -- going to the be the operands of the instruction -- register ids, immediate values,
 -- and so forth.
+--
+-- At some point, we can think about how to make this more granular; each statement
+-- should be, more or less, an SSA-style definition where the right hand sides of all
+-- the assignments are composed of atomic operations.
 data Formula arch = Formula { _fComment :: Seq String
                               -- ^ multiline comment
                             , _fParams  :: Seq (Some (Parameter arch))
@@ -80,15 +103,29 @@ data Formula arch = Formula { _fComment :: Seq String
                             , _fDef     :: Seq (Stmt arch)
                               -- ^ sequence of statements defining the formula
                             }
-
 makeLenses ''Formula
 
+instance Show (Formula arch) where
+  show (Formula comments params defs) =
+    showComments ++
+    "Parameters: " ++ showParams ++ "\n" ++
+    showDefs
+    where showComments = concat (toList ((++ "\n") <$> comments))
+          showParams = intercalate ", " (toList (show <$> params))
+          showDefs = concat (toList ((\d -> "  " ++ show d ++ "\n") <$> defs))
+
+emptyFormula :: Formula arch
+emptyFormula = Formula Seq.empty Seq.empty Seq.empty
+
 newtype Semantics arch a =
-  Semantics { runSemantics :: State (Formula arch) a }
+  Semantics { unSemantics :: State (Formula arch) a }
   deriving (Functor,
             Applicative,
             Monad,
             MonadState (Formula arch))
+
+runSemantics :: Semantics arch () -> Formula arch
+runSemantics = flip execState emptyFormula . unSemantics
 
 litBV :: BitVector w -> BVExpr arch w
 litBV = LitBV
@@ -131,6 +168,8 @@ assignPC pc = addStmt (AssignPC pc)
 condStmt :: BVExpr arch 1 -> Stmt arch -> Semantics arch ()
 condStmt cond stmt = addStmt (CondStmt cond stmt)
 
+-- TODO: check that the parameter has not already been declared.
+-- | Declare a parameter for use in a formula.
 param :: KnownNat w => String -> Semantics arch (BVExpr arch w)
 param s = do
   let p = Parameter knownNat s
@@ -139,6 +178,8 @@ param s = do
 
 addSem :: Semantics arch ()
 addSem = do
+  comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
+  comment "Arithmetic overflow is ignored."
   rd    <- param "rd"
   x_rs1 <- regRead <$> param "rs1"
   x_rs2 <- regRead <$> param "rs2"
