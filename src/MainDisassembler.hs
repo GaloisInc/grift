@@ -16,9 +16,6 @@ Tool for disassembling RISC-V programs in the ELF executable format.
 
 module Main where
 
-import           Control.Lens ( (^.)
-                              , (^..)
-                              )
 import           Control.Monad
 import           Data.Bits
 import           Data.BitVector.Sized

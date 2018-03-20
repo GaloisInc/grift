@@ -8,9 +8,6 @@
 {-# LANGUAGE TypeFamilies #-}
 
 
--- I'm doing something based on SemMC here. Might actually make sense to actually
--- use SemMC, but I'm not sure yet.
-
 {-|
 Module      : RISCV.Semantics
 Copyright   : (c) Benjamin Selfridge, 2018
@@ -28,19 +25,19 @@ module RISCV.Semantics
   ( -- * Types
     Arch(..)
   , ArchWidth
-  , Parameter(..)
-  , BVExpr(..)
-  , Stmt(..)
-  , Formula(..)
+  , Parameter
+  , BVExpr
+  , Stmt
+  , Formula
   -- * Semantics monad
   , Semantics
   , runSemantics
+  , comment
   , litBV
   , regRead
   , memRead
   , add
   , ite
-  , comment
   , assignReg
   , assignMem
   , assignPC
@@ -128,6 +125,9 @@ instance Show (Stmt arch) where
   show (AssignPC pc) = "pc = " ++ show pc
   show (CondStmt t stmt) = "if (" ++ show t ++ ") " ++ show stmt
 
+-- TODO: Consider adding an additional parameter, a type-level list of Nats,
+-- assigning the parameters in the formula to their widths. This would enable really
+-- clean compile-time synchronization with the encodings.
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- parameters (potentially zero), which represent the input to the formula. These are
 -- going to the be the operands of the instruction -- register ids, immediate values,

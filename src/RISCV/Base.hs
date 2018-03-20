@@ -1,4 +1,5 @@
 {-# LANGUAGE BinaryLiterals #-}
+{-# LANGUAGE DataKinds #-}
 
 {-|
 Module      : RISCV.Base
@@ -9,17 +10,20 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-RV32I base ISA
+RV32I base ISA, encoding and semantics.
 -}
 
 module RISCV.Base
-  ( base )
+  ( base
+  , semAdd
+  )
   where
 
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 
 import RISCV.Instruction
+import RISCV.Semantics
 
 -- | RV32I Base ISA
 base :: InstructionSet
@@ -90,3 +94,24 @@ base = instructionSet Width32 $ Map.fromList
   , Pair Illegal XOpBits
   ]
 
+-- TODO: There is some redundancy here with the InstructionSet type; we are
+-- representing whether the instruction RV32/RV64 twice. Might make sense to remove
+-- it from the InstructionSet type altogether, or to force every instruction to have
+-- the same arch type as the InstructionSet. Think on it.
+
+-- TODO: tie the parameters declared within a Semantics to the encoding/decoding
+-- defined in Instruction.Layout
+semAdd :: Semantics 'RV32 ()
+semAdd = do
+  comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
+  comment "Arithmetic overflow is ignored."
+
+  rd  <- param "rd"
+  rs1 <- param "rs1"
+  rs2 <- param "rs2"
+
+  x_rs1 <- regRead rs1
+  x_rs2 <- regRead rs2
+
+  result <- add x_rs1 x_rs2
+  assignReg rd result
