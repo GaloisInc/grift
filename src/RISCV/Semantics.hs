@@ -21,6 +21,7 @@ Several types and functions enabling specification of semantics for RISC-V
 instructions.
 -}
 
+-- TODO: get pretty printing into a separate entity rather than using Show.
 module RISCV.Semantics
   ( -- * Types
     Arch(..)
@@ -125,9 +126,9 @@ instance Show (Stmt arch) where
   show (AssignPC pc) = "pc = " ++ show pc
   show (CondStmt t stmt) = "if (" ++ show t ++ ") " ++ show stmt
 
--- TODO: Consider adding an additional parameter, a type-level list of Nats,
--- assigning the parameters in the formula to their widths. This would enable really
--- clean compile-time synchronization with the encodings.
+-- TODO: Parameterize Formula and Semantics by instruction format. Have
+-- special-purpose param functions for each format, that return the parameters as a
+-- tuple.
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- parameters (potentially zero), which represent the input to the formula. These are
 -- going to the be the operands of the instruction -- register ids, immediate values,

@@ -16,6 +16,8 @@ module RISCV
   , module RISCV.Base
   , module RISCV.Decode
   , module RISCV.Encode
+  , module RISCV.ExtM
+  , module RISCV.Format
   ) where
 
 import Data.BitVector.Sized
@@ -23,3 +25,5 @@ import RISCV.Instruction
 import RISCV.Base
 import RISCV.Decode
 import RISCV.Encode
+import RISCV.ExtM
+import RISCV.Format

@@ -24,19 +24,16 @@ module RISCV.Decode
   ) where
 
 import Control.Lens ( (^.) )
-import Data.Monoid
 import Data.Parameterized
 
-import RISCV.Base
-import RISCV.ExtM
 import RISCV.Instruction
 import RISCV.Instruction.Layouts
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.
-decode :: InstWord 2 -> Some Instruction
-decode bv = case decodeFormat bv of
-  Some repr -> case decodeOpcode repr bv of
+decode :: InstructionSet -> InstWord 2 -> Some Instruction
+decode iset bv = case decodeFormat bv of
+  Some repr -> case decodeOpcode iset repr bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
     Left Illegal -> Some $ Inst Illegal (decodeOperands XRepr bv)
 
@@ -89,5 +86,8 @@ decodeOpBits repr bv = case repr of
   ERepr -> EOpBits (bv ^. opcodeLens) (bv ^. eLens)
   XRepr -> XOpBits
 
-decodeOpcode :: FormatRepr k -> InstWord 2 -> Either (Opcode 'X) (Opcode k)
-decodeOpcode repr bv = opcodeFromOpBits (base <> m) (decodeOpBits repr bv)
+decodeOpcode :: InstructionSet
+             -> FormatRepr k
+             -> InstWord 2
+             -> Either (Opcode 'X) (Opcode k)
+decodeOpcode iset repr bv = opcodeFromOpBits iset (decodeOpBits repr bv)

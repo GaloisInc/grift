@@ -21,6 +21,7 @@ import           Data.Bits
 import           Data.BitVector.Sized
 import           Data.Bool
 import qualified Data.ByteString as BS
+import           Data.Monoid
 import           Data.Parameterized
 import           System.Environment
 import           System.Exit
@@ -81,7 +82,7 @@ disInstruction bs =
                     b1 `shiftL` 8  .|.
                     b0
         instBV = bitVector instWordI
-        inst = decode instBV
+        inst = decode (base <> m) instBV
         numBytes = 4
 
 -- | Decode a bytestring as a RISC-V program
