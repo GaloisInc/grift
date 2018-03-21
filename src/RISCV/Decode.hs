@@ -31,7 +31,7 @@ import RISCV.Instruction.Layouts
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.
-decode :: InstructionSet -> InstWord 2 -> Some Instruction
+decode :: InstructionSet arch -> InstWord 2 -> Some Instruction
 decode iset bv = case decodeFormat bv of
   Some repr -> case decodeOpcode iset repr bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
@@ -86,7 +86,7 @@ decodeOpBits repr bv = case repr of
   ERepr -> EOpBits (bv ^. opcodeLens) (bv ^. eLens)
   XRepr -> XOpBits
 
-decodeOpcode :: InstructionSet
+decodeOpcode :: InstructionSet arch
              -> FormatRepr k
              -> InstWord 2
              -> Either (Opcode 'X) (Opcode k)

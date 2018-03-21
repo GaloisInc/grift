@@ -19,21 +19,52 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-This module exports a data kind, Format, along with a FormatRepr datatype.
+This module exports two data kinds, Arch and Format.
 -}
 
 module RISCV.Format
-  ( -- * Instruction format
-    Format(..)
+  ( -- * Architecture types
+    Arch(..)
+  , ArchRepr(..)
+  , ArchWidth
+    -- * Instruction format
+  , Format(..)
   , FormatRepr(..)
   ) where
 
-import Data.BitVector.Sized
 import Data.Parameterized
-import qualified Data.Parameterized.Map as Map
-import Data.Parameterized.Map (MapF)
 import Data.Parameterized.TH.GADT
+
 import GHC.TypeLits
+
+----------------------------------------
+-- Architecture types
+-- | Architecture types
+data Arch = RV32
+          | RV64
+
+data ArchRepr :: Arch -> * where
+  RV32Repr :: ArchRepr 'RV32
+  RV64Repr :: ArchRepr 'RV64
+
+-- | Maps an architecture to its register width
+type family ArchWidth (arch :: Arch) :: Nat where
+  ArchWidth 'RV32 = 32
+  ArchWidth 'RV64 = 64
+
+-- Instances
+$(return [])
+deriving instance Show (ArchRepr k)
+instance ShowF ArchRepr
+deriving instance Eq (ArchRepr k)
+instance EqF ArchRepr where
+  eqF = (==)
+instance TestEquality ArchRepr where
+  testEquality = $(structuralTypeEquality [t|ArchRepr|] [])
+instance OrdF ArchRepr where
+  compareF = $(structuralTypeOrd [t|ArchRepr|] [])
+instance KnownRepr ArchRepr 'RV32 where knownRepr = RV32Repr
+instance KnownRepr ArchRepr 'RV64 where knownRepr = RV64Repr
 
 ----------------------------------------
 -- Formats

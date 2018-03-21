@@ -1,5 +1,7 @@
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 
 {-|
 Module      : RISCV.Base
@@ -15,7 +17,6 @@ RV32I base ISA, encoding and semantics.
 
 module RISCV.Base
   ( base
-  , semAdd
   )
   where
 
@@ -24,10 +25,14 @@ import Data.Parameterized
 
 import RISCV.Instruction
 import RISCV.Semantics
+import RISCV.Format
 
 -- | RV32I Base ISA
-base :: InstructionSet
-base = instructionSet Width32 $ Map.fromList
+base :: InstructionSet 'RV32
+base = instructionSet baseEncode baseSemantics
+
+baseEncode :: EncodeMap
+baseEncode = Map.fromList
   [ -- RV32I
     -- R type
     Pair Add  (ROpBits 0b0110011 0b000 0b0000000)
@@ -94,24 +99,140 @@ base = instructionSet Width32 $ Map.fromList
   , Pair Illegal XOpBits
   ]
 
--- TODO: There is some redundancy here with the InstructionSet type; we are
--- representing whether the instruction RV32/RV64 twice. Might make sense to remove
--- it from the InstructionSet type altogether, or to force every instruction to have
--- the same arch type as the InstructionSet. Think on it.
+baseSemantics :: SemanticsMap 'RV32
+baseSemantics = Map.fromList
+  [ Pair Add $ getFormula $ do
+      comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
+      comment "Arithmetic overflow is ignored."
 
--- TODO: tie the parameters declared within a Semantics to the encoding/decoding
--- defined in Instruction.Layout
-semAdd :: Semantics 'RV32 ()
-semAdd = do
-  comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
-  comment "Arithmetic overflow is ignored."
+      rOp addE
+  , Pair Sub $ getFormula $ do
+      comment "Subtracts register x[rs2] from register x[rs1] and writes the result to x[rd]."
+      comment "Arithmetic overflow is ignored."
 
-  rd  <- param "rd"
-  rs1 <- param "rs1"
-  rs2 <- param "rs2"
+      rOp subE
+  , Pair Sll $ getFormula $ do
+      comment "Shifts register x[rs1] left by x[rs2] bit positions."
+      comment "The vacated bits are filled with zeros, and the result is writtein to x[rd]."
 
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
+      rOp sllE
+  , Pair Slt $ getFormula $ do
+      comment "Compares x[rs1] and x[rs2] as two's complement numbers."
+      comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
-  result <- add x_rs1 x_rs2
-  assignReg rd result
+      rOp (\e1 e2 -> ltsE e1 e2 >>= zextE)
+  , Pair Sltu $ getFormula $ do
+      comment "Compares x[rs1] and x[rs2] as unsigned numbers."
+      comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
+
+      rOp (\e1 e2 -> ltuE e1 e2 >>= zextE)
+  , Pair Xor $ getFormula $ do
+      comment "Computes the bitwise exclusive-OR of registers x[rs1] and x[rs2]."
+      comment "Writes the result to x[rd]."
+
+      rOp xorE
+  , Pair Srl $ getFormula $ do
+      comment "Shifts register x[rs1] right by x[rs2] bit positions."
+      comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
+
+      rOp srlE
+  , Pair Sra $ getFormula $ do
+      comment "Shifts register x[rs1] right by x[rs2] bit positions."
+      comment "The vacated bits are filled with copies of x[rs1]'s most significant bits."
+      comment "The result is written to x[rd]."
+
+      rOp srlE
+  , Pair Or $ getFormula $ do
+      comment "Computes the bitwise inclusive-OR of registers x[rs1] and x[rs2]."
+      comment "Writes the result to x[rd]."
+
+      rOp orE
+  , Pair And $ getFormula $ do
+      comment "Computes the bitwise AND of registers x[rs1] and x[rs2]."
+      comment "Writes the result to x[rd]."
+
+      rOp andE
+
+  -- -- I type
+  , Pair Jalr $ getFormula $ do
+      comment "Sets the pc to x[rs1] + sext(offset)."
+      comment "Masks off the least significant bit of the computed address."
+      comment "Writes the previous pc+4 to x[rd]."
+
+      (rd, rs1, offset) <- params
+
+      pc <- pcRead
+      t  <- pc `addE` (litBV 4)
+
+      x_rs1       <- regRead rs1
+      sext_offset <- sextE offset
+      new_pc'     <- x_rs1 `addE` sext_offset
+      mask        <- complementE (litBV 1)
+      new_pc      <- new_pc' `andE` mask
+
+      assignPC new_pc
+      assignReg rd t
+  -- , Pair Lb     undefined
+  -- , Pair Lh     undefined
+  -- , Pair Lw     undefined
+  -- , Pair Lbu    undefined
+  -- , Pair Lhu    undefined
+  -- , Pair Addi   undefined
+  -- , Pair Slti   undefined
+  -- , Pair Sltiu  undefined
+  -- , Pair Xori   undefined
+  -- , Pair Ori    undefined
+  -- , Pair Andi   undefined
+  -- , Pair Slli   undefined
+  -- , Pair Srli   undefined
+  -- , Pair Srai   undefined
+  -- , Pair Fence  undefined
+  -- , Pair Fence  undefined
+  -- , Pair Csrrw  undefined
+  -- , Pair Csrrs  undefined
+  -- , Pair Csrrc  undefined
+  -- , Pair Csrrwi undefined
+  -- , Pair Csrrsi undefined
+  -- , Pair Csrrci undefined
+
+  -- -- S type
+  -- , Pair Sb undefined
+  -- , Pair Sh undefined
+  -- , Pair Sw undefined
+
+  -- -- B type
+  -- , Pair Beq  undefined
+  -- , Pair Bne  undefined
+  -- , Pair Blt  undefined
+  -- , Pair Bge  undefined
+  -- , Pair Bltu undefined
+  -- , Pair Bgeu undefined
+
+  -- -- U type
+  -- , Pair Lui   undefined
+  -- , Pair Auipc undefined
+
+  -- -- J type
+  -- , Pair Jal undefined
+
+  -- -- E type
+  -- , Pair Ecall  undefined
+  -- , Pair Ebreak undefined
+
+  -- -- X type
+  -- , Pair Illegal undefined
+  ]
+
+type ArithOp arch fmt = BVExpr arch (ArchWidth arch)
+                     -> BVExpr arch (ArchWidth arch)
+                     -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+
+rOp :: ArithOp arch 'R -> FormulaBuilder arch 'R ()
+rOp op = do
+      (rd, rs1, rs2)  <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      result <- op x_rs1 x_rs2
+      assignReg rd result

@@ -1,4 +1,5 @@
 {-# LANGUAGE BinaryLiterals #-}
+{-# LANGUAGE DataKinds #-}
 
 {-|
 Module      : RISCV.ExtM
@@ -22,8 +23,11 @@ import Data.Parameterized
 import RISCV.Instruction
 
 -- | M extension
-m :: InstructionSet
-m = instructionSet Width32 $ Map.fromList
+m :: InstructionSet 'RV32
+m = instructionSet mEncode mSemantics
+
+mEncode :: EncodeMap
+mEncode = Map.fromList
   [ -- RV32M
     -- R type
     Pair Mul    (ROpBits 0b0110011 0b000 0b0000001)
@@ -36,3 +40,5 @@ m = instructionSet Width32 $ Map.fromList
   , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
   ]
 
+mSemantics :: SemanticsMap 'RV32
+mSemantics = undefined
