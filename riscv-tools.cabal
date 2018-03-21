@@ -42,7 +42,7 @@ executable riscv-dis
                      , RISCV.Decode
                      , RISCV.Encode
                      , RISCV.ExtM
-                     , RISCV,Format
+                     , RISCV.Format
                      , RISCV.Instruction
                      , RISCV.Instruction.Layouts
                      , RISCV.Semantics
