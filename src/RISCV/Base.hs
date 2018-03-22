@@ -1,7 +1,12 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 
 {-|
 Module      : RISCV.Base
@@ -22,6 +27,7 @@ module RISCV.Base
 
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
+import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.Semantics
@@ -117,7 +123,7 @@ baseSemantics = Map.fromList
 
       rOp sllE
   , Pair Slt $ getFormula $ do
-      comment "Compares x[rs1] and x[rs2] as two's complement numbers."
+      comment "Compares x[rs1] and x[rs2] as two's not numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
       rOp (\e1 e2 -> ltsE e1 e2 >>= zextE)
@@ -138,7 +144,7 @@ baseSemantics = Map.fromList
       rOp srlE
   , Pair Sra $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
-      comment "The vacated bits are filled with copies of x[rs1]'s most significant bits."
+      comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
       rOp srlE
@@ -167,46 +173,162 @@ baseSemantics = Map.fromList
       x_rs1       <- regRead rs1
       sext_offset <- sextE offset
       new_pc'     <- x_rs1 `addE` sext_offset
-      mask        <- complementE (litBV 1)
+      mask        <- notE (litBV 1)
       new_pc      <- new_pc' `andE` mask
 
       assignPC new_pc
       assignReg rd t
-  -- , Pair Lb     undefined
-  -- , Pair Lh     undefined
-  -- , Pair Lw     undefined
-  -- , Pair Lbu    undefined
-  -- , Pair Lhu    undefined
-  -- , Pair Addi   undefined
-  -- , Pair Slti   undefined
-  -- , Pair Sltiu  undefined
-  -- , Pair Xori   undefined
-  -- , Pair Ori    undefined
-  -- , Pair Andi   undefined
-  -- , Pair Slli   undefined
-  -- , Pair Srli   undefined
-  -- , Pair Srai   undefined
-  -- , Pair Fence  undefined
-  -- , Pair Fence  undefined
-  -- , Pair Csrrw  undefined
-  -- , Pair Csrrs  undefined
-  -- , Pair Csrrc  undefined
-  -- , Pair Csrrwi undefined
-  -- , Pair Csrrsi undefined
-  -- , Pair Csrrci undefined
+  , Pair Lb $ getFormula $ do
+      comment "Loads a byte from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], sign-extending the result."
 
-  -- -- S type
-  -- , Pair Sb undefined
-  -- , Pair Sh undefined
-  -- , Pair Sw undefined
+      ls (knownNat :: NatRepr 1)
+  , Pair Lh $ getFormula $ do
+      comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], sign-extending the result."
 
-  -- -- B type
-  -- , Pair Beq  undefined
-  -- , Pair Bne  undefined
-  -- , Pair Blt  undefined
-  -- , Pair Bge  undefined
-  -- , Pair Bltu undefined
-  -- , Pair Bgeu undefined
+      ls (knownNat :: NatRepr 2)
+  , Pair Lw $ getFormula $ do
+      comment "Loads a word from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], sign-extending the result."
+
+      ls (knownNat :: NatRepr 4)
+  , Pair Lbu $ getFormula $ do
+      comment "Loads a byte from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], zero-extending the result."
+
+      lu (knownNat :: NatRepr 1)
+  , Pair Lhu $ getFormula $ do
+      comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], zero-extending the result."
+
+      lu (knownNat :: NatRepr 2)
+  , Pair Addi $ getFormula $ do
+      comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      iOp addE
+  , Pair Slti $ getFormula $ do
+      comment "Compares x[rs1] and the sign-extended immediate as two's not numbers."
+      comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
+
+      iOp (\e1 e2 -> ltsE e1 e2 >>= zextE)
+  , Pair Sltiu $ getFormula $ do
+      comment "Compares x[rs1] and the sign-extended immediate as unsigned numbers."
+      comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
+
+      iOp (\e1 e2 -> ltuE e1 e2 >>= zextE)
+  , Pair Xori $ getFormula $ do
+      comment "Computes the bitwise exclusive-OR of the sign-extended immediate and register x[rs1]."
+      comment "Writes the result to x[rd]."
+
+      iOp xorE
+  , Pair Ori $ getFormula $ do
+      comment "Computes the bitwise inclusive-OR of the sign-extended immediate and register x[rs1]."
+      comment "Writes the result to x[rd]."
+
+      iOp orE
+  , Pair Andi $ getFormula $ do
+      comment "Computes the bitwise AND of the sign-extended immediate and register x[rs1]."
+      comment "Writes the result to x[rd]."
+
+      iOp andE
+  , Pair Slli $ getFormula $ do
+      comment "Shifts register x[rs1] left by shamt bit positions."
+      comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
+
+      iOp sllE
+  , Pair Srli $ getFormula $ do
+      comment "Shifts register x[rs1] right by shamt bit positions."
+      comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
+
+      iOp srlE
+  , Pair Srai $ getFormula $ do
+      comment "Shifts register x[rs1] left by shamt bit positions."
+      comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
+      comment "The result is written to x[rd]."
+
+      iOp sllE
+
+  -- TODO: Fence/csr instructions.
+  -- , Pair Fence   undefined
+  -- , Pair Fence_i undefined
+  -- , Pair Csrrw   undefined
+  -- , Pair Csrrs   undefined
+  -- , Pair Csrrc   undefined
+  -- , Pair Csrrwi  undefined
+  -- , Pair Csrrsi  undefined
+  -- , Pair Csrrci  undefined
+
+  -- S type
+  , Pair Sb $ getFormula $ do
+      comment "Computes the least-significant byte in register x[rs2]."
+      comment "Stores the result at memory address x[rs1] + sext(offset)."
+
+      (rs1, rs2, offset) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 8) 0 x_rs2
+      sext_offset <- sextE offset
+      addr <- x_rs1 `addE` sext_offset
+
+      assignMem addr x_rs2_byte
+  , Pair Sh $ getFormula $ do
+      comment "Computes the least-significant half-word in register x[rs2]."
+      comment "Stores the result at memory address x[rs1] + sext(offset)."
+
+      (rs1, rs2, offset) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 16) 0 x_rs2
+      sext_offset <- sextE offset
+      addr <- x_rs1 `addE` sext_offset
+
+      assignMem addr x_rs2_byte
+  , Pair Sw $ getFormula $ do
+      comment "Computes the least-significant word in register x[rs2]."
+      comment "Stores the result at memory address x[rs1] + sext(offset)."
+
+      (rs1, rs2, offset) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 32) 0 x_rs2
+      sext_offset <- sextE offset
+      addr <- x_rs1 `addE` sext_offset
+
+      assignMem addr x_rs2_byte
+
+  -- B type
+  , Pair Beq $ getFormula $ do
+      comment "If register x[rs1] equals register x[rs2], add sext(offset) to the pc."
+
+      b eqE
+  , Pair Bne $ getFormula $ do
+      comment "If register x[rs1] does not equal register x[rs2], add sext(offset) to the pc."
+
+      b (\e1 e2 -> eqE e1 e2 >>= notE)
+  , Pair Blt $ getFormula $ do
+      comment "If register x[rs1] is less than register x[rs2], add sext(offset) to the pc."
+
+      b ltsE
+  , Pair Bge $ getFormula $ do
+      comment "If register x[rs1] is greater than or equal to register x[rs2], add sext(offset) to the pc."
+
+      b (\e1 e2 -> ltsE e1 e2 >>= notE)
+  , Pair Bltu $ getFormula $ do
+      comment "If register x[rs1] is less than register x[rs2] as unsigned numbers, add sext(offset) to the pc."
+
+      b ltuE
+  , Pair Bgeu $ getFormula $ do
+      comment "If register x[rs1] is greater than or equal to register x[rs2] as unsigned numbers, add sext(offset) to the pc."
+
+      b (\e1 e2 -> ltuE e1 e2 >>= notE)
 
   -- -- U type
   -- , Pair Lui   undefined
@@ -229,10 +351,81 @@ type ArithOp arch fmt = BVExpr arch (ArchWidth arch)
 
 rOp :: ArithOp arch 'R -> FormulaBuilder arch 'R ()
 rOp op = do
-      (rd, rs1, rs2)  <- params
+  (rd, rs1, rs2)  <- params
 
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
+  x_rs1 <- regRead rs1
+  x_rs2 <- regRead rs2
 
-      result <- op x_rs1 x_rs2
-      assignReg rd result
+  result <- op x_rs1 x_rs2
+  assignReg rd result
+
+-- FIXME: Is there any way to replace the constraint here with something more
+-- reasonable?
+iOp :: KnownNat (ArchWidth (arch :: Arch)) => ArithOp arch 'I -> FormulaBuilder arch 'I ()
+-- iOp :: KnownRepr ArchRepr arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
+iOp op = do
+  (rd, rs1, imm12) <- params
+
+  x_rs1 <- regRead rs1
+  sext_imm12 <- sextE imm12
+
+  result <- op x_rs1 sext_imm12
+  assignReg rd result
+
+ls :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'I ()
+ls bRepr = do
+  (rd, rs1, offset) <- params
+
+  x_rs1 <- regRead rs1
+  sext_offset <- sextE offset
+  addr <- x_rs1 `addE` sext_offset
+  m_byte  <- memReadWithRepr bRepr addr
+  sext_byte <- sextE m_byte
+
+  assignReg rd sext_byte
+
+lu :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'I ()
+lu bRepr = do
+  (rd, rs1, offset) <- params
+
+  x_rs1 <- regRead rs1
+  sext_offset <- sextE offset
+  addr <- x_rs1 `addE` sext_offset
+  m_byte  <- memReadWithRepr bRepr addr
+  zext_byte <- zextE m_byte
+
+  assignReg rd zext_byte
+
+
+type CompOp arch fmt = BVExpr arch (ArchWidth arch)
+                    -> BVExpr arch (ArchWidth arch)
+                    -> FormulaBuilder arch fmt (BVExpr arch 1)
+
+b :: KnownNat (ArchWidth arch) => CompOp arch 'B -> FormulaBuilder arch 'B ()
+b cmp = do
+  (rs1, rs2, offset) <- params
+
+  x_rs1 <- regRead rs1
+  x_rs2 <- regRead rs2
+  cond  <- x_rs1 `cmp` x_rs2
+
+  pc <- pcRead
+  sext_offset <- sextE offset
+  new_pc <- pc `addE` sext_offset
+
+  condAssignPC cond new_pc
+
+
+-- TODO: Why doesn't this work?
+-- s :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'S ()
+-- s bRepr = do
+--   (rs1, rs2, offset) <- params
+
+--   x_rs1 <- regRead rs1
+--   x_rs2 <- regRead rs2
+
+--   x_rs2_byte <- extractEWithRepr (8 `natMultiply` bRepr) 0 x_rs2
+--   sext_offset <- sextE offset
+--   addr <- x_rs1 `addE` sext_offset
+
+--   assignMem addr x_rs2_byte

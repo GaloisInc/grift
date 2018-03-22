@@ -7,7 +7,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-
+{-# LANGUAGE TypeOperators #-}
 
 {-|
 Module      : RISCV.Semantics
@@ -23,6 +23,9 @@ instructions.
 -}
 
 -- TODO: get pretty printing into a separate entity rather than using Show.
+-- TODO: It might make sense to remove arch as a type parameter to Formula and
+-- Semantics, and add a BVExpr constructor, XLen, which queries the environment for
+-- the register width.
 module RISCV.Semantics
   ( -- * Types
     Parameter
@@ -42,11 +45,12 @@ module RISCV.Semantics
   , pcRead
   , regRead
   , memRead
+  , memReadWithRepr
   -- ** Bitwise
   , andE
   , orE
   , xorE
-  , complementE
+  , notE
   -- ** Arithmetic
   , addE
   , subE
@@ -60,13 +64,16 @@ module RISCV.Semantics
   -- ** Width-changing
   , zextE
   , sextE
+  , extractE
+  , extractEWithRepr
   -- ** Control
   , iteE
   -- ** State assignments
   , assignReg
   , assignMem
+  , assignMemWithRepr
   , assignPC
-  , condStmt
+  , condAssignPC
   ) where
 
 import Control.Lens ( (%=) )
@@ -102,14 +109,15 @@ data BVExpr (arch :: Arch) (w :: Nat) where
   -- Accessing state
   PCRead  :: BVExpr arch (ArchWidth arch)
   RegRead :: BVExpr arch 5 -> BVExpr arch (ArchWidth arch)
-  MemRead :: BVExpr arch (ArchWidth arch)
+  MemRead :: NatRepr bytes
           -> BVExpr arch (ArchWidth arch)
+          -> BVExpr arch (8*bytes)
 
   -- Bitwise operations
   And :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   Or  :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   Xor :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Complement :: BVExpr arch w -> BVExpr arch w
+  Not :: BVExpr arch w -> BVExpr arch w
 
   -- Arithmetic operations
   Add :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -126,6 +134,7 @@ data BVExpr (arch :: Arch) (w :: Nat) where
   -- Width-changing
   ZExt :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
   SExt :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
+  Extract :: NatRepr w' -> Int -> BVExpr arch w -> BVExpr arch w'
 
   -- Other operations
   Ite :: BVExpr arch 1
@@ -138,11 +147,12 @@ instance Show (BVExpr arch w) where
   show (ParamBV p) = show p
   show PCRead = "pc"
   show (RegRead r) = "x[" ++ show r ++ "]"
-  show (MemRead addr) = "M[" ++ show addr ++ "]"
+  show (MemRead bRepr addr) =
+    "M[" ++ show addr ++ "][" ++ show (8 * (natValue bRepr) - 1) ++ ":0]"
   show (And e1 e2) = show e1 ++ " & " ++ show e2
   show (Or  e1 e2) = show e1 ++ " | " ++ show e2
   show (Xor e1 e2) = show e1 ++ " ^ " ++ show e2
-  show (Complement e) = "~" ++ show e
+  show (Not e) = "~" ++ show e
   show (Add e1 e2) = show e1 ++ " + " ++ show e2
   show (Sub e1 e2) = show e1 ++ " - " ++ show e2
   show (Sll e1 e2) = show e1 ++ " << " ++ show e2
@@ -153,6 +163,8 @@ instance Show (BVExpr arch w) where
   show (Lts  e1 e2) = show e1 ++ " <_s " ++ show e2
   show (ZExt _ e) = "zext(" ++ show e ++ ")"
   show (SExt _ e) = "sext(" ++ show e ++ ")"
+  show (Extract wRepr base e) =
+    show e ++ "[" ++ show (base + fromIntegral (natValue wRepr)) ++ ":" ++ show base ++ "]"
   show (Ite t e1 e2) =
     "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
 instance ShowF (BVExpr arch)
@@ -162,17 +174,24 @@ instance ShowF (BVExpr arch)
 -- appropriate width.
 data Stmt (arch :: Arch) where
   AssignReg :: BVExpr arch 5 -> BVExpr arch (ArchWidth arch) -> Stmt arch
-  AssignMem :: BVExpr arch (ArchWidth arch)
+  AssignMem :: NatRepr bytes
             -> BVExpr arch (ArchWidth arch)
+            -> BVExpr arch (8*bytes)
             -> Stmt arch
   AssignPC  :: BVExpr arch (ArchWidth arch) -> Stmt arch
 
+  -- TODO: We don't really need this; in fact, it may be more natural for hardware
+  -- people to see it as an ITE on the expression level rather than as a CONDITIONAL
+  -- state assignment, which makes more sense to programmers (but programmers will
+  -- understand either).
   CondStmt  :: BVExpr arch 1 -> Stmt arch -> Stmt arch
 
 instance Show (Stmt arch) where
-  show (AssignReg r e) = "x[" ++ show r ++ "] = " ++ show e
-  show (AssignMem addr e) = "M[" ++ show addr ++ "] = " ++ show e
-  show (AssignPC pc) = "pc = " ++ show pc
+  show (AssignReg r e) = "x[" ++ show r ++ "]' = " ++ show e
+  -- TODO: Should we indicate how many bytes are being written? Or will that always
+  -- be inferrable from the right-hand side?
+  show (AssignMem _ addr e) = "M[" ++ show addr ++ "]' = " ++ show e
+  show (AssignPC pc) = "pc' = " ++ show pc
   show (CondStmt t stmt) = "if (" ++ show t ++ ") " ++ show stmt
 
 -- TODO: Parameterize Formula and FormulaBuilder by instruction format. Have
@@ -240,9 +259,16 @@ regRead :: BVExpr arch 5 -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch
 regRead = return . RegRead
 
 -- | Read a memory location.
-memRead :: BVExpr arch (ArchWidth arch)
-        -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
-memRead = return . MemRead
+memRead :: KnownNat bytes
+        => BVExpr arch (ArchWidth arch)
+        -> FormulaBuilder arch fmt (BVExpr arch (8*bytes))
+memRead addr = return (MemRead knownNat addr)
+
+-- | Read a memory location with an explicit width argument.
+memReadWithRepr :: NatRepr bytes
+                -> BVExpr arch (ArchWidth arch)
+                -> FormulaBuilder arch fmt (BVExpr arch (8*bytes))
+memReadWithRepr bRepr addr = return (MemRead bRepr addr)
 
 -- | Bitwise and.
 andE :: BVExpr arch w
@@ -262,9 +288,9 @@ xorE :: BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 xorE e1 e2 = return (Xor e1 e2)
 
--- | Bitwise complement.
-complementE :: BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w)
-complementE e = return (Complement e)
+-- | Bitwise not.
+notE :: BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w)
+notE e = return (Not e)
 
 -- | Add two expressions.
 addE :: BVExpr arch w
@@ -322,6 +348,17 @@ zextE e = return (ZExt knownNat e)
 sextE :: KnownNat w' => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
 sextE e = return (SExt knownNat e)
 
+-- | Extract bits
+extractE :: KnownNat w' => Int -> BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
+extractE base e = return (Extract knownNat base e)
+
+-- | Extract bits with an explicit width argument
+extractEWithRepr :: NatRepr w'
+                 -> Int
+                 -> BVExpr arch w
+                 -> FormulaBuilder arch fmt (BVExpr arch w')
+extractEWithRepr wRepr base e = return (Extract wRepr base e)
+
 -- | Conditional branch.
 iteE :: BVExpr arch 1
      -> BVExpr arch w
@@ -342,18 +379,25 @@ assignReg r e = addStmt (AssignReg r e)
 
 -- TODO: Should we allow arbitrary width assignments?
 -- | Add a memory location assignment to the formula.
-assignMem :: BVExpr arch (ArchWidth arch)
-          -> BVExpr arch (ArchWidth arch)
+assignMem :: KnownNat bytes
+          => BVExpr arch (ArchWidth arch)
+          -> BVExpr arch (8*bytes)
           -> FormulaBuilder arch fmt ()
-assignMem addr val = addStmt (AssignMem addr val)
+assignMem addr val = addStmt (AssignMem knownNat addr val)
+
+assignMemWithRepr :: NatRepr bytes
+                  -> BVExpr arch (ArchWidth arch)
+                  -> BVExpr arch (8*bytes)
+                  -> FormulaBuilder arch fmt ()
+assignMemWithRepr bRepr addr val = addStmt (AssignMem bRepr addr val)
 
 -- | Add a PC assignment to the formula.
 assignPC :: BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()
 assignPC pc = addStmt (AssignPC pc)
 
--- | Add a conditional assignment to the formula.
-condStmt :: BVExpr arch 1 -> Stmt arch -> FormulaBuilder arch fmt ()
-condStmt cond stmt = addStmt (CondStmt cond stmt)
+-- | Add a conditional PC assignment to the formula.
+condAssignPC :: BVExpr arch 1 -> BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()
+condAssignPC cond pc = addStmt (CondStmt cond (AssignPC pc))
 
 -- | Maps each format to the parameter types for its operands.
 type family FormatParams (arch :: Arch) (fmt :: Format) :: * where
@@ -367,7 +411,7 @@ type family FormatParams (arch :: Arch) (fmt :: Format) :: * where
   FormatParams arch 'X = (BVExpr arch 32)
 
 params' :: FormatRepr fmt
-       -> FormulaBuilder arch fmt (FormatParams arch fmt)
+        -> FormulaBuilder arch fmt (FormatParams arch fmt)
 params' repr = case repr of
     RRepr -> do
       let rd  = Parameter knownNat "rd"
@@ -379,6 +423,16 @@ params' repr = case repr of
           rs1   = Parameter knownNat "rs1"
           imm12 = Parameter knownNat "imm12"
       return (ParamBV rd, ParamBV rs1, ParamBV imm12)
+    SRepr -> do
+      let rs1   = Parameter knownNat "rs1"
+          rs2   = Parameter knownNat "rs2"
+          imm12 = Parameter knownNat "imm12"
+      return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
+    BRepr -> do
+      let rs1   = Parameter knownNat "rs1"
+          rs2   = Parameter knownNat "rs2"
+          imm12 = Parameter knownNat "imm12"
+      return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
     _ -> undefined
 
 -- | Get the parameters for a particular known format
