@@ -233,6 +233,7 @@ instance Show (Formula arch fmt) where
     where showComments = concat (toList ((++ "\n") <$> comments))
 --          showParams = intercalate ", " (toList (show <$> params))
           showDefs = concat (toList ((\d -> "  " ++ show d ++ "\n") <$> defs))
+instance ShowF (Formula arch)
 
 -- | Every definition begins with the empty formula.
 emptyFormula :: Formula arch fmt
