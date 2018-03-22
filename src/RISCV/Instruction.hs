@@ -23,6 +23,9 @@ Portability : portable
 AST for Instruction data type, parameterized by instruction format (R, I, S, ...).
 -}
 
+-- TODO: Consider getting rid of the InstWord type and just doing everything by
+-- number of bits. It's confusing to have two kinds of NatRepr's floating around.
+
 module RISCV.Instruction
   ( -- * Instructions
     Instruction(..)

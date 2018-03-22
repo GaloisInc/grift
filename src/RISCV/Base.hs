@@ -275,6 +275,7 @@ baseSemantics = Map.fromList
       addr <- x_rs1 `addE` sext_offset
 
       assignMem addr x_rs2_byte
+      incrPC
   , Pair Sh $ getFormula $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
@@ -289,6 +290,7 @@ baseSemantics = Map.fromList
       addr <- x_rs1 `addE` sext_offset
 
       assignMem addr x_rs2_byte
+      incrPC
   , Pair Sw $ getFormula $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
@@ -303,6 +305,7 @@ baseSemantics = Map.fromList
       addr <- x_rs1 `addE` sext_offset
 
       assignMem addr x_rs2_byte
+      incrPC
 
   -- B type
   , Pair Beq $ getFormula $ do
@@ -330,26 +333,81 @@ baseSemantics = Map.fromList
 
       b (\e1 e2 -> ltuE e1 e2 >>= notE)
 
-  -- -- U type
-  -- , Pair Lui   undefined
-  -- , Pair Auipc undefined
+  -- U type
+  , Pair Lui $ getFormula $ do
+      comment "Writes the sign-extended 20-bit immediate, left-shifted by 12 bits, to x[rd]."
+      comment "Zeros the lower 12 bits."
 
-  -- -- J type
-  -- , Pair Jal undefined
+      (rd, imm20) <- params
 
-  -- -- E type
-  -- , Pair Ecall  undefined
-  -- , Pair Ebreak undefined
+      sext_imm20 <- sextE imm20
+      result <- sext_imm20 `sllE` litBV 12
 
-  -- -- X type
-  -- , Pair Illegal undefined
+      assignReg rd result
+      incrPC
+  , Pair Auipc $ getFormula $ do
+      comment "Adds the sign-extended 20-bit immediate, left-shifted by 12 bits, to the pc."
+      comment "Writes the result to x[rd]."
+
+      (rd, imm20) <- params
+
+      sext_imm20 <- sextE imm20
+      shifted <- sext_imm20 `sllE` litBV 12
+      pc <- pcRead
+      result <- pc `addE` shifted
+
+      assignReg rd result
+      incrPC
+
+  -- J type
+  , Pair Jal $ getFormula $ do
+      comment "Writes the address of the next instruction to x[rd]."
+      comment "Then sets the pc to the current pc plus the sign-extended offset."
+
+      (rd, imm20') <- params
+      ib' <- instBytes
+      ib <- zextE ib'
+      imm20 <- sextE imm20'
+
+      pc <- pcRead
+      incr_pc <- pc `addE` ib
+      pc_offset <- pc `addE` imm20
+
+      assignReg rd incr_pc
+      assignPC pc_offset
+
+  -- E type
+  , Pair Ecall $ getFormula $ do
+      comment "Makes a request of the execution environment by raising an Environment Call exception."
+
+      raiseException EnvironmentCall
+  , Pair Ebreak $ getFormula $ do
+      comment "Makes a request of the debugger by reaising a Breakpoint exception."
+
+      raiseException Breakpoint
+
+  -- X type
+  , Pair Illegal $ getFormula $ do
+      comment "Raise an IllegalInstruction exception"
+
+      raiseException IllegalInstruction
   ]
+
+incrPC :: KnownNat (ArchWidth arch) => FormulaBuilder arch fmt ()
+incrPC = do
+  ib' <- instBytes
+  ib <- zextE ib'
+
+  pc <- pcRead
+  new_pc <- pc `addE` ib
+
+  assignPC new_pc
 
 type ArithOp arch fmt = BVExpr arch (ArchWidth arch)
                      -> BVExpr arch (ArchWidth arch)
                      -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
 
-rOp :: ArithOp arch 'R -> FormulaBuilder arch 'R ()
+rOp :: KnownNat (ArchWidth arch) => ArithOp arch 'R -> FormulaBuilder arch 'R ()
 rOp op = do
   (rd, rs1, rs2)  <- params
 
@@ -358,10 +416,11 @@ rOp op = do
 
   result <- op x_rs1 x_rs2
   assignReg rd result
+  incrPC
 
 -- FIXME: Is there any way to replace the constraint here with something more
 -- reasonable?
-iOp :: KnownNat (ArchWidth (arch :: Arch)) => ArithOp arch 'I -> FormulaBuilder arch 'I ()
+iOp :: KnownNat (ArchWidth arch) => ArithOp arch 'I -> FormulaBuilder arch 'I ()
 -- iOp :: KnownRepr ArchRepr arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
 iOp op = do
   (rd, rs1, imm12) <- params
@@ -371,6 +430,7 @@ iOp op = do
 
   result <- op x_rs1 sext_imm12
   assignReg rd result
+  incrPC
 
 ls :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'I ()
 ls bRepr = do
@@ -383,6 +443,7 @@ ls bRepr = do
   sext_byte <- sextE m_byte
 
   assignReg rd sext_byte
+  incrPC
 
 lu :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'I ()
 lu bRepr = do
@@ -395,6 +456,7 @@ lu bRepr = do
   zext_byte <- zextE m_byte
 
   assignReg rd zext_byte
+  incrPC
 
 
 type CompOp arch fmt = BVExpr arch (ArchWidth arch)
@@ -410,10 +472,14 @@ b cmp = do
   cond  <- x_rs1 `cmp` x_rs2
 
   pc <- pcRead
+  ib' <- instBytes
+  ib <- zextE ib'
   sext_offset <- sextE offset
-  new_pc <- pc `addE` sext_offset
+  pc_branch <- pc `addE` sext_offset
+  pc_incr <- pc `addE` ib
 
-  condAssignPC cond new_pc
+  new_pc <- iteE cond pc_branch pc_incr
+  assignPC new_pc
 
 
 -- TODO: Why doesn't this work?

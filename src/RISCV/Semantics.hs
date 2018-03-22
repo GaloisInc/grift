@@ -26,10 +26,17 @@ instructions.
 -- TODO: It might make sense to remove arch as a type parameter to Formula and
 -- Semantics, and add a BVExpr constructor, XLen, which queries the environment for
 -- the register width.
+-- TODO: This is a variable-width ISA, but we have separated the semantics out from
+-- the decoding so cleanly that we actually don't know how big the instruction word
+-- is here, and therefore we don't know how much to increment the PC by after most
+-- instructions. We could either handle that externally (yuck), or we could include
+-- an additional field in each instruction. Then the params function could provide
+-- that information along with the operands. Something to think about.
 module RISCV.Semantics
   ( -- * Types
     Parameter
   , BVExpr
+  , Exception(..)
   , Stmt
   , Formula
   , FormatParams
@@ -40,6 +47,7 @@ module RISCV.Semantics
   -- ** Auxiliary
   , comment
   , params
+  , instBytes
   , litBV
   -- ** Access to state
   , pcRead
@@ -68,12 +76,12 @@ module RISCV.Semantics
   , extractEWithRepr
   -- ** Control
   , iteE
-  -- ** State assignments
+  -- ** State actions
   , assignReg
   , assignMem
   , assignMemWithRepr
   , assignPC
-  , condAssignPC
+  , raiseException
   ) where
 
 import Control.Lens ( (%=) )
@@ -122,6 +130,7 @@ data BVExpr (arch :: Arch) (w :: Nat) where
   -- Arithmetic operations
   Add :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   Sub :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  -- TODO: does the shift amount have to be the same width as the shiftee?
   Sll :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   Srl :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   Sra :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -169,6 +178,11 @@ instance Show (BVExpr arch w) where
     "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
 instance ShowF (BVExpr arch)
 
+data Exception = EnvironmentCall
+               | Breakpoint
+               | IllegalInstruction
+  deriving (Show)
+
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to a 'BVExpr' of the
 -- appropriate width.
@@ -179,12 +193,7 @@ data Stmt (arch :: Arch) where
             -> BVExpr arch (8*bytes)
             -> Stmt arch
   AssignPC  :: BVExpr arch (ArchWidth arch) -> Stmt arch
-
-  -- TODO: We don't really need this; in fact, it may be more natural for hardware
-  -- people to see it as an ITE on the expression level rather than as a CONDITIONAL
-  -- state assignment, which makes more sense to programmers (but programmers will
-  -- understand either).
-  CondStmt  :: BVExpr arch 1 -> Stmt arch -> Stmt arch
+  RaiseException :: Exception -> Stmt arch
 
 instance Show (Stmt arch) where
   show (AssignReg r e) = "x[" ++ show r ++ "]' = " ++ show e
@@ -192,7 +201,7 @@ instance Show (Stmt arch) where
   -- be inferrable from the right-hand side?
   show (AssignMem _ addr e) = "M[" ++ show addr ++ "]' = " ++ show e
   show (AssignPC pc) = "pc' = " ++ show pc
-  show (CondStmt t stmt) = "if (" ++ show t ++ ") " ++ show stmt
+  show (RaiseException e) = "RaiseException(" ++ show e ++ ")"
 
 -- TODO: Parameterize Formula and FormulaBuilder by instruction format. Have
 -- special-purpose param functions for each format, that return the parameters as a
@@ -395,11 +404,13 @@ assignMemWithRepr bRepr addr val = addStmt (AssignMem bRepr addr val)
 assignPC :: BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()
 assignPC pc = addStmt (AssignPC pc)
 
--- | Add a conditional PC assignment to the formula.
-condAssignPC :: BVExpr arch 1 -> BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()
-condAssignPC cond pc = addStmt (CondStmt cond (AssignPC pc))
+-- | Raise an exception.
+raiseException :: Exception -> FormulaBuilder arch fmt ()
+raiseException e = addStmt (RaiseException e)
 
 -- | Maps each format to the parameter types for its operands.
+-- We include an extra parameter indicating the size of the instruction word for pc
+-- incrementing.
 type family FormatParams (arch :: Arch) (fmt :: Format) :: * where
   FormatParams arch 'R = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 5)
   FormatParams arch 'I = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
@@ -433,8 +444,21 @@ params' repr = case repr of
           rs2   = Parameter knownNat "rs2"
           imm12 = Parameter knownNat "imm12"
       return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
+    URepr -> do
+      let rd    = Parameter knownNat "rd"
+          imm20 = Parameter knownNat "imm20"
+      return (ParamBV rd, ParamBV imm20)
+    JRepr -> do
+      let rd    = Parameter knownNat "rd"
+          imm20 = Parameter knownNat "imm20"
+      return (ParamBV rd, ParamBV imm20)
     _ -> undefined
 
 -- | Get the parameters for a particular known format
 params :: (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (FormatParams arch fmt)
 params = params' knownRepr
+
+-- | Get the width of the instruction word
+instBytes :: KnownNat (ArchWidth arch)
+          => FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+instBytes = return $ ParamBV (Parameter knownNat "instBytes")
