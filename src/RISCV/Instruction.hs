@@ -51,6 +51,8 @@ module RISCV.Instruction
   , semanticsFromOpcode
   ) where
 
+import Control.Lens ( (^.) )
+import Control.Monad ( forM_ )
 import Data.BitVector.Sized
 import Data.Parameterized
 import qualified Data.Parameterized.Map as Map
@@ -344,77 +346,102 @@ evalParam oidRepr operands = error $
   "No operand " ++ show oidRepr ++ " in operands " ++ show operands
 
 evalExpr :: (MState m arch, KnownNat (ArchWidth arch))
-         => BVExpr arch w
-         -> Operands fmt
-         -> Integer
+         => Operands fmt    -- ^ Operands
+         -> Integer         -- ^ Instruction width (in bytes)
+         -> BVExpr arch w   -- ^ Expression to be evaluated
          -> m (BitVector w)
-evalExpr (LitBV bv) _ _ = return bv
-evalExpr (ParamBV p) operands _ = evalParam p operands
-evalExpr PCRead _ _ = getPC
-evalExpr InstBytes _ ib = return $ bitVector ib
-evalExpr (RegRead ridE) operands ib =
-  evalExpr ridE operands ib >>= getReg
-evalExpr (MemRead bRepr addrE) operands ib =
-  evalExpr addrE operands ib >>= getMem bRepr
-evalExpr (AndE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr _ _ (LitBV bv) = return bv
+evalExpr operands _ (ParamBV p) = evalParam p operands
+evalExpr _ _ PCRead = getPC
+evalExpr _ ib InstBytes = return $ bitVector ib
+evalExpr operands ib (RegRead ridE) =
+  evalExpr operands ib ridE >>= getReg
+evalExpr operands ib (MemRead bRepr addrE) =
+  evalExpr operands ib addrE >>= getMem bRepr
+evalExpr operands ib (AndE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvAnd` e2Val
-evalExpr (OrE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (OrE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvOr` e2Val
-evalExpr (XorE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (XorE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvXor` e2Val
-evalExpr (NotE e) operands ib = do
-  evalExpr e operands ib >>= return . bvComplement
-evalExpr (AddE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (NotE e) = do
+  evalExpr operands ib e >>= return . bvComplement
+evalExpr operands ib (AddE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvAdd` e2Val
-evalExpr (SubE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (SubE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvAdd` (bvNegate e2Val)
 -- TODO: throw some kind of exception if the shifter operand is larger than the
 -- architecture width.
-evalExpr (SllE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (SllE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
-evalExpr (SrlE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (SrlE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvShiftRL` fromIntegral (bvIntegerU e2Val)
-evalExpr (SraE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (SraE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ e1Val `bvShiftRA` fromIntegral (bvIntegerU e2Val)
-evalExpr (EqE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (EqE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ fromBool (e1Val == e2Val)
-evalExpr (LtuE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (LtuE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ fromBool (e1Val `bvLTU` e2Val)
-evalExpr (LtsE e1 e2) operands ib = do
-  e1Val <- evalExpr e1 operands ib
-  e2Val <- evalExpr e2 operands ib
+evalExpr operands ib (LtsE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
   return $ fromBool (e1Val `bvLTS` e2Val)
-evalExpr (ZExtE wRepr e) operands ib =
-  evalExpr e operands ib >>= return . bvZextWithRepr wRepr
-evalExpr (SExtE wRepr e) operands ib =
-  evalExpr e operands ib >>= return . bvSextWithRepr wRepr
-evalExpr (ExtractE wRepr base e) operands ib =
-  evalExpr e operands ib >>= return . bvExtractWithRepr wRepr base
-evalExpr (IteE testE tE fE) operands ib = do
-  testVal <- evalExpr testE operands ib
-  tVal <- evalExpr tE operands ib
-  fVal <- evalExpr fE operands ib
+evalExpr operands ib (ZExtE wRepr e) =
+  evalExpr operands ib e >>= return . bvZextWithRepr wRepr
+evalExpr operands ib (SExtE wRepr e) =
+  evalExpr operands ib e >>= return . bvSextWithRepr wRepr
+evalExpr operands ib (ExtractE wRepr base e) =
+  evalExpr operands ib e >>= return . bvExtractWithRepr wRepr base
+evalExpr operands ib (IteE testE tE fE) = do
+  testVal <- evalExpr operands ib testE
+  tVal <- evalExpr operands ib tE
+  fVal <- evalExpr operands ib fE
   return $ if (testVal == 1) then tVal else fVal
+
+execStmt :: (MState m arch, KnownNat (ArchWidth arch))
+         => Operands fmt -- ^ Operands
+         -> Integer      -- ^ Instruction width (in bytes)
+         -> Stmt arch    -- ^ Statement to be executed
+         -> m ()
+execStmt operands ib (AssignReg ridE e) = do
+  rid  <- evalExpr operands ib ridE
+  eVal <- evalExpr operands ib e
+  setReg rid eVal
+execStmt operands ib (AssignMem bRepr addrE e) = do
+  addr <- evalExpr operands ib addrE
+  eVal <- evalExpr operands ib e
+  setMem bRepr addr eVal
+execStmt operands ib (AssignPC pcE) = do
+  pcVal <- evalExpr operands ib pcE
+  setPC pcVal
+execStmt _ _ _ = undefined
+
+execFormula :: (MState m arch, KnownNat (ArchWidth arch))
+            => Operands fmt
+            -> Integer
+            -> Formula arch fmt
+            -> m ()
+execFormula operands ib f = forM_ (f ^. fDefs) $ execStmt operands ib
 
 -- stepMState :: MState m arch
 --            => Formula arch fmt

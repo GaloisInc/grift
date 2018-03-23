@@ -29,6 +29,9 @@ instructions.
 -- TODO: It might make sense to remove arch as a type parameter to Formula and
 -- Semantics, and add a BVExpr constructor, XLen, which queries the environment for
 -- the register width.
+-- TODO: It might make sense to parameterize BVExpr and Stmt over a Format, since
+-- Formula is as well. If we do this, we might want to change how we're dealing with
+-- OperandParams.
 -- TODO: This is a variable-width ISA, but we have separated the semantics out from
 -- the decoding so cleanly that we actually don't know how big the instruction word
 -- is here, and therefore we don't know how much to increment the PC by after most
@@ -43,8 +46,8 @@ module RISCV.Semantics
   , OperandParam(..)
   , BVExpr(..)
   , Exception(..)
-  , Stmt
-  , Formula
+  , Stmt(..)
+  , Formula, fComments, fDefs
   , FormatParams
   -- * FormulaBuilder monad
   , FormulaBuilder
@@ -272,9 +275,9 @@ instance Show (Stmt arch) where
 -- another statement reads the pc, then the latter should use the *original* value of
 -- the PC rather than the new one, regardless of the orders of the statements.
 data Formula arch (fmt :: Format)
-  = Formula { _fComment :: Seq String
+  = Formula { _fComments :: Seq String
               -- ^ multiline comment
-            , _fDef     :: Seq (Stmt arch)
+            , _fDefs    :: Seq (Stmt arch)
               -- ^ sequence of statements defining the formula
             }
 makeLenses ''Formula
@@ -308,7 +311,7 @@ getFormula = flip execState emptyFormula . unFormulaBuilder
 
 -- | Add a comment.
 comment :: String -> FormulaBuilder arch fmt ()
-comment c = fComment %= \cs -> cs Seq.|> c
+comment c = fComments %= \cs -> cs Seq.|> c
 
 -- | Literal bit vector.
 litBV :: BitVector w -> BVExpr arch w
@@ -437,7 +440,7 @@ iteE t e1 e2 = return (IteE t e1 e2)
 
 -- | Add a statement to the formula.
 addStmt :: Stmt arch -> FormulaBuilder arch fmt ()
-addStmt stmt = fDef %= \stmts -> stmts Seq.|> stmt
+addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
 
 -- TODO: protect against multiple assignments? (for all of the assign* functions)
 -- | Add a register assignment to the formula.
