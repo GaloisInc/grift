@@ -56,6 +56,7 @@ import Data.Parameterized
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized.Map (MapF)
 import Data.Parameterized.TH.GADT
+import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 
 import RISCV.Format
@@ -318,11 +319,102 @@ class (Monad m) =>  MState m arch | m -> arch where
          -> BitVector (8*bytes)
          -> m ()
 
--- evalMState :: MState m arch
---            => BVExpr arch w
---            -> Operands fmt
---            -> m (BitVector w)
--- evalMState = undefined
+evalParam :: MState m arch
+          => OperandParam arch oid
+          -> Operands fmt
+          -> m (BitVector (OperandIDWidth oid))
+evalParam (OperandParam RdRepr)    (ROperands  rd   _   _) = return rd
+evalParam (OperandParam Rs1Repr)   (ROperands   _ rs1   _) = return rs1
+evalParam (OperandParam Rs2Repr)   (ROperands   _   _ rs2) = return rs2
+evalParam (OperandParam RdRepr)    (IOperands  rd   _   _) = return rd
+evalParam (OperandParam Rs1Repr)   (IOperands   _ rs1   _) = return rs1
+evalParam (OperandParam Imm12Repr) (IOperands   _   _ imm) = return imm
+evalParam (OperandParam Rs1Repr)   (SOperands rs1   _   _) = return rs1
+evalParam (OperandParam Rs2Repr)   (SOperands   _ rs2   _) = return rs2
+evalParam (OperandParam Imm12Repr) (SOperands   _   _ imm) = return imm
+evalParam (OperandParam Rs1Repr)   (BOperands rs1   _   _) = return rs1
+evalParam (OperandParam Rs2Repr)   (BOperands   _ rs2   _) = return rs2
+evalParam (OperandParam Imm12Repr) (BOperands   _   _ imm) = return imm
+evalParam (OperandParam RdRepr)    (UOperands  rd       _) = return rd
+evalParam (OperandParam Imm20Repr) (UOperands   _     imm) = return imm
+evalParam (OperandParam RdRepr)    (JOperands  rd       _) = return rd
+evalParam (OperandParam Imm20Repr) (JOperands   _     imm) = return imm
+evalParam (OperandParam Imm32Repr) (XOperands         imm) = return imm
+evalParam oidRepr operands = error $
+  "No operand " ++ show oidRepr ++ " in operands " ++ show operands
+
+evalExpr :: (MState m arch, KnownNat (ArchWidth arch))
+         => BVExpr arch w
+         -> Operands fmt
+         -> Integer
+         -> m (BitVector w)
+evalExpr (LitBV bv) _ _ = return bv
+evalExpr (ParamBV p) operands _ = evalParam p operands
+evalExpr PCRead _ _ = getPC
+evalExpr InstBytes _ ib = return $ bitVector ib
+evalExpr (RegRead ridE) operands ib =
+  evalExpr ridE operands ib >>= getReg
+evalExpr (MemRead bRepr addrE) operands ib =
+  evalExpr addrE operands ib >>= getMem bRepr
+evalExpr (AndE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvAnd` e2Val
+evalExpr (OrE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvOr` e2Val
+evalExpr (XorE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvXor` e2Val
+evalExpr (NotE e) operands ib = do
+  evalExpr e operands ib >>= return . bvComplement
+evalExpr (AddE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvAdd` e2Val
+evalExpr (SubE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvAdd` (bvNegate e2Val)
+-- TODO: throw some kind of exception if the shifter operand is larger than the
+-- architecture width.
+evalExpr (SllE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
+evalExpr (SrlE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvShiftRL` fromIntegral (bvIntegerU e2Val)
+evalExpr (SraE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ e1Val `bvShiftRA` fromIntegral (bvIntegerU e2Val)
+evalExpr (EqE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ fromBool (e1Val == e2Val)
+evalExpr (LtuE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ fromBool (e1Val `bvLTU` e2Val)
+evalExpr (LtsE e1 e2) operands ib = do
+  e1Val <- evalExpr e1 operands ib
+  e2Val <- evalExpr e2 operands ib
+  return $ fromBool (e1Val `bvLTS` e2Val)
+evalExpr (ZExtE wRepr e) operands ib =
+  evalExpr e operands ib >>= return . bvZextWithRepr wRepr
+evalExpr (SExtE wRepr e) operands ib =
+  evalExpr e operands ib >>= return . bvSextWithRepr wRepr
+evalExpr (ExtractE wRepr base e) operands ib =
+  evalExpr e operands ib >>= return . bvExtractWithRepr wRepr base
+evalExpr (IteE testE tE fE) operands ib = do
+  testVal <- evalExpr testE operands ib
+  tVal <- evalExpr tE operands ib
+  fVal <- evalExpr fE operands ib
+  return $ if (testVal == 1) then tVal else fVal
 
 -- stepMState :: MState m arch
 --            => Formula arch fmt

@@ -37,8 +37,11 @@ instructions.
 -- that information along with the operands. Something to think about.
 module RISCV.Semantics
   ( -- * Types
-    OperandParam
-  , BVExpr
+    OperandID(..)
+  , OperandIDRepr(..)
+  , OperandIDWidth
+  , OperandParam(..)
+  , BVExpr(..)
   , Exception(..)
   , Stmt
   , Formula
@@ -113,12 +116,12 @@ data OperandIDRepr :: OperandID -> * where
   Imm32Repr :: OperandIDRepr 'Imm32
 
 type family OperandIDWidth (oi :: OperandID) :: Nat where
-  OperandIDWidth Rd    = 5
-  OperandIDWidth Rs1   = 5
-  OperandIDWidth Rs2   = 5
-  OperandIDWidth Imm12 = 12
-  OperandIDWidth Imm20 = 20
-  OperandIDWidth Imm32 = 32
+  OperandIDWidth 'Rd    = 5
+  OperandIDWidth 'Rs1   = 5
+  OperandIDWidth 'Rs2   = 5
+  OperandIDWidth 'Imm12 = 12
+  OperandIDWidth 'Imm20 = 20
+  OperandIDWidth 'Imm32 = 32
 
 -- Instances
 $(return [])
@@ -172,34 +175,34 @@ data BVExpr (arch :: Arch) (w :: Nat) where
           -> BVExpr arch (8*bytes)
 
   -- Bitwise operations
-  And :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Or  :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Xor :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Not :: BVExpr arch w -> BVExpr arch w
+  AndE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  OrE  :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  XorE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  NotE :: BVExpr arch w -> BVExpr arch w
 
   -- Arithmetic operations
-  Add :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Sub :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  AddE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  SubE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   -- TODO: does the shift amount have to be the same width as the shiftee?
-  Sll :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Srl :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  Sra :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  SllE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  SrlE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  SraE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
 
   -- Comparisons
-  Eq :: BVExpr arch w -> BVExpr arch w -> BVExpr arch 1
-  Ltu :: BVExpr arch w -> BVExpr arch w -> BVExpr arch 1
-  Lts :: BVExpr arch w -> BVExpr arch w -> BVExpr arch 1
+  EqE  :: BVExpr arch w -> BVExpr arch w -> BVExpr arch 1
+  LtuE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch 1
+  LtsE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch 1
 
   -- Width-changing
-  ZExt :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
-  SExt :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
-  Extract :: NatRepr w' -> Int -> BVExpr arch w -> BVExpr arch w'
+  ZExtE :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
+  SExtE :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
+  ExtractE :: NatRepr w' -> Int -> BVExpr arch w -> BVExpr arch w'
 
   -- Other operations
-  Ite :: BVExpr arch 1
-      -> BVExpr arch w
-      -> BVExpr arch w
-      -> BVExpr arch w
+  IteE :: BVExpr arch 1
+       -> BVExpr arch w
+       -> BVExpr arch w
+       -> BVExpr arch w
 
 instance Show (BVExpr arch w) where
   show (LitBV bv) = show bv
@@ -209,23 +212,23 @@ instance Show (BVExpr arch w) where
   show (RegRead r) = "x[" ++ show r ++ "]"
   show (MemRead bRepr addr) =
     "M[" ++ show addr ++ "][" ++ show (8 * (natValue bRepr) - 1) ++ ":0]"
-  show (And e1 e2) = show e1 ++ " & " ++ show e2
-  show (Or  e1 e2) = show e1 ++ " | " ++ show e2
-  show (Xor e1 e2) = show e1 ++ " ^ " ++ show e2
-  show (Not e) = "~" ++ show e
-  show (Add e1 e2) = show e1 ++ " + " ++ show e2
-  show (Sub e1 e2) = show e1 ++ " - " ++ show e2
-  show (Sll e1 e2) = show e1 ++ " << " ++ show e2
-  show (Srl e1 e2) = show e1 ++ " >>_l " ++ show e2
-  show (Sra e1 e2) = show e1 ++ " >>_a " ++ show e2
-  show (Eq  e1 e2) = show e1 ++ " = " ++ show e2
-  show (Ltu  e1 e2) = show e1 ++ " <_u " ++ show e2
-  show (Lts  e1 e2) = show e1 ++ " <_s " ++ show e2
-  show (ZExt _ e) = "zext(" ++ show e ++ ")"
-  show (SExt _ e) = "sext(" ++ show e ++ ")"
-  show (Extract wRepr base e) =
+  show (AndE e1 e2) = show e1 ++ " & " ++ show e2
+  show (OrE  e1 e2) = show e1 ++ " | " ++ show e2
+  show (XorE e1 e2) = show e1 ++ " ^ " ++ show e2
+  show (NotE e) = "~" ++ show e
+  show (AddE e1 e2) = show e1 ++ " + " ++ show e2
+  show (SubE e1 e2) = show e1 ++ " - " ++ show e2
+  show (SllE e1 e2) = show e1 ++ " << " ++ show e2
+  show (SrlE e1 e2) = show e1 ++ " >>_l " ++ show e2
+  show (SraE e1 e2) = show e1 ++ " >>_a " ++ show e2
+  show (EqE  e1 e2) = show e1 ++ " = " ++ show e2
+  show (LtuE e1 e2) = show e1 ++ " <_u " ++ show e2
+  show (LtsE e1 e2) = show e1 ++ " <_s " ++ show e2
+  show (ZExtE _ e) = "zext(" ++ show e ++ ")"
+  show (SExtE _ e) = "sext(" ++ show e ++ ")"
+  show (ExtractE wRepr base e) =
     show e ++ "[" ++ show (base + fromIntegral (natValue wRepr)) ++ ":" ++ show base ++ "]"
-  show (Ite t e1 e2) =
+  show (IteE t e1 e2) =
     "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
 instance ShowF (BVExpr arch)
 
@@ -340,97 +343,97 @@ memReadWithRepr bRepr addr = return (MemRead bRepr addr)
 andE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-andE e1 e2 = return (And e1 e2)
+andE e1 e2 = return (AndE e1 e2)
 
 -- | Bitwise or.
 orE :: BVExpr arch w
     -> BVExpr arch w
     -> FormulaBuilder arch fmt (BVExpr arch w)
-orE e1 e2 = return (Or e1 e2)
+orE e1 e2 = return (OrE e1 e2)
 
 -- | Bitwise xor.
 xorE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-xorE e1 e2 = return (Xor e1 e2)
+xorE e1 e2 = return (XorE e1 e2)
 
 -- | Bitwise not.
 notE :: BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w)
-notE e = return (Not e)
+notE e = return (NotE e)
 
 -- | Add two expressions.
 addE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-addE e1 e2 = return (Add e1 e2)
+addE e1 e2 = return (AddE e1 e2)
 
 -- | Subtract the second expression from the first.
 subE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-subE e1 e2 = return (Sub e1 e2)
+subE e1 e2 = return (SubE e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sllE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-sllE e1 e2 = return (Sll e1 e2)
+sllE e1 e2 = return (SllE e1 e2)
 
 -- | Left logical shift the first expression by the second.
 srlE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-srlE e1 e2 = return (Srl e1 e2)
+srlE e1 e2 = return (SrlE e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sraE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-sraE e1 e2 = return (Sra e1 e2)
+sraE e1 e2 = return (SraE e1 e2)
 
 -- | Test for equality of two expressions.
 eqE :: BVExpr arch w
     -> BVExpr arch w
     -> FormulaBuilder arch fmt (BVExpr arch 1)
-eqE e1 e2 = return (Eq e1 e2)
+eqE e1 e2 = return (EqE e1 e2)
 
 -- | Signed less than
 ltsE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch 1)
-ltsE e1 e2 = return (Lts e1 e2)
+ltsE e1 e2 = return (LtsE e1 e2)
 
 -- | Unsigned less than
 ltuE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch 1)
-ltuE e1 e2 = return (Ltu e1 e2)
+ltuE e1 e2 = return (LtuE e1 e2)
 
 -- | Zero-extension
 zextE :: KnownNat w' => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
-zextE e = return (ZExt knownNat e)
+zextE e = return (ZExtE knownNat e)
 
 -- | Sign-extension
 sextE :: KnownNat w' => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
-sextE e = return (SExt knownNat e)
+sextE e = return (SExtE knownNat e)
 
 -- | Extract bits
 extractE :: KnownNat w' => Int -> BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
-extractE base e = return (Extract knownNat base e)
+extractE base e = return (ExtractE knownNat base e)
 
 -- | Extract bits with an explicit width argument
 extractEWithRepr :: NatRepr w'
                  -> Int
                  -> BVExpr arch w
                  -> FormulaBuilder arch fmt (BVExpr arch w')
-extractEWithRepr wRepr base e = return (Extract wRepr base e)
+extractEWithRepr wRepr base e = return (ExtractE wRepr base e)
 
 -- | Conditional branch.
 iteE :: BVExpr arch 1
      -> BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
-iteE t e1 e2 = return (Ite t e1 e2)
+iteE t e1 e2 = return (IteE t e1 e2)
 
 -- | Add a statement to the formula.
 addStmt :: Stmt arch -> FormulaBuilder arch fmt ()
