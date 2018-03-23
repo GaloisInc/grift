@@ -123,7 +123,7 @@ baseSemantics = Map.fromList
 
       rOp sllE
   , Pair Slt $ getFormula $ do
-      comment "Compares x[rs1] and x[rs2] as two's not numbers."
+      comment "Compares x[rs1] and x[rs2] as two's complement numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
       rOp (\e1 e2 -> ltsE e1 e2 >>= zextE)

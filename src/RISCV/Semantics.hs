@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -23,6 +25,7 @@ instructions.
 -}
 
 -- TODO: get pretty printing into a separate entity rather than using Show.
+-- TODO: Pretty printing needs to parenthesize expressions appropriately.
 -- TODO: It might make sense to remove arch as a type parameter to Formula and
 -- Semantics, and add a BVExpr constructor, XLen, which queries the environment for
 -- the register width.
@@ -34,7 +37,7 @@ instructions.
 -- that information along with the operands. Something to think about.
 module RISCV.Semantics
   ( -- * Types
-    Parameter
+    OperandParam
   , BVExpr
   , Exception(..)
   , Stmt
@@ -90,29 +93,76 @@ import Control.Monad.State
 import Data.BitVector.Sized
 import Data.Foldable (toList)
 import Data.Parameterized
+import Data.Parameterized.TH.GADT
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
 
 import RISCV.Format
 
+-- Operand identifiers
+
+data OperandID = Rd | Rs1 | Rs2 | Imm12 | Imm20 | Imm32
+
+data OperandIDRepr :: OperandID -> * where
+  RdRepr    :: OperandIDRepr 'Rd
+  Rs1Repr   :: OperandIDRepr 'Rs1
+  Rs2Repr   :: OperandIDRepr 'Rs2
+  Imm12Repr :: OperandIDRepr 'Imm12
+  Imm20Repr :: OperandIDRepr 'Imm20
+  Imm32Repr :: OperandIDRepr 'Imm32
+
+type family OperandIDWidth (oi :: OperandID) :: Nat where
+  OperandIDWidth Rd    = 5
+  OperandIDWidth Rs1   = 5
+  OperandIDWidth Rs2   = 5
+  OperandIDWidth Imm12 = 12
+  OperandIDWidth Imm20 = 20
+  OperandIDWidth Imm32 = 32
+
+-- Instances
+$(return [])
+instance Show (OperandIDRepr k) where
+  show RdRepr = "rd"
+  show Rs1Repr = "rs1"
+  show Rs2Repr = "rs2"
+  show Imm12Repr = "imm12"
+  show Imm20Repr = "imm20"
+  show Imm32Repr = "imm32"
+
+instance ShowF OperandIDRepr
+deriving instance Eq (OperandIDRepr k)
+instance EqF OperandIDRepr where
+  eqF = (==)
+instance TestEquality OperandIDRepr where
+  testEquality = $(structuralTypeEquality [t|OperandIDRepr|] [])
+instance OrdF OperandIDRepr where
+  compareF = $(structuralTypeOrd [t|OperandIDRepr|] [])
+instance KnownRepr OperandIDRepr 'Rd    where knownRepr = RdRepr
+instance KnownRepr OperandIDRepr 'Rs1   where knownRepr = Rs1Repr
+instance KnownRepr OperandIDRepr 'Rs2   where knownRepr = Rs2Repr
+instance KnownRepr OperandIDRepr 'Imm12 where knownRepr = Imm12Repr
+instance KnownRepr OperandIDRepr 'Imm20 where knownRepr = Imm20Repr
+instance KnownRepr OperandIDRepr 'Imm32 where knownRepr = Imm32Repr
+
 ----------------------------------------
 -- Expressions, statements, and formulas
 
 -- | Formula parameter (represents unknown operands)
-data Parameter (arch :: Arch) (w :: Nat)
-  = Parameter (NatRepr w) String
+data OperandParam (arch :: Arch) (oid :: OperandID)
+  = OperandParam (OperandIDRepr oid)
 
-instance Show (Parameter arch w) where
-  show (Parameter _repr name) = name
-instance ShowF (Parameter arch)
+instance Show (OperandParam arch oid) where
+  show (OperandParam repr) = show repr
+instance ShowF (OperandParam arch)
 
 -- | BitVector expressions. These are the building blocks for semantic formulas for
 -- an instruction.
 data BVExpr (arch :: Arch) (w :: Nat) where
   -- Basic constructors
   LitBV :: BitVector w -> BVExpr arch w
-  ParamBV :: Parameter arch w -> BVExpr arch w
+  ParamBV :: OperandParam arch oid -> BVExpr arch (OperandIDWidth oid)
+  InstBytes :: BVExpr arch (ArchWidth arch)
 
   -- Accessing state
   PCRead  :: BVExpr arch (ArchWidth arch)
@@ -154,6 +204,7 @@ data BVExpr (arch :: Arch) (w :: Nat) where
 instance Show (BVExpr arch w) where
   show (LitBV bv) = show bv
   show (ParamBV p) = show p
+  show (InstBytes) = "ib"
   show PCRead = "pc"
   show (RegRead r) = "x[" ++ show r ++ "]"
   show (MemRead bRepr addr) =
@@ -203,7 +254,7 @@ instance Show (Stmt arch) where
   show (AssignPC pc) = "pc' = " ++ show pc
   show (RaiseException e) = "RaiseException(" ++ show e ++ ")"
 
--- TODO: Parameterize Formula and FormulaBuilder by instruction format. Have
+-- TODO: OperandParamize Formula and FormulaBuilder by instruction format. Have
 -- special-purpose param functions for each format, that return the parameters as a
 -- tuple.
 -- | Formula representing the semantics of an instruction. A formula has a number of
@@ -228,7 +279,7 @@ makeLenses ''Formula
 instance Show (Formula arch fmt) where
   show (Formula comments defs) =
     showComments ++
-    -- "Parameters: " ++ showParams ++ "\n" ++
+    -- "OperandParams: " ++ showParams ++ "\n" ++
     showDefs
     where showComments = concat (toList ((++ "\n") <$> comments))
 --          showParams = intercalate ", " (toList (show <$> params))
@@ -259,6 +310,11 @@ comment c = fComment %= \cs -> cs Seq.|> c
 -- | Literal bit vector.
 litBV :: BitVector w -> BVExpr arch w
 litBV = LitBV
+
+-- | Get the width of the instruction word
+instBytes :: KnownNat (ArchWidth arch)
+          => FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+instBytes = return InstBytes
 
 -- | Read the pc.
 pcRead :: FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
@@ -426,32 +482,32 @@ params' :: FormatRepr fmt
         -> FormulaBuilder arch fmt (FormatParams arch fmt)
 params' repr = case repr of
     RRepr -> do
-      let rd  = Parameter knownNat "rd"
-          rs1 = Parameter knownNat "rs1"
-          rs2 = Parameter knownNat "rs2"
+      let rd  = OperandParam RdRepr
+          rs1 = OperandParam Rs1Repr
+          rs2 = OperandParam Rs2Repr
       return (ParamBV rd, ParamBV rs1, ParamBV rs2)
     IRepr -> do
-      let rd    = Parameter knownNat "rd"
-          rs1   = Parameter knownNat "rs1"
-          imm12 = Parameter knownNat "imm12"
+      let rd    = OperandParam RdRepr
+          rs1   = OperandParam Rs1Repr
+          imm12 = OperandParam Imm12Repr
       return (ParamBV rd, ParamBV rs1, ParamBV imm12)
     SRepr -> do
-      let rs1   = Parameter knownNat "rs1"
-          rs2   = Parameter knownNat "rs2"
-          imm12 = Parameter knownNat "imm12"
+      let rs1   = OperandParam Rs1Repr
+          rs2   = OperandParam Rs2Repr
+          imm12 = OperandParam Imm12Repr
       return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
     BRepr -> do
-      let rs1   = Parameter knownNat "rs1"
-          rs2   = Parameter knownNat "rs2"
-          imm12 = Parameter knownNat "imm12"
+      let rs1   = OperandParam Rs1Repr
+          rs2   = OperandParam Rs2Repr
+          imm12 = OperandParam Imm12Repr
       return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
     URepr -> do
-      let rd    = Parameter knownNat "rd"
-          imm20 = Parameter knownNat "imm20"
+      let rd    = OperandParam RdRepr
+          imm20 = OperandParam Imm20Repr
       return (ParamBV rd, ParamBV imm20)
     JRepr -> do
-      let rd    = Parameter knownNat "rd"
-          imm20 = Parameter knownNat "imm20"
+      let rd    = OperandParam RdRepr
+          imm20 = OperandParam Imm20Repr
       return (ParamBV rd, ParamBV imm20)
     _ -> undefined
 
@@ -459,7 +515,4 @@ params' repr = case repr of
 params :: (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (FormatParams arch fmt)
 params = params' knownRepr
 
--- | Get the width of the instruction word
-instBytes :: KnownNat (ArchWidth arch)
-          => FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
-instBytes = return $ ParamBV (Parameter knownNat "instBytes")
+----------------------------------------

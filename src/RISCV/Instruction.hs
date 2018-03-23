@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -299,6 +300,39 @@ opcodeFromOpBits is opBits =
 
 -- | Type for instruction words. These can be any multiple of 16.
 type InstWord (n :: Nat) = BitVector (16 * n)
+
+----------------------------------------
+
+
+class (Monad m) =>  MState m arch | m -> arch where
+  getPC  :: m (BitVector (ArchWidth arch))
+  getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
+  getMem :: NatRepr bytes
+         -> BitVector (ArchWidth arch)
+         -> m (BitVector (8*bytes))
+
+  setPC :: BitVector (ArchWidth arch) -> m ()
+  setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
+  setMem :: NatRepr bytes
+         -> BitVector (ArchWidth arch)
+         -> BitVector (8*bytes)
+         -> m ()
+
+-- evalMState :: MState m arch
+--            => BVExpr arch w
+--            -> Operands fmt
+--            -> m (BitVector w)
+-- evalMState = undefined
+
+-- stepMState :: MState m arch
+--            => Formula arch fmt
+--            -> Operands fmt
+--            -> m ()
+-- stepMState = undefined
+
+
+
+
 
 ----------------------------------------
 -- TODO: Add compressed instructions

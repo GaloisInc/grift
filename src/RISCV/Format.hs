@@ -75,7 +75,7 @@ instance KnownRepr ArchRepr 'RV64 where knownRepr = RV64Repr
 -- inhabited only by an illegal instruction.
 --
 -- NOTE: Our formats differ somewhat from the RISC-V ISA manual. The manual
--- classifies instructions into formats based on <TODO: what?>. Our formats, while
+-- classifies instructions into formats based on (TODO: what?). Our formats, while
 -- very close to those in the manual, more exactly specify bits that are fixed by the
 -- instruction (i.e. the ones that never vary, no matter what the operands of the
 -- instruction are). In the manual, some instructions which have the same format
