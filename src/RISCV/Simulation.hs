@@ -123,12 +123,10 @@ evalExpr operands ib (MulUE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
   return $ e1Val `bvMulFU` e2Val
--- TODO: fix this in bv-sized
 evalExpr operands ib (MulSUE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
-  error "MulSUE not implement"
-  -- return $ e1Val `bvMulFU` e2Val
+  return $ e1Val `bvMulFSU` e2Val
 -- TODO: throw some kind of exception if the shifter operand is larger than the
 -- architecture width.
 evalExpr operands ib (SllE e1 e2) = do
