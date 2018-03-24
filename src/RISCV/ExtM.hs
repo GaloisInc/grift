@@ -22,6 +22,8 @@ import Data.Parameterized
 
 import RISCV.Instruction
 import RISCV.InstructionSet
+import RISCV.Semantics
+import RISCV.Semantics.Helpers
 
 -- | M extension
 m :: InstructionSet 'RV32
@@ -42,4 +44,67 @@ mEncode = Map.fromList
   ]
 
 mSemantics :: SemanticsMap 'RV32
-mSemantics = undefined
+mSemantics = Map.fromList
+  [ Pair Mul $ getFormula $ do
+      comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      (rd, rs1, rs2) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      result' <- x_rs1 `muluE` x_rs2
+      result  <- extractE 0 result'
+      assignReg rd result
+      incrPC
+
+  , Pair Mulh $ getFormula $ do
+      comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
+      comment "Writes the upper half of the product in x[rd]."
+
+      (rd, rs1, rs2) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      result' <- x_rs1 `mulsE` x_rs2
+      -- TODO: This is incompatible with RV64. Might make sense to just define
+      -- different versions of each extension.
+      result  <- extractE 32 result'
+      assignReg rd result
+      incrPC
+
+  , Pair Mulhsu $ getFormula $ do
+      comment "Multiplies x[rs1] by x[rs2], treating x[rs1] as a two's complement number and x[rs2] as an unsigned number."
+      comment "Writes the upper half of the product in x[rd]."
+
+      (rd, rs1, rs2) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      result' <- x_rs1 `mulsuE` x_rs2
+      -- TODO: This is incompatible with RV64. Might make sense to just define
+      -- different versions of each extension.
+      result  <- extractE 32 result'
+      assignReg rd result
+      incrPC
+
+  , Pair Mulhu $ getFormula $ do
+      comment "Multiplies x[rs1] by x[rs2], treating the values as unsigned numbers."
+      comment "Writes the upper half of the product in x[rd]."
+
+      (rd, rs1, rs2) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      result' <- x_rs1 `muluE` x_rs2
+      -- TODO: This is incompatible with RV64. Might make sense to just define
+      -- different versions of each extension.
+      result  <- extractE 32 result'
+      assignReg rd result
+      incrPC
+
+  ]

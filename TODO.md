@@ -27,6 +27,11 @@ instruction semantics to still return 64-bit values, but to zero out the higher
 order bits. Hard to say what the best way to do it is. This affects the
 decoder, and it affects the compressed extension.
 
+Another question is -- should I create separate versions of each extension
+(including base) for RV32/RV64? That would be a lot of code duplication. But in
+terms of semantics, it's going to be very difficult to get the widths right on
+the type level. I think I need to ignore RV64 for the time being.
+
 ## Privileged architecture
 
 Still need to do some more research here.

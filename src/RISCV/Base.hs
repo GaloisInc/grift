@@ -32,6 +32,7 @@ import GHC.TypeLits
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
+import RISCV.Semantics.Helpers
 
 -- | RV32I Base ISA
 base :: InstructionSet 'RV32
@@ -392,16 +393,6 @@ baseSemantics = Map.fromList
 
       raiseException IllegalInstruction
   ]
-
-incrPC :: KnownNat (ArchWidth arch) => FormulaBuilder arch fmt ()
-incrPC = do
-  ib' <- instBytes
-  ib <- zextE ib'
-
-  pc <- pcRead
-  new_pc <- pc `addE` ib
-
-  assignPC new_pc
 
 type ArithOp arch fmt = BVExpr arch (ArchWidth arch)
                      -> BVExpr arch (ArchWidth arch)

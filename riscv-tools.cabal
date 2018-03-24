@@ -24,6 +24,7 @@ library
                      , RISCV.InstructionSet
                      , RISCV.Instruction.Layouts
                      , RISCV.Semantics
+                     , RISCV.Semantics.Helpers
                      , RISCV.Simulation
   build-depends:       base >= 4.7 && < 5
                      , bv-sized >= 0.2 && < 0.3
@@ -47,6 +48,7 @@ executable riscv-dis
                      , RISCV.InstructionSet
                      , RISCV.Instruction.Layouts
                      , RISCV.Semantics
+                     , RISCV.Semantics.Helpers
                      , RISCV.Simulation
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
@@ -71,7 +73,6 @@ test-suite riscv-tests
                      , RISCV.Instruction
                      , RISCV.InstructionSet
                      , RISCV.Instruction.Layouts
-                     , RISCV.Simulation
   hs-source-dirs: test, src
   build-depends:       base >= 4.7 && < 5
                      , bv-sized >= 0.2 && < 0.3

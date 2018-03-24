@@ -71,6 +71,9 @@ module RISCV.Semantics
   -- ** Arithmetic
   , addE
   , subE
+  , mulsE
+  , muluE
+  , mulsuE
   , sllE
   , srlE
   , sraE
@@ -93,7 +96,7 @@ module RISCV.Semantics
   , raiseException
   ) where
 
-import Control.Lens ( (%=), (^.) )
+import Control.Lens ( (%=) )
 import Control.Lens.TH (makeLenses)
 import Control.Monad.State
 import Data.BitVector.Sized
@@ -102,7 +105,6 @@ import Data.Parameterized
 import Data.Parameterized.TH.GADT
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
-import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 
 import RISCV.Instruction
@@ -187,6 +189,9 @@ data BVExpr (arch :: Arch) (w :: Nat) where
   -- Arithmetic operations
   AddE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   SubE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  MulSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
+  MulUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
+  MulSUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
   -- TODO: does the shift amount have to be the same width as the shiftee?
   SllE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   SrlE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -222,6 +227,9 @@ instance Show (BVExpr arch w) where
   show (NotE e) = "~" ++ show e
   show (AddE e1 e2) = show e1 ++ " + " ++ show e2
   show (SubE e1 e2) = show e1 ++ " - " ++ show e2
+  show (MulSE e1 e2) = show e1 ++ " s*s " ++ show e2
+  show (MulUE e1 e2) = show e1 ++ " u*u " ++ show e2
+  show (MulSUE e1 e2) = show e1 ++ " s*u " ++ show e2
   show (SllE e1 e2) = show e1 ++ " << " ++ show e2
   show (SrlE e1 e2) = show e1 ++ " >>_l " ++ show e2
   show (SraE e1 e2) = show e1 ++ " >>_a " ++ show e2
@@ -376,6 +384,22 @@ subE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 subE e1 e2 = return (SubE e1 e2)
+
+-- | Subtract the second expression from the first.
+mulsE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch (w+w))
+mulsE e1 e2 = return (MulSE e1 e2)
+
+muluE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch (w+w))
+muluE e1 e2 = return (MulUE e1 e2)
+
+mulsuE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch (w+w))
+mulsuE e1 e2 = return (MulSUE e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sllE :: BVExpr arch w
