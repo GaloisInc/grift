@@ -19,9 +19,23 @@ compression is enabled; if it is, first call these functions to encode/decode.
 
 ## RV32 vs. RV64
 
+It's currently unclear to me whether I should make this something on the type
+level. My current position is that we should keep it at the type level, but
+since MISA can be altered in some implementations to switch to 32-bit mode, we
+definitely need to account for that. In those cases, I can imagine altering the
+instruction semantics to still return 64-bit values, but to zero out the higher
+order bits. Hard to say what the best way to do it is. This affects the
+decoder, and it affects the compressed extension.
+
 ## Privileged architecture
 
+Still need to do some more research here.
+
 ## Extensions
+
+Currently have the Base ISA encoding and semantics defined, as well as the M
+extension encodings (no semantics yet). Shouldn't be too hard to add M
+semantics. Next up is probably F/D extensions.
 
 ## Simulator
 
@@ -31,11 +45,12 @@ implement a backend for this.
 
 I might add certain functions to this class that allow us to determine XLEN and
 the various enabled extensions; on the other hand, this information may be
-available in higher privilege modes. One thing I haven't fully worked out is
-whether to parameterize everything by Arch (RV32/RV64) on the type level. One
-tricky thing about this is that currently, the privileged architecture (M in
-particular) can actually dynamically set XLEN to enable RV64 to simulate RV64
-without requiring binary translation. These details may be tricky to work out.
+available in higher privilege modes by accessing the CSRs. One thing I haven't
+fully worked out is whether to parameterize everything by Arch (RV32/RV64) on
+the type level. One tricky thing about this is that currently, the privileged
+architecture (M in particular) can actually dynamically set XLEN to disable RV64
+to simulate RV32 without requiring binary translation. These details may be
+tricky to work out.
 
 This is probably the next thing to tackle. Part of it will involve writing a
 universal step function, with a straightforward fetch/decode/execute. This
@@ -65,6 +80,17 @@ follows:
 
 ## Assembler
 
+All that would really be required for this would be to write a parser for RISC-V
+assembly code. I should then be able to use ElfEdit to create Elf files.
+
+Should create a single module for parsing lines of assembly code, as well as
+serializing instructions to assembly format.
+
 ## Disassembler
 
+Already have a mockup of a disassembler for the ELF format. After I finish the
+assembler, I will work on 
+
 ## Exporting to other formats
+
+What to do first? Should be fun.
