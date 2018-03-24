@@ -21,6 +21,7 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 
 import RISCV.Instruction
+import RISCV.InstructionSet
 
 -- | M extension
 m :: InstructionSet 'RV32

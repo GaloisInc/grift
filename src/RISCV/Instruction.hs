@@ -30,13 +30,10 @@ AST for Instruction data type, parameterized by instruction format (R, I, S, ...
 module RISCV.Instruction
   ( -- * Instructions
     Instruction(..)
-  , InstructionSet(..)
-  , instructionSet
-  , EncodeMap, DecodeMap, SemanticsMap
-  , InstWord
     -- * Architecture types
   , Arch(..)
   , ArchRepr(..)
+  , ArchWidth
     -- * Instruction formats
   , Format(..)
   , FormatRepr(..)
@@ -45,24 +42,93 @@ module RISCV.Instruction
   , OpBits(..)
     -- * Operands
   , Operands(..)
-    -- * Opcode / OpBits conversion
-  , opcodeFromOpBits
-  , opBitsFromOpcode
-  , semanticsFromOpcode
   ) where
 
-import Control.Lens ( (^.) )
-import Control.Monad ( forM_ )
 import Data.BitVector.Sized
 import Data.Parameterized
-import qualified Data.Parameterized.Map as Map
-import Data.Parameterized.Map (MapF)
 import Data.Parameterized.TH.GADT
-import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 
-import RISCV.Format
-import RISCV.Semantics
+----------------------------------------
+-- Architecture types
+-- | Architecture types
+data Arch = RV32
+          | RV64
+
+data ArchRepr :: Arch -> * where
+  RV32Repr :: ArchRepr 'RV32
+  RV64Repr :: ArchRepr 'RV64
+
+-- | Maps an architecture to its register width
+type family ArchWidth (arch :: Arch) :: Nat where
+  ArchWidth 'RV32 = 32
+  ArchWidth 'RV64 = 64
+
+-- Instances
+$(return [])
+deriving instance Show (ArchRepr k)
+instance ShowF ArchRepr
+deriving instance Eq (ArchRepr k)
+instance EqF ArchRepr where
+  eqF = (==)
+instance TestEquality ArchRepr where
+  testEquality = $(structuralTypeEquality [t|ArchRepr|] [])
+instance OrdF ArchRepr where
+  compareF = $(structuralTypeOrd [t|ArchRepr|] [])
+instance KnownRepr ArchRepr 'RV32 where knownRepr = RV32Repr
+instance KnownRepr ArchRepr 'RV64 where knownRepr = RV64Repr
+
+----------------------------------------
+-- Formats
+
+-- | The RISC-V instruction formats. Each RISC-V instruction has one of several
+-- encoding formats, corresponding to its operands and the way those operands are
+-- laid out as bits in the instruction word. We include one additional format, X,
+-- inhabited only by an illegal instruction.
+--
+-- NOTE: Our formats differ somewhat from the RISC-V ISA manual. The manual
+-- classifies instructions into formats based on (TODO: what?). Our formats, while
+-- very close to those in the manual, more exactly specify bits that are fixed by the
+-- instruction (i.e. the ones that never vary, no matter what the operands of the
+-- instruction are). In the manual, some instructions which have the same format
+-- actually have different numbers of operands! For example: add (from RV32I) has
+-- three operands, and fadd.s (from RV32F) has four operands (the additional one
+-- being the rounding mode). Here, "operand" means "bit vector(s) tied to a
+-- particular input for the instruction's semantics."
+
+data Format = R | I | S | B | U | J | E | X
+
+-- | A type-level representative of the format. Particularly useful when decoding
+-- instructions since we won't know ahead of time what format to classify them as.
+data FormatRepr :: Format -> * where
+  RRepr :: FormatRepr 'R
+  IRepr :: FormatRepr 'I
+  SRepr :: FormatRepr 'S
+  BRepr :: FormatRepr 'B
+  URepr :: FormatRepr 'U
+  JRepr :: FormatRepr 'J
+  ERepr :: FormatRepr 'E
+  XRepr :: FormatRepr 'X
+
+-- Instances
+$(return [])
+deriving instance Show (FormatRepr k)
+instance ShowF FormatRepr
+deriving instance Eq (FormatRepr k)
+instance EqF FormatRepr where
+  eqF = (==)
+instance TestEquality FormatRepr where
+  testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
+instance OrdF FormatRepr where
+  compareF = $(structuralTypeOrd [t|FormatRepr|] [])
+instance KnownRepr FormatRepr 'R where knownRepr = RRepr
+instance KnownRepr FormatRepr 'I where knownRepr = IRepr
+instance KnownRepr FormatRepr 'S where knownRepr = SRepr
+instance KnownRepr FormatRepr 'B where knownRepr = BRepr
+instance KnownRepr FormatRepr 'U where knownRepr = URepr
+instance KnownRepr FormatRepr 'J where knownRepr = JRepr
+instance KnownRepr FormatRepr 'E where knownRepr = ERepr
+instance KnownRepr FormatRepr 'X where knownRepr = XRepr
 
 ----------------------------------------
 -- Operands
@@ -248,210 +314,6 @@ instance OrdF Instruction where
     case opcode `compareF` opcode' of
       EQF -> operands `compareF` operands'
       cmp -> cmp
-
--- | Instruction encoding, mapping each opcode to its associated 'OpBits', the bits
--- it fixes in an instruction word.
-type EncodeMap = MapF Opcode OpBits
-
--- | Reverse of 'EncodeMap'
-type DecodeMap = MapF OpBits Opcode
-
-type SemanticsMap arch = MapF Opcode (Formula arch)
-
--- | A set of RISC-V instructions. We use this type to group the various instructions
--- into categories based on extension and register width.
-data InstructionSet arch
-  = InstructionSet { isEncodeMap    :: EncodeMap
-                   , isDecodeMap    :: DecodeMap
-                   , isSemanticsMap :: SemanticsMap arch
-                   }
-
-instance Monoid (InstructionSet arch) where
-  -- RV32 is the default/minimum, so that should be mempty.
-  mempty = InstructionSet Map.empty Map.empty Map.empty
-
-
-  InstructionSet em1 dm1 sm1 `mappend` InstructionSet em2 dm2 sm2
-    = InstructionSet (em1 `Map.union` em2) (dm1 `Map.union` dm2) (sm1 `Map.union` sm2)
-
--- | Construction an instructionSet from only an EncodeMap
-instructionSet :: EncodeMap -> SemanticsMap arch -> InstructionSet arch
-instructionSet em sm = InstructionSet em (transMap em) sm
-  where swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
-        swap (Pair k v) = Pair v k
-        transMap :: OrdF v => MapF (k :: t -> *) (v :: t -> *) -> MapF v k
-        transMap = Map.fromList . map swap . Map.toList
-
--- | Given an instruction set, obtain the fixed bits of an opcode (encoding)
-opBitsFromOpcode :: InstructionSet arch -> Opcode fmt -> OpBits fmt
-opBitsFromOpcode is opcode = case Map.lookup opcode (isEncodeMap is) of
-  Just opBits -> opBits
-  Nothing     -> error $ "Opcode " ++ show opcode ++
-                 " does not have corresponding OpBits defined."
-
--- | Given an instruction set, obtain the semantics of an opcode
-semanticsFromOpcode :: InstructionSet arch -> Opcode fmt -> Formula arch fmt
-semanticsFromOpcode is opcode = case Map.lookup opcode (isSemanticsMap is) of
-  Just formula -> formula
-  Nothing      -> error $ "Opcode " ++ show opcode ++
-                  " does not have corresponding semantics defined."
-
--- | Given an instruction set, obtain the opcode from its fixed bits (decoding)
-opcodeFromOpBits :: InstructionSet arch -> OpBits fmt -> Either (Opcode 'X) (Opcode fmt)
-opcodeFromOpBits is opBits =
-  maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
-
--- | Type for instruction words. These can be any multiple of 16.
-type InstWord (n :: Nat) = BitVector (16 * n)
-
-----------------------------------------
-
-
-class (Monad m) =>  MState m arch | m -> arch where
-  getPC  :: m (BitVector (ArchWidth arch))
-  getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
-  getMem :: NatRepr bytes
-         -> BitVector (ArchWidth arch)
-         -> m (BitVector (8*bytes))
-
-  setPC :: BitVector (ArchWidth arch) -> m ()
-  setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
-  setMem :: NatRepr bytes
-         -> BitVector (ArchWidth arch)
-         -> BitVector (8*bytes)
-         -> m ()
-
-evalParam :: MState m arch
-          => OperandParam arch oid
-          -> Operands fmt
-          -> m (BitVector (OperandIDWidth oid))
-evalParam (OperandParam RdRepr)    (ROperands  rd   _   _) = return rd
-evalParam (OperandParam Rs1Repr)   (ROperands   _ rs1   _) = return rs1
-evalParam (OperandParam Rs2Repr)   (ROperands   _   _ rs2) = return rs2
-evalParam (OperandParam RdRepr)    (IOperands  rd   _   _) = return rd
-evalParam (OperandParam Rs1Repr)   (IOperands   _ rs1   _) = return rs1
-evalParam (OperandParam Imm12Repr) (IOperands   _   _ imm) = return imm
-evalParam (OperandParam Rs1Repr)   (SOperands rs1   _   _) = return rs1
-evalParam (OperandParam Rs2Repr)   (SOperands   _ rs2   _) = return rs2
-evalParam (OperandParam Imm12Repr) (SOperands   _   _ imm) = return imm
-evalParam (OperandParam Rs1Repr)   (BOperands rs1   _   _) = return rs1
-evalParam (OperandParam Rs2Repr)   (BOperands   _ rs2   _) = return rs2
-evalParam (OperandParam Imm12Repr) (BOperands   _   _ imm) = return imm
-evalParam (OperandParam RdRepr)    (UOperands  rd       _) = return rd
-evalParam (OperandParam Imm20Repr) (UOperands   _     imm) = return imm
-evalParam (OperandParam RdRepr)    (JOperands  rd       _) = return rd
-evalParam (OperandParam Imm20Repr) (JOperands   _     imm) = return imm
-evalParam (OperandParam Imm32Repr) (XOperands         imm) = return imm
-evalParam oidRepr operands = error $
-  "No operand " ++ show oidRepr ++ " in operands " ++ show operands
-
-evalExpr :: (MState m arch, KnownNat (ArchWidth arch))
-         => Operands fmt    -- ^ Operands
-         -> Integer         -- ^ Instruction width (in bytes)
-         -> BVExpr arch w   -- ^ Expression to be evaluated
-         -> m (BitVector w)
-evalExpr _ _ (LitBV bv) = return bv
-evalExpr operands _ (ParamBV p) = evalParam p operands
-evalExpr _ _ PCRead = getPC
-evalExpr _ ib InstBytes = return $ bitVector ib
-evalExpr operands ib (RegRead ridE) =
-  evalExpr operands ib ridE >>= getReg
-evalExpr operands ib (MemRead bRepr addrE) =
-  evalExpr operands ib addrE >>= getMem bRepr
-evalExpr operands ib (AndE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvAnd` e2Val
-evalExpr operands ib (OrE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvOr` e2Val
-evalExpr operands ib (XorE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvXor` e2Val
-evalExpr operands ib (NotE e) = do
-  evalExpr operands ib e >>= return . bvComplement
-evalExpr operands ib (AddE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvAdd` e2Val
-evalExpr operands ib (SubE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvAdd` (bvNegate e2Val)
--- TODO: throw some kind of exception if the shifter operand is larger than the
--- architecture width.
-evalExpr operands ib (SllE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
-evalExpr operands ib (SrlE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvShiftRL` fromIntegral (bvIntegerU e2Val)
-evalExpr operands ib (SraE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvShiftRA` fromIntegral (bvIntegerU e2Val)
-evalExpr operands ib (EqE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ fromBool (e1Val == e2Val)
-evalExpr operands ib (LtuE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ fromBool (e1Val `bvLTU` e2Val)
-evalExpr operands ib (LtsE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
-  return $ fromBool (e1Val `bvLTS` e2Val)
-evalExpr operands ib (ZExtE wRepr e) =
-  evalExpr operands ib e >>= return . bvZextWithRepr wRepr
-evalExpr operands ib (SExtE wRepr e) =
-  evalExpr operands ib e >>= return . bvSextWithRepr wRepr
-evalExpr operands ib (ExtractE wRepr base e) =
-  evalExpr operands ib e >>= return . bvExtractWithRepr wRepr base
-evalExpr operands ib (IteE testE tE fE) = do
-  testVal <- evalExpr operands ib testE
-  tVal <- evalExpr operands ib tE
-  fVal <- evalExpr operands ib fE
-  return $ if (testVal == 1) then tVal else fVal
-
-execStmt :: (MState m arch, KnownNat (ArchWidth arch))
-         => Operands fmt -- ^ Operands
-         -> Integer      -- ^ Instruction width (in bytes)
-         -> Stmt arch    -- ^ Statement to be executed
-         -> m ()
-execStmt operands ib (AssignReg ridE e) = do
-  rid  <- evalExpr operands ib ridE
-  eVal <- evalExpr operands ib e
-  setReg rid eVal
-execStmt operands ib (AssignMem bRepr addrE e) = do
-  addr <- evalExpr operands ib addrE
-  eVal <- evalExpr operands ib e
-  setMem bRepr addr eVal
-execStmt operands ib (AssignPC pcE) = do
-  pcVal <- evalExpr operands ib pcE
-  setPC pcVal
-execStmt _ _ _ = undefined
-
-execFormula :: (MState m arch, KnownNat (ArchWidth arch))
-            => Operands fmt
-            -> Integer
-            -> Formula arch fmt
-            -> m ()
-execFormula operands ib f = forM_ (f ^. fDefs) $ execStmt operands ib
-
--- stepMState :: MState m arch
---            => Formula arch fmt
---            -> Operands fmt
---            -> m ()
--- stepMState = undefined
-
-
-
-
 
 ----------------------------------------
 -- TODO: Add compressed instructions

@@ -24,14 +24,16 @@ module RISCV.Decode
   ) where
 
 import Control.Lens ( (^.) )
+import Data.BitVector.Sized
 import Data.Parameterized
 
 import RISCV.Instruction
+import RISCV.InstructionSet
 import RISCV.Instruction.Layouts
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.
-decode :: InstructionSet arch -> InstWord 2 -> Some Instruction
+decode :: InstructionSet arch -> BitVector 32 -> Some Instruction
 decode iset bv = case decodeFormat bv of
   Some repr -> case decodeOpcode iset repr bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
@@ -39,7 +41,7 @@ decode iset bv = case decodeFormat bv of
 
 -- TODO: Decide whether we want to abstract this guy
 -- | First, get the format
-decodeFormat :: InstWord 2 -> Some FormatRepr
+decodeFormat :: BitVector 32 -> Some FormatRepr
 decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
   (0b0110011, _) -> Some RRepr
 
@@ -63,7 +65,7 @@ decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
   _ ->              Some XRepr
 
 -- | From the format, get the operands
-decodeOperands :: FormatRepr k -> InstWord 2 -> Operands k
+decodeOperands :: FormatRepr k -> BitVector 32 -> Operands k
 decodeOperands repr bv = case repr of
   RRepr -> ROperands (bv ^. rdLens)  (bv ^. rs1Lens) (bv ^. rs2Lens)
   IRepr -> IOperands (bv ^. rdLens)  (bv ^. rs1Lens) (bv ^. imm12ILens)
@@ -75,7 +77,7 @@ decodeOperands repr bv = case repr of
   XRepr -> XOperands (bv ^. illegalLens)
 
 -- | From the format, get the opbits
-decodeOpBits :: FormatRepr k -> InstWord 2 -> OpBits k
+decodeOpBits :: FormatRepr k -> BitVector 32 -> OpBits k
 decodeOpBits repr bv = case repr of
   RRepr -> ROpBits (bv ^. opcodeLens) (bv ^. funct3Lens) (bv ^. funct7Lens)
   IRepr -> IOpBits (bv ^. opcodeLens) (bv ^. funct3Lens)
@@ -88,6 +90,6 @@ decodeOpBits repr bv = case repr of
 
 decodeOpcode :: InstructionSet arch
              -> FormatRepr k
-             -> InstWord 2
+             -> BitVector 32
              -> Either (Opcode 'X) (Opcode k)
 decodeOpcode iset repr bv = opcodeFromOpBits iset (decodeOpBits repr bv)

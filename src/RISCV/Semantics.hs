@@ -93,7 +93,7 @@ module RISCV.Semantics
   , raiseException
   ) where
 
-import Control.Lens ( (%=) )
+import Control.Lens ( (%=), (^.) )
 import Control.Lens.TH (makeLenses)
 import Control.Monad.State
 import Data.BitVector.Sized
@@ -102,9 +102,10 @@ import Data.Parameterized
 import Data.Parameterized.TH.GADT
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
+import Foreign.Marshal.Utils (fromBool)
 import GHC.TypeLits
 
-import RISCV.Format
+import RISCV.Instruction
 
 -- Operand identifiers
 
@@ -520,5 +521,3 @@ params' repr = case repr of
 -- | Get the parameters for a particular known format
 params :: (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (FormatParams arch fmt)
 params = params' knownRepr
-
-----------------------------------------

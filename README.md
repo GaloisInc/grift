@@ -23,12 +23,3 @@ Nothing to run, this is a library.
 
 ## Current status
 Encoding/decoding are complete for the base ISA (RV32I).
-
-Current TODOS:
-  - work out a story for semantics
-  - start adding extensions
-  - generalize instruction word length to multiples of 16; perhaps just create a data
-    wrapper type around BitVector with 32-bit and 16-bit constructors.
-  - Work out encoding/decoding for the RV32C/RV64C compressed instructions. Perhaps a
-    flag in the encode function for whether the compression is enabled.
-  - come up with a story for the various privilege levels (this is semantics-side only)

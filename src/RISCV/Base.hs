@@ -30,8 +30,8 @@ import Data.Parameterized
 import GHC.TypeLits
 
 import RISCV.Instruction
+import RISCV.InstructionSet
 import RISCV.Semantics
-import RISCV.Format
 
 -- | RV32I Base ISA
 base :: InstructionSet 'RV32
