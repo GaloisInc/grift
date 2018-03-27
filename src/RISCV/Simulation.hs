@@ -26,6 +26,8 @@ A type class for simulating RISC-V code.
 module RISCV.Simulation
   ( -- * State monad
     MState(..)
+  , evalParam
+  , evalExpr
   , execFormula
   ) where
 
@@ -128,7 +130,7 @@ evalExpr operands ib (MulSUE e1 e2) = do
   e2Val <- evalExpr operands ib e2
   return $ e1Val `bvMulFSU` e2Val
 -- TODO: throw some kind of exception if the shifter operand is larger than the
--- architecture width.
+-- architecture width?
 evalExpr operands ib (SllE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
@@ -181,6 +183,7 @@ execStmt operands ib (AssignMem bRepr addrE e) = do
 execStmt operands ib (AssignPC pcE) = do
   pcVal <- evalExpr operands ib pcE
   setPC pcVal
+-- TODO: How do we want to throw exceptions?
 execStmt _ _ _ = undefined
 
 execFormula :: (MState m arch, KnownNat (ArchWidth arch))

@@ -74,9 +74,9 @@ disElf e = do
 -- support RV32I, this function only decodes 4-byte words.
 disInstruction :: BS.ByteString -> Maybe (Some Instruction, BitVector 32, BS.ByteString, Int)
 disInstruction bs =
-  bool Nothing (Just (inst, instBV, rstBytes, numBytes)) (BS.length bs >= 4)
-  where (instBytes, rstBytes) = BS.splitAt 4 bs
-        (b0:b1:b2:b3:[]) = fromIntegral <$> BS.unpack instBytes :: [Integer]
+  bool Nothing (Just (inst, instBV, rb, numBytes)) (BS.length bs >= 4)
+  where (ib, rb) = BS.splitAt 4 bs
+        (b0:b1:b2:b3:[]) = fromIntegral <$> BS.unpack ib :: [Integer]
         instWordI = b3 `shiftL` 24 .|.
                     b2 `shiftL` 16 .|.
                     b1 `shiftL` 8  .|.
