@@ -2,12 +2,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -107,8 +103,8 @@ evalExpr operands ib (XorE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
   return $ e1Val `bvXor` e2Val
-evalExpr operands ib (NotE e) = do
-  evalExpr operands ib e >>= return . bvComplement
+evalExpr operands ib (NotE e) =
+  bvComplement <$> evalExpr operands ib e
 evalExpr operands ib (AddE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
@@ -116,7 +112,7 @@ evalExpr operands ib (AddE e1 e2) = do
 evalExpr operands ib (SubE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvAdd` (bvNegate e2Val)
+  return $ e1Val `bvAdd` bvNegate e2Val
 evalExpr operands ib (MulSE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
@@ -156,16 +152,16 @@ evalExpr operands ib (LtsE e1 e2) = do
   e2Val <- evalExpr operands ib e2
   return $ fromBool (e1Val `bvLTS` e2Val)
 evalExpr operands ib (ZExtE wRepr e) =
-  evalExpr operands ib e >>= return . bvZextWithRepr wRepr
+  bvZextWithRepr wRepr <$> evalExpr operands ib e
 evalExpr operands ib (SExtE wRepr e) =
-  evalExpr operands ib e >>= return . bvSextWithRepr wRepr
+  bvSextWithRepr wRepr <$> evalExpr operands ib e
 evalExpr operands ib (ExtractE wRepr base e) =
-  evalExpr operands ib e >>= return . bvExtractWithRepr wRepr base
+  bvExtractWithRepr wRepr base <$> evalExpr operands ib e
 evalExpr operands ib (IteE testE tE fE) = do
   testVal <- evalExpr operands ib testE
   tVal <- evalExpr operands ib tE
   fVal <- evalExpr operands ib fE
-  return $ if (testVal == 1) then tVal else fVal
+  return $ if testVal == 1 then tVal else fVal
 
 execStmt :: (MState m arch, KnownNat (ArchWidth arch))
          => Operands fmt -- ^ Operands

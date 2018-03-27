@@ -3,7 +3,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
@@ -70,7 +69,7 @@ baseEncode = Map.fromList
   , Pair Srli   (IOpBits 0b0010011 0b101)
   , Pair Srai   (IOpBits 0b0010011 0b101)
   , Pair Fence  (IOpBits 0b0001111 0b000)
-  , Pair Fence  (IOpBits 0b0001111 0b001)
+  , Pair FenceI (IOpBits 0b0001111 0b001)
   , Pair Csrrw  (IOpBits 0b1110011 0b001)
   , Pair Csrrs  (IOpBits 0b1110011 0b010)
   , Pair Csrrc  (IOpBits 0b1110011 0b011)
@@ -169,7 +168,7 @@ baseSemantics = Map.fromList
       (rd, rs1, offset) <- params
 
       pc <- pcRead
-      t  <- pc `addE` (litBV 4)
+      t  <- pc `addE` litBV 4
 
       x_rs1       <- regRead rs1
       sext_offset <- sextE offset
@@ -253,7 +252,7 @@ baseSemantics = Map.fromList
 
   -- TODO: Fence/csr instructions.
   -- , Pair Fence   undefined
-  -- , Pair Fence_i undefined
+  -- , Pair FenceI undefined
   -- , Pair Csrrw   undefined
   -- , Pair Csrrs   undefined
   -- , Pair Csrrc   undefined

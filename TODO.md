@@ -42,6 +42,8 @@ Currently have the Base ISA encoding and semantics defined, as well as the M
 extension encodings (no semantics yet). Shouldn't be too hard to add M
 semantics. Next up is probably F/D extensions.
 
+SoftFloat -- talk to Flemming when I get to this
+
 ## Simulator
 
 I have defined a simple MState class, which provides the minimal definitions

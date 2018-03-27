@@ -216,11 +216,11 @@ data BVExpr (arch :: Arch) (w :: Nat) where
 instance Show (BVExpr arch w) where
   show (LitBV bv) = show bv
   show (ParamBV p) = show p
-  show (InstBytes) = "ib"
+  show InstBytes = "ib"
   show PCRead = "pc"
   show (RegRead r) = "x[" ++ show r ++ "]"
   show (MemRead bRepr addr) =
-    "M[" ++ show addr ++ "][" ++ show (8 * (natValue bRepr) - 1) ++ ":0]"
+    "M[" ++ show addr ++ "][" ++ show (8 * natValue bRepr - 1) ++ ":0]"
   show (AndE e1 e2) = show e1 ++ " & " ++ show e2
   show (OrE  e1 e2) = show e1 ++ " | " ++ show e2
   show (XorE e1 e2) = show e1 ++ " ^ " ++ show e2

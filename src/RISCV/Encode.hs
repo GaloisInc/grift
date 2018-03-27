@@ -1,7 +1,6 @@
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 
 {-|
@@ -80,7 +79,7 @@ encode iset inst = case inst of
         opcodeLens .~ o &
         rdLens     .~ rd &
         imm20JLens .~ imm20
-  Inst opcode (EOperands) ->
+  Inst opcode EOperands ->
     case opBitsFromOpcode iset opcode of
       EOpBits o eBits -> 0 &
         opcodeLens .~ o &
