@@ -107,4 +107,10 @@ mSemantics = Map.fromList
       assignReg rd result
       incrPC
 
+  , Pair Div $ getFormula $ do
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
+      comment "Writes the quotient to r[d]."
+
+      rOp divuE
+
   ]

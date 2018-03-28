@@ -393,21 +393,6 @@ baseSemantics = Map.fromList
       raiseException IllegalInstruction
   ]
 
-type ArithOp arch fmt = BVExpr arch (ArchWidth arch)
-                     -> BVExpr arch (ArchWidth arch)
-                     -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
-
-rOp :: KnownNat (ArchWidth arch) => ArithOp arch 'R -> FormulaBuilder arch 'R ()
-rOp op = do
-  (rd, rs1, rs2)  <- params
-
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
-
-  result <- op x_rs1 x_rs2
-  assignReg rd result
-  incrPC
-
 -- FIXME: Is there any way to replace the constraint here with something more
 -- reasonable?
 iOp :: KnownNat (ArchWidth arch) => ArithOp arch 'I -> FormulaBuilder arch 'I ()

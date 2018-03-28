@@ -71,9 +71,11 @@ module RISCV.Semantics
   -- ** Arithmetic
   , addE
   , subE
-  , mulsE
   , muluE
+  , mulsE
   , mulsuE
+  , divuE
+  , divsE
   , sllE
   , srlE
   , sraE
@@ -192,6 +194,8 @@ data BVExpr (arch :: Arch) (w :: Nat) where
   MulSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
   MulUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
   MulSUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
+  DivUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  DivSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   -- TODO: does the shift amount have to be the same width as the shiftee?
   SllE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   SrlE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -227,9 +231,11 @@ instance Show (BVExpr arch w) where
   show (NotE e) = "~" ++ show e
   show (AddE e1 e2) = show e1 ++ " + " ++ show e2
   show (SubE e1 e2) = show e1 ++ " - " ++ show e2
-  show (MulSE e1 e2) = show e1 ++ " s*s " ++ show e2
   show (MulUE e1 e2) = show e1 ++ " u*u " ++ show e2
+  show (MulSE e1 e2) = show e1 ++ " s*s " ++ show e2
   show (MulSUE e1 e2) = show e1 ++ " s*u " ++ show e2
+  show (DivUE e1 e2) = show e1 ++ " u/ " ++ show e2
+  show (DivSE e1 e2) = show e1 ++ " s/ " ++ show e2
   show (SllE e1 e2) = show e1 ++ " << " ++ show e2
   show (SrlE e1 e2) = show e1 ++ " >>_l " ++ show e2
   show (SraE e1 e2) = show e1 ++ " >>_a " ++ show e2
@@ -385,7 +391,6 @@ subE :: BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 subE e1 e2 = return (SubE e1 e2)
 
--- | Subtract the second expression from the first.
 mulsE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch (w+w))
@@ -400,6 +405,16 @@ mulsuE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch (w+w))
 mulsuE e1 e2 = return (MulSUE e1 e2)
+
+divsE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch w)
+divsE e1 e2 = return (DivSE e1 e2)
+
+divuE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch w)
+divuE e1 e2 = return (DivUE e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sllE :: BVExpr arch w

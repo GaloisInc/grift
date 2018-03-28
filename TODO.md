@@ -32,6 +32,13 @@ Another question is -- should I create separate versions of each extension
 terms of semantics, it's going to be very difficult to get the widths right on
 the type level. I think I need to ignore RV64 for the time being.
 
+IDEA: in Base.hs/M.hs, define separate encode and semantics maps for only the
+additional instructions in the 64-bit variants. Then, export those along with
+the 32-bit variants. Put RV32/RV64 in the InstructionSet type. Define the 32-bit
+instrucitons (which are also 64-bit instructions) in an arch-independent way, so
+the InstructionSet and Formula's *share* the arch type variable. Then, export
+the 32-bit and 64-bit versions specifically.
+
 ## Privileged architecture
 
 Still need to do some more research here.
