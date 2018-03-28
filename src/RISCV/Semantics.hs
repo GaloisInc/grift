@@ -76,6 +76,8 @@ module RISCV.Semantics
   , mulsuE
   , divuE
   , divsE
+  , remuE
+  , remsE
   , sllE
   , srlE
   , sraE
@@ -196,6 +198,8 @@ data BVExpr (arch :: Arch) (w :: Nat) where
   MulSUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch (w+w)
   DivUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   DivSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  RemUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
+  RemSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   -- TODO: does the shift amount have to be the same width as the shiftee?
   SllE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   SrlE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -217,6 +221,7 @@ data BVExpr (arch :: Arch) (w :: Nat) where
        -> BVExpr arch w
        -> BVExpr arch w
 
+-- TODO: Fix this horrible pretty printing.
 instance Show (BVExpr arch w) where
   show (LitBV bv) = show bv
   show (ParamBV p) = show p
@@ -236,12 +241,14 @@ instance Show (BVExpr arch w) where
   show (MulSUE e1 e2) = show e1 ++ " s*u " ++ show e2
   show (DivUE e1 e2) = show e1 ++ " u/ " ++ show e2
   show (DivSE e1 e2) = show e1 ++ " s/ " ++ show e2
+  show (RemUE e1 e2) = show e1 ++ " u% " ++ show e2
+  show (RemSE e1 e2) = show e1 ++ " s% " ++ show e2
   show (SllE e1 e2) = show e1 ++ " << " ++ show e2
   show (SrlE e1 e2) = show e1 ++ " >>_l " ++ show e2
   show (SraE e1 e2) = show e1 ++ " >>_a " ++ show e2
   show (EqE  e1 e2) = show e1 ++ " = " ++ show e2
-  show (LtuE e1 e2) = show e1 ++ " <_u " ++ show e2
-  show (LtsE e1 e2) = show e1 ++ " <_s " ++ show e2
+  show (LtuE e1 e2) = show e1 ++ " u< " ++ show e2
+  show (LtsE e1 e2) = show e1 ++ " s< " ++ show e2
   show (ZExtE _ e) = "zext(" ++ show e ++ ")"
   show (SExtE _ e) = "sext(" ++ show e ++ ")"
   show (ExtractE wRepr base e) =
@@ -415,6 +422,16 @@ divuE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 divuE e1 e2 = return (DivUE e1 e2)
+
+remsE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch w)
+remsE e1 e2 = return (RemSE e1 e2)
+
+remuE :: BVExpr arch w
+     -> BVExpr arch w
+     -> FormulaBuilder arch fmt (BVExpr arch w)
+remuE e1 e2 = return (RemUE e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sllE :: BVExpr arch w

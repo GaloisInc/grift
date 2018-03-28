@@ -108,9 +108,27 @@ mSemantics = Map.fromList
       incrPC
 
   , Pair Div $ getFormula $ do
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
+      comment "Writes the quotient to r[d]."
+
+      rOp divsE
+
+  , Pair Divu $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
       rOp divuE
+
+  , Pair Rem $ getFormula $ do
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
+      comment "Writes the quotient to r[d]."
+
+      rOp remsE
+
+  , Pair Remu $ getFormula $ do
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
+      comment "Writes the quotient to r[d]."
+
+      rOp remuE
 
   ]

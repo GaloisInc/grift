@@ -128,11 +128,19 @@ evalExpr operands ib (MulSUE e1 e2) = do
 evalExpr operands ib (DivSE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvDivS` e2Val
+  return $ e1Val `bvQuotS` e2Val
 evalExpr operands ib (DivUE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
-  return $ e1Val `bvDivU` e2Val
+  return $ e1Val `bvQuotU` e2Val
+evalExpr operands ib (RemSE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
+  return $ e1Val `bvRemS` e2Val
+evalExpr operands ib (RemUE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
+  return $ e1Val `bvRemU` e2Val
 -- TODO: throw some kind of exception if the shifter operand is larger than the
 -- architecture width?
 evalExpr operands ib (SllE e1 e2) = do
