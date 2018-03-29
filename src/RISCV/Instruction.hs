@@ -290,6 +290,11 @@ data Opcode :: BaseArch -> Format -> * where
   Divu   :: Opcode arch 'R
   Rem    :: Opcode arch 'R
   Remu   :: Opcode arch 'R
+  Mulw   :: arch >> 'RV64I => Opcode arch 'R
+  Divw   :: arch >> 'RV64I => Opcode arch 'R
+  Divuw  :: arch >> 'RV64I => Opcode arch 'R
+  Remw   :: arch >> 'RV64I => Opcode arch 'R
+  Remuw  :: arch >> 'RV64I => Opcode arch 'R
 
 -- Instances
 $(return [])

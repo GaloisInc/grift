@@ -1,6 +1,8 @@
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeOperators #-}
 
 {-|
 Module      : RISCV.ExtM
@@ -15,9 +17,11 @@ RV32M multiply extension
 -}
 
 module RISCV.ExtM
-  ( m )
-  where
+  ( m32
+  , m64
+  ) where
 
+import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 
@@ -26,15 +30,23 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
--- | M extension
-m :: KnownArch arch => InstructionSet arch
-m = instructionSet mEncode mSemantics
+-- | M extension (RV32)
+m32 :: InstructionSet 'RV32I
+m32 = m'
+
+-- | M extension (RV64)
+m64 :: InstructionSet 'RV64I
+m64 = m' <> m64'
+
+m' :: KnownArch arch => InstructionSet arch
+m' = instructionSet mEncode mSemantics
+
+m64' :: (KnownArch arch, arch >> 'RV64I) => InstructionSet arch
+m64' = instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch
 mEncode = Map.fromList
-  [ -- RV32M
-    -- R type
-    Pair Mul    (ROpBits 0b0110011 0b000 0b0000001)
+  [ Pair Mul    (ROpBits 0b0110011 0b000 0b0000001)
   , Pair Mulh   (ROpBits 0b0110011 0b001 0b0000001)
   , Pair Mulhsu (ROpBits 0b0110011 0b010 0b0000001)
   , Pair Mulhu  (ROpBits 0b0110011 0b011 0b0000001)
@@ -42,6 +54,15 @@ mEncode = Map.fromList
   , Pair Divu   (ROpBits 0b0110011 0b101 0b0000001)
   , Pair Rem    (ROpBits 0b0110011 0b110 0b0000001)
   , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
+  ]
+
+m64Encode :: arch >> 'RV64I => EncodeMap arch
+m64Encode = Map.fromList
+  [ Pair Mulw  (ROpBits 0b0111011 0b000 0b0000001)
+  , Pair Divw  (ROpBits 0b0111011 0b100 0b0000001)
+  , Pair Divuw (ROpBits 0b0111011 0b101 0b0000001)
+  , Pair Remw  (ROpBits 0b0111011 0b110 0b0000001)
+  , Pair Remuw (ROpBits 0b0111011 0b111 0b0000001)
   ]
 
 mSemantics :: KnownArch arch => SemanticsMap arch
@@ -133,3 +154,6 @@ mSemantics = Map.fromList
       rOp remuE
 
   ]
+
+m64Semantics :: (KnownArch arch, arch >> 'RV64I) => SemanticsMap arch
+m64Semantics = undefined
