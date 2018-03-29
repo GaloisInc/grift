@@ -108,3 +108,20 @@ assembler, I will work on
 ## Exporting to other formats
 
 What to do first? Should be fun.
+
+# Odds and ends
+
+- Srai and Srli are currently decoded incorrectly because they actually have the
+  exact same OpBits. We can either combine these into one instruction and push
+  the distinction into the semantics, or we can define a new format specifically
+  for shifts (call it "H") that captures a funct5 in the MS end of the
+  instruction (since we need 7 bits for the shifter, in the case of
+  RV64/RV128). Combining them into a single instruction preserves the RISC-V
+  format classification (and would be used for Ecall/Ebreak as well for this
+  purpose), but has the disadvantage that it doesn't perfectly match the RISC-V
+  spec. I know the base ISA is considered frozen, but this isn't really a
+  modification of the ISA per se, because the semantics would be identical.
+
+- If we combine shifts and Ecall/Ebreak into a single instruction (format I), we
+  can also automatically derive the decodeFormat function more easily using some
+  template haskell.

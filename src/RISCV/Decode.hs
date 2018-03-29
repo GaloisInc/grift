@@ -26,7 +26,6 @@ module RISCV.Decode
 import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.Parameterized
-import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.InstructionSet
@@ -43,11 +42,14 @@ decode iset bv = case decodeFormat bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
     Left Illegal -> Some $ Inst Illegal (decodeOperands XRepr bv)
 
--- TODO: Decide whether we want to abstract this guy
+-- TODO: Decide whether we want to abstract this guy. I think we probably can compute
+-- it from the encoding map, but it'll be tricky to do that unless I combine the
+-- srai/srli and ecall/ebreak into single instructions.
 -- | First, get the format
 decodeFormat :: BitVector 32 -> Some FormatRepr
 decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
   (0b0110011, _) -> Some RRepr
+  (0b0111011, _) -> Some RRepr
 
   (0b1110011, 0b000) -> Some ERepr -- special case.
 
@@ -56,6 +58,7 @@ decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
   (0b0010011, _) -> Some IRepr
   (0b0001111, _) -> Some IRepr
   (0b1110011, _) -> Some IRepr
+  (0b0011011, _) -> Some IRepr
 
   (0b0100011, _) -> Some SRepr
 
