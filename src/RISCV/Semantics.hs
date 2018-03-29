@@ -113,10 +113,10 @@ import GHC.TypeLits
 
 import RISCV.Instruction
 
--- Operand identifiers
-
+-- | Operand identifiers.
 data OperandID = Rd | Rs1 | Rs2 | Imm12 | Imm20 | Imm32
 
+-- | Type-level representative for 'OperandID'.
 data OperandIDRepr :: OperandID -> * where
   RdRepr    :: OperandIDRepr 'Rd
   Rs1Repr   :: OperandIDRepr 'Rs1
@@ -125,6 +125,7 @@ data OperandIDRepr :: OperandID -> * where
   Imm20Repr :: OperandIDRepr 'Imm20
   Imm32Repr :: OperandIDRepr 'Imm32
 
+-- | Maps an 'OperandID' to its length as a 'BitVector'.
 type family OperandIDWidth (oi :: OperandID) :: Nat where
   OperandIDWidth 'Rd    = 5
   OperandIDWidth 'Rs1   = 5
@@ -257,6 +258,7 @@ instance Show (BVExpr arch w) where
     "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
 instance ShowF (BVExpr arch)
 
+-- | Runtime exception.
 data Exception = EnvironmentCall
                | Breakpoint
                | IllegalInstruction
@@ -397,36 +399,47 @@ subE :: BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 subE e1 e2 = return (SubE e1 e2)
 
+-- | Signed multiply two 'BitVectors', doubling the width of the result to hold all
+-- arithmetic overflow bits.
 mulsE :: BVExpr arch w
-     -> BVExpr arch w
-     -> FormulaBuilder arch fmt (BVExpr arch (w+w))
+      -> BVExpr arch w
+      -> FormulaBuilder arch fmt (BVExpr arch (w+w))
 mulsE e1 e2 = return (MulSE e1 e2)
 
+-- | Unsigned multiply two 'BitVectors', doubling the width of the result to hold
+-- all arithmetic overflow bits.
 muluE :: BVExpr arch w
-     -> BVExpr arch w
-     -> FormulaBuilder arch fmt (BVExpr arch (w+w))
+      -> BVExpr arch w
+      -> FormulaBuilder arch fmt (BVExpr arch (w+w))
 muluE e1 e2 = return (MulUE e1 e2)
 
+-- | Multiply two 'BitVectors', treating the first as a signed number and the second
+-- as an unsigned number, doubling the width of the result to hold all arithmetic
+-- overflow bits.
 mulsuE :: BVExpr arch w
-     -> BVExpr arch w
-     -> FormulaBuilder arch fmt (BVExpr arch (w+w))
+       -> BVExpr arch w
+       -> FormulaBuilder arch fmt (BVExpr arch (w+w))
 mulsuE e1 e2 = return (MulSUE e1 e2)
 
+-- | Signed divide two 'BitVectors', rounding to zero.
 divsE :: BVExpr arch w
-     -> BVExpr arch w
-     -> FormulaBuilder arch fmt (BVExpr arch w)
+      -> BVExpr arch w
+      -> FormulaBuilder arch fmt (BVExpr arch w)
 divsE e1 e2 = return (DivSE e1 e2)
 
+-- | Unsigned divide two 'BitVectors', rounding to zero.
 divuE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 divuE e1 e2 = return (DivUE e1 e2)
 
+-- | Remainder after signed division of two 'BitVectors', when rounded to zero.
 remsE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
 remsE e1 e2 = return (RemSE e1 e2)
 
+-- | Remainder after unsigned division of two 'BitVectors', when rounded to zero.
 remuE :: BVExpr arch w
      -> BVExpr arch w
      -> FormulaBuilder arch fmt (BVExpr arch w)
@@ -514,6 +527,7 @@ assignMem :: KnownNat bytes
           -> FormulaBuilder arch fmt ()
 assignMem addr val = addStmt (AssignMem knownNat addr val)
 
+-- | 'assignMem' with explicit 'NatRepr' indicating number of bytes to be read.
 assignMemWithRepr :: NatRepr bytes
                   -> BVExpr arch (ArchWidth arch)
                   -> BVExpr arch (8*bytes)

@@ -29,10 +29,8 @@ AST for Instruction data type, parameterized by instruction format (R, I, S, ...
 -- number of bits. It's confusing to have two kinds of NatRepr's floating around.
 
 module RISCV.Instruction
-  ( -- * Instructions
-    Instruction(..)
-    -- * Architecture types
-  , BaseArch(..)
+  ( -- * Architecture types
+    BaseArch(..)
   , BaseArchRepr(..)
   , ArchWidth
   , KnownArch
@@ -40,6 +38,8 @@ module RISCV.Instruction
     -- * Instruction formats
   , Format(..)
   , FormatRepr(..)
+    -- * Instructions
+  , Instruction(..)
     -- * Opcodes
   , Opcode(..)
   , OpBits(..)
@@ -54,25 +54,27 @@ import GHC.TypeLits
 
 ----------------------------------------
 -- Architecture types
--- | Base architecture types
+-- | Base architecture types.
 data BaseArch = RV32I
               | RV32E
               | RV64I
               | RV128I
 
+-- | A type-level representative for 'BaseArch'.
 data BaseArchRepr :: BaseArch -> * where
   RV32IRepr  :: BaseArchRepr 'RV32I
   RV32ERepr  :: BaseArchRepr 'RV32E
   RV64IRepr  :: BaseArchRepr 'RV64I
   RV128IRepr :: BaseArchRepr 'RV128I
 
--- | Maps an architecture to its register width
+-- | Maps an architecture to its register width.
 type family ArchWidth (arch :: BaseArch) :: Nat where
   ArchWidth 'RV32I  = 32
   ArchWidth 'RV32E  = 32
   ArchWidth 'RV64I  = 64
   ArchWidth 'RV128I = 128
 
+-- | Everything we might need to know about a 'BaseArch' at compile time.
 type KnownArch arch = KnownNat (ArchWidth arch)
 
 type family ArchContains (arch :: BaseArch) (arch' :: BaseArch) :: Bool where
@@ -85,6 +87,9 @@ type family ArchContains (arch :: BaseArch) (arch' :: BaseArch) :: Bool where
   ArchContains 'RV128I 'RV128I = 'True
   ArchContains _ _ = 'False
 
+-- | Superset relation for 'BaseArch'. We use this, for example, to express that
+-- certain opcodes are only for RV64I or above. The relation can be summarized as:
+-- 'RV128I' >> 'RV64I' >> 'RV32I' (transitively), and 'RV32E' >> 'RV32I'.
 type (>>) (arch :: BaseArch) (arch' :: BaseArch)
   = ArchContains arch arch' ~ 'True
 
@@ -124,8 +129,7 @@ instance KnownRepr BaseArchRepr 'RV128I where knownRepr = RV128IRepr
 
 data Format = R | I | S | B | U | J | E | X
 
--- | A type-level representative of the format. Particularly useful when decoding
--- instructions since we won't know ahead of time what format to classify them as.
+-- | A type-level representative for 'Format'.
 data FormatRepr :: Format -> * where
   RRepr :: FormatRepr 'R
   IRepr :: FormatRepr 'I

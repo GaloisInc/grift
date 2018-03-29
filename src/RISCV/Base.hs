@@ -20,8 +20,7 @@ RV32I base ISA, encoding and semantics.
 -}
 
 module RISCV.Base
-  ( base
-  , rv32i
+  ( rv32i
   , rv64i
   )
   where
@@ -35,11 +34,11 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
--- RV32I
+-- | RV32I
 rv32i :: InstructionSet 'RV32I
 rv32i = base
 
--- RV64I
+-- | RV64I
 rv64i :: InstructionSet 'RV64I
 rv64i = base <> base64
 
