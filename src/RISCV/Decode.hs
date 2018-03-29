@@ -34,7 +34,7 @@ import RISCV.Instruction.Layouts
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.
-decode :: KnownNat (ArchWidth arch)
+decode :: KnownArch arch
        => InstructionSet arch
        -> BitVector 32
        -> Some (Instruction arch)

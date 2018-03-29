@@ -1,3 +1,4 @@
+-- {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -21,10 +22,11 @@ A type class for simulating RISC-V code.
 
 module RISCV.Simulation
   ( -- * State monad
-    MState(..)
+    RVState(..)
   , evalParam
   , evalExpr
   , execFormula
+  , stepRV
   ) where
 
 import Control.Lens ( (^.) )
@@ -32,15 +34,20 @@ import Control.Monad ( forM_ )
 import Data.BitVector.Sized
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
-import GHC.TypeLits
 
+import RISCV.Decode
 import RISCV.Instruction
+import RISCV.InstructionSet
 import RISCV.Semantics
 
 ----------------------------------------
 -- Running semantics against a state monad
 
-class (Monad m) =>  MState m arch | m -> arch where
+-- | State monad for simulating RISC-V code
+class (Monad m) => RVState m arch | m -> arch where
+  -- | The instruction set supported by this RVState
+  getInstructionSet   :: m (InstructionSet arch)
+
   getPC  :: m (BitVector (ArchWidth arch))
   getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
   getMem :: NatRepr bytes
@@ -54,37 +61,38 @@ class (Monad m) =>  MState m arch | m -> arch where
          -> BitVector (8*bytes)
          -> m ()
 
-evalParam :: MState m arch
-          => OperandParam arch oid
+-- | Evaluate a parameter's value from an 'Operands'.
+evalParam :: OperandParam arch oid
           -> Operands fmt
-          -> m (BitVector (OperandIDWidth oid))
-evalParam (OperandParam RdRepr)    (ROperands  rd   _   _) = return rd
-evalParam (OperandParam Rs1Repr)   (ROperands   _ rs1   _) = return rs1
-evalParam (OperandParam Rs2Repr)   (ROperands   _   _ rs2) = return rs2
-evalParam (OperandParam RdRepr)    (IOperands  rd   _   _) = return rd
-evalParam (OperandParam Rs1Repr)   (IOperands   _ rs1   _) = return rs1
-evalParam (OperandParam Imm12Repr) (IOperands   _   _ imm) = return imm
-evalParam (OperandParam Rs1Repr)   (SOperands rs1   _   _) = return rs1
-evalParam (OperandParam Rs2Repr)   (SOperands   _ rs2   _) = return rs2
-evalParam (OperandParam Imm12Repr) (SOperands   _   _ imm) = return imm
-evalParam (OperandParam Rs1Repr)   (BOperands rs1   _   _) = return rs1
-evalParam (OperandParam Rs2Repr)   (BOperands   _ rs2   _) = return rs2
-evalParam (OperandParam Imm12Repr) (BOperands   _   _ imm) = return imm
-evalParam (OperandParam RdRepr)    (UOperands  rd       _) = return rd
-evalParam (OperandParam Imm20Repr) (UOperands   _     imm) = return imm
-evalParam (OperandParam RdRepr)    (JOperands  rd       _) = return rd
-evalParam (OperandParam Imm20Repr) (JOperands   _     imm) = return imm
-evalParam (OperandParam Imm32Repr) (XOperands         imm) = return imm
+          -> BitVector (OperandIDWidth oid)
+evalParam (OperandParam RdRepr)    (ROperands  rd   _   _) = rd
+evalParam (OperandParam Rs1Repr)   (ROperands   _ rs1   _) = rs1
+evalParam (OperandParam Rs2Repr)   (ROperands   _   _ rs2) = rs2
+evalParam (OperandParam RdRepr)    (IOperands  rd   _   _) = rd
+evalParam (OperandParam Rs1Repr)   (IOperands   _ rs1   _) = rs1
+evalParam (OperandParam Imm12Repr) (IOperands   _   _ imm) = imm
+evalParam (OperandParam Rs1Repr)   (SOperands rs1   _   _) = rs1
+evalParam (OperandParam Rs2Repr)   (SOperands   _ rs2   _) = rs2
+evalParam (OperandParam Imm12Repr) (SOperands   _   _ imm) = imm
+evalParam (OperandParam Rs1Repr)   (BOperands rs1   _   _) = rs1
+evalParam (OperandParam Rs2Repr)   (BOperands   _ rs2   _) = rs2
+evalParam (OperandParam Imm12Repr) (BOperands   _   _ imm) = imm
+evalParam (OperandParam RdRepr)    (UOperands  rd       _) = rd
+evalParam (OperandParam Imm20Repr) (UOperands   _     imm) = imm
+evalParam (OperandParam RdRepr)    (JOperands  rd       _) = rd
+evalParam (OperandParam Imm20Repr) (JOperands   _     imm) = imm
+evalParam (OperandParam Imm32Repr) (XOperands         imm) = imm
 evalParam oidRepr operands = error $
   "No operand " ++ show oidRepr ++ " in operands " ++ show operands
 
-evalExpr :: (MState m arch, KnownNat (ArchWidth arch))
+-- | Evaluate a 'BVExpr', given an 'RVState' implementation.
+evalExpr :: (RVState m arch, KnownArch arch)
          => Operands fmt    -- ^ Operands
          -> Integer         -- ^ Instruction width (in bytes)
          -> BVExpr arch w   -- ^ Expression to be evaluated
          -> m (BitVector w)
 evalExpr _ _ (LitBV bv) = return bv
-evalExpr operands _ (ParamBV p) = evalParam p operands
+evalExpr operands _ (ParamBV p) = return (evalParam p operands)
 evalExpr _ _ PCRead = getPC
 evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr operands ib (RegRead ridE) =
@@ -179,7 +187,8 @@ evalExpr operands ib (IteE testE tE fE) = do
   fVal <- evalExpr operands ib fE
   return $ if testVal == 1 then tVal else fVal
 
-execStmt :: (MState m arch, KnownNat (ArchWidth arch))
+-- | Execute an assignment statement, given an 'RVState' implementation.
+execStmt :: (RVState m arch, KnownArch arch)
          => Operands fmt -- ^ Operands
          -> Integer      -- ^ Instruction width (in bytes)
          -> Stmt arch    -- ^ Statement to be executed
@@ -198,9 +207,28 @@ execStmt operands ib (AssignPC pcE) = do
 -- TODO: How do we want to throw exceptions?
 execStmt _ _ _ = undefined
 
-execFormula :: (MState m arch, KnownNat (ArchWidth arch))
+-- | Execute a formula, given an 'RVState' implementation. This function represents
+-- the "execute" state in a fetch\/decode\/execute sequence.
+execFormula :: (RVState m arch, KnownArch arch)
             => Operands fmt
             -> Integer
             -> Formula arch fmt
             -> m ()
 execFormula operands ib f = forM_ (f ^. fDefs) $ execStmt operands ib
+
+-- | Fetch, decode, and execute a single instruction.
+stepRV :: (RVState m arch, KnownArch arch) => m ()
+stepRV = do
+  -- Fetch
+  pcVal  <- getPC
+  instBV <- getMem (knownRepr :: NatRepr 4) pcVal
+
+  -- Decode
+  -- TODO: When we add compression ('C' extension), we'll need to modify this code.
+  iset      <- getInstructionSet
+  Some inst <- return $ decode iset instBV
+  let operands = instOperands inst
+      formula  = semanticsFromOpcode iset (instOpcode inst)
+
+  -- Execute
+  execFormula operands 4 formula

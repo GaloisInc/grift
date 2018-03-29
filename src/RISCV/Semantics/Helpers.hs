@@ -23,15 +23,16 @@ Helper functions for defining instruction semantics.
 module RISCV.Semantics.Helpers
   ( incrPC
   , ArithOp
-  , rOp
+  , rOp, rOp32
   ) where
 
-import GHC.TypeLits
+import Data.Parameterized
 
 import RISCV.Instruction
 import RISCV.Semantics
 
-incrPC :: KnownNat (ArchWidth arch) => FormulaBuilder arch fmt ()
+-- | Increment the PC
+incrPC :: KnownArch arch => FormulaBuilder arch fmt ()
 incrPC = do
   ib' <- instBytes
   ib <- zextE ib'
@@ -41,17 +42,35 @@ incrPC = do
 
   assignPC new_pc
 
-type ArithOp arch fmt = BVExpr arch (ArchWidth arch)
-                     -> BVExpr arch (ArchWidth arch)
-                     -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+-- | Type of arithmetic operator in 'FormulaBuilder'.
+type ArithOp arch fmt w = BVExpr arch (ArchWidth arch)
+                       -> BVExpr arch (ArchWidth arch)
+                       -> FormulaBuilder arch fmt (BVExpr arch w)
 
-rOp :: KnownNat (ArchWidth arch) => ArithOp arch 'R -> FormulaBuilder arch 'R ()
+-- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
+rOp :: KnownArch arch => ArithOp arch 'R (ArchWidth arch) -> FormulaBuilder arch 'R ()
 rOp op = do
   (rd, rs1, rs2)  <- params
 
   x_rs1 <- regRead rs1
   x_rs2 <- regRead rs2
 
-  result <- op x_rs1 x_rs2
-  assignReg rd result
+  res <- op x_rs1 x_rs2
+  assignReg rd res
+  incrPC
+
+-- | Like 'rOp', but truncate the result to 32 bits before storing the result in the
+-- destination register.
+rOp32 :: KnownArch arch => ArithOp arch 'R w -> FormulaBuilder arch 'R ()
+rOp32 op = do
+  (rd, rs1, rs2)  <- params
+
+  x_rs1 <- regRead rs1
+  x_rs2 <- regRead rs2
+
+  a  <- op x_rs1 x_rs2
+  a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+  res <- sextE a'
+  assignReg rd res
   incrPC

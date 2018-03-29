@@ -156,4 +156,30 @@ mSemantics = Map.fromList
   ]
 
 m64Semantics :: (KnownArch arch, arch >> 'RV64I) => SemanticsMap arch
-m64Semantics = undefined
+m64Semantics = Map.fromList
+  [ Pair Mulw $ getFormula $ do
+      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
+
+      rOp32 muluE
+  , Pair Divw $ getFormula $ do
+      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
+
+      rOp32 divsE
+  , Pair Divuw $ getFormula $ do
+      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
+
+      rOp32 divuE
+  , Pair Remw $ getFormula $ do
+      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
+
+      rOp32 remsE
+  , Pair Remuw $ getFormula $ do
+      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
+
+      rOp32 remuE
+  ]

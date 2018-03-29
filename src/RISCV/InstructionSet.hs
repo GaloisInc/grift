@@ -49,7 +49,7 @@ type EncodeMap arch = MapF (Opcode arch) OpBits
 -- | Reverse of 'EncodeMap'
 type DecodeMap arch = MapF OpBits (Opcode arch)
 
--- type SemanticsMap arch = MapF Opcode (Formula arch)
+-- | Maps each opcode to its associated semantics 'Formula'.
 type SemanticsMap arch = MapF (Opcode arch) (Formula arch)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions

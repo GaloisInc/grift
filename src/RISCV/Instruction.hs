@@ -34,7 +34,7 @@ module RISCV.Instruction
   , BaseArchRepr(..)
   , ArchWidth
   , KnownArch
-  , type (>>)
+  , type ArchContains, type (>>)
     -- * Instruction formats
   , Format(..)
   , FormatRepr(..)
@@ -77,6 +77,8 @@ type family ArchWidth (arch :: BaseArch) :: Nat where
 -- | Everything we might need to know about a 'BaseArch' at compile time.
 type KnownArch arch = KnownNat (ArchWidth arch)
 
+-- | Type operator that determines whether the first 'BaseArch' contains the second
+-- as a requirement.
 type family ArchContains (arch :: BaseArch) (arch' :: BaseArch) :: Bool where
   ArchContains 'RV32I  'RV32I = 'True
   ArchContains 'RV32E  'RV32I = 'True
@@ -87,9 +89,7 @@ type family ArchContains (arch :: BaseArch) (arch' :: BaseArch) :: Bool where
   ArchContains 'RV128I 'RV128I = 'True
   ArchContains _ _ = 'False
 
--- | Superset relation for 'BaseArch'. We use this, for example, to express that
--- certain opcodes are only for RV64I or above. The relation can be summarized as:
--- 'RV128I' >> 'RV64I' >> 'RV32I' (transitively), and 'RV32E' >> 'RV32I'.
+-- | 'ArchContains' in constraint form.
 type (>>) (arch :: BaseArch) (arch' :: BaseArch)
   = ArchContains arch arch' ~ 'True
 

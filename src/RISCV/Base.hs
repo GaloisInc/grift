@@ -481,7 +481,7 @@ base64Semantics = Map.fromList
 
   ]
 
-iOp :: KnownArch arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
+iOp :: KnownArch arch => ArithOp arch 'I (ArchWidth arch) -> FormulaBuilder arch 'I ()
 iOp op = do
   (rd, rs1, imm12) <- params
 

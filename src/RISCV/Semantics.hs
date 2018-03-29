@@ -100,8 +100,7 @@ module RISCV.Semantics
   , raiseException
   ) where
 
-import Control.Lens ( (%=) )
-import Control.Lens.TH (makeLenses)
+import Control.Lens ( (%=), Simple, Lens, lens )
 import Control.Monad.State
 import Data.BitVector.Sized
 import Data.Foldable (toList)
@@ -304,7 +303,14 @@ data Formula arch (fmt :: Format)
             , _fDefs    :: Seq (Stmt arch)
               -- ^ sequence of statements defining the formula
             }
-makeLenses ''Formula
+
+-- | Lens for 'Formula' comments.
+fComments :: Simple Lens (Formula arch fmt) (Seq String)
+fComments = lens _fComments (\(Formula _ d) c -> Formula c d)
+
+-- | Lens for 'Formula' statements.
+fDefs :: Simple Lens (Formula arch fmt) (Seq (Stmt arch))
+fDefs = lens _fDefs (\(Formula c _) d -> Formula c d)
 
 instance Show (Formula arch fmt) where
   show (Formula comments defs) =
