@@ -29,7 +29,6 @@ module RISCV.Base
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
-import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.InstructionSet
@@ -406,8 +405,21 @@ baseSemantics = Map.fromList
       raiseException IllegalInstruction
   ]
 
-base64Encode :: EncodeMap 'RV64I
-base64Encode = undefined
+base64Encode :: arch >> 'RV64I => EncodeMap arch
+base64Encode = Map.fromList
+  [ Pair Addw  (ROpBits 0b0111011 0b000 0b0000000)
+  , Pair Subw  (ROpBits 0b0111011 0b000 0b0100000)
+  , Pair Sllw  (ROpBits 0b0111011 0b001 0b0000000)
+  , Pair Srlw  (ROpBits 0b0111011 0b101 0b0000000)
+  , Pair Sraw  (ROpBits 0b0111011 0b101 0b0100000)
+  , Pair Lwu   (IOpBits 0b0000011 0b110)
+  , Pair Ld    (IOpBits 0b0000011 0b011)
+  , Pair Addiw (IOpBits 0b0011011 0b000)
+  , Pair Slliw (IOpBits 0b0011011 0b001)
+  , Pair Srliw (IOpBits 0b0011011 0b101) -- TODO same encodings
+  , Pair Sraiw (IOpBits 0b0011011 0b101)
+  , Pair Sd    (SOpBits 0b0100011 0b011)
+  ]
 
 base64Semantics :: SemanticsMap 'RV64I
 base64Semantics = undefined
@@ -451,6 +463,19 @@ lu bRepr = do
 
   assignReg rd zext_byte
   incrPC
+
+-- lu :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'I ()
+-- lu bRepr = do
+--   (rd, rs1, offset) <- params
+
+--   x_rs1 <- regRead rs1
+--   sext_offset <- sextE offset
+--   addr <- x_rs1 `addE` sext_offset
+--   m_byte  <- memReadWithRepr bRepr addr
+--   zext_byte <- zextE m_byte
+
+--   assignReg rd zext_byte
+--   incrPC
 
 
 type CompOp arch fmt = BVExpr arch (ArchWidth arch)

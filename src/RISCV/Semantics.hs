@@ -340,8 +340,7 @@ litBV :: BitVector w -> BVExpr arch w
 litBV = LitBV
 
 -- | Get the width of the instruction word
-instBytes :: KnownArch arch
-          => FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+instBytes :: FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
 instBytes = return InstBytes
 
 -- | Read the pc.
@@ -470,6 +469,7 @@ ltuE :: BVExpr arch w
 ltuE e1 e2 = return (LtuE e1 e2)
 
 -- | Zero-extension
+-- zextE :: KnownNat w' => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
 zextE :: KnownNat w' => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch w')
 zextE e = return (ZExtE knownNat e)
 

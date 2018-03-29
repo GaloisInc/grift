@@ -20,7 +20,6 @@ module RISCV.ExtM
 
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
-import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.InstructionSet

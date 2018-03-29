@@ -36,6 +36,7 @@ module RISCV.Instruction
   , BaseArchRepr(..)
   , ArchWidth
   , KnownArch
+  , type (>>)
     -- * Instruction formats
   , Format(..)
   , FormatRepr(..)
@@ -72,6 +73,21 @@ type family ArchWidth (arch :: BaseArch) :: Nat where
   ArchWidth 'RV64I  = 64
   ArchWidth 'RV128I = 128
 
+type KnownArch arch = KnownNat (ArchWidth arch)
+
+type family ArchContains (arch :: BaseArch) (arch' :: BaseArch) :: Bool where
+  ArchContains 'RV32I  'RV32I = 'True
+  ArchContains 'RV32E  'RV32I = 'True
+  ArchContains 'RV64I  'RV32I = 'True
+  ArchContains 'RV128I 'RV32I = 'True
+  ArchContains 'RV64I  'RV64I = 'True
+  ArchContains 'RV128I 'RV64I = 'True
+  ArchContains 'RV128I 'RV128I = 'True
+  ArchContains _ _ = 'False
+
+type (>>) (arch :: BaseArch) (arch' :: BaseArch)
+  = ArchContains arch arch' ~ 'True
+
 -- Instances
 $(return [])
 deriving instance Show (BaseArchRepr k)
@@ -87,8 +103,6 @@ instance KnownRepr BaseArchRepr 'RV32I  where knownRepr = RV32IRepr
 instance KnownRepr BaseArchRepr 'RV32E  where knownRepr = RV32ERepr
 instance KnownRepr BaseArchRepr 'RV64I  where knownRepr = RV64IRepr
 instance KnownRepr BaseArchRepr 'RV128I where knownRepr = RV128IRepr
-
-type KnownArch arch = KnownNat (ArchWidth arch)
 
 ----------------------------------------
 -- Formats
@@ -173,11 +187,12 @@ instance OrdF Operands where
 ----------------------------------------
 -- Opcodes
 
--- | RISC-V Opcodes, parameterized by format.
+-- | RISC-V Opcodes, parameterized by base architecture and format.
 data Opcode :: BaseArch -> Format -> * where
 
+  -- RV32I/RV64I
   -- R type
-  Add    :: Opcode arch 'R -- RV32I
+  Add    :: Opcode arch 'R
   Sub    :: Opcode arch 'R
   Sll    :: Opcode arch 'R
   Slt    :: Opcode arch 'R
@@ -187,17 +202,14 @@ data Opcode :: BaseArch -> Format -> * where
   Sra    :: Opcode arch 'R
   Or     :: Opcode arch 'R
   And    :: Opcode arch 'R
-  Mul    :: Opcode arch 'R -- RV32M
-  Mulh   :: Opcode arch 'R
-  Mulhsu :: Opcode arch 'R
-  Mulhu  :: Opcode arch 'R
-  Div    :: Opcode arch 'R
-  Divu   :: Opcode arch 'R
-  Rem    :: Opcode arch 'R
-  Remu   :: Opcode arch 'R
+  Addw   :: arch >> 'RV64I => Opcode arch 'R
+  Subw   :: arch >> 'RV64I => Opcode arch 'R
+  Sllw   :: arch >> 'RV64I => Opcode arch 'R
+  Srlw   :: arch >> 'RV64I => Opcode arch 'R
+  Sraw   :: arch >> 'RV64I => Opcode arch 'R
 
   -- I type
-  Jalr    :: Opcode arch 'I -- RV32I
+  Jalr    :: Opcode arch 'I
   Lb      :: Opcode arch 'I
   Lh      :: Opcode arch 'I
   Lw      :: Opcode arch 'I
@@ -209,8 +221,8 @@ data Opcode :: BaseArch -> Format -> * where
   Xori    :: Opcode arch 'I
   Ori     :: Opcode arch 'I
   Andi    :: Opcode arch 'I
-  -- TODO: the shift instructions are also a slightly different format, we accept
-  -- that for the time being.
+  -- TODO: We need to decide whether to make the shifts a separate format from I/R or
+  -- to just combine Srli and Srai into a single instruction.
   Slli    :: Opcode arch 'I
   Srli    :: Opcode arch 'I
   Srai    :: Opcode arch 'I
@@ -229,11 +241,20 @@ data Opcode :: BaseArch -> Format -> * where
   Csrrwi  :: Opcode arch 'I
   Csrrsi  :: Opcode arch 'I
   Csrrci  :: Opcode arch 'I
+  Lwu     :: arch >> 'RV64I => Opcode arch 'I
+  Ld      :: arch >> 'RV64I => Opcode arch 'I
+  Addiw   :: arch >> 'RV64I => Opcode arch 'I
+  -- TODO: We need to decide whether to make the shifts a separate format from I/R or
+  -- to just combine Srli and Srai into a single instruction.
+  Slliw   :: arch >> 'RV64I => Opcode arch 'I
+  Srliw   :: arch >> 'RV64I => Opcode arch 'I
+  Sraiw   :: arch >> 'RV64I => Opcode arch 'I
 
   -- S type
-  Sb :: Opcode arch 'S -- RV32I
+  Sb :: Opcode arch 'S
   Sh :: Opcode arch 'S
   Sw :: Opcode arch 'S
+  Sd :: arch >> 'RV64I => Opcode arch 'S
 
   -- B type
   Beq  :: Opcode arch 'B -- RV32I
@@ -256,6 +277,15 @@ data Opcode :: BaseArch -> Format -> * where
 
   -- X type (illegal instruction)
   Illegal :: Opcode arch 'X -- RV32I
+
+  Mul    :: Opcode arch 'R
+  Mulh   :: Opcode arch 'R
+  Mulhsu :: Opcode arch 'R
+  Mulhu  :: Opcode arch 'R
+  Div    :: Opcode arch 'R
+  Divu   :: Opcode arch 'R
+  Rem    :: Opcode arch 'R
+  Remu   :: Opcode arch 'R
 
 -- Instances
 $(return [])
@@ -300,7 +330,7 @@ instance OrdF OpBits where
 ----------------------------------------
 -- Instructions
 
--- | RISC-V Instruction, parameterized by format.
+-- | RISC-V Instruction, parameterized by base architecture and format.
 data Instruction (arch :: BaseArch) (fmt :: Format) =
   Inst { instOpcode   :: Opcode arch fmt
        , instOperands :: Operands fmt
