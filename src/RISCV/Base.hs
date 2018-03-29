@@ -21,9 +21,12 @@ RV32I base ISA, encoding and semantics.
 
 module RISCV.Base
   ( base
+  , rv32i
+  , rv64i
   )
   where
 
+import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import GHC.TypeLits
@@ -33,9 +36,19 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
--- | RV32I Base ISA
-base :: InstructionSet 'RV32
+-- RV32I
+rv32i :: InstructionSet 'RV32I
+rv32i = base
+
+-- RV64I
+rv64i :: InstructionSet 'RV64I
+rv64i = base <> base64
+
+base :: KnownNat (ArchWidth arch) => InstructionSet arch
 base = instructionSet baseEncode baseSemantics
+
+base64 :: InstructionSet 'RV64I
+base64 = instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap
 baseEncode = Map.fromList
@@ -105,7 +118,7 @@ baseEncode = Map.fromList
   , Pair Illegal XOpBits
   ]
 
-baseSemantics :: SemanticsMap 'RV32
+baseSemantics :: KnownNat (ArchWidth arch) => SemanticsMap arch
 baseSemantics = Map.fromList
   [ Pair Add $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -392,6 +405,12 @@ baseSemantics = Map.fromList
 
       raiseException IllegalInstruction
   ]
+
+base64Encode :: EncodeMap
+base64Encode = undefined
+
+base64Semantics :: SemanticsMap 'RV64I
+base64Semantics = undefined
 
 -- FIXME: Is there any way to replace the constraint here with something more
 -- reasonable?

@@ -1,5 +1,6 @@
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-|
 Module      : RISCV.ExtM
@@ -19,6 +20,7 @@ module RISCV.ExtM
 
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
+import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.InstructionSet
@@ -26,7 +28,7 @@ import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
 -- | M extension
-m :: InstructionSet 'RV32
+m :: KnownNat (ArchWidth arch) => InstructionSet arch
 m = instructionSet mEncode mSemantics
 
 mEncode :: EncodeMap
@@ -43,7 +45,7 @@ mEncode = Map.fromList
   , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
   ]
 
-mSemantics :: SemanticsMap 'RV32
+mSemantics :: KnownNat (ArchWidth arch) => SemanticsMap arch
 mSemantics = Map.fromList
   [ Pair Mul $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."

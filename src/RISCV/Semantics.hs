@@ -162,7 +162,7 @@ instance KnownRepr OperandIDRepr 'Imm32 where knownRepr = Imm32Repr
 -- Expressions, statements, and formulas
 
 -- | Formula parameter (represents unknown operands)
-data OperandParam (arch :: Arch) (oid :: OperandID)
+data OperandParam (arch :: BaseArch) (oid :: OperandID)
   = OperandParam (OperandIDRepr oid)
 
 instance Show (OperandParam arch oid) where
@@ -171,7 +171,7 @@ instance ShowF (OperandParam arch)
 
 -- | BitVector expressions. These are the building blocks for semantic formulas for
 -- an instruction.
-data BVExpr (arch :: Arch) (w :: Nat) where
+data BVExpr (arch :: BaseArch) (w :: Nat) where
   -- Basic constructors
   LitBV :: BitVector w -> BVExpr arch w
   ParamBV :: OperandParam arch oid -> BVExpr arch (OperandIDWidth oid)
@@ -265,7 +265,7 @@ data Exception = EnvironmentCall
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to a 'BVExpr' of the
 -- appropriate width.
-data Stmt (arch :: Arch) where
+data Stmt (arch :: BaseArch) where
   AssignReg :: BVExpr arch 5 -> BVExpr arch (ArchWidth arch) -> Stmt arch
   AssignMem :: NatRepr bytes
             -> BVExpr arch (ArchWidth arch)
@@ -531,7 +531,7 @@ raiseException e = addStmt (RaiseException e)
 -- | Maps each format to the parameter types for its operands.
 -- We include an extra parameter indicating the size of the instruction word for pc
 -- incrementing.
-type family FormatParams (arch :: Arch) (fmt :: Format) :: * where
+type family FormatParams (arch :: BaseArch) (fmt :: Format) :: * where
   FormatParams arch 'R = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 5)
   FormatParams arch 'I = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
   FormatParams arch 'S = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)

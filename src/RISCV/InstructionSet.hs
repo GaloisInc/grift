@@ -49,6 +49,7 @@ type EncodeMap = MapF Opcode OpBits
 -- | Reverse of 'EncodeMap'
 type DecodeMap = MapF OpBits Opcode
 
+-- type SemanticsMap arch = MapF Opcode (Formula arch)
 type SemanticsMap arch = MapF Opcode (Formula arch)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions
@@ -82,15 +83,15 @@ opBitsFromOpcode is opcode = case Map.lookup opcode (isEncodeMap is) of
   Nothing     -> error $ "Opcode " ++ show opcode ++
                  " does not have corresponding OpBits defined."
 
+-- | Given an instruction set, obtain the opcode from its fixed bits (decoding)
+opcodeFromOpBits :: InstructionSet arch -> OpBits fmt -> Either (Opcode 'X) (Opcode fmt)
+opcodeFromOpBits is opBits =
+  maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
+
 -- | Given an instruction set, obtain the semantics of an opcode
 semanticsFromOpcode :: InstructionSet arch -> Opcode fmt -> Formula arch fmt
 semanticsFromOpcode is opcode = case Map.lookup opcode (isSemanticsMap is) of
   Just formula -> formula
   Nothing      -> error $ "Opcode " ++ show opcode ++
                   " does not have corresponding semantics defined."
-
--- | Given an instruction set, obtain the opcode from its fixed bits (decoding)
-opcodeFromOpBits :: InstructionSet arch -> OpBits fmt -> Either (Opcode 'X) (Opcode fmt)
-opcodeFromOpBits is opBits =
-  maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
 

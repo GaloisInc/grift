@@ -31,8 +31,8 @@ module RISCV.Instruction
   ( -- * Instructions
     Instruction(..)
     -- * Architecture types
-  , Arch(..)
-  , ArchRepr(..)
+  , BaseArch(..)
+  , BaseArchRepr(..)
   , ArchWidth
     -- * Instruction formats
   , Format(..)
@@ -51,32 +51,40 @@ import GHC.TypeLits
 
 ----------------------------------------
 -- Architecture types
--- | Architecture types
-data Arch = RV32
-          | RV64
+-- | Base architecture types
+data BaseArch = RV32I
+              | RV32E
+              | RV64I
+              | RV128I
 
-data ArchRepr :: Arch -> * where
-  RV32Repr :: ArchRepr 'RV32
-  RV64Repr :: ArchRepr 'RV64
+data BaseArchRepr :: BaseArch -> * where
+  RV32IRepr  :: BaseArchRepr 'RV32I
+  RV32ERepr  :: BaseArchRepr 'RV32E
+  RV64IRepr  :: BaseArchRepr 'RV64I
+  RV128IRepr :: BaseArchRepr 'RV128I
 
 -- | Maps an architecture to its register width
-type family ArchWidth (arch :: Arch) :: Nat where
-  ArchWidth 'RV32 = 32
-  ArchWidth 'RV64 = 64
+type family ArchWidth (arch :: BaseArch) :: Nat where
+  ArchWidth 'RV32I  = 32
+  ArchWidth 'RV32E  = 32
+  ArchWidth 'RV64I  = 64
+  ArchWidth 'RV128I = 128
 
 -- Instances
 $(return [])
-deriving instance Show (ArchRepr k)
-instance ShowF ArchRepr
-deriving instance Eq (ArchRepr k)
-instance EqF ArchRepr where
+deriving instance Show (BaseArchRepr k)
+instance ShowF BaseArchRepr
+deriving instance Eq (BaseArchRepr k)
+instance EqF BaseArchRepr where
   eqF = (==)
-instance TestEquality ArchRepr where
-  testEquality = $(structuralTypeEquality [t|ArchRepr|] [])
-instance OrdF ArchRepr where
-  compareF = $(structuralTypeOrd [t|ArchRepr|] [])
-instance KnownRepr ArchRepr 'RV32 where knownRepr = RV32Repr
-instance KnownRepr ArchRepr 'RV64 where knownRepr = RV64Repr
+instance TestEquality BaseArchRepr where
+  testEquality = $(structuralTypeEquality [t|BaseArchRepr|] [])
+instance OrdF BaseArchRepr where
+  compareF = $(structuralTypeOrd [t|BaseArchRepr|] [])
+instance KnownRepr BaseArchRepr 'RV32I  where knownRepr = RV32IRepr
+instance KnownRepr BaseArchRepr 'RV32E  where knownRepr = RV32ERepr
+instance KnownRepr BaseArchRepr 'RV64I  where knownRepr = RV64IRepr
+instance KnownRepr BaseArchRepr 'RV128I where knownRepr = RV128IRepr
 
 ----------------------------------------
 -- Formats

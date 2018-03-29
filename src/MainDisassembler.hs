@@ -82,7 +82,7 @@ disInstruction bs =
                     b1 `shiftL` 8  .|.
                     b0
         instBV = bitVector instWordI
-        inst = decode (base <> m) instBV
+        inst = decode (base <> m :: InstructionSet 'RV64I) instBV
         numBytes = 4
 
 -- | Decode a bytestring as a RISC-V program
