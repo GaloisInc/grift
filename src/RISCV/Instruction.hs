@@ -170,46 +170,46 @@ instance OrdF Operands where
 -- Opcodes
 
 -- | RISC-V Opcodes, parameterized by format.
-data Opcode :: Format -> * where
+data Opcode :: BaseArch -> Format -> * where
 
   -- R type
-  Add    :: Opcode 'R -- RV32I
-  Sub    :: Opcode 'R
-  Sll    :: Opcode 'R
-  Slt    :: Opcode 'R
-  Sltu   :: Opcode 'R
-  Xor    :: Opcode 'R
-  Srl    :: Opcode 'R
-  Sra    :: Opcode 'R
-  Or     :: Opcode 'R
-  And    :: Opcode 'R
-  Mul    :: Opcode 'R -- RV32M
-  Mulh   :: Opcode 'R
-  Mulhsu :: Opcode 'R
-  Mulhu  :: Opcode 'R
-  Div    :: Opcode 'R
-  Divu   :: Opcode 'R
-  Rem    :: Opcode 'R
-  Remu   :: Opcode 'R
+  Add    :: Opcode arch 'R -- RV32I
+  Sub    :: Opcode arch 'R
+  Sll    :: Opcode arch 'R
+  Slt    :: Opcode arch 'R
+  Sltu   :: Opcode arch 'R
+  Xor    :: Opcode arch 'R
+  Srl    :: Opcode arch 'R
+  Sra    :: Opcode arch 'R
+  Or     :: Opcode arch 'R
+  And    :: Opcode arch 'R
+  Mul    :: Opcode arch 'R -- RV32M
+  Mulh   :: Opcode arch 'R
+  Mulhsu :: Opcode arch 'R
+  Mulhu  :: Opcode arch 'R
+  Div    :: Opcode arch 'R
+  Divu   :: Opcode arch 'R
+  Rem    :: Opcode arch 'R
+  Remu   :: Opcode arch 'R
 
   -- I type
-  Jalr    :: Opcode 'I -- RV32I
-  Lb      :: Opcode 'I
-  Lh      :: Opcode 'I
-  Lw      :: Opcode 'I
-  Lbu     :: Opcode 'I
-  Lhu     :: Opcode 'I
-  Addi    :: Opcode 'I
-  Slti    :: Opcode 'I
-  Sltiu   :: Opcode 'I
-  Xori    :: Opcode 'I
-  Ori     :: Opcode 'I
-  Andi    :: Opcode 'I
+  Jalr    :: Opcode arch 'I -- RV32I
+  Lb      :: Opcode arch 'I
+  Lh      :: Opcode arch 'I
+  Lw      :: Opcode arch 'I
+  Lbu     :: Opcode arch 'I
+  Lhu     :: Opcode arch 'I
+  Addi    :: Opcode arch 'I
+  Slti    :: Opcode arch 'I
+  Sltiu   :: Opcode arch 'I
+  Xori    :: Opcode arch 'I
+  Ori     :: Opcode arch 'I
+  Andi    :: Opcode arch 'I
   -- TODO: the shift instructions are also a slightly different format, we accept
   -- that for the time being.
-  Slli    :: Opcode 'I
-  Srli    :: Opcode 'I
-  Srai    :: Opcode 'I
+  Slli    :: Opcode arch 'I
+  Srli    :: Opcode arch 'I
+  Srai    :: Opcode arch 'I
   -- TODO: Fence and FenceI are both slightly wonky; we might need to separate them
   -- out into separate formats like we did with Ecall and Ebreak. Fence uses the
   -- immediate bits to encode additional operands and FenceI requires them to be 0,
@@ -217,52 +217,52 @@ data Opcode :: Format -> * where
   -- the I format for now, but it's actually the case (just like with shifts) only
   -- certain operands are allowed (in the case of Fence.i, all the operands *must* be
   -- 0).
-  Fence   :: Opcode 'I
-  FenceI :: Opcode 'I
-  Csrrw   :: Opcode 'I
-  Csrrs   :: Opcode 'I
-  Csrrc   :: Opcode 'I
-  Csrrwi  :: Opcode 'I
-  Csrrsi  :: Opcode 'I
-  Csrrci  :: Opcode 'I
+  Fence   :: Opcode arch 'I
+  FenceI  :: Opcode arch 'I
+  Csrrw   :: Opcode arch 'I
+  Csrrs   :: Opcode arch 'I
+  Csrrc   :: Opcode arch 'I
+  Csrrwi  :: Opcode arch 'I
+  Csrrsi  :: Opcode arch 'I
+  Csrrci  :: Opcode arch 'I
 
   -- S type
-  Sb :: Opcode 'S -- RV32I
-  Sh :: Opcode 'S
-  Sw :: Opcode 'S
+  Sb :: Opcode arch 'S -- RV32I
+  Sh :: Opcode arch 'S
+  Sw :: Opcode arch 'S
 
   -- B type
-  Beq  :: Opcode 'B -- RV32I
-  Bne  :: Opcode 'B
-  Blt  :: Opcode 'B
-  Bge  :: Opcode 'B
-  Bltu :: Opcode 'B
-  Bgeu :: Opcode 'B
+  Beq  :: Opcode arch 'B -- RV32I
+  Bne  :: Opcode arch 'B
+  Blt  :: Opcode arch 'B
+  Bge  :: Opcode arch 'B
+  Bltu :: Opcode arch 'B
+  Bgeu :: Opcode arch 'B
 
   -- U type
-  Lui   :: Opcode 'U -- RV32I
-  Auipc :: Opcode 'U
+  Lui   :: Opcode arch 'U -- RV32I
+  Auipc :: Opcode arch 'U
 
   -- J type
-  Jal :: Opcode 'J -- RV32I
+  Jal :: Opcode arch 'J -- RV32I
 
   -- E type
-  Ecall   :: Opcode 'E -- RV32I
-  Ebreak  :: Opcode 'E
+  Ecall   :: Opcode arch 'E -- RV32I
+  Ebreak  :: Opcode arch 'E
 
   -- X type (illegal instruction)
-  Illegal :: Opcode 'X -- RV32I
+  Illegal :: Opcode arch 'X -- RV32I
 
 -- Instances
 $(return [])
-deriving instance Show (Opcode k)
-instance ShowF Opcode
-deriving instance Eq (Opcode k)
-instance EqF Opcode where
+deriving instance Show (Opcode arch fmt)
+instance ShowF (Opcode arch)
+deriving instance Eq (Opcode arch fmt)
+instance EqF (Opcode arch) where
   eqF = (==)
-instance TestEquality Opcode where
+instance TestEquality (Opcode arch) where
   testEquality = $(structuralTypeEquality [t|Opcode|] [])
-instance OrdF Opcode where
+instance OrdF (Opcode arch) where
   compareF = $(structuralTypeOrd [t|Opcode|] [])
 
 ----------------------------------------
@@ -297,27 +297,28 @@ instance OrdF OpBits where
 -- Instructions
 
 -- | RISC-V Instruction, parameterized by format.
-data Instruction (fmt :: Format) = Inst { instOpcode   :: Opcode fmt
-                                        , instOperands :: Operands fmt
-                                        }
+data Instruction (arch :: BaseArch) (fmt :: Format) =
+  Inst { instOpcode   :: Opcode arch fmt
+       , instOperands :: Operands fmt
+       }
 
 -- Instances
 $(return [])
-instance Show (Instruction k) where
+instance Show (Instruction arch fmt) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
-instance ShowF Instruction
-instance Eq (Instruction k) where
+instance ShowF (Instruction arch)
+instance Eq (Instruction arch fmt) where
   Inst opcode operands == Inst opcode' operands' =
     opcode == opcode' && operands == operands'
-instance EqF Instruction where
+instance EqF (Instruction arch) where
   eqF = (==)
-instance TestEquality Instruction where
+instance TestEquality (Instruction arch) where
   (Inst opcode operands) `testEquality` (Inst opcode' operands') =
     case (opcode   `testEquality` opcode',
           operands `testEquality` operands') of
       (Just Refl, Just Refl) -> Just Refl
       _ -> Nothing
-instance OrdF Instruction where
+instance OrdF (Instruction arch) where
   Inst opcode operands `compareF` Inst opcode' operands' =
     case opcode `compareF` opcode' of
       EQF -> operands `compareF` operands'
