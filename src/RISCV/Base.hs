@@ -28,6 +28,7 @@ module RISCV.Base
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
+import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.InstructionSet
@@ -276,47 +277,17 @@ baseSemantics = Map.fromList
       comment "Computes the least-significant byte in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      (rs1, rs2, offset) <- params
-
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
-
-      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 8) 0 x_rs2
-      sext_offset <- sextE offset
-      addr <- x_rs1 `addE` sext_offset
-
-      assignMem addr x_rs2_byte
-      incrPC
+      s (knownNat :: NatRepr 1)
   , Pair Sh $ getFormula $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      (rs1, rs2, offset) <- params
-
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
-
-      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 16) 0 x_rs2
-      sext_offset <- sextE offset
-      addr <- x_rs1 `addE` sext_offset
-
-      assignMem addr x_rs2_byte
-      incrPC
+      s (knownNat :: NatRepr 2)
   , Pair Sw $ getFormula $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      (rs1, rs2, offset) <- params
-
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
-
-      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 32) 0 x_rs2
-      sext_offset <- sextE offset
-      addr <- x_rs1 `addE` sext_offset
-
-      assignMem addr x_rs2_byte
-      incrPC
+      s (knownNat :: NatRepr 4)
 
   -- B type
   , Pair Beq $ getFormula $ do
@@ -500,24 +471,11 @@ base64Semantics = Map.fromList
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      (rs1, rs2, offset) <- params
-
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
-
-      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 64) 0 x_rs2
-      sext_offset <- sextE offset
-      addr <- x_rs1 `addE` sext_offset
-
-      assignMem addr x_rs2_byte
-      incrPC
+      s (knownNat :: NatRepr 8)
 
   ]
 
--- FIXME: Is there any way to replace the constraint here with something more
--- reasonable?
 iOp :: KnownArch arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
--- iOp :: KnownRepr ArchRepr arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
 iOp op = do
   (rd, rs1, imm12) <- params
 
@@ -554,20 +512,6 @@ lu bRepr = do
   assignReg rd zext_byte
   incrPC
 
--- lu :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'I ()
--- lu bRepr = do
---   (rd, rs1, offset) <- params
-
---   x_rs1 <- regRead rs1
---   sext_offset <- sextE offset
---   addr <- x_rs1 `addE` sext_offset
---   m_byte  <- memReadWithRepr bRepr addr
---   zext_byte <- zextE m_byte
-
---   assignReg rd zext_byte
---   incrPC
-
-
 type CompOp arch fmt = BVExpr arch (ArchWidth arch)
                     -> BVExpr arch (ArchWidth arch)
                     -> FormulaBuilder arch fmt (BVExpr arch 1)
@@ -591,16 +535,16 @@ b cmp = do
   assignPC new_pc
 
 
--- TODO: Why doesn't this work?
--- s :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'S ()
--- s bRepr = do
---   (rs1, rs2, offset) <- params
+s :: (KnownArch arch, KnownNat bytes) => NatRepr bytes -> FormulaBuilder arch 'S ()
+s bRepr = do
+  (rs1, rs2, offset) <- params
 
---   x_rs1 <- regRead rs1
---   x_rs2 <- regRead rs2
+  x_rs1 <- regRead rs1
+  x_rs2 <- regRead rs2
 
---   x_rs2_byte <- extractEWithRepr (8 `natMultiply` bRepr) 0 x_rs2
---   sext_offset <- sextE offset
---   addr <- x_rs1 `addE` sext_offset
+  x_rs2_byte <- extractEWithRepr ((knownNat :: NatRepr 8) `natMultiply` bRepr) 0 x_rs2
+  sext_offset <- sextE offset
+  addr <- x_rs1 `addE` sext_offset
 
---   assignMem addr x_rs2_byte
+  assignMem addr x_rs2_byte
+  incrPC
