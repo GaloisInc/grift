@@ -409,9 +409,6 @@ base64Encode :: arch >> 'RV64I => EncodeMap arch
 base64Encode = Map.fromList
   [ Pair Addw  (ROpBits 0b0111011 0b000 0b0000000)
   , Pair Subw  (ROpBits 0b0111011 0b000 0b0100000)
-  , Pair Sllw  (ROpBits 0b0111011 0b001 0b0000000)
-  , Pair Srlw  (ROpBits 0b0111011 0b101 0b0000000)
-  , Pair Sraw  (ROpBits 0b0111011 0b101 0b0100000)
   , Pair Lwu   (IOpBits 0b0000011 0b110)
   , Pair Ld    (IOpBits 0b0000011 0b011)
   , Pair Addiw (IOpBits 0b0011011 0b000)
@@ -421,8 +418,102 @@ base64Encode = Map.fromList
   , Pair Sd    (SOpBits 0b0100011 0b011)
   ]
 
-base64Semantics :: SemanticsMap 'RV64I
-base64Semantics = undefined
+base64Semantics :: (KnownArch arch, arch >> 'RV64I) => SemanticsMap arch
+base64Semantics = Map.fromList
+  [ Pair Addw $ getFormula $ do
+      comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."
+      comment "Writes the sign-extended result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      rOp $ \e1 e2 -> do
+        a  <- e1 `addE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+
+  , Pair Subw $ getFormula $ do
+      comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
+      comment "Writes the sign-extended result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      rOp $ \e1 e2 -> do
+        a  <- e1 `subE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Lwu $ getFormula $ do
+      comment "Loads a word from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], zero-extending the result."
+
+      lu (knownNat :: NatRepr 4)
+  , Pair Ld $ getFormula $ do
+      comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
+      comment "Writes the result to x[rd], sign-extending the result."
+
+      lu (knownNat :: NatRepr 8)
+  , Pair Addiw $ getFormula $ do
+      comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
+      comment "Writes the result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      iOp $ \e1 e2 -> do
+        a  <- e1 `addE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Slliw $ getFormula $ do
+      comment "Shifts register x[rs1] left by shamt bit positions."
+      comment "Truncates the result to 32 bits."
+      comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
+
+      iOp $ \e1 e2 -> do
+        a  <- e1 `sllE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Srliw $ getFormula $ do
+      comment "Shifts register x[rs1] right logically by shamt bit positions."
+      comment "Truncates the result to 32 bits."
+      comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
+
+      iOp $ \e1 e2 -> do
+        a  <- e1 `srlE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Slliw $ getFormula $ do
+      comment "Shifts register x[rs1] right arithmetically by shamt bit positions."
+      comment "Truncates the result to 32 bits."
+      comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
+
+      iOp $ \e1 e2 -> do
+        a  <- e1 `sraE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Sd $ getFormula $ do
+      comment "Computes the least-significant double-word in register x[rs2]."
+      comment "Stores the result at memory address x[rs1] + sext(offset)."
+
+      (rs1, rs2, offset) <- params
+
+      x_rs1 <- regRead rs1
+      x_rs2 <- regRead rs2
+
+      x_rs2_byte <- extractEWithRepr (knownNat :: NatRepr 64) 0 x_rs2
+      sext_offset <- sextE offset
+      addr <- x_rs1 `addE` sext_offset
+
+      assignMem addr x_rs2_byte
+      incrPC
+
+  ]
 
 -- FIXME: Is there any way to replace the constraint here with something more
 -- reasonable?
