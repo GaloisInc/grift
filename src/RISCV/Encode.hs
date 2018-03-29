@@ -32,7 +32,7 @@ import RISCV.Instruction.Layouts
 -- Encoding
 
 -- | Encode an 'Instruction' as a 32-bit instruction word.
-encode :: InstructionSet arch -> Instruction k -> BitVector 32
+encode :: InstructionSet arch -> Instruction arch fmt -> BitVector 32
 encode iset inst = case inst of
   Inst opcode (ROperands rd rs1 rs2) ->
     case opBitsFromOpcode iset opcode of

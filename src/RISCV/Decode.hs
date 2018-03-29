@@ -37,7 +37,7 @@ import RISCV.Instruction.Layouts
 decode :: KnownNat (ArchWidth arch)
        => InstructionSet arch
        -> BitVector 32
-       -> Some Instruction
+       -> Some (Instruction arch)
 decode iset bv = case decodeFormat bv of
   Some repr -> case decodeOpcode iset repr bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
@@ -95,5 +95,5 @@ decodeOpBits repr bv = case repr of
 decodeOpcode :: InstructionSet arch
              -> FormatRepr fmt
              -> BitVector 32
-             -> Either (Opcode 'X) (Opcode fmt)
+             -> Either (Opcode arch 'X) (Opcode arch fmt)
 decodeOpcode iset repr bv = opcodeFromOpBits iset (decodeOpBits repr bv)

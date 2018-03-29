@@ -50,7 +50,7 @@ base = instructionSet baseEncode baseSemantics
 base64 :: InstructionSet 'RV64I
 base64 = instructionSet base64Encode base64Semantics
 
-baseEncode :: EncodeMap
+baseEncode :: EncodeMap arch
 baseEncode = Map.fromList
   [ -- RV32I
     -- R type
@@ -406,7 +406,7 @@ baseSemantics = Map.fromList
       raiseException IllegalInstruction
   ]
 
-base64Encode :: EncodeMap
+base64Encode :: EncodeMap 'RV64I
 base64Encode = undefined
 
 base64Semantics :: SemanticsMap 'RV64I

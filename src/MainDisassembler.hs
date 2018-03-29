@@ -54,7 +54,7 @@ asmFile fileName bvs = do
       bytes = BS.pack $ fromIntegral <$> bvIntegerU <$> concat (bvToBytes <$> bvs)
   BS.writeFile fileName bytes
 
-disFile :: String -> IO [(Some Instruction, BitVector 32)]
+disFile :: String -> IO [(Some (Instruction 'RV64I), BitVector 32)]
 disFile fileName = do
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
@@ -62,7 +62,7 @@ disFile fileName = do
     Elf64Res _err e -> disElf e
     ElfHeaderError _byteOffset _msg -> return []
 
-disElf :: ElfWidthConstraints w => Elf w -> IO [(Some Instruction, BitVector 32)]
+disElf :: ElfWidthConstraints w => Elf w -> IO [(Some (Instruction 'RV64I), BitVector 32)]
 disElf e = do
   let [textSection] = findSectionByName ".text" e
       bs  = elfSectionData textSection
@@ -72,7 +72,7 @@ disElf e = do
 -- | Decode a single instruction from a bytestring and returns the instruction along
 -- with the remaining bytes and the number of bytes consumed. Since we currently only
 -- support RV32I, this function only decodes 4-byte words.
-disInstruction :: BS.ByteString -> Maybe (Some Instruction, BitVector 32, BS.ByteString, Int)
+disInstruction :: BS.ByteString -> Maybe (Some (Instruction 'RV64I), BitVector 32, BS.ByteString, Int)
 disInstruction bs =
   bool Nothing (Just (inst, instBV, rb, numBytes)) (BS.length bs >= 4)
   where (ib, rb) = BS.splitAt 4 bs
@@ -86,7 +86,7 @@ disInstruction bs =
         numBytes = 4
 
 -- | Decode a bytestring as a RISC-V program
-disInstructions :: BS.ByteString -> [(Some Instruction, BitVector 32)]
+disInstructions :: BS.ByteString -> [(Some (Instruction 'RV64I), BitVector 32)]
 disInstructions bs = case disInstruction bs of
   -- not enough bytes to disassemble an instruction. We should probably detect if
   -- length bs < 4 and give some kind of warning, but I'm not worried about that for now.

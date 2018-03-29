@@ -31,7 +31,7 @@ import RISCV.Semantics.Helpers
 m :: KnownNat (ArchWidth arch) => InstructionSet arch
 m = instructionSet mEncode mSemantics
 
-mEncode :: EncodeMap
+mEncode :: EncodeMap arch
 mEncode = Map.fromList
   [ -- RV32M
     -- R type
