@@ -340,7 +340,7 @@ litBV :: BitVector w -> BVExpr arch w
 litBV = LitBV
 
 -- | Get the width of the instruction word
-instBytes :: KnownNat (ArchWidth arch)
+instBytes :: KnownArch arch
           => FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
 instBytes = return InstBytes
 

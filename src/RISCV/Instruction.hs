@@ -1,16 +1,17 @@
-{-# LANGUAGE BinaryLiterals        #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE BinaryLiterals         #-}
+{-# LANGUAGE ConstraintKinds        #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE KindSignatures         #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE RankNTypes             #-}
+{-# LANGUAGE StandaloneDeriving     #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeOperators          #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -34,6 +35,7 @@ module RISCV.Instruction
   , BaseArch(..)
   , BaseArchRepr(..)
   , ArchWidth
+  , KnownArch
     -- * Instruction formats
   , Format(..)
   , FormatRepr(..)
@@ -85,6 +87,8 @@ instance KnownRepr BaseArchRepr 'RV32I  where knownRepr = RV32IRepr
 instance KnownRepr BaseArchRepr 'RV32E  where knownRepr = RV32ERepr
 instance KnownRepr BaseArchRepr 'RV64I  where knownRepr = RV64IRepr
 instance KnownRepr BaseArchRepr 'RV128I where knownRepr = RV128IRepr
+
+type KnownArch arch = KnownNat (ArchWidth arch)
 
 ----------------------------------------
 -- Formats

@@ -44,7 +44,7 @@ rv32i = base
 rv64i :: InstructionSet 'RV64I
 rv64i = base <> base64
 
-base :: KnownNat (ArchWidth arch) => InstructionSet arch
+base :: KnownArch arch => InstructionSet arch
 base = instructionSet baseEncode baseSemantics
 
 base64 :: InstructionSet 'RV64I
@@ -118,7 +118,7 @@ baseEncode = Map.fromList
   , Pair Illegal XOpBits
   ]
 
-baseSemantics :: KnownNat (ArchWidth arch) => SemanticsMap arch
+baseSemantics :: KnownArch arch => SemanticsMap arch
 baseSemantics = Map.fromList
   [ Pair Add $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -414,7 +414,7 @@ base64Semantics = undefined
 
 -- FIXME: Is there any way to replace the constraint here with something more
 -- reasonable?
-iOp :: KnownNat (ArchWidth arch) => ArithOp arch 'I -> FormulaBuilder arch 'I ()
+iOp :: KnownArch arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
 -- iOp :: KnownRepr ArchRepr arch => ArithOp arch 'I -> FormulaBuilder arch 'I ()
 iOp op = do
   (rd, rs1, imm12) <- params
@@ -426,7 +426,7 @@ iOp op = do
   assignReg rd result
   incrPC
 
-ls :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'I ()
+ls :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'I ()
 ls bRepr = do
   (rd, rs1, offset) <- params
 
@@ -439,7 +439,7 @@ ls bRepr = do
   assignReg rd sext_byte
   incrPC
 
-lu :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'I ()
+lu :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'I ()
 lu bRepr = do
   (rd, rs1, offset) <- params
 
@@ -457,7 +457,7 @@ type CompOp arch fmt = BVExpr arch (ArchWidth arch)
                     -> BVExpr arch (ArchWidth arch)
                     -> FormulaBuilder arch fmt (BVExpr arch 1)
 
-b :: KnownNat (ArchWidth arch) => CompOp arch 'B -> FormulaBuilder arch 'B ()
+b :: KnownArch arch => CompOp arch 'B -> FormulaBuilder arch 'B ()
 b cmp = do
   (rs1, rs2, offset) <- params
 
@@ -477,7 +477,7 @@ b cmp = do
 
 
 -- TODO: Why doesn't this work?
--- s :: KnownNat (ArchWidth arch) => NatRepr bytes -> FormulaBuilder arch 'S ()
+-- s :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'S ()
 -- s bRepr = do
 --   (rs1, rs2, offset) <- params
 

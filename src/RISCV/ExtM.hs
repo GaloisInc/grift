@@ -28,7 +28,7 @@ import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
 -- | M extension
-m :: KnownNat (ArchWidth arch) => InstructionSet arch
+m :: KnownArch arch => InstructionSet arch
 m = instructionSet mEncode mSemantics
 
 mEncode :: EncodeMap arch
@@ -45,7 +45,7 @@ mEncode = Map.fromList
   , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
   ]
 
-mSemantics :: KnownNat (ArchWidth arch) => SemanticsMap arch
+mSemantics :: KnownArch arch => SemanticsMap arch
 mSemantics = Map.fromList
   [ Pair Mul $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."
