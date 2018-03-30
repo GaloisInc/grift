@@ -29,7 +29,7 @@ module RISCV.InstructionSet
     InstructionSet(..)
   , instructionSet
   , EncodeMap, DecodeMap, SemanticsMap
-    -- * Opcode / OpBits conversion
+    -- * Semantics <-> Opcode <-> OpBits
   , opcodeFromOpBits
   , opBitsFromOpcode
   , semanticsFromOpcode

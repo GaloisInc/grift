@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-|
-Module      : RISCV.Base
+Module      : RISCV.Extensions.Base
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : None (yet)
@@ -19,7 +19,7 @@ Portability : portable
 RV32I base ISA, encoding and semantics.
 -}
 
-module RISCV.Base
+module RISCV.Extensions.Base
   ( rv32i
   , rv32e
   , rv64i

@@ -48,14 +48,23 @@ class (Monad m) => RVState m arch | m -> arch where
   -- | The instruction set supported by this RVState
   getInstructionSet   :: m (InstructionSet arch)
 
+  -- | Get the current PC.
   getPC  :: m (BitVector (ArchWidth arch))
+  -- TODO: Is there a more elegant way to bypass the requirement below?
+  -- | Get the value of a register. Note that for all valid implementations, we
+  -- require that getReg 0 = return 0.
   getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
+  -- | Read some number of bytes from memory.
   getMem :: NatRepr bytes
          -> BitVector (ArchWidth arch)
          -> m (BitVector (8*bytes))
 
+  -- | Set the PC.
   setPC :: BitVector (ArchWidth arch) -> m ()
+  -- | Write to a register. Note taht for all valid implementations, we require that
+  -- setReg 0 = return ().
   setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
+  -- | Write to memory.
   setMem :: NatRepr bytes
          -> BitVector (ArchWidth arch)
          -> BitVector (8*bytes)

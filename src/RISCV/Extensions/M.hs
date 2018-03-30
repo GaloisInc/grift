@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-|
-Module      : RISCV.ExtM
+Module      : RISCV.Extensions.M
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : None (yet)
@@ -16,7 +16,7 @@ Portability : portable
 RV32M multiply extension
 -}
 
-module RISCV.ExtM
+module RISCV.Extensions.M
   ( m32
   , m64
   ) where

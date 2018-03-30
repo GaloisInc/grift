@@ -14,10 +14,9 @@ module RISCV
   ( module Data.BitVector.Sized
   , module RISCV.Instruction
   , module RISCV.InstructionSet
-  , module RISCV.Base
   , module RISCV.Decode
   , module RISCV.Encode
-  , module RISCV.ExtM
+  , module RISCV.Extensions
   , module RISCV.Semantics
   , module RISCV.Simulation
   ) where
@@ -25,9 +24,8 @@ module RISCV
 import Data.BitVector.Sized
 import RISCV.Instruction
 import RISCV.InstructionSet
-import RISCV.Base
 import RISCV.Decode
 import RISCV.Encode
-import RISCV.ExtM
+import RISCV.Extensions
 import RISCV.Semantics
 import RISCV.Simulation
