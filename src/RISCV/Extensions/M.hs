@@ -31,17 +31,17 @@ import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
 -- | M extension (RV32)
-m32 :: InstructionSet 'RV32I
+m32 :: (KnownArch arch, exts *>> 'M) => InstructionSet arch exts
 m32 = m'
 
 -- | M extension (RV64)
-m64 :: InstructionSet 'RV64I
+m64 :: (KnownArch arch, arch >> 'RV64I, exts *>> 'M) => InstructionSet arch exts
 m64 = m' <> m64'
 
-m' :: KnownArch arch => InstructionSet arch
+m' :: (KnownArch arch, exts *>> 'M) => InstructionSet arch exts
 m' = instructionSet mEncode mSemantics
 
-m64' :: (KnownArch arch, arch >> 'RV64I) => InstructionSet arch
+m64' :: (KnownArch arch, arch >> 'RV64I, exts *>> 'M) => InstructionSet arch exts
 m64' = instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch

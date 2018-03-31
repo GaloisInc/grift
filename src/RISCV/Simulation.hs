@@ -32,10 +32,12 @@ module RISCV.Simulation
 import Control.Lens ( (^.) )
 import Control.Monad ( forM_ )
 import Data.BitVector.Sized
+import Data.Monoid
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
 
 import RISCV.Decode
+import RISCV.Extensions
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
@@ -44,9 +46,9 @@ import RISCV.Semantics
 -- Running semantics against a state monad
 
 -- | State monad for simulating RISC-V code
-class (Monad m) => RVState m arch | m -> arch where
+class (Monad m) => RVState m arch (exts :: ExtConfig) | m -> arch, m -> exts where
   -- | The instruction set supported by this RVState
-  getInstructionSet   :: m (InstructionSet arch)
+  -- getInstructionSet   :: m (InstructionSet arch exts)
 
   -- | Get the current PC.
   getPC  :: m (BitVector (ArchWidth arch))
@@ -69,6 +71,28 @@ class (Monad m) => RVState m arch | m -> arch where
          -> BitVector (ArchWidth arch)
          -> BitVector (8*bytes)
          -> m ()
+
+getInstructionSet' :: forall arch exts
+                   .  (KnownArch arch, KnownExtConfig exts)
+                   => InstructionSet arch exts
+getInstructionSet' = baseset <> mset
+  where  archRepr = knownRepr :: BaseArchRepr arch
+         ecRepr = knownRepr :: ExtConfigRepr exts
+         baseset = case archRepr of
+           RV32IRepr -> rv32i
+           RV32ERepr -> rv32e
+           RV64IRepr -> rv64i
+           RV128IRepr -> error "RV128I not yet supported"
+         mset = case (archRepr, ecRepr) of
+           (RV32IRepr, ExtConfigRepr MYesRepr _) -> m32
+           (RV32ERepr, ExtConfigRepr MYesRepr _) -> m32
+           (RV64IRepr, ExtConfigRepr MYesRepr _) -> m64
+           _ -> mempty
+
+getInstructionSet :: forall arch exts m
+                     . (KnownArch arch, KnownExtConfig exts, RVState m arch exts)
+                  => m (InstructionSet arch exts)
+getInstructionSet = return getInstructionSet'
 
 -- | Evaluate a parameter's value from an 'Operands'.
 evalParam :: OperandParam arch oid
@@ -95,7 +119,7 @@ evalParam oidRepr operands = error $
   "No operand " ++ show oidRepr ++ " in operands " ++ show operands
 
 -- | Evaluate a 'BVExpr', given an 'RVState' implementation.
-evalExpr :: (RVState m arch, KnownArch arch)
+evalExpr :: (RVState m arch exts, KnownArch arch)
          => Operands fmt    -- ^ Operands
          -> Integer         -- ^ Instruction width (in bytes)
          -> BVExpr arch w   -- ^ Expression to be evaluated
@@ -197,7 +221,7 @@ evalExpr operands ib (IteE testE tE fE) = do
   return $ if testVal == 1 then tVal else fVal
 
 -- | Execute an assignment statement, given an 'RVState' implementation.
-execStmt :: (RVState m arch, KnownArch arch)
+execStmt :: (RVState m arch exts, KnownArch arch)
          => Operands fmt -- ^ Operands
          -> Integer      -- ^ Instruction width (in bytes)
          -> Stmt arch    -- ^ Statement to be executed
@@ -218,7 +242,7 @@ execStmt _ _ _ = undefined
 
 -- | Execute a formula, given an 'RVState' implementation. This function represents
 -- the "execute" state in a fetch\/decode\/execute sequence.
-execFormula :: (RVState m arch, KnownArch arch)
+execFormula :: (RVState m arch exts, KnownArch arch)
             => Operands fmt
             -> Integer
             -> Formula arch fmt
@@ -226,7 +250,7 @@ execFormula :: (RVState m arch, KnownArch arch)
 execFormula operands ib f = forM_ (f ^. fDefs) $ execStmt operands ib
 
 -- | Fetch, decode, and execute a single instruction.
-stepRV :: (RVState m arch, KnownArch arch) => m ()
+stepRV :: (RVState m arch exts, KnownArch arch, KnownExtConfig exts) => m ()
 stepRV = do
   -- Fetch
   pcVal  <- getPC

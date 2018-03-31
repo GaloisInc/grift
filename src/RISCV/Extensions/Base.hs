@@ -20,7 +20,9 @@ RV32I base ISA, encoding and semantics.
 -}
 
 module RISCV.Extensions.Base
-  ( rv32i
+  ( base32
+  , base64
+  , rv32i
   , rv32e
   , rv64i
   )
@@ -37,22 +39,21 @@ import RISCV.Semantics
 import RISCV.Semantics.Helpers
 
 -- | RV32I
-rv32i :: InstructionSet 'RV32I
-rv32i = base
+rv32i :: InstructionSet 'RV32I exts
+rv32i = base32
 
 -- | RV32E
-rv32e :: InstructionSet 'RV32E
-rv32e = base
+rv32e :: InstructionSet 'RV32E exts
+rv32e = base32
 
 -- | RV64I
-rv64i :: InstructionSet 'RV64I
-rv64i = base <> base64
+rv64i :: InstructionSet 'RV64I exts
+rv64i = base32 <> base64
 
-base :: KnownArch arch => InstructionSet arch
-base = instructionSet baseEncode baseSemantics
+base32 :: KnownArch arch => InstructionSet arch exts
+base32 = instructionSet baseEncode baseSemantics
 
--- TODO: make this more general (arch >> 'RV64I)
-base64 :: (KnownArch arch, arch >> 'RV64I) => InstructionSet arch
+base64 :: (KnownArch arch, arch >> 'RV64I) => InstructionSet arch exts
 base64 = instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap arch

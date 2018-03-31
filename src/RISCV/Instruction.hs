@@ -34,7 +34,17 @@ module RISCV.Instruction
   , BaseArchRepr(..)
   , ArchWidth
   , KnownArch
-  , type ArchContains, type (>>)
+  , ArchContains, type (>>)
+  -- * RISC-V Extension configuration
+  , ExtConfig(..)
+  , ExtConfigRepr(..)
+  , Extension(..)
+  , KnownExtConfig
+  , ExtConfigSupports, type (*>>)
+  , MConfig(..)
+  , MConfigRepr(..)
+  , FDConfig(..)
+  , FDConfigRepr(..)
     -- * Instruction formats
   , Format(..)
   , FormatRepr(..)
@@ -75,7 +85,7 @@ type family ArchWidth (arch :: BaseArch) :: Nat where
   ArchWidth 'RV128I = 128
 
 -- | Everything we might need to know about a 'BaseArch' at compile time.
-type KnownArch arch = KnownNat (ArchWidth arch)
+type KnownArch arch = (KnownNat (ArchWidth arch), KnownRepr BaseArchRepr arch)
 
 -- | Type operator that determines whether the first 'BaseArch' contains the second
 -- as a requirement.
@@ -108,6 +118,57 @@ instance KnownRepr BaseArchRepr 'RV32I  where knownRepr = RV32IRepr
 instance KnownRepr BaseArchRepr 'RV32E  where knownRepr = RV32ERepr
 instance KnownRepr BaseArchRepr 'RV64I  where knownRepr = RV64IRepr
 instance KnownRepr BaseArchRepr 'RV128I where knownRepr = RV128IRepr
+
+----------------------------------------
+-- Extension configurations
+
+-- TODO: add a type family that determines whether an ExtConfig supports a particular
+-- extension
+
+data ExtConfig = ExtConfig (MConfig, FDConfig)
+data MConfig = MYes | MNo
+data FDConfig = FDYes | FYesDNo | FDNo
+
+-- data ExtConfigRepr :: (MConfig, FDConfig) -> * where
+--   ExtConfigRepr :: MConfigRepr m -> FDConfigRepr fd -> ExtConfigRepr '(m, fd)
+
+data ExtConfigRepr :: ExtConfig -> * where
+  ExtConfigRepr :: MConfigRepr m -> FDConfigRepr fd -> ExtConfigRepr ('ExtConfig '(m, fd))
+
+instance ( KnownRepr MConfigRepr m
+         , KnownRepr FDConfigRepr fd
+         ) => KnownRepr ExtConfigRepr ('ExtConfig '(m, fd)) where
+  knownRepr = ExtConfigRepr knownRepr knownRepr
+
+data MConfigRepr :: MConfig -> * where
+  MYesRepr :: MConfigRepr 'MYes
+  MNoRepr  :: MConfigRepr 'MNo
+
+instance KnownRepr MConfigRepr 'MYes where knownRepr = MYesRepr
+instance KnownRepr MConfigRepr 'MNo  where knownRepr = MNoRepr
+
+data FDConfigRepr :: FDConfig -> * where
+  FDYesRepr    :: FDConfigRepr 'FDYes
+  FYesDNoRepr  :: FDConfigRepr 'FYesDNo
+  FDNoRepr     :: FDConfigRepr 'FDNo
+
+instance KnownRepr FDConfigRepr 'FDYes   where knownRepr = FDYesRepr
+instance KnownRepr FDConfigRepr 'FYesDNo where knownRepr = FYesDNoRepr
+instance KnownRepr FDConfigRepr 'FDNo    where knownRepr = FDNoRepr
+
+type KnownExtConfig exts = KnownRepr ExtConfigRepr exts
+
+data Extension = M | F | D
+
+type family ExtConfigSupports (exts :: ExtConfig) (e :: Extension) :: Bool where
+  ExtConfigSupports ('ExtConfig '( 'MYes, _))        'M = 'True
+  ExtConfigSupports ('ExtConfig '(     _, 'FDYes))   'F = 'True
+  ExtConfigSupports ('ExtConfig '(     _, 'FYesDNo)) 'F = 'True
+  ExtConfigSupports ('ExtConfig '(     _, 'FDYes))   'D = 'True
+  ExtConfigSupports _ _ = 'False
+
+type (*>>) (exts :: ExtConfig) (e :: Extension)
+  = ExtConfigSupports exts e ~ 'True
 
 ----------------------------------------
 -- Formats
@@ -191,6 +252,8 @@ instance OrdF Operands where
 ----------------------------------------
 -- Opcodes
 
+-- TODO: At some point, there is a chance it will make sense to parameterize this by
+-- ExtConfig. For instance, Mul :: exts *>> 'M => Opcode arch exts 'R.
 -- | RISC-V Opcodes, parameterized by base architecture and format.
 data Opcode :: BaseArch -> Format -> * where
 
