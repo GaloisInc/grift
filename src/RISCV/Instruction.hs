@@ -36,11 +36,11 @@ module RISCV.Instruction
   , KnownArch
   , ArchContains, type (>>)
   -- * RISC-V Extension configuration
-  , ExtConfig(..)
-  , ExtConfigRepr(..)
+  , Extensions(..)
+  , ExtensionsRepr(..)
   , Extension(..)
-  , KnownExtConfig
-  , ExtConfigSupports, type (*>>)
+  , KnownExtensions
+  , ExtensionsContains, type (*>>)
   , MConfig(..)
   , MConfigRepr(..)
   , FDConfig(..)
@@ -70,7 +70,7 @@ data BaseArch = RV32I
               | RV64I
               | RV128I
 
--- | A type-level representative for 'BaseArch'.
+-- | A runtime representative for 'BaseArch' for dependent typing.
 data BaseArchRepr :: BaseArch -> * where
   RV32IRepr  :: BaseArchRepr 'RV32I
   RV32ERepr  :: BaseArchRepr 'RV32E
@@ -84,6 +84,7 @@ type family ArchWidth (arch :: BaseArch) :: Nat where
   ArchWidth 'RV64I  = 64
   ArchWidth 'RV128I = 128
 
+-- TODO: Is there any way we can avoid needing the KnownNat (ArchWidth arch)?
 -- | Everything we might need to know about a 'BaseArch' at compile time.
 type KnownArch arch = (KnownNat (ArchWidth arch), KnownRepr BaseArchRepr arch)
 
@@ -122,24 +123,30 @@ instance KnownRepr BaseArchRepr 'RV128I where knownRepr = RV128IRepr
 ----------------------------------------
 -- Extension configurations
 
--- TODO: add a type family that determines whether an ExtConfig supports a particular
+-- TODO: add a type family that determines whether an Extensions supports a particular
 -- extension
 
-data ExtConfig = ExtConfig (MConfig, FDConfig)
+-- | This data structure describes the RISC-V extensions that are enabled in a
+-- particular type context.
+data Extensions = Extensions (MConfig, FDConfig)
+
+-- | The M extension is either enabled or disabled.
 data MConfig = MYes | MNo
+
+-- | The F and D extensions can be in one of three states: Both are enabled, only F
+-- is enabled, or both are disabled.
 data FDConfig = FDYes | FYesDNo | FDNo
 
--- data ExtConfigRepr :: (MConfig, FDConfig) -> * where
---   ExtConfigRepr :: MConfigRepr m -> FDConfigRepr fd -> ExtConfigRepr '(m, fd)
-
-data ExtConfigRepr :: ExtConfig -> * where
-  ExtConfigRepr :: MConfigRepr m -> FDConfigRepr fd -> ExtConfigRepr ('ExtConfig '(m, fd))
+-- | A runtime representative for 'Extensions' for dependent typing.
+data ExtensionsRepr :: Extensions -> * where
+  ExtensionsRepr :: MConfigRepr m -> FDConfigRepr fd -> ExtensionsRepr ('Extensions '(m, fd))
 
 instance ( KnownRepr MConfigRepr m
          , KnownRepr FDConfigRepr fd
-         ) => KnownRepr ExtConfigRepr ('ExtConfig '(m, fd)) where
-  knownRepr = ExtConfigRepr knownRepr knownRepr
+         ) => KnownRepr ExtensionsRepr ('Extensions '(m, fd)) where
+  knownRepr = ExtensionsRepr knownRepr knownRepr
 
+-- | A runtime representative for 'MConfig' for dependent typing.
 data MConfigRepr :: MConfig -> * where
   MYesRepr :: MConfigRepr 'MYes
   MNoRepr  :: MConfigRepr 'MNo
@@ -147,6 +154,7 @@ data MConfigRepr :: MConfig -> * where
 instance KnownRepr MConfigRepr 'MYes where knownRepr = MYesRepr
 instance KnownRepr MConfigRepr 'MNo  where knownRepr = MNoRepr
 
+-- | A runtime representative for 'FDConfig' for dependent typing.
 data FDConfigRepr :: FDConfig -> * where
   FDYesRepr    :: FDConfigRepr 'FDYes
   FYesDNoRepr  :: FDConfigRepr 'FYesDNo
@@ -156,19 +164,24 @@ instance KnownRepr FDConfigRepr 'FDYes   where knownRepr = FDYesRepr
 instance KnownRepr FDConfigRepr 'FYesDNo where knownRepr = FYesDNoRepr
 instance KnownRepr FDConfigRepr 'FDNo    where knownRepr = FDNoRepr
 
-type KnownExtConfig exts = KnownRepr ExtConfigRepr exts
+-- | Everything we need to know about an 'Extensions' at compile time.
+type KnownExtensions exts = KnownRepr ExtensionsRepr exts
 
+-- | Type-level representation of a RISC-V extension.
 data Extension = M | F | D
 
-type family ExtConfigSupports (exts :: ExtConfig) (e :: Extension) :: Bool where
-  ExtConfigSupports ('ExtConfig '( 'MYes, _))        'M = 'True
-  ExtConfigSupports ('ExtConfig '(     _, 'FDYes))   'F = 'True
-  ExtConfigSupports ('ExtConfig '(     _, 'FYesDNo)) 'F = 'True
-  ExtConfigSupports ('ExtConfig '(     _, 'FDYes))   'D = 'True
-  ExtConfigSupports _ _ = 'False
+-- | Type operator that determines whether the 'Extensions' contains a particular
+-- 'Extension'.
+type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool where
+  ExtensionsContains ('Extensions '( 'MYes, _))        'M = 'True
+  ExtensionsContains ('Extensions '(     _, 'FDYes))   'F = 'True
+  ExtensionsContains ('Extensions '(     _, 'FYesDNo)) 'F = 'True
+  ExtensionsContains ('Extensions '(     _, 'FDYes))   'D = 'True
+  ExtensionsContains _ _ = 'False
 
-type (*>>) (exts :: ExtConfig) (e :: Extension)
-  = ExtConfigSupports exts e ~ 'True
+-- | 'ExtensionsContains' in constraint form.
+type (*>>) (exts :: Extensions) (e :: Extension)
+  = ExtensionsContains exts e ~ 'True
 
 ----------------------------------------
 -- Formats
@@ -190,7 +203,7 @@ type (*>>) (exts :: ExtConfig) (e :: Extension)
 
 data Format = R | I | S | B | U | J | E | X
 
--- | A type-level representative for 'Format'.
+-- | A runtime representative for 'Format' for dependent typing.
 data FormatRepr :: Format -> * where
   RRepr :: FormatRepr 'R
   IRepr :: FormatRepr 'I
@@ -253,7 +266,7 @@ instance OrdF Operands where
 -- Opcodes
 
 -- TODO: At some point, there is a chance it will make sense to parameterize this by
--- ExtConfig. For instance, Mul :: exts *>> 'M => Opcode arch exts 'R.
+-- Extensions. For instance, Mul :: exts *>> 'M => Opcode arch exts 'R.
 -- | RISC-V Opcodes, parameterized by base architecture and format.
 data Opcode :: BaseArch -> Format -> * where
 

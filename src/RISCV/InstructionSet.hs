@@ -54,7 +54,7 @@ type SemanticsMap arch = MapF (Opcode arch) (Formula arch)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions
 -- into categories based on extension and register width.
-data InstructionSet (arch :: BaseArch) (exts :: ExtConfig)
+data InstructionSet (arch :: BaseArch) (exts :: Extensions)
   = InstructionSet { isEncodeMap    :: EncodeMap arch
                    , isDecodeMap    :: DecodeMap arch
                    , isSemanticsMap :: SemanticsMap arch
@@ -68,7 +68,7 @@ instance Monoid (InstructionSet arch exts) where
   InstructionSet em1 dm1 sm1 `mappend` InstructionSet em2 dm2 sm2
     = InstructionSet (em1 `Map.union` em2) (dm1 `Map.union` dm2) (sm1 `Map.union` sm2)
 
--- | Construction an instructionSet from only an EncodeMap
+-- | Construct an instructionSet from an EncodeMap and a SemanticsMap
 instructionSet :: EncodeMap arch -> SemanticsMap arch -> InstructionSet arch exts
 instructionSet em sm = InstructionSet em (transMap em) sm
   where swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k

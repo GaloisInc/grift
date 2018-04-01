@@ -51,7 +51,7 @@ data Machine s = Machine
 newtype MachineM s a = MachineM { runMachineM :: ReaderT (Machine s) (ST s) a }
   deriving (Functor, Applicative, Monad)
 
-instance RVState (MachineM s) 'RV32I ('ExtConfig '(MYes, FDNo)) where
+instance RVState (MachineM s) 'RV32I ('Extensions '(MYes, FDNo)) where
   getPC = MachineM $ do
     pcRef <- mPC <$> ask
     pcVal <- lift $ readSTRef pcRef
@@ -83,14 +83,14 @@ instance RVState (MachineM s) 'RV32I ('ExtConfig '(MYes, FDNo)) where
 main :: IO ()
 main = putStrLn "Simulator not yet implemented"
 
-data STMachine s (arch :: BaseArch) (exts :: ExtConfig) = STMachine
+data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
   { stPC        :: STRef s (BitVector (ArchWidth arch))
   , stRegisters :: STArray s (BitVector 5) (BitVector (ArchWidth arch))
   , stMemory    :: STArray s (BitVector (ArchWidth arch)) (BitVector 8)
   , stMaxAddr   :: BitVector (ArchWidth arch)
   }
 
-newtype STMachineM s (arch :: BaseArch) (exts :: ExtConfig) a =
+newtype STMachineM s (arch :: BaseArch) (exts :: Extensions) a =
   STMachineM { runSTMachineM :: ReaderT (STMachine s arch exts) (ST s) a }
   deriving (Functor, Applicative, Monad)
 

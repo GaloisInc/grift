@@ -1,4 +1,3 @@
--- {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -26,13 +25,12 @@ module RISCV.Simulation
   , evalParam
   , evalExpr
   , execFormula
-  , stepRV
+  , runRV
   ) where
 
 import Control.Lens ( (^.) )
 import Control.Monad ( forM_ )
 import Data.BitVector.Sized
-import Data.Monoid
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
 
@@ -42,11 +40,11 @@ import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
 
-----------------------------------------
--- Running semantics against a state monad
-
+-- TODO: maybe make a constructor in this class somehow...? That would allow us to
+-- compute the instruction set once and for all so we don't have to rebuild it every
+-- time we step the machine.
 -- | State monad for simulating RISC-V code
-class (Monad m) => RVState m arch (exts :: ExtConfig) | m -> arch, m -> exts where
+class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts where
   -- | The instruction set supported by this RVState
   -- getInstructionSet   :: m (InstructionSet arch exts)
 
@@ -71,28 +69,6 @@ class (Monad m) => RVState m arch (exts :: ExtConfig) | m -> arch, m -> exts whe
          -> BitVector (ArchWidth arch)
          -> BitVector (8*bytes)
          -> m ()
-
-getInstructionSet' :: forall arch exts
-                   .  (KnownArch arch, KnownExtConfig exts)
-                   => InstructionSet arch exts
-getInstructionSet' = baseset <> mset
-  where  archRepr = knownRepr :: BaseArchRepr arch
-         ecRepr = knownRepr :: ExtConfigRepr exts
-         baseset = case archRepr of
-           RV32IRepr -> rv32i
-           RV32ERepr -> rv32e
-           RV64IRepr -> rv64i
-           RV128IRepr -> error "RV128I not yet supported"
-         mset = case (archRepr, ecRepr) of
-           (RV32IRepr, ExtConfigRepr MYesRepr _) -> m32
-           (RV32ERepr, ExtConfigRepr MYesRepr _) -> m32
-           (RV64IRepr, ExtConfigRepr MYesRepr _) -> m64
-           _ -> mempty
-
-getInstructionSet :: forall arch exts m
-                     . (KnownArch arch, KnownExtConfig exts, RVState m arch exts)
-                  => m (InstructionSet arch exts)
-getInstructionSet = return getInstructionSet'
 
 -- | Evaluate a parameter's value from an 'Operands'.
 evalParam :: OperandParam arch oid
@@ -249,19 +225,32 @@ execFormula :: (RVState m arch exts, KnownArch arch)
             -> m ()
 execFormula operands ib f = forM_ (f ^. fDefs) $ execStmt operands ib
 
+-- TODO: When we add exception stuff, exit early in that case.
 -- | Fetch, decode, and execute a single instruction.
-stepRV :: (RVState m arch exts, KnownArch arch, KnownExtConfig exts) => m ()
-stepRV = do
+stepRV :: forall m arch exts
+          . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
+       => InstructionSet arch exts
+       -> m ()
+stepRV iset = do
   -- Fetch
   pcVal  <- getPC
   instBV <- getMem (knownRepr :: NatRepr 4) pcVal
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-  iset      <- getInstructionSet
   Some inst <- return $ decode iset instBV
   let operands = instOperands inst
       formula  = semanticsFromOpcode iset (instOpcode inst)
 
   -- Execute
   execFormula operands 4 formula
+
+-- TODO: When we add exception stuff, exit early in that case.
+-- | Run for a given number of steps.
+runRV :: forall m arch exts
+         . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
+      => Int
+      -> m ()
+runRV n = runRV' (knownISet :: InstructionSet arch exts) n
+  where runRV' iset i | i <= 0 = return ()
+        runRV' iset i = stepRV iset >> runRV' iset (i-1)

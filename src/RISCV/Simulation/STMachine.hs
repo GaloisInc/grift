@@ -19,7 +19,10 @@ Portability : portable
 An ST-based simulation backend for RISC-V machines.
 -}
 
-module RISCV.Simulation.STMachine where
+module RISCV.Simulation.STMachine
+  ( STMachine(..)
+  , STMachineM(..)
+  ) where
 
 import           Control.Monad
 import           Control.Monad.Trans
@@ -30,21 +33,20 @@ import           Data.BitVector.Sized
 import           Data.Parameterized
 import           Data.STRef
 
--- import           RISCV
 import RISCV.Instruction
 import RISCV.Simulation
 
 byteSize :: NatRepr 8
 byteSize = knownRepr
 
-data STMachine s (arch :: BaseArch) (exts :: ExtConfig) = STMachine
+data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
   { stPC        :: STRef s (BitVector (ArchWidth arch))
   , stRegisters :: STArray s (BitVector 5) (BitVector (ArchWidth arch))
   , stMemory    :: STArray s (BitVector (ArchWidth arch)) (BitVector 8)
   , stMaxAddr   :: BitVector (ArchWidth arch)
   }
 
-newtype STMachineM s (arch :: BaseArch) (exts :: ExtConfig) a =
+newtype STMachineM s (arch :: BaseArch) (exts :: Extensions) a =
   STMachineM { runSTMachineM :: ReaderT (STMachine s arch exts) (ST s) a }
   deriving (Functor, Applicative, Monad)
 
