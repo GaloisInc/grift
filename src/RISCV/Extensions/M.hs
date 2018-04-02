@@ -28,21 +28,15 @@ import Data.Parameterized
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
-import RISCV.Semantics.Helpers
+import RISCV.Extensions.Helpers
 
 -- | M extension (RV32)
 m32 :: (KnownArch arch, exts *>> 'M) => InstructionSet arch exts
-m32 = m'
+m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
 m64 :: (KnownArch arch, arch >> 'RV64I, exts *>> 'M) => InstructionSet arch exts
-m64 = m' <> m64'
-
-m' :: (KnownArch arch, exts *>> 'M) => InstructionSet arch exts
-m' = instructionSet mEncode mSemantics
-
-m64' :: (KnownArch arch, arch >> 'RV64I, exts *>> 'M) => InstructionSet arch exts
-m64' = instructionSet m64Encode m64Semantics
+m64 = m32 <> instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch
 mEncode = Map.fromList

@@ -45,9 +45,6 @@ import RISCV.Semantics
 -- time we step the machine.
 -- | State monad for simulating RISC-V code
 class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts where
-  -- | The instruction set supported by this RVState
-  -- getInstructionSet   :: m (InstructionSet arch exts)
-
   -- | Get the current PC.
   getPC  :: m (BitVector (ArchWidth arch))
   -- TODO: Is there a more elegant way to bypass the requirement below?
@@ -61,7 +58,7 @@ class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts wh
 
   -- | Set the PC.
   setPC :: BitVector (ArchWidth arch) -> m ()
-  -- | Write to a register. Note taht for all valid implementations, we require that
+  -- | Write to a register. Note that for all valid implementations, we require that
   -- setReg 0 = return ().
   setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
   -- | Write to memory.
@@ -252,5 +249,5 @@ runRV :: forall m arch exts
       => Int
       -> m ()
 runRV n = runRV' (knownISet :: InstructionSet arch exts) n
-  where runRV' iset i | i <= 0 = return ()
+  where runRV' _ i | i <= 0 = return ()
         runRV' iset i = stepRV iset >> runRV' iset (i-1)

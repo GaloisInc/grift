@@ -67,10 +67,10 @@ What to do first? Should be fun.
   format. Modify the decoder to determine the format based only on the opcode
   bits.
 
-- Resist the temptation to tag every opcode with the extension it belongs to; it
-  would be "cool" and maybe even "right," but it might be really hard to work
-  with and it's pretty clear to me that it wouldn't actually buy us anything.
+- Think about whether it would make sense to tag each *opcode* with BOTH the
+  specific architecture width it belongs to, along with the specific
+  extension. That would not allow us to stick an opcode in the wrong extension.
 
-- Ask Joe or Tristan for a code review, and ask if there is a more elegant way
-  to do certain things (in particular, the representation of instruction sets
-  and the under-the-hood map unions).
+- Semantics should take into account the fact that rd is hardwired to 0.
+
+

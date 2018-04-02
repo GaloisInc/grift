@@ -27,11 +27,11 @@ Extensions for RISC-V.
 
 module RISCV.Extensions
   ( -- * RISC-V Base ISA and extensions
-    base32
-  , base64
-  , m32
-  , m64
-  , knownISet
+  --   base32
+  -- , base64
+  -- , m32
+  -- , m64
+    knownISet
   ) where
 
 import Data.Monoid
@@ -41,7 +41,6 @@ import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Extensions.Base
 import RISCV.Extensions.M
-import RISCV.Semantics
 
 -- TODO: For efficiency purposes, it makes more sense to make separate variables for
 -- this function to refer to rather than manually combining the instruction set every
