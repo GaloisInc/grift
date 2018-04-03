@@ -15,8 +15,7 @@ cabal-version:       >=1.10
 extra-source-files:  README.md
 
 library
-  exposed-modules:     RISCV
-                     , RISCV.Decode
+  exposed-modules:     RISCV.Decode
                      , RISCV.Encode
                      , RISCV.Extensions
                      , RISCV.Extensions.Base
@@ -43,8 +42,7 @@ library
 executable riscv-sim
   hs-source-dirs:      src
   main-is:             MainSimulator.hs
-  other-modules:       RISCV
-                     , RISCV.Decode
+  other-modules:       RISCV.Decode
                      , RISCV.Encode
                      , RISCV.Extensions
                      , RISCV.Extensions.Base
