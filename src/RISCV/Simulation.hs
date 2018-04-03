@@ -248,6 +248,6 @@ runRV :: forall m arch exts
          . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
       => Int
       -> m ()
-runRV n = runRV' (knownISet :: InstructionSet arch exts) n
+runRV n = runRV' knownISet n
   where runRV' _ i | i <= 0 = return ()
         runRV' iset i = stepRV iset >> runRV' iset (i-1)

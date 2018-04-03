@@ -79,11 +79,6 @@ encode iset inst = case inst of
         opcodeLens .~ o &
         rdLens     .~ rd &
         imm20JLens .~ imm20
-  Inst opcode EOperands ->
-    case opBitsFromOpcode iset opcode of
-      EOpBits o eBits -> 0 &
-        opcodeLens .~ o &
-        eLens      .~ eBits
   Inst opcode (XOperands illBits) ->
     case opBitsFromOpcode iset opcode of
       XOpBits -> 0 & illegalLens .~ illBits

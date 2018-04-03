@@ -47,27 +47,25 @@ decode iset bv = case decodeFormat bv of
 -- srai/srli and ecall/ebreak into single instructions.
 -- | First, get the format
 decodeFormat :: BitVector 32 -> Some FormatRepr
-decodeFormat bv = case (bv ^. opcodeLens, bv ^. funct3Lens) of
-  (0b0110011, _) -> Some RRepr
-  (0b0111011, _) -> Some RRepr
+decodeFormat bv = case (bv ^. opcodeLens) of
+  0b0110011 -> Some RRepr
+  0b0111011 -> Some RRepr
 
-  (0b1110011, 0b000) -> Some ERepr -- special case.
+  0b1100111 -> Some IRepr
+  0b0000011 -> Some IRepr
+  0b0010011 -> Some IRepr
+  0b0001111 -> Some IRepr
+  0b1110011 -> Some IRepr
+  0b0011011 -> Some IRepr
 
-  (0b1100111, _) -> Some IRepr
-  (0b0000011, _) -> Some IRepr
-  (0b0010011, _) -> Some IRepr
-  (0b0001111, _) -> Some IRepr
-  (0b1110011, _) -> Some IRepr
-  (0b0011011, _) -> Some IRepr
+  0b0100011 -> Some SRepr
 
-  (0b0100011, _) -> Some SRepr
+  0b1100011 -> Some BRepr
 
-  (0b1100011, _) -> Some BRepr
+  0b0110111 -> Some URepr
+  0b0010111 -> Some URepr
 
-  (0b0110111, _) -> Some URepr
-  (0b0010111, _) -> Some URepr
-
-  (0b1101111, _) -> Some JRepr
+  0b1101111 -> Some JRepr
 
   _ ->              Some XRepr
 
@@ -80,7 +78,6 @@ decodeOperands repr bv = case repr of
   BRepr -> BOperands (bv ^. rs1Lens) (bv ^. rs2Lens) (bv ^. imm12BLens)
   URepr -> UOperands (bv ^. rdLens)  (bv ^. imm20ULens)
   JRepr -> JOperands (bv ^. rdLens)  (bv ^. imm20JLens)
-  ERepr -> EOperands
   XRepr -> XOperands (bv ^. illegalLens)
 
 -- | From the format, get the opbits
@@ -92,7 +89,6 @@ decodeOpBits repr bv = case repr of
   BRepr -> BOpBits (bv ^. opcodeLens) (bv ^. funct3Lens)
   URepr -> UOpBits (bv ^. opcodeLens)
   JRepr -> JOpBits (bv ^. opcodeLens)
-  ERepr -> EOpBits (bv ^. opcodeLens) (bv ^. eLens)
   XRepr -> XOpBits
 
 decodeOpcode :: InstructionSet arch exts

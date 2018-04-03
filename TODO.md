@@ -66,11 +66,13 @@ What to do first? Should be fun.
 - Combine Srai/Srli, Ecall/Ebreak into single instructions and remove the 'E'
   format. Modify the decoder to determine the format based only on the opcode
   bits.
-
-- Think about whether it would make sense to tag each *opcode* with BOTH the
-  specific architecture width it belongs to, along with the specific
-  extension. That would not allow us to stick an opcode in the wrong extension.
-
+- If we do tag the opcodes with extensions, it better be Extensions and not
+  Extension (singular). That is, the tag should refer to the execution
+  environment in which the thing is executing, and the only restriction placed
+  on that tag is the minimum extensions required to support the instruction. If
+  we did it this way, we would already know by the constructed instruction set
+  that you couldn't decode an instruction that wasn't supported by the execution
+  environment.
 - Semantics should take into account the fact that rd is hardwired to 0.
 
 

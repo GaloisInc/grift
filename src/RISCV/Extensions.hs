@@ -42,9 +42,6 @@ import RISCV.InstructionSet
 import RISCV.Extensions.Base
 import RISCV.Extensions.M
 
--- TODO: For efficiency purposes, it makes more sense to make separate variables for
--- this function to refer to rather than manually combining the instruction set every
--- time we call it.
 -- | Infer the current instruction set from a context in which the 'BaseArch' and
 -- 'Extensions' are known.
 knownISet :: forall arch exts

@@ -201,7 +201,7 @@ type (*>>) (exts :: Extensions) (e :: Extension)
 -- being the rounding mode). Here, "operand" means "bit vector(s) tied to a
 -- particular input for the instruction's semantics."
 
-data Format = R | I | S | B | U | J | E | X
+data Format = R | I | S | B | U | J | X
 
 -- | A runtime representative for 'Format' for dependent typing.
 data FormatRepr :: Format -> * where
@@ -211,7 +211,6 @@ data FormatRepr :: Format -> * where
   BRepr :: FormatRepr 'B
   URepr :: FormatRepr 'U
   JRepr :: FormatRepr 'J
-  ERepr :: FormatRepr 'E
   XRepr :: FormatRepr 'X
 
 -- Instances
@@ -231,7 +230,6 @@ instance KnownRepr FormatRepr 'S where knownRepr = SRepr
 instance KnownRepr FormatRepr 'B where knownRepr = BRepr
 instance KnownRepr FormatRepr 'U where knownRepr = URepr
 instance KnownRepr FormatRepr 'J where knownRepr = JRepr
-instance KnownRepr FormatRepr 'E where knownRepr = ERepr
 instance KnownRepr FormatRepr 'X where knownRepr = XRepr
 
 ----------------------------------------
@@ -247,7 +245,6 @@ data Operands :: Format -> * where
   BOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands 'B
   UOperands :: BitVector 5 -> BitVector 20                 -> Operands 'U
   JOperands :: BitVector 5 -> BitVector 20                 -> Operands 'J
-  EOperands ::                                                Operands 'E
   XOperands :: BitVector 32                                -> Operands 'X
 
 -- Instances
@@ -304,15 +301,7 @@ data Opcode :: BaseArch -> Format -> * where
   -- TODO: We need to decide whether to make the shifts a separate format from I/R or
   -- to just combine Srli and Srai into a single instruction.
   Slli    :: Opcode arch 'I
-  Srli    :: Opcode arch 'I
-  Srai    :: Opcode arch 'I
-  -- TODO: Fence and FenceI are both slightly wonky; we might need to separate them
-  -- out into separate formats like we did with Ecall and Ebreak. Fence uses the
-  -- immediate bits to encode additional operands and FenceI requires them to be 0,
-  -- so ideally we'd capture that in the type. It's still possible to fit them into
-  -- the I format for now, but it's actually the case (just like with shifts) only
-  -- certain operands are allowed (in the case of Fence.i, all the operands *must* be
-  -- 0).
+  Sri     :: Opcode arch 'I -- ^ srai and srli combined
   Fence   :: Opcode arch 'I
   FenceI  :: Opcode arch 'I
   Csrrw   :: Opcode arch 'I
@@ -327,8 +316,8 @@ data Opcode :: BaseArch -> Format -> * where
   -- TODO: We need to decide whether to make the shifts a separate format from I/R or
   -- to just combine Srli and Srai into a single instruction.
   Slliw   :: arch >> 'RV64I => Opcode arch 'I
-  Srliw   :: arch >> 'RV64I => Opcode arch 'I
-  Sraiw   :: arch >> 'RV64I => Opcode arch 'I
+  Sriw    :: arch >> 'RV64I => Opcode arch 'I -- ^ sraiw and srliw combined
+  Ecb     :: Opcode arch 'I -- ^ ecall and ebreak combined
 
   -- S type
   Sb :: Opcode arch 'S
@@ -351,9 +340,6 @@ data Opcode :: BaseArch -> Format -> * where
   -- J type
   Jal :: Opcode arch 'J -- RV32I
 
-  -- E type
-  Ecall   :: Opcode arch 'E -- RV32I
-  Ebreak  :: Opcode arch 'E
 
   -- X type (illegal instruction)
   Illegal :: Opcode arch 'X -- RV32I
@@ -397,7 +383,6 @@ data OpBits :: Format -> * where
   BOpBits :: BitVector 7 -> BitVector 3                -> OpBits 'B
   UOpBits :: BitVector 7                               -> OpBits 'U
   JOpBits :: BitVector 7                               -> OpBits 'J
-  EOpBits :: BitVector 7 -> BitVector 25               -> OpBits 'E
   XOpBits ::                                              OpBits 'X
 
 -- Instances

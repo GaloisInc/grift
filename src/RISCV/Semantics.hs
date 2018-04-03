@@ -558,7 +558,6 @@ type family FormatParams (arch :: BaseArch) (fmt :: Format) :: * where
   FormatParams arch 'B = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
   FormatParams arch 'U = (BVExpr arch 5, BVExpr arch 20)
   FormatParams arch 'J = (BVExpr arch 5, BVExpr arch 20)
-  FormatParams arch 'E = ()
   FormatParams arch 'X = (BVExpr arch 32)
 
 params' :: FormatRepr fmt

@@ -71,10 +71,10 @@ baseEncode = Map.fromList
   , Pair Ori    (IOpBits 0b0010011 0b110)
   , Pair Andi   (IOpBits 0b0010011 0b111)
   , Pair Slli   (IOpBits 0b0010011 0b001)
-  , Pair Srli   (IOpBits 0b0010011 0b101)
-  , Pair Srai   (IOpBits 0b0010011 0b101)
+  , Pair Sri    (IOpBits 0b0010011 0b101)
   , Pair Fence  (IOpBits 0b0001111 0b000)
   , Pair FenceI (IOpBits 0b0001111 0b001)
+  , Pair Ecb    (IOpBits 0b1110011 0b000)
   , Pair Csrrw  (IOpBits 0b1110011 0b001)
   , Pair Csrrs  (IOpBits 0b1110011 0b010)
   , Pair Csrrc  (IOpBits 0b1110011 0b011)
@@ -101,10 +101,6 @@ baseEncode = Map.fromList
 
   -- J type
   , Pair Jal (JOpBits 0b1101111)
-
-  -- E type
-  , Pair Ecall  (EOpBits 0b1110011 0b0000000000000000000000000)
-  , Pair Ebreak (EOpBits 0b1110011 0b0000000000010000000000000)
 
   -- X type
   , Pair Illegal XOpBits
@@ -243,17 +239,38 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       iOp sllE
-  , Pair Srli $ getFormula $ do
+    -- TODO: Need to fix semantics here. When imm10 = 0, we do a logical shift, and
+    -- when it's 1 we do an arithmetic shift. We should also check that the other
+    -- bits are 0, but that depends on architecture width, so.... yuck.
+  , Pair Sri $ getFormula $ do
       comment "Shifts register x[rs1] right by shamt bit positions."
-      comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
-
-      iOp srlE
-  , Pair Srai $ getFormula $ do
-      comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
-      iOp sllE
+      -- This is a special case of the I format. We need to mask out 5, 6, or 7 bits
+      -- of the immediate operand to get the shift amount. Furthermore, we need to
+      -- case split on imm10 to determine whether the shift is logical or
+      -- arithmetic. Finally, we need to ensure that the other bits are 0. We will
+      -- need access to the architecture width via the BVExpr type, which
+      -- is... tricky. It might make sense to define another type family,
+      -- LogArchWidth, which returns 5 for 32, 6 fo 64, and 7 for 128. That way, we
+      -- could modify the signature of SllE, SrlE, and SraE so that the shift amount
+      -- is BVExpr arch (LogArchWidth arch) instead of w. That might allow us to
+      -- extract the correct number of bits. However, we'd still need to do something
+      -- wonky to ensure that the other bits were 0. Checking imm11 == 0 is simple,
+      -- but for the other ones, perhaps we could zero-extend the shift amount (which
+      -- is 5, 6, or 7 bits) to 10 bits and check that it was equal to the original
+      -- immediate[9:0]. That would be disgusting, but it might be the best
+      -- solution.
+
+      return ()
+
+  -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
+  -- EnvironmentBreak exception.
+  , Pair Ecb $ getFormula $ do
+      comment "Makes a request of the execution environment or the debugger."
+
+      raiseException EnvironmentCall
 
   -- TODO: Fence/csr instructions.
   -- , Pair Fence   undefined
@@ -351,16 +368,6 @@ baseSemantics = Map.fromList
       assignReg rd incr_pc
       assignPC pc_offset
 
-  -- E type
-  , Pair Ecall $ getFormula $ do
-      comment "Makes a request of the execution environment by raising an Environment Call exception."
-
-      raiseException EnvironmentCall
-  , Pair Ebreak $ getFormula $ do
-      comment "Makes a request of the debugger by reaising a Breakpoint exception."
-
-      raiseException Breakpoint
-
   -- X type
   , Pair Illegal $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
@@ -376,8 +383,7 @@ base64Encode = Map.fromList
   , Pair Ld    (IOpBits 0b0000011 0b011)
   , Pair Addiw (IOpBits 0b0011011 0b000)
   , Pair Slliw (IOpBits 0b0011011 0b001)
-  , Pair Srliw (IOpBits 0b0011011 0b101) -- TODO same encodings
-  , Pair Sraiw (IOpBits 0b0011011 0b101)
+  , Pair Sriw  (IOpBits 0b0011011 0b101)
   , Pair Sd    (SOpBits 0b0100011 0b011)
   ]
 
@@ -438,28 +444,12 @@ base64Semantics = Map.fromList
 
         res <- sextE a'
         return res
-  , Pair Srliw $ getFormula $ do
-      comment "Shifts register x[rs1] right logically by shamt bit positions."
+  , Pair Sriw $ getFormula $ do
+      comment "Shifts register x[rs1] right logically/arithmetically by shamt bit positions."
       comment "Truncates the result to 32 bits."
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
-      iOp $ \e1 e2 -> do
-        a  <- e1 `srlE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
-
-        res <- sextE a'
-        return res
-  , Pair Slliw $ getFormula $ do
-      comment "Shifts register x[rs1] right arithmetically by shamt bit positions."
-      comment "Truncates the result to 32 bits."
-      comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
-
-      iOp $ \e1 e2 -> do
-        a  <- e1 `sraE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
-
-        res <- sextE a'
-        return res
+      return () -- see comment for Sri.
   , Pair Sd $ getFormula $ do
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
