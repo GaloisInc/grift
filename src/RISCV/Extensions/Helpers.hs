@@ -81,6 +81,7 @@ rOp32 op = do
   assignReg rd res
   incrPC
 
+-- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
 iOp :: KnownArch arch => ArithOp arch 'I (ArchWidth arch) -> FormulaBuilder arch 'I ()
 iOp op = do
   (rd, rs1, imm12) <- params

@@ -248,34 +248,45 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
-      -- This is a special case of the I format. We need to mask out 5, 6, or 7 bits
-      -- of the immediate operand to get the shift amount. Furthermore, we need to
-      -- case split on imm10 to determine whether the shift is logical or
-      -- arithmetic. Finally, we need to ensure that the other bits are 0. We will
-      -- need access to the architecture width via the BVExpr type, which
-      -- is... tricky. It might make sense to define another type family,
-      -- LogArchWidth, which returns 5 for 32, 6 fo 64, and 7 for 128. That way, we
-      -- could modify the signature of SllE, SrlE, and SraE so that the shift amount
-      -- is BVExpr arch (LogArchWidth arch) instead of w. That might allow us to
-      -- extract the correct number of bits. However, we'd still need to do something
-      -- wonky to ensure that the other bits were 0. Checking imm11 == 0 is simple,
-      -- but for the other ones, perhaps we could zero-extend the shift amount (which
-      -- is 5, 6, or 7 bits) to 10 bits and check that it was equal to the original
-      -- immediate[9:0]. That would be disgusting, but it might be the best
-      -- solution.
+      (rd, rs1, imm12) <- params
 
-      return ()
+      x_rs1 <- regRead rs1
+      -- Extract the LS 7 bits from the immediate.
+      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+      -- Extract the HS 5 bits from the immediate.
+      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+
+      -- The control bits determine if the shift is arithmetic or logical.
+      lShift <- ctrl `eqE` litBV 0b00000
+      aShift <- ctrl `eqE` litBV 0b01000
+
+      -- Conditionally throw an exception if the shift control bits are invalid.
+      shiftTypeOK <- lShift `orE` aShift
+      illShiftType <- notE shiftTypeOK
+      raiseException illShiftType IllegalInstruction
+
+      -- Conditionally throw an exception if the shift amount is too large.
+      zext_shamt <- zextE shamt
+      shamtOK <- zext_shamt `ltuE` xlen
+      illShiftAmount <- notE shamtOK
+      raiseException illShiftAmount IllegalInstruction
+
+      x_rs1_l <- srlE x_rs1 zext_shamt
+      x_rs1_r <- sraE x_rs1 zext_shamt
+      result <- iteE lShift x_rs1_l x_rs1_r
+      assignReg rd result
+      incrPC
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
   -- EnvironmentBreak exception.
   , Pair Ecb $ getFormula $ do
       comment "Makes a request of the execution environment or the debugger."
 
-      raiseException EnvironmentCall
+      raiseException (LitBV 0b1) EnvironmentCall
 
   -- TODO: Fence/csr instructions.
   -- , Pair Fence   undefined
-  -- , Pair FenceI undefined
+  -- , Pair FenceI  undefined
   -- , Pair Csrrw   undefined
   -- , Pair Csrrs   undefined
   -- , Pair Csrrc   undefined
@@ -373,9 +384,7 @@ baseSemantics = Map.fromList
   , Pair Illegal $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
 
-      bits <- params
-
-      raiseException (IllegalInstruction bits)
+      raiseException (LitBV 0b1) IllegalInstruction
   ]
 
 base64Encode :: arch >> RV64I => EncodeMap arch
@@ -452,7 +461,37 @@ base64Semantics = Map.fromList
       comment "Truncates the result to 32 bits."
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
-      return () -- see comment for Sri.
+      (rd, rs1, imm12) <- params
+
+      x_rs1' <- regRead rs1
+      x_rs1 <- extractEWithRepr (knownNat :: NatRepr 32) 0 x_rs1'
+      -- Extract the LS 7 bits from the immediate.
+      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+      -- Extract the HS 5 bits from the immediate.
+      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+
+      -- The control bits determine if the shift is arithmetic or logical.
+      lShift <- ctrl `eqE` litBV 0b00000
+      aShift <- ctrl `eqE` litBV 0b01000
+
+      -- Conditionally throw an exception if the shift control bits are invalid.
+      shiftTypeOK <- lShift `orE` aShift
+      illShiftType <- notE shiftTypeOK
+      raiseException illShiftType IllegalInstruction
+
+      -- Conditionally throw an exception if the shift amount is too large.
+      zext_shamt <- zextE shamt
+      xlen' <- extractEWithRepr (knownNat :: NatRepr 32) 0 xlen
+      shamtOK <- zext_shamt `ltuE` xlen'
+      illShiftAmount <- notE shamtOK
+      raiseException illShiftAmount IllegalInstruction
+
+      x_rs1_l <- srlE x_rs1 zext_shamt
+      x_rs1_r <- sraE x_rs1 zext_shamt
+      result' <- iteE lShift x_rs1_l x_rs1_r
+      result <- sextE result'
+      assignReg rd result
+      incrPC
   , Pair Sd $ getFormula $ do
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."

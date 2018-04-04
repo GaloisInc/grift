@@ -64,6 +64,7 @@ module RISCV.Semantics
   , regRead
   , memRead
   , memReadWithRepr
+  , xlen
   -- ** Bitwise
   , andE
   , orE
@@ -192,6 +193,8 @@ data BVExpr (arch :: BaseArch) (w :: Nat) where
   MemRead :: NatRepr bytes
           -> BVExpr arch (ArchWidth arch)
           -> BVExpr arch (8*bytes)
+  -- | This is temporary; when we have CSRs this will change.
+  XLen :: BVExpr arch (ArchWidth arch)
 
   -- Bitwise operations
   AndE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -267,9 +270,9 @@ instance Show (BVExpr arch w) where
 instance ShowF (BVExpr arch)
 
 -- | Runtime exception.
-data Exception arch = EnvironmentCall
-                    | Breakpoint
-                    | IllegalInstruction (BVExpr arch 32)
+data Exception = EnvironmentCall
+               | Breakpoint
+               | IllegalInstruction
   deriving (Show)
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
@@ -282,7 +285,7 @@ data Stmt (arch :: BaseArch) where
             -> BVExpr arch (8*bytes)
             -> Stmt arch
   AssignPC  :: BVExpr arch (ArchWidth arch) -> Stmt arch
-  RaiseException :: Exception arch -> Stmt arch
+  RaiseException :: BVExpr arch 1 -> Exception -> Stmt arch
 
 instance Show (Stmt arch) where
   show (AssignReg r e) = "x[" ++ show r ++ "]' = " ++ show e
@@ -290,7 +293,7 @@ instance Show (Stmt arch) where
   -- be inferrable from the right-hand side?
   show (AssignMem _ addr e) = "M[" ++ show addr ++ "]' = " ++ show e
   show (AssignPC pc) = "pc' = " ++ show pc
-  show (RaiseException e) = "RaiseException(" ++ show e ++ ")"
+  show (RaiseException cond e) = "if " ++ show cond ++ " then RaiseException(" ++ show e ++ ")"
 
 -- TODO: OperandParamize Formula and FormulaBuilder by instruction format. Have
 -- special-purpose param functions for each format, that return the parameters as a
@@ -344,6 +347,10 @@ newtype FormulaBuilder arch (fmt :: Format) a =
             Monad,
             MonadState (Formula arch fmt))
 
+-- TODO: Not all of these need to be in FormulaBuilder, right? Maybe change these
+-- functions to return pure BVExprs when I can, or just remove them altogether and go
+-- with the BVExpr constructors.
+
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt
 getFormula = flip execState emptyFormula . unFormulaBuilder
@@ -379,6 +386,10 @@ memReadWithRepr :: NatRepr bytes
                 -> BVExpr arch (ArchWidth arch)
                 -> FormulaBuilder arch fmt (BVExpr arch (8*bytes))
 memReadWithRepr bRepr addr = return (MemRead bRepr addr)
+
+-- | Get XLEN.
+xlen :: BVExpr arch (ArchWidth arch)
+xlen = XLen
 
 -- | Bitwise and.
 andE :: BVExpr arch w
@@ -553,9 +564,9 @@ assignMemWithRepr bRepr addr val = addStmt (AssignMem bRepr addr val)
 assignPC :: BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()
 assignPC pc = addStmt (AssignPC pc)
 
--- | Raise an exception.
-raiseException :: Exception arch -> FormulaBuilder arch fmt ()
-raiseException e = addStmt (RaiseException e)
+-- | Conditionally raise an exception.
+raiseException :: BVExpr arch 1 -> Exception -> FormulaBuilder arch fmt ()
+raiseException cond e = addStmt (RaiseException cond e)
 
 -- | Maps each format to the parameter types for its operands.
 -- We include an extra parameter indicating the size of the instruction word for pc

@@ -29,7 +29,7 @@ module RISCV.Simulation
   ) where
 
 import Control.Lens ( (^.) )
-import Control.Monad ( forM_ )
+import Control.Monad ( forM_, when )
 import Data.BitVector.Sized
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
@@ -70,7 +70,7 @@ class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts wh
          -> BitVector (8*bytes)
          -> m ()
 
-  throwException :: Exception arch -> m ()
+  throwException :: Exception -> m ()
   isHalted :: m Bool
 
 -- | Evaluate a parameter's value from an 'Operands'.
@@ -98,7 +98,8 @@ evalParam oidRepr operands = error $
   "No operand " ++ show oidRepr ++ " in operands " ++ show operands
 
 -- | Evaluate a 'BVExpr', given an 'RVState' implementation.
-evalExpr :: (RVState m arch exts, KnownArch arch)
+evalExpr :: forall m arch exts fmt w
+            . (RVState m arch exts, KnownArch arch)
          => Operands fmt    -- ^ Operands
          -> Integer         -- ^ Instruction width (in bytes)
          -> BVExpr arch w   -- ^ Expression to be evaluated
@@ -106,6 +107,7 @@ evalExpr :: (RVState m arch exts, KnownArch arch)
 evalExpr _ _ (LitBV bv) = return bv
 evalExpr operands _ (ParamBV p) = return (evalParam p operands)
 evalExpr _ _ PCRead = getPC
+evalExpr _ _ XLen = return $ bitVector $ natValue (knownRepr :: NatRepr (ArchWidth arch))
 evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr operands ib (RegRead ridE) =
   evalExpr operands ib ridE >>= getReg
@@ -217,12 +219,9 @@ execStmt operands ib (AssignPC pcE) = do
   pcVal <- evalExpr operands ib pcE
   setPC pcVal
 -- TODO: How do we want to throw exceptions?
-execStmt operands ib (RaiseException e@(IllegalInstruction ill)) = do
-  illVal <- evalExpr operands ib ill
-  traceM (show illVal)
-  throwException e
-execStmt _ _ (RaiseException e) = do
-  throwException e
+execStmt operands ib (RaiseException cond e) = do
+  condVal <- evalExpr operands ib cond
+  when (condVal == 1) $ throwException e
 
 -- | Execute a formula, given an 'RVState' implementation. This function represents
 -- the "execute" state in a fetch\/decode\/execute sequence.
