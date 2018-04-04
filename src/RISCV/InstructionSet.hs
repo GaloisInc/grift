@@ -41,6 +41,7 @@ import Data.Parameterized.Map (MapF)
 
 import RISCV.Instruction
 import RISCV.Semantics
+import RISCV.Types
 
 -- | Instruction encoding, mapping each opcode to its associated 'OpBits', the bits
 -- it fixes in an instruction word.
@@ -84,7 +85,7 @@ opBitsFromOpcode is opcode = case Map.lookup opcode (isEncodeMap is) of
                  " does not have corresponding OpBits defined."
 
 -- | Given an instruction set, obtain the opcode from its fixed bits (decoding)
-opcodeFromOpBits :: InstructionSet arch exts -> OpBits fmt -> Either (Opcode arch 'X) (Opcode arch fmt)
+opcodeFromOpBits :: InstructionSet arch exts -> OpBits fmt -> Either (Opcode arch X) (Opcode arch fmt)
 opcodeFromOpBits is opBits =
   maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
 

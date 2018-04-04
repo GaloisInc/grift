@@ -21,5 +21,18 @@ Tool for simulating RISC-V programs in the ELF executable format.
 
 module Main where
 
+import Control.Monad
+import Control.Monad.ST
+import System.Environment
+
+import RISCV.Simulation
+import RISCV.Simulation.STMachine
+import RISCV.Types
+
 main :: IO ()
-main = return ()
+main = do
+  args <- getArgs
+  when (length args < 1) $ error "please supply a RISC-V program in raw byte format"
+
+  
+  return ()

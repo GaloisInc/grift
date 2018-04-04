@@ -29,17 +29,18 @@ import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 
+import RISCV.Extensions.Helpers
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
-import RISCV.Extensions.Helpers
+import RISCV.Types
 
 -- | RV32I/E base instruction set.
 base32 :: KnownArch arch => InstructionSet arch exts
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 :: (KnownArch arch, arch >> 'RV64I) => InstructionSet arch exts
+base64 :: (KnownArch arch, arch >> RV64I) => InstructionSet arch exts
 base64 = base32 <> instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap arch
@@ -375,7 +376,7 @@ baseSemantics = Map.fromList
       raiseException IllegalInstruction
   ]
 
-base64Encode :: arch >> 'RV64I => EncodeMap arch
+base64Encode :: arch >> RV64I => EncodeMap arch
 base64Encode = Map.fromList
   [ Pair Addw  (ROpBits 0b0111011 0b000 0b0000000)
   , Pair Subw  (ROpBits 0b0111011 0b000 0b0100000)
@@ -387,7 +388,7 @@ base64Encode = Map.fromList
   , Pair Sd    (SOpBits 0b0100011 0b011)
   ]
 
-base64Semantics :: (KnownArch arch, arch >> 'RV64I) => SemanticsMap arch
+base64Semantics :: (KnownArch arch, arch >> RV64I) => SemanticsMap arch
 base64Semantics = Map.fromList
   [ Pair Addw $ getFormula $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."

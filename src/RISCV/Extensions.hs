@@ -37,10 +37,10 @@ module RISCV.Extensions
 import Data.Monoid
 import Data.Parameterized
 
-import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Extensions.Base
 import RISCV.Extensions.M
+import RISCV.Types
 
 -- | Infer the current instruction set from a context in which the 'BaseArch' and
 -- 'Extensions' are known.

@@ -10,6 +10,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 {-|
 Module      : RISCV.Semantics
@@ -111,27 +112,35 @@ import           Data.Sequence (Seq)
 import GHC.TypeLits
 
 import RISCV.Instruction
+import RISCV.Types
 
 -- | Operand identifiers.
 data OperandID = Rd | Rs1 | Rs2 | Imm12 | Imm20 | Imm32
 
+type Rd    = 'Rd
+type Rs1   = 'Rs1
+type Rs2   = 'Rs2
+type Imm12 = 'Imm12
+type Imm20 = 'Imm20
+type Imm32 = 'Imm32
+
 -- | Type-level representative for 'OperandID'.
 data OperandIDRepr :: OperandID -> * where
-  RdRepr    :: OperandIDRepr 'Rd
-  Rs1Repr   :: OperandIDRepr 'Rs1
-  Rs2Repr   :: OperandIDRepr 'Rs2
-  Imm12Repr :: OperandIDRepr 'Imm12
-  Imm20Repr :: OperandIDRepr 'Imm20
-  Imm32Repr :: OperandIDRepr 'Imm32
+  RdRepr    :: OperandIDRepr Rd
+  Rs1Repr   :: OperandIDRepr Rs1
+  Rs2Repr   :: OperandIDRepr Rs2
+  Imm12Repr :: OperandIDRepr Imm12
+  Imm20Repr :: OperandIDRepr Imm20
+  Imm32Repr :: OperandIDRepr Imm32
 
 -- | Maps an 'OperandID' to its length as a 'BitVector'.
 type family OperandIDWidth (oi :: OperandID) :: Nat where
-  OperandIDWidth 'Rd    = 5
-  OperandIDWidth 'Rs1   = 5
-  OperandIDWidth 'Rs2   = 5
-  OperandIDWidth 'Imm12 = 12
-  OperandIDWidth 'Imm20 = 20
-  OperandIDWidth 'Imm32 = 32
+  OperandIDWidth Rd    = 5
+  OperandIDWidth Rs1   = 5
+  OperandIDWidth Rs2   = 5
+  OperandIDWidth Imm12 = 12
+  OperandIDWidth Imm20 = 20
+  OperandIDWidth Imm32 = 32
 
 -- Instances
 $(return [])
@@ -151,12 +160,12 @@ instance TestEquality OperandIDRepr where
   testEquality = $(structuralTypeEquality [t|OperandIDRepr|] [])
 instance OrdF OperandIDRepr where
   compareF = $(structuralTypeOrd [t|OperandIDRepr|] [])
-instance KnownRepr OperandIDRepr 'Rd    where knownRepr = RdRepr
-instance KnownRepr OperandIDRepr 'Rs1   where knownRepr = Rs1Repr
-instance KnownRepr OperandIDRepr 'Rs2   where knownRepr = Rs2Repr
-instance KnownRepr OperandIDRepr 'Imm12 where knownRepr = Imm12Repr
-instance KnownRepr OperandIDRepr 'Imm20 where knownRepr = Imm20Repr
-instance KnownRepr OperandIDRepr 'Imm32 where knownRepr = Imm32Repr
+instance KnownRepr OperandIDRepr Rd    where knownRepr = RdRepr
+instance KnownRepr OperandIDRepr Rs1   where knownRepr = Rs1Repr
+instance KnownRepr OperandIDRepr Rs2   where knownRepr = Rs2Repr
+instance KnownRepr OperandIDRepr Imm12 where knownRepr = Imm12Repr
+instance KnownRepr OperandIDRepr Imm20 where knownRepr = Imm20Repr
+instance KnownRepr OperandIDRepr Imm32 where knownRepr = Imm32Repr
 
 ----------------------------------------
 -- Expressions, statements, and formulas
@@ -552,13 +561,13 @@ raiseException e = addStmt (RaiseException e)
 -- We include an extra parameter indicating the size of the instruction word for pc
 -- incrementing.
 type family FormatParams (arch :: BaseArch) (fmt :: Format) :: * where
-  FormatParams arch 'R = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 5)
-  FormatParams arch 'I = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
-  FormatParams arch 'S = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
-  FormatParams arch 'B = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
-  FormatParams arch 'U = (BVExpr arch 5, BVExpr arch 20)
-  FormatParams arch 'J = (BVExpr arch 5, BVExpr arch 20)
-  FormatParams arch 'X = (BVExpr arch 32)
+  FormatParams arch R = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 5)
+  FormatParams arch I = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
+  FormatParams arch S = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
+  FormatParams arch B = (BVExpr arch 5, BVExpr arch 5, BVExpr arch 12)
+  FormatParams arch U = (BVExpr arch 5, BVExpr arch 20)
+  FormatParams arch J = (BVExpr arch 5, BVExpr arch 20)
+  FormatParams arch X = (BVExpr arch 32)
 
 params' :: FormatRepr fmt
         -> FormulaBuilder arch fmt (FormatParams arch fmt)

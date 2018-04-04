@@ -2,29 +2,27 @@
 
 Summary of pending tasks and things to think about.
 
+## Decoding and encoding
+
+Right now, the decoding and encoding are very nice, but purely
+operational/functional. I am considering a more denotational style in correspondence
+with my semantics representation. The decoding itself is actually a part of the
+semantics. It would be incredibly cool to capture the entire fetch/decode/execute
+process in a purely denotational way. Right now I have a denotational representation
+for execution of each instruction, and I could easily imagine doing the same for
+instruction fetch. But decoding is not currently captured in this way, and I imagine
+it could be useful to do so.
+
 ## Compressed instructions
 
-The manual describes the RV32C extension as a simple embedding of 16-bit vectors
-into 32-bit ones. Therefore, we should be able to create a separate module,
-called ExtC (or maybe just Compress), that exports two additional functions,
-decodeC and encodeC of the following signatures:
+I can pretty easily add support for the C extension operationally, albeit in a
+somewhat more ad-hoc way than the very nice encoding/decoding style I'm using for the
+base ISA.
 
-decodeC :: BitVector 16 -> Maybe (BitVector 32)
-encodeC :: BitVector 32 -> Maybe (BitVector 16)
-
-decodeC returns Nothing if the 16-bit word is not a compressed instruction;
-encodeC returns Nothing if the 32-bit word is not compressable. Then, our
-encode/decode functions could take a single Bool flag indicating whether or not
-compression is enabled; if it is, first call these functions to encode/decode.
-
-It would be nice if there were a way to encode the mapping from 16-bit to 32-bit
-in a similar style that I was able to do so for the 32-bit to the semantics, but
-I don't think it's going to as simple as that because we're using entirely
-different opcodes in the two cases. The operands may be, though. Might make
-sense to create an entirely new 'OpBits' type, or at least new
-constructors, and do the decoding in a similar style to keep things
-consistent. I could create a concrete association list linking the compressed
-OpBits to the uncompressed.
+However, I'm considering holding off on implementing this until I determine whether
+it would be useful to capture the decoding in a more declarative style. If I were to
+do that, I would want to skip the operational style-encoding for C entirely, and just
+do a denotational approach.
 
 ## Privileged architecture
 
@@ -55,7 +53,8 @@ serializing instructions to assembly format.
 ## Disassembler
 
 Already have a mockup of a disassembler for the ELF format. After I finish the
-assembler, I will work on 
+assembler, I will work on this, just as part of the tool suite to go along with the
+library.
 
 ## Exporting to other formats
 

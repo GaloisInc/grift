@@ -39,6 +39,7 @@ import RISCV.Extensions
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
+import RISCV.Types
 
 -- TODO: maybe make a constructor in this class somehow...? That would allow us to
 -- compute the instruction set once and for all so we don't have to rebuild it every

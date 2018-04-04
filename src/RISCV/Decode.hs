@@ -30,6 +30,7 @@ import Data.Parameterized
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Instruction.Layouts
+import RISCV.Types
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
 -- have to hide the format parameter of the return type with 'Some'.
@@ -94,5 +95,5 @@ decodeOpBits repr bv = case repr of
 decodeOpcode :: InstructionSet arch exts
              -> FormatRepr fmt
              -> BitVector 32
-             -> Either (Opcode arch 'X) (Opcode arch fmt)
+             -> Either (Opcode arch X) (Opcode arch fmt)
 decodeOpcode iset repr bv = opcodeFromOpBits iset (decodeOpBits repr bv)

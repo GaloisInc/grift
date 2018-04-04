@@ -25,17 +25,18 @@ import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 
+import RISCV.Extensions.Helpers
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
-import RISCV.Extensions.Helpers
+import RISCV.Types
 
 -- | M extension (RV32)
-m32 :: (KnownArch arch, exts *>> 'M) => InstructionSet arch exts
+m32 :: (KnownArch arch, exts *>> M) => InstructionSet arch exts
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownArch arch, arch >> 'RV64I, exts *>> 'M) => InstructionSet arch exts
+m64 :: (KnownArch arch, arch >> RV64I, exts *>> M) => InstructionSet arch exts
 m64 = m32 <> instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch
@@ -50,7 +51,7 @@ mEncode = Map.fromList
   , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
   ]
 
-m64Encode :: arch >> 'RV64I => EncodeMap arch
+m64Encode :: arch >> RV64I => EncodeMap arch
 m64Encode = Map.fromList
   [ Pair Mulw  (ROpBits 0b0111011 0b000 0b0000001)
   , Pair Divw  (ROpBits 0b0111011 0b100 0b0000001)
@@ -149,7 +150,7 @@ mSemantics = Map.fromList
 
   ]
 
-m64Semantics :: (KnownArch arch, arch >> 'RV64I) => SemanticsMap arch
+m64Semantics :: (KnownArch arch, arch >> RV64I) => SemanticsMap arch
 m64Semantics = Map.fromList
   [ Pair Mulw $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."

@@ -35,6 +35,7 @@ import GHC.TypeLits
 
 import RISCV.Instruction
 import RISCV.Semantics
+import RISCV.Types
 
 -- | Increment the PC
 incrPC :: KnownArch arch => FormulaBuilder arch fmt ()
