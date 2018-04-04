@@ -373,7 +373,9 @@ baseSemantics = Map.fromList
   , Pair Illegal $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
 
-      raiseException IllegalInstruction
+      bits <- params
+
+      raiseException (IllegalInstruction bits)
   ]
 
 base64Encode :: arch >> RV64I => EncodeMap arch

@@ -25,6 +25,7 @@ unspecified.
 module RISCV.Simulation.STMachine
   ( STMachine(..)
   , mkSTMachine
+  , execSTMachine
   , STMachineM(..)
   ) where
 
@@ -39,6 +40,7 @@ import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.Parameterized
 import           Data.STRef
+import           GHC.TypeLits
 
 import RISCV.Simulation
 import RISCV.Types
@@ -52,17 +54,8 @@ data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
   , stRegisters :: STArray s (BitVector 5) (BitVector (ArchWidth arch))
   , stMemory    :: STArray s (BitVector (ArchWidth arch)) (BitVector 8)
   , stMaxAddr   :: BitVector (ArchWidth arch)
+  , stHalted    :: STRef s Bool
   }
-
--- | Construct an STMachine with a given maximum address.
-mkSTMachine :: (KnownArch arch, KnownExtensions exts)
-            => BitVector (ArchWidth arch)
-            -> ST s (STMachine s arch exts)
-mkSTMachine maxAddr = do
-  pc        <- newSTRef 0
-  registers <- newArray (1, 31) 0
-  memory    <- newArray (0, maxAddr) 0
-  return (STMachine pc registers memory maxAddr)
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> STArray s i (BitVector 8) -> ST s ()
 writeBS ix bs arr = do
@@ -71,6 +64,40 @@ writeBS ix bs arr = do
     _    -> do
       writeArray arr ix (fromIntegral (BS.head bs))
       writeBS (ix+1) (BS.tail bs) arr
+
+-- | Construct an STMachine with a given maximum address and program.
+mkSTMachine :: KnownNat (ArchWidth arch)
+            => BaseArchRepr arch
+            -> ExtensionsRepr exts
+            -> BitVector (ArchWidth arch)
+            -> BS.ByteString
+            -> ST s (STMachine s arch exts)
+mkSTMachine _ _ maxAddr progBytes = do
+  pc        <- newSTRef 0
+  registers <- newArray (1, 31) 0
+  memory    <- newArray (0, maxAddr) 0
+  halted    <- newSTRef False
+
+  writeBS 0 progBytes memory
+  return (STMachine pc registers memory maxAddr halted)
+
+-- | Run a STMachineM transformation on an initial state and return the result
+execSTMachine :: (KnownArch arch, KnownExtensions exts)
+              => STMachineM s arch exts ()
+              -> STMachine s arch exts
+              -> ST s ( BitVector (ArchWidth arch)
+                      , Array (BitVector 5) (BitVector (ArchWidth arch))
+                      , Array (BitVector (ArchWidth arch)) (BitVector 8)
+                      )
+execSTMachine action m = do
+  (stPC', stRegisters', stMemory') <- flip runReaderT m $ runSTMachineM $ do
+    action
+    m' <- R.ask
+    return (stPC m', stRegisters m', stMemory m')
+  pc <- readSTRef stPC'
+  registers <- freeze stRegisters'
+  memory <- freeze stMemory'
+  return (pc, registers, memory)
 
 -- | The 'STMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -99,6 +126,7 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
   setPC pcVal = STMachineM $ do
     pcRef <- stPC <$> ask
     lift $ writeSTRef pcRef pcVal
+  setReg 0 _ = return ()
   setReg rid regVal = STMachineM $ do
     regArray <- stRegisters <$> ask
     lift $ writeArray regArray rid regVal
@@ -108,3 +136,11 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
         writes   = zip [ addr .. addr + (bitVector numBytes) - 1] (bvGetBytesU (fromIntegral numBytes) bv)
     memArray <- stMemory <$> ask
     forM_ writes (lift . uncurry (writeArray memArray))
+
+  throwException _ = STMachineM $ do
+    haltedRef <- stHalted <$> ask
+    lift $ writeSTRef haltedRef True
+
+  isHalted = STMachineM $ do
+    haltedRef <- stHalted <$> ask
+    lift $ readSTRef haltedRef

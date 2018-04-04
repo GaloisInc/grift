@@ -41,6 +41,8 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
+import Debug.Trace (traceM)
+
 -- TODO: maybe make a constructor in this class somehow...? That would allow us to
 -- compute the instruction set once and for all so we don't have to rebuild it every
 -- time we step the machine.
@@ -67,6 +69,9 @@ class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts wh
          -> BitVector (ArchWidth arch)
          -> BitVector (8*bytes)
          -> m ()
+
+  throwException :: Exception arch -> m ()
+  isHalted :: m Bool
 
 -- | Evaluate a parameter's value from an 'Operands'.
 evalParam :: OperandParam arch oid
@@ -212,7 +217,12 @@ execStmt operands ib (AssignPC pcE) = do
   pcVal <- evalExpr operands ib pcE
   setPC pcVal
 -- TODO: How do we want to throw exceptions?
-execStmt _ _ _ = undefined
+execStmt operands ib (RaiseException e@(IllegalInstruction ill)) = do
+  illVal <- evalExpr operands ib ill
+  traceM (show illVal)
+  throwException e
+execStmt _ _ (RaiseException e) = do
+  throwException e
 
 -- | Execute a formula, given an 'RVState' implementation. This function represents
 -- the "execute" state in a fetch\/decode\/execute sequence.
@@ -251,4 +261,8 @@ runRV :: forall m arch exts
       -> m ()
 runRV n = runRV' knownISet n
   where runRV' _ i | i <= 0 = return ()
-        runRV' iset i = stepRV iset >> runRV' iset (i-1)
+        runRV' iset i = do
+          halted <- isHalted
+          case halted of
+            True  -> return ()
+            False -> stepRV iset >> runRV' iset (i-1)

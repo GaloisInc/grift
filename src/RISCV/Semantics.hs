@@ -267,9 +267,9 @@ instance Show (BVExpr arch w) where
 instance ShowF (BVExpr arch)
 
 -- | Runtime exception.
-data Exception = EnvironmentCall
-               | Breakpoint
-               | IllegalInstruction
+data Exception arch = EnvironmentCall
+                    | Breakpoint
+                    | IllegalInstruction (BVExpr arch 32)
   deriving (Show)
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
@@ -282,7 +282,7 @@ data Stmt (arch :: BaseArch) where
             -> BVExpr arch (8*bytes)
             -> Stmt arch
   AssignPC  :: BVExpr arch (ArchWidth arch) -> Stmt arch
-  RaiseException :: Exception -> Stmt arch
+  RaiseException :: Exception arch -> Stmt arch
 
 instance Show (Stmt arch) where
   show (AssignReg r e) = "x[" ++ show r ++ "]' = " ++ show e
@@ -554,7 +554,7 @@ assignPC :: BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()
 assignPC pc = addStmt (AssignPC pc)
 
 -- | Raise an exception.
-raiseException :: Exception -> FormulaBuilder arch fmt ()
+raiseException :: Exception arch -> FormulaBuilder arch fmt ()
 raiseException e = addStmt (RaiseException e)
 
 -- | Maps each format to the parameter types for its operands.
@@ -600,7 +600,9 @@ params' repr = case repr of
       let rd    = OperandParam RdRepr
           imm20 = OperandParam Imm20Repr
       return (ParamBV rd, ParamBV imm20)
-    _ -> undefined
+    XRepr -> do
+      let ill = OperandParam Imm32Repr
+      return (ParamBV ill)
 
 -- | Get the parameters for a particular known format
 params :: (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (FormatParams arch fmt)
