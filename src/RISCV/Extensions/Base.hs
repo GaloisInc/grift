@@ -184,27 +184,27 @@ baseSemantics = Map.fromList
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      ls (knownNat :: NatRepr 1)
+      l memRead sextE
   , Pair Lh $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      ls (knownNat :: NatRepr 2)
+      l memRead16 sextE
   , Pair Lw $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      ls (knownNat :: NatRepr 4)
+      l memRead32 sextE
   , Pair Lbu $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      lu (knownNat :: NatRepr 1)
+      l memRead zextE
   , Pair Lhu $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      lu (knownNat :: NatRepr 2)
+      l memRead16 zextE
   , Pair Addi $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -282,7 +282,7 @@ baseSemantics = Map.fromList
   , Pair Ecb $ getFormula $ do
       comment "Makes a request of the execution environment or the debugger."
 
-      raiseException (LitBV 0b1) EnvironmentCall
+      raiseException (litBV 0b1) EnvironmentCall
 
   -- TODO: Fence/csr instructions.
   -- , Pair Fence   undefined
@@ -299,18 +299,17 @@ baseSemantics = Map.fromList
       comment "Computes the least-significant byte in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s (knownNat :: NatRepr 1)
+      s assignMem
   , Pair Sh $ getFormula $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s (knownNat :: NatRepr 2)
+      s assignMem16
   , Pair Sw $ getFormula $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s (knownNat :: NatRepr 4)
-
+      s assignMem32
   -- B type
   , Pair Beq $ getFormula $ do
       comment "If register x[rs1] equals register x[rs2], add sext(offset) to the pc."
@@ -384,7 +383,7 @@ baseSemantics = Map.fromList
   , Pair Illegal $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
 
-      raiseException (LitBV 0b1) IllegalInstruction
+      raiseException (litBV 0b1) IllegalInstruction
   ]
 
 base64Encode :: arch >> RV64I => EncodeMap arch
@@ -428,12 +427,12 @@ base64Semantics = Map.fromList
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      lu (knownNat :: NatRepr 4)
+      l memRead32 zextE
   , Pair Ld $ getFormula $ do
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      lu (knownNat :: NatRepr 8)
+      l memRead64 sextE
   , Pair Addiw $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
       comment "Writes the result to x[rd]."
@@ -496,6 +495,5 @@ base64Semantics = Map.fromList
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s (knownNat :: NatRepr 8)
-
+      s assignMem64
   ]

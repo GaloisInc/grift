@@ -63,7 +63,6 @@ module RISCV.Semantics
   , pcRead
   , regRead
   , memRead
-  , memReadWithRepr
   , xlen
   -- ** Bitwise
   , andE
@@ -92,12 +91,12 @@ module RISCV.Semantics
   , sextE
   , extractE
   , extractEWithRepr
+  , concatE
   -- ** Control
   , iteE
   -- ** State actions
   , assignReg
   , assignMem
-  , assignMemWithRepr
   , assignPC
   , raiseException
   ) where
@@ -190,9 +189,8 @@ data BVExpr (arch :: BaseArch) (w :: Nat) where
   -- Accessing state
   PCRead  :: BVExpr arch (ArchWidth arch)
   RegRead :: BVExpr arch 5 -> BVExpr arch (ArchWidth arch)
-  MemRead :: NatRepr bytes
-          -> BVExpr arch (ArchWidth arch)
-          -> BVExpr arch (8*bytes)
+  MemRead :: BVExpr arch (ArchWidth arch)
+          -> BVExpr arch 8
   -- | This is temporary; when we have CSRs this will change.
   XLen :: BVExpr arch (ArchWidth arch)
 
@@ -212,7 +210,6 @@ data BVExpr (arch :: BaseArch) (w :: Nat) where
   DivSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   RemUE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   RemSE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
-  -- TODO: does the shift amount have to be the same width as the shiftee?
   SllE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   SrlE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
   SraE :: BVExpr arch w -> BVExpr arch w -> BVExpr arch w
@@ -226,6 +223,7 @@ data BVExpr (arch :: BaseArch) (w :: Nat) where
   ZExtE :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
   SExtE :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
   ExtractE :: NatRepr w' -> Int -> BVExpr arch w -> BVExpr arch w'
+  ConcatE :: BVExpr arch w -> BVExpr arch w' -> BVExpr arch (w+w')
 
   -- Other operations
   IteE :: BVExpr arch 1
@@ -240,8 +238,9 @@ instance Show (BVExpr arch w) where
   show InstBytes = "ib"
   show PCRead = "pc"
   show (RegRead r) = "x[" ++ show r ++ "]"
-  show (MemRead bRepr addr) =
-    "M[" ++ show addr ++ "][" ++ show (8 * natValue bRepr - 1) ++ ":0]"
+  show (MemRead addr) =
+    "M[" ++ show addr ++ "]"
+  show XLen = "XLEN"
   show (AndE e1 e2) = show e1 ++ " & " ++ show e2
   show (OrE  e1 e2) = show e1 ++ " | " ++ show e2
   show (XorE e1 e2) = show e1 ++ " ^ " ++ show e2
@@ -265,6 +264,7 @@ instance Show (BVExpr arch w) where
   show (SExtE _ e) = "sext(" ++ show e ++ ")"
   show (ExtractE wRepr base e) =
     show e ++ "[" ++ show (base + fromIntegral (natValue wRepr)) ++ ":" ++ show base ++ "]"
+  show (ConcatE e1 e2) = show e1 ++ " <:> " ++ show e2
   show (IteE t e1 e2) =
     "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
 instance ShowF (BVExpr arch)
@@ -280,9 +280,8 @@ data Exception = EnvironmentCall
 -- appropriate width.
 data Stmt (arch :: BaseArch) where
   AssignReg :: BVExpr arch 5 -> BVExpr arch (ArchWidth arch) -> Stmt arch
-  AssignMem :: NatRepr bytes
-            -> BVExpr arch (ArchWidth arch)
-            -> BVExpr arch (8*bytes)
+  AssignMem :: BVExpr arch (ArchWidth arch)
+            -> BVExpr arch 8
             -> Stmt arch
   AssignPC  :: BVExpr arch (ArchWidth arch) -> Stmt arch
   RaiseException :: BVExpr arch 1 -> Exception -> Stmt arch
@@ -291,13 +290,10 @@ instance Show (Stmt arch) where
   show (AssignReg r e) = "x[" ++ show r ++ "]' = " ++ show e
   -- TODO: Should we indicate how many bytes are being written? Or will that always
   -- be inferrable from the right-hand side?
-  show (AssignMem _ addr e) = "M[" ++ show addr ++ "]' = " ++ show e
+  show (AssignMem addr e) = "M[" ++ show addr ++ "]' = " ++ show e
   show (AssignPC pc) = "pc' = " ++ show pc
   show (RaiseException cond e) = "if " ++ show cond ++ " then RaiseException(" ++ show e ++ ")"
 
--- TODO: OperandParamize Formula and FormulaBuilder by instruction format. Have
--- special-purpose param functions for each format, that return the parameters as a
--- tuple.
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- parameters (potentially zero), which represent the input to the formula. These are
 -- going to the be the operands of the instruction -- register ids, immediate values,
@@ -347,9 +343,11 @@ newtype FormulaBuilder arch (fmt :: Format) a =
             Monad,
             MonadState (Formula arch fmt))
 
--- TODO: Not all of these need to be in FormulaBuilder, right? Maybe change these
--- functions to return pure BVExprs when I can, or just remove them altogether and go
--- with the BVExpr constructors.
+----------------------------------------
+-- FormulaBuilder functions for constructing expressions and statements. Some of
+-- these are pure for the moment, but eventually we will want to have a more granular
+-- representation of every single operation, so we keep them in a monadic style in
+-- order to enable us to add some side effects later if we want to.
 
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt
@@ -375,17 +373,10 @@ pcRead = return PCRead
 regRead :: BVExpr arch 5 -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
 regRead = return . RegRead
 
--- | Read a memory location.
-memRead :: KnownNat bytes
-        => BVExpr arch (ArchWidth arch)
-        -> FormulaBuilder arch fmt (BVExpr arch (8*bytes))
-memRead addr = return (MemRead knownNat addr)
-
--- | Read a memory location with an explicit width argument.
-memReadWithRepr :: NatRepr bytes
-                -> BVExpr arch (ArchWidth arch)
-                -> FormulaBuilder arch fmt (BVExpr arch (8*bytes))
-memReadWithRepr bRepr addr = return (MemRead bRepr addr)
+-- | Read a byte from memory.
+memRead :: BVExpr arch (ArchWidth arch)
+        -> FormulaBuilder arch fmt (BVExpr arch 8)
+memRead addr = return (MemRead addr)
 
 -- | Get XLEN.
 xlen :: BVExpr arch (ArchWidth arch)
@@ -527,6 +518,10 @@ extractEWithRepr :: NatRepr w'
                  -> FormulaBuilder arch fmt (BVExpr arch w')
 extractEWithRepr wRepr base e = return (ExtractE wRepr base e)
 
+-- | Concatenation
+concatE :: BVExpr arch w -> BVExpr arch w' -> FormulaBuilder arch fmt (BVExpr arch (w+w'))
+concatE e1 e2 = return (ConcatE e1 e2)
+
 -- | Conditional branch.
 iteE :: BVExpr arch 1
      -> BVExpr arch w
@@ -547,18 +542,10 @@ assignReg r e = addStmt (AssignReg r e)
 
 -- TODO: Should we allow arbitrary width assignments?
 -- | Add a memory location assignment to the formula.
-assignMem :: KnownNat bytes
-          => BVExpr arch (ArchWidth arch)
-          -> BVExpr arch (8*bytes)
+assignMem :: BVExpr arch (ArchWidth arch)
+          -> BVExpr arch 8
           -> FormulaBuilder arch fmt ()
-assignMem addr val = addStmt (AssignMem knownNat addr val)
-
--- | 'assignMem' with explicit 'NatRepr' indicating number of bytes to be read.
-assignMemWithRepr :: NatRepr bytes
-                  -> BVExpr arch (ArchWidth arch)
-                  -> BVExpr arch (8*bytes)
-                  -> FormulaBuilder arch fmt ()
-assignMemWithRepr bRepr addr val = addStmt (AssignMem bRepr addr val)
+assignMem addr val = addStmt (AssignMem addr val)
 
 -- | Add a PC assignment to the formula.
 assignPC :: BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt ()

@@ -37,16 +37,17 @@ truncBS bs = BS.pack (chunks (BS.unpack bs))
         chunks _ = []
 
 main :: IO ()
-main = do
-  (progFile:[]) <- getArgs
+main = return ()
+-- main = do
+--   (progFile:[]) <- getArgs
 
-  progBytes <- truncBS <$> BS.readFile progFile
-  let (pc, registers, _) = runST $ do
-        m <- mkSTMachine RV32IRepr (ExtensionsRepr MNoRepr FDNoRepr) 0x10000 progBytes
-        execSTMachine (runRV 1000) m
-  putStrLn $ "Final PC: " ++ show pc
-  putStrLn $ "Final register state:"
-  forM_ (assocs registers) $ \(r, v) -> do
-    putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+--   progBytes <- truncBS <$> BS.readFile progFile
+--   let (pc, registers, _) = runST $ do
+--         m <- mkSTMachine RV32IRepr (ExtensionsRepr MNoRepr FDNoRepr) 0x10000 progBytes
+--         execSTMachine (runRV 1000) m
+--   putStrLn $ "Final PC: " ++ show pc
+--   putStrLn $ "Final register state:"
+--   forM_ (assocs registers) $ \(r, v) -> do
+--     putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
 

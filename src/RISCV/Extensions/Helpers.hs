@@ -25,9 +25,12 @@ module RISCV.Extensions.Helpers
   , ArithOp
   , rOp, rOp32
   , iOp
-  , ls, lu
+  , MemReadFn, ExtFn
+  , l, s
   , CompOp
-  , b, s
+  , b
+  , memRead16, memRead32, memRead64
+  , assignMem16, assignMem32, assignMem64
   ) where
 
 import Data.Parameterized
@@ -93,30 +96,150 @@ iOp op = do
   assignReg rd result
   incrPC
 
-ls :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'I ()
-ls bRepr = do
+type MemReadFn arch w fmt = KnownArch arch => BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt (BVExpr arch w)
+type ExtFn arch w fmt = KnownArch arch => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+
+memRead16 :: MemReadFn arch 16 fmt
+memRead16 addr = do
+  addr_1 <- addr `addE` litBV 1
+
+  m0 <- memRead addr
+  m1 <- memRead addr_1
+
+  mVal <- m1 `concatE` m0
+  return mVal
+
+memRead32 :: MemReadFn arch 32 fmt
+memRead32 addr = do
+  addr_1 <- addr `addE` litBV 1
+  addr_2 <- addr `addE` litBV 2
+  addr_3 <- addr `addE` litBV 3
+
+  m0 <- memRead addr
+  m1 <- memRead addr_1
+  m2 <- memRead addr_2
+  m3 <- memRead addr_3
+
+  mVal1 <- m1 `concatE` m0
+  mVal2 <- m2 `concatE` mVal1
+  mVal  <- m3 `concatE` mVal2
+  return mVal
+
+memRead64 :: MemReadFn arch 64 fmt
+memRead64 addr = do
+  addr_1 <- addr `addE` litBV 1
+  addr_2 <- addr `addE` litBV 2
+  addr_3 <- addr `addE` litBV 3
+  addr_4 <- addr `addE` litBV 4
+  addr_5 <- addr `addE` litBV 5
+  addr_6 <- addr `addE` litBV 6
+  addr_7 <- addr `addE` litBV 7
+
+  m0 <- memRead addr
+  m1 <- memRead addr_1
+  m2 <- memRead addr_2
+  m3 <- memRead addr_3
+  m4 <- memRead addr_4
+  m5 <- memRead addr_5
+  m6 <- memRead addr_6
+  m7 <- memRead addr_7
+
+  mVal1 <- m1 `concatE` m0
+  mVal2 <- m2 `concatE` mVal1
+  mVal3 <- m3 `concatE` mVal2
+  mVal4 <- m4 `concatE` mVal3
+  mVal5 <- m5 `concatE` mVal4
+  mVal6 <- m6 `concatE` mVal5
+  mVal  <- m7 `concatE` mVal6
+  return mVal
+
+l :: KnownArch arch
+  => MemReadFn arch w I
+  -> ExtFn arch w I
+  -> FormulaBuilder arch I ()
+l rdFn extFn = do
   (rd, rs1, offset) <- params
 
-  x_rs1 <- regRead rs1
+  x_rs1       <- regRead rs1
   sext_offset <- sextE offset
-  addr <- x_rs1 `addE` sext_offset
-  m_byte  <- memReadWithRepr bRepr addr
-  sext_byte <- sextE m_byte
+  addr        <- x_rs1 `addE` sext_offset
+  mVal        <- rdFn addr
+  ext_byte    <- extFn mVal
 
-  assignReg rd sext_byte
+  assignReg rd ext_byte
   incrPC
 
-lu :: KnownArch arch => NatRepr bytes -> FormulaBuilder arch 'I ()
-lu bRepr = do
-  (rd, rs1, offset) <- params
+type MemWriteFn arch w fmt = KnownArch arch => BVExpr arch (ArchWidth arch) -> BVExpr arch w -> FormulaBuilder arch fmt ()
+
+assignMem16 :: MemWriteFn arch 16 fmt
+assignMem16 addr val = do
+  addr_1 <- addr `addE` litBV 1
+
+  m0 <- extractE 0 val
+  m1 <- extractE 8 val
+
+  assignMem addr   m0
+  assignMem addr_1 m1
+
+assignMem32 :: MemWriteFn arch 32 fmt
+assignMem32 addr val = do
+  addr_1 <- addr `addE` litBV 1
+  addr_2 <- addr `addE` litBV 2
+  addr_3 <- addr `addE` litBV 3
+
+  m0 <- extractE 0 val
+  m1 <- extractE 8 val
+  m2 <- extractE 16 val
+  m3 <- extractE 24 val
+
+  assignMem addr   m0
+  assignMem addr_1 m1
+  assignMem addr_2 m2
+  assignMem addr_3 m3
+
+assignMem64 :: MemWriteFn arch 64 fmt
+assignMem64 addr val = do
+  addr_1 <- addr `addE` litBV 1
+  addr_2 <- addr `addE` litBV 2
+  addr_3 <- addr `addE` litBV 3
+  addr_4 <- addr `addE` litBV 4
+  addr_5 <- addr `addE` litBV 5
+  addr_6 <- addr `addE` litBV 6
+  addr_7 <- addr `addE` litBV 7
+
+  m0 <- extractE 0 val
+  m1 <- extractE 8 val
+  m2 <- extractE 16 val
+  m3 <- extractE 24 val
+  m4 <- extractE 32 val
+  m5 <- extractE 40 val
+  m6 <- extractE 48 val
+  m7 <- extractE 56 val
+
+  assignMem addr   m0
+  assignMem addr_1 m1
+  assignMem addr_2 m2
+  assignMem addr_3 m3
+  assignMem addr_4 m4
+  assignMem addr_5 m5
+  assignMem addr_6 m6
+  assignMem addr_7 m7
+
+
+s :: (KnownArch arch, KnownNat w)
+  => MemWriteFn arch w S
+  -> FormulaBuilder arch S ()
+s wrFn = do
+  (rs1, rs2, offset) <- params
 
   x_rs1 <- regRead rs1
+  x_rs2 <- regRead rs2
+
+  mVal <- extractE 0 x_rs2 -- extract some bits from the register value
   sext_offset <- sextE offset
   addr <- x_rs1 `addE` sext_offset
-  m_byte  <- memReadWithRepr bRepr addr
-  zext_byte <- zextE m_byte
 
-  assignReg rd zext_byte
+  wrFn addr mVal
   incrPC
 
 type CompOp arch fmt = BVExpr arch (ArchWidth arch)
@@ -141,17 +264,3 @@ b cmp = do
   new_pc <- iteE cond pc_branch pc_incr
   assignPC new_pc
 
-
-s :: (KnownArch arch, KnownNat bytes) => NatRepr bytes -> FormulaBuilder arch 'S ()
-s bRepr = do
-  (rs1, rs2, offset) <- params
-
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
-
-  x_rs2_byte <- extractEWithRepr ((knownNat :: NatRepr 8) `natMultiply` bRepr) 0 x_rs2
-  sext_offset <- sextE offset
-  addr <- x_rs1 `addE` sext_offset
-
-  assignMem addr x_rs2_byte
-  incrPC

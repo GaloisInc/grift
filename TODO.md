@@ -62,9 +62,6 @@ What to do first? Should be fun.
 
 # Odds and ends
 
-- Combine Srai/Srli, Ecall/Ebreak into single instructions and remove the 'E'
-  format. Modify the decoder to determine the format based only on the opcode
-  bits.
 - If we do tag the opcodes with extensions, it better be Extensions and not
   Extension (singular). That is, the tag should refer to the execution
   environment in which the thing is executing, and the only restriction placed

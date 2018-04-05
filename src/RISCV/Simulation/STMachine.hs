@@ -29,7 +29,6 @@ module RISCV.Simulation.STMachine
   , STMachineM(..)
   ) where
 
-import           Control.Monad
 import qualified Control.Monad.Reader.Class as R
 import           Control.Monad.Trans
 import           Control.Monad.Trans.Reader
@@ -38,15 +37,12 @@ import           Data.Array.IArray
 import           Data.Array.ST
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
-import           Data.Parameterized
 import           Data.STRef
 import           GHC.TypeLits
 
+import RISCV.Semantics (Exception)
 import RISCV.Simulation
 import RISCV.Types
-
-byteSize :: NatRepr 8
-byteSize = knownRepr
 
 -- | An ST-based backend for a RISC-V simulator.
 data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
@@ -54,7 +50,7 @@ data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
   , stRegisters :: STArray s (BitVector 5) (BitVector (ArchWidth arch))
   , stMemory    :: STArray s (BitVector (ArchWidth arch)) (BitVector 8)
   , stMaxAddr   :: BitVector (ArchWidth arch)
-  , stHalted    :: STRef s Bool
+  , stException :: STRef s (Maybe Exception)
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> STArray s i (BitVector 8) -> ST s ()
@@ -76,28 +72,29 @@ mkSTMachine _ _ maxAddr progBytes = do
   pc        <- newSTRef 0
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
-  halted    <- newSTRef False
+  e         <- newSTRef Nothing
 
   writeBS 0 progBytes memory
-  return (STMachine pc registers memory maxAddr halted)
+  return (STMachine pc registers memory maxAddr e)
 
 -- | Run a STMachineM transformation on an initial state and return the result
 execSTMachine :: (KnownArch arch, KnownExtensions exts)
-              => STMachineM s arch exts ()
+              => STMachineM s arch exts (Maybe Exception)
               -> STMachine s arch exts
               -> ST s ( BitVector (ArchWidth arch)
                       , Array (BitVector 5) (BitVector (ArchWidth arch))
                       , Array (BitVector (ArchWidth arch)) (BitVector 8)
+                      , Maybe Exception
                       )
 execSTMachine action m = do
-  (stPC', stRegisters', stMemory') <- flip runReaderT m $ runSTMachineM $ do
-    action
+  (stPC', stRegisters', stMemory', e') <- flip runReaderT m $ runSTMachineM $ do
+    e <- action
     m' <- R.ask
-    return (stPC m', stRegisters m', stMemory m')
+    return (stPC m', stRegisters m', stMemory m', e)
   pc <- readSTRef stPC'
   registers <- freeze stRegisters'
   memory <- freeze stMemory'
-  return (pc, registers, memory)
+  return (pc, registers, memory, e')
 
 -- | The 'STMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -117,11 +114,10 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
     regArray <- stRegisters <$> ask
     regVal   <- lift $ readArray regArray rid
     return regVal
-  getMem bRepr addr = STMachineM $ do
-    let numBytes = bitVector (natValue bRepr)
+  getMem addr = STMachineM $ do
     memArray <- stMemory <$> ask
-    bytes <- forM [addr .. addr + numBytes - 1] (lift . readArray memArray)
-    return (bvConcatManyWithRepr (byteSize `natMultiply` bRepr) bytes)
+    byte     <- lift $ readArray memArray addr
+    return byte
 
   setPC pcVal = STMachineM $ do
     pcRef <- stPC <$> ask
@@ -130,17 +126,15 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
   setReg rid regVal = STMachineM $ do
     regArray <- stRegisters <$> ask
     lift $ writeArray regArray rid regVal
-  setMem _ 0 _ = return ()
-  setMem bRepr addr bv = STMachineM $ do
-    let numBytes = natValue bRepr
-        writes   = zip [ addr .. addr + (bitVector numBytes) - 1] (bvGetBytesU (fromIntegral numBytes) bv)
+  setMem 0 _ = return ()
+  setMem addr byte = STMachineM $ do
     memArray <- stMemory <$> ask
-    forM_ writes (lift . uncurry (writeArray memArray))
+    lift $ writeArray memArray addr byte
 
-  throwException _ = STMachineM $ do
-    haltedRef <- stHalted <$> ask
-    lift $ writeSTRef haltedRef True
+  throwException e = STMachineM $ do
+    eRef <- stException <$> ask
+    lift $ writeSTRef eRef (Just e)
 
-  isHalted = STMachineM $ do
-    haltedRef <- stHalted <$> ask
-    lift $ readSTRef haltedRef
+  exceptionStatus = STMachineM $ do
+    eRef <- stException <$> ask
+    lift $ readSTRef eRef

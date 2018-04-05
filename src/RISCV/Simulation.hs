@@ -41,8 +41,6 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
-import Debug.Trace (traceM)
-
 -- TODO: maybe make a constructor in this class somehow...? That would allow us to
 -- compute the instruction set once and for all so we don't have to rebuild it every
 -- time we step the machine.
@@ -54,24 +52,30 @@ class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts wh
   -- | Get the value of a register. Note that for all valid implementations, we
   -- require that getReg 0 = return 0.
   getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
-  -- | Read some number of bytes from memory.
-  getMem :: NatRepr bytes
-         -> BitVector (ArchWidth arch)
-         -> m (BitVector (8*bytes))
+  -- | Read a single byte from memory.
+  getMem :: BitVector (ArchWidth arch)
+         -> m (BitVector 8)
 
   -- | Set the PC.
   setPC :: BitVector (ArchWidth arch) -> m ()
   -- | Write to a register. Note that for all valid implementations, we require that
   -- setReg 0 = return ().
   setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
-  -- | Write to memory.
-  setMem :: NatRepr bytes
-         -> BitVector (ArchWidth arch)
-         -> BitVector (8*bytes)
+  -- | Write a single byte to memory.
+  setMem :: BitVector (ArchWidth arch)
+         -> BitVector 8
          -> m ()
 
   throwException :: Exception -> m ()
-  isHalted :: m Bool
+  exceptionStatus :: m (Maybe Exception)
+
+getMem32 :: (KnownArch arch, RVState m arch exts) => BitVector (ArchWidth arch) -> m (BitVector 32)
+getMem32 addr = do
+  b0 <- getMem addr
+  b1 <- getMem (addr+1)
+  b2 <- getMem (addr+2)
+  b3 <- getMem (addr+3)
+  return $ b3 <:> b2 <:> b1 <:> b0
 
 -- | Evaluate a parameter's value from an 'Operands'.
 evalParam :: OperandParam arch oid
@@ -111,8 +115,8 @@ evalExpr _ _ XLen = return $ bitVector $ natValue (knownRepr :: NatRepr (ArchWid
 evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr operands ib (RegRead ridE) =
   evalExpr operands ib ridE >>= getReg
-evalExpr operands ib (MemRead bRepr addrE) =
-  evalExpr operands ib addrE >>= getMem bRepr
+evalExpr operands ib (MemRead addrE) =
+  evalExpr operands ib addrE >>= getMem
 evalExpr operands ib (AndE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
@@ -195,6 +199,10 @@ evalExpr operands ib (SExtE wRepr e) =
   bvSextWithRepr wRepr <$> evalExpr operands ib e
 evalExpr operands ib (ExtractE wRepr base e) =
   bvExtractWithRepr wRepr base <$> evalExpr operands ib e
+evalExpr operands ib (ConcatE e1 e2) = do
+  e1Val <- evalExpr operands ib e1
+  e2Val <- evalExpr operands ib e2
+  return $ e1Val `bvConcat` e2Val
 evalExpr operands ib (IteE testE tE fE) = do
   testVal <- evalExpr operands ib testE
   tVal <- evalExpr operands ib tE
@@ -211,10 +219,14 @@ execStmt operands ib (AssignReg ridE e) = do
   rid  <- evalExpr operands ib ridE
   eVal <- evalExpr operands ib e
   setReg rid eVal
-execStmt operands ib (AssignMem bRepr addrE e) = do
+execStmt operands ib (AssignMem addrE e) = do
   addr <- evalExpr operands ib addrE
   eVal <- evalExpr operands ib e
-  setMem bRepr addr eVal
+
+  setMem addr eVal
+--   memVal <- getMem bRepr addr
+--   traceM $ "M[" ++ show addr ++ "] := " ++ show memVal
+
 execStmt operands ib (AssignPC pcE) = do
   pcVal <- evalExpr operands ib pcE
   setPC pcVal
@@ -241,7 +253,7 @@ stepRV :: forall m arch exts
 stepRV iset = do
   -- Fetch
   pcVal  <- getPC
-  instBV <- getMem (knownRepr :: NatRepr 4) pcVal
+  instBV <- getMem32 pcVal
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
@@ -257,11 +269,11 @@ stepRV iset = do
 runRV :: forall m arch exts
          . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
       => Int
-      -> m ()
+      -> m (Maybe Exception)
 runRV n = runRV' knownISet n
-  where runRV' _ i | i <= 0 = return ()
+  where runRV' _ i | i <= 0 = return Nothing
         runRV' iset i = do
-          halted <- isHalted
-          case halted of
-            True  -> return ()
-            False -> stepRV iset >> runRV' iset (i-1)
+          e <- exceptionStatus
+          case e of
+            Just e' -> return (Just e')
+            Nothing -> stepRV iset >> runRV' iset (i-1)
