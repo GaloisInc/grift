@@ -27,9 +27,14 @@ import           System.Environment
 import           System.Exit
 import           Data.ElfEdit
 
-import           RISCV
+import           RISCV.Types
+import           RISCV.Instruction
+import           RISCV.InstructionSet
+import           RISCV.Decode
+import           RISCV.Extensions
 
-type DisArch = 'RV64I
+type DisArch = RV64I
+type DisExts = (Exts '(MYes, FDNo))
 
 main :: IO ()
 main = do
@@ -84,7 +89,7 @@ disInstruction bs =
                     b1 `shiftL` 8  .|.
                     b0
         instBV = bitVector instWordI
-        inst = decode (base <> m :: InstructionSet DisArch) instBV
+        inst = decode (knownISet :: InstructionSet DisArch DisExts) instBV
         numBytes = 4
 
 -- | Decode a bytestring as a RISC-V program

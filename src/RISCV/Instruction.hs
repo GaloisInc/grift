@@ -200,19 +200,19 @@ data Opcode :: BaseArch -> Format -> * where
   Illegal :: Opcode arch X
 
   -- RV64I
-  Addw   :: arch >> RV64I => Opcode arch R
-  Subw   :: arch >> RV64I => Opcode arch R
-  Sllw   :: arch >> RV64I => Opcode arch R
-  Srlw   :: arch >> RV64I => Opcode arch R
-  Sraw   :: arch >> RV64I => Opcode arch R
-  Lwu    :: arch >> RV64I => Opcode arch I
-  Ld     :: arch >> RV64I => Opcode arch I
-  Addiw  :: arch >> RV64I => Opcode arch I
-  Slliw  :: arch >> RV64I => Opcode arch I
+  Addw   :: 64 <= ArchWidth arch => Opcode arch R
+  Subw   :: 64 <= ArchWidth arch => Opcode arch R
+  Sllw   :: 64 <= ArchWidth arch => Opcode arch R
+  Srlw   :: 64 <= ArchWidth arch => Opcode arch R
+  Sraw   :: 64 <= ArchWidth arch => Opcode arch R
+  Lwu    :: 64 <= ArchWidth arch => Opcode arch I
+  Ld     :: 64 <= ArchWidth arch => Opcode arch I
+  Addiw  :: 64 <= ArchWidth arch => Opcode arch I
+  Slliw  :: 64 <= ArchWidth arch => Opcode arch I
   -- | @sraiw@ and @srliw@ combined into a single instruction.
-  Sriw   :: arch >> RV64I => Opcode arch I
+  Sriw   :: 64 <= ArchWidth arch => Opcode arch I
   -- | @ecall@ and @ebreak@ combined into a single instruction.
-  Sd     :: arch >> RV64I => Opcode arch S
+  Sd     :: 64 <= ArchWidth arch => Opcode arch S
 
   -- RV32M
   Mul    :: Opcode arch R
@@ -225,11 +225,11 @@ data Opcode :: BaseArch -> Format -> * where
   Remu   :: Opcode arch R
 
   -- RV64M
-  Mulw   :: arch >> RV64I => Opcode arch R
-  Divw   :: arch >> RV64I => Opcode arch R
-  Divuw  :: arch >> RV64I => Opcode arch R
-  Remw   :: arch >> RV64I => Opcode arch R
-  Remuw  :: arch >> RV64I => Opcode arch R
+  Mulw   :: 64 <= ArchWidth arch => Opcode arch R
+  Divw   :: 64 <= ArchWidth arch => Opcode arch R
+  Divuw  :: 64 <= ArchWidth arch => Opcode arch R
+  Remw   :: 64 <= ArchWidth arch => Opcode arch R
+  Remuw  :: 64 <= ArchWidth arch => Opcode arch R
 
 -- Instances
 $(return [])

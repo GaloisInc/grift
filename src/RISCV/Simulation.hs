@@ -41,6 +41,8 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
+import Debug.Trace (traceM)
+
 -- TODO: maybe make a constructor in this class somehow...? That would allow us to
 -- compute the instruction set once and for all so we don't have to rebuild it every
 -- time we step the machine.
@@ -258,6 +260,8 @@ stepRV iset = do
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
   Some inst <- return $ decode iset instBV
+--  traceM $ show pcVal ++ ": " ++ show inst
+
   let operands = instOperands inst
       formula  = semanticsFromOpcode iset (instOpcode inst)
 

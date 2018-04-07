@@ -222,6 +222,7 @@ data BVExpr (arch :: BaseArch) (w :: Nat) where
   -- Width-changing
   ZExtE :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
   SExtE :: NatRepr w' -> BVExpr arch w -> BVExpr arch w'
+  -- TODO: Extraction should take a BVExpr arch w' rather than an actual Int.
   ExtractE :: NatRepr w' -> Int -> BVExpr arch w -> BVExpr arch w'
   ConcatE :: BVExpr arch w -> BVExpr arch w' -> BVExpr arch (w+w')
 
@@ -241,30 +242,30 @@ instance Show (BVExpr arch w) where
   show (MemRead addr) =
     "M[" ++ show addr ++ "]"
   show XLen = "XLEN"
-  show (AndE e1 e2) = show e1 ++ " & " ++ show e2
-  show (OrE  e1 e2) = show e1 ++ " | " ++ show e2
-  show (XorE e1 e2) = show e1 ++ " ^ " ++ show e2
-  show (NotE e) = "~" ++ show e
-  show (AddE e1 e2) = show e1 ++ " + " ++ show e2
-  show (SubE e1 e2) = show e1 ++ " - " ++ show e2
-  show (MulUE e1 e2) = show e1 ++ " u*u " ++ show e2
-  show (MulSE e1 e2) = show e1 ++ " s*s " ++ show e2
-  show (MulSUE e1 e2) = show e1 ++ " s*u " ++ show e2
-  show (DivUE e1 e2) = show e1 ++ " u/ " ++ show e2
-  show (DivSE e1 e2) = show e1 ++ " s/ " ++ show e2
-  show (RemUE e1 e2) = show e1 ++ " u% " ++ show e2
-  show (RemSE e1 e2) = show e1 ++ " s% " ++ show e2
-  show (SllE e1 e2) = show e1 ++ " << " ++ show e2
-  show (SrlE e1 e2) = show e1 ++ " >>_l " ++ show e2
-  show (SraE e1 e2) = show e1 ++ " >>_a " ++ show e2
-  show (EqE  e1 e2) = show e1 ++ " = " ++ show e2
-  show (LtuE e1 e2) = show e1 ++ " u< " ++ show e2
-  show (LtsE e1 e2) = show e1 ++ " s< " ++ show e2
+  show (AndE e1 e2) = "(" ++ show e1 ++ " & " ++ show e2 ++ ")"
+  show (OrE  e1 e2) = "(" ++ show e1 ++ " | " ++ show e2 ++ ")"
+  show (XorE e1 e2) = "(" ++ show e1 ++ " ^ " ++ show e2 ++ ")"
+  show (NotE e) = "~(" ++ show e ++ ")"
+  show (AddE e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")"
+  show (SubE e1 e2) = "(" ++ show e1 ++ " - " ++ show e2 ++ ")"
+  show (MulUE e1 e2) = "(" ++ show e1 ++ " u*u " ++ show e2 ++ ")"
+  show (MulSE e1 e2) = "(" ++ show e1 ++ " s*s " ++ show e2 ++ ")"
+  show (MulSUE e1 e2) = "(" ++ show e1 ++ " s*u " ++ show e2 ++ ")"
+  show (DivUE e1 e2) = "(" ++ show e1 ++ " u/ " ++ show e2 ++ ")"
+  show (DivSE e1 e2) = "(" ++ show e1 ++ " s/ " ++ show e2 ++ ")"
+  show (RemUE e1 e2) = "(" ++ show e1 ++ " u% " ++ show e2 ++ ")"
+  show (RemSE e1 e2) = "(" ++ show e1 ++ " s% " ++ show e2 ++ ")"
+  show (SllE e1 e2) = "(" ++ show e1 ++ " << " ++ show e2 ++ ")"
+  show (SrlE e1 e2) = "(" ++ show e1 ++ " >>_l " ++ show e2 ++ ")"
+  show (SraE e1 e2) = "(" ++ show e1 ++ " >>_a " ++ show e2 ++ ")"
+  show (EqE  e1 e2) = "(" ++ show e1 ++ " = " ++ show e2 ++ ")"
+  show (LtuE e1 e2) = "(" ++ show e1 ++ " u< " ++ show e2 ++ ")"
+  show (LtsE e1 e2) = "(" ++ show e1 ++ " s< " ++ show e2 ++ ")"
   show (ZExtE _ e) = "zext(" ++ show e ++ ")"
   show (SExtE _ e) = "sext(" ++ show e ++ ")"
   show (ExtractE wRepr base e) =
     show e ++ "[" ++ show (base + fromIntegral (natValue wRepr)) ++ ":" ++ show base ++ "]"
-  show (ConcatE e1 e2) = show e1 ++ " <:> " ++ show e2
+  show (ConcatE e1 e2) = "(" ++ show e1 ++ " <:> " ++ show e2 ++ ")"
   show (IteE t e1 e2) =
     "if (" ++ show t ++ ") then " ++ show e1 ++ " else " ++ show e2
 instance ShowF (BVExpr arch)
@@ -287,12 +288,10 @@ data Stmt (arch :: BaseArch) where
   RaiseException :: BVExpr arch 1 -> Exception -> Stmt arch
 
 instance Show (Stmt arch) where
-  show (AssignReg r e) = "x[" ++ show r ++ "]' = " ++ show e
-  -- TODO: Should we indicate how many bytes are being written? Or will that always
-  -- be inferrable from the right-hand side?
-  show (AssignMem addr e) = "M[" ++ show addr ++ "]' = " ++ show e
-  show (AssignPC pc) = "pc' = " ++ show pc
-  show (RaiseException cond e) = "if " ++ show cond ++ " then RaiseException(" ++ show e ++ ")"
+  show (AssignReg r e) = "x[" ++ show r ++ "]' := " ++ show e
+  show (AssignMem addr e) = "M[" ++ show addr ++ "]' := " ++ show e
+  show (AssignPC pc) = "pc' := " ++ show pc
+  show (RaiseException cond e) = "if (" ++ show cond ++ ") then RaiseException(" ++ show e ++ ")"
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- parameters (potentially zero), which represent the input to the formula. These are
@@ -323,10 +322,8 @@ fDefs = lens _fDefs (\(Formula c _) d -> Formula c d)
 instance Show (Formula arch fmt) where
   show (Formula comments defs) =
     showComments ++
-    -- "OperandParams: " ++ showParams ++ "\n" ++
     showDefs
     where showComments = concat (toList ((++ "\n") <$> comments))
---          showParams = intercalate ", " (toList (show <$> params))
           showDefs = concat (toList ((\d -> "  " ++ show d ++ "\n") <$> defs))
 instance ShowF (Formula arch)
 

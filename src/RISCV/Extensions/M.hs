@@ -36,7 +36,7 @@ m32 :: (KnownArch arch, exts *>> M) => InstructionSet arch exts
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownArch arch, arch >> RV64I, exts *>> M) => InstructionSet arch exts
+m64 :: (KnownArch arch, 64 <= ArchWidth arch, exts *>> M) => InstructionSet arch exts
 m64 = m32 <> instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch
@@ -51,7 +51,7 @@ mEncode = Map.fromList
   , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
   ]
 
-m64Encode :: arch >> RV64I => EncodeMap arch
+m64Encode :: 64 <= ArchWidth arch => EncodeMap arch
 m64Encode = Map.fromList
   [ Pair Mulw  (ROpBits 0b0111011 0b000 0b0000001)
   , Pair Divw  (ROpBits 0b0111011 0b100 0b0000001)
@@ -101,10 +101,10 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      result' <- x_rs1 `mulsuE` x_rs2
-      -- TODO: This is incompatible with RV64. Might make sense to just define
-      -- different versions of each extension.
-      result  <- extractE 32 result'
+      result'  <- x_rs1 `mulsuE` x_rs2
+      -- shift    <- zextE xlen
+      -- result'' <- result' `sraE` xlen
+      result   <- extractE 0 result'
       assignReg rd result
       incrPC
 
@@ -117,10 +117,10 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      result' <- x_rs1 `muluE` x_rs2
-      -- TODO: This is incompatible with RV64. Might make sense to just define
-      -- different versions of each extension.
-      result  <- extractE 32 result'
+      result'  <- x_rs1 `muluE` x_rs2
+      shift    <- zextE xlen
+      result'' <- result' `sraE` shift
+      result   <- extractE 0 result''
       assignReg rd result
       incrPC
 
@@ -150,7 +150,7 @@ mSemantics = Map.fromList
 
   ]
 
-m64Semantics :: (KnownArch arch, arch >> RV64I) => SemanticsMap arch
+m64Semantics :: (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch
 m64Semantics = Map.fromList
   [ Pair Mulw $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."

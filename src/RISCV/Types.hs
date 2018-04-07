@@ -59,24 +59,11 @@ type family ArchWidth (arch :: BaseArch) :: Nat where
   ArchWidth RV128I = 128
 
 -- TODO: Is there any way we can avoid needing the KnownNat (ArchWidth arch)?
+-- TODO: Ok now this is just fucking gross, I must fix it.
 -- | Everything we might need to know about a 'BaseArch' at compile time.
-type KnownArch arch = (KnownNat (ArchWidth arch), KnownRepr BaseArchRepr arch)
-
--- | Type operator that determines whether the first 'BaseArch' contains the second
--- as a requirement.
-type family ArchContains (arch :: BaseArch) (arch' :: BaseArch) :: Bool where
-  ArchContains RV32I  RV32I = 'True
-  ArchContains RV32E  RV32I = 'True
-  ArchContains RV64I  RV32I = 'True
-  ArchContains RV128I RV32I = 'True
-  ArchContains RV64I  RV64I = 'True
-  ArchContains RV128I RV64I = 'True
-  ArchContains RV128I RV128I = 'True
-  ArchContains _ _ = 'False
-
--- | 'ArchContains' in constraint form.
-type (>>) (arch :: BaseArch) (arch' :: BaseArch)
-  = ArchContains arch arch' ~ 'True
+type KnownArch arch = ( KnownNat (ArchWidth arch)
+                      , KnownNat (ArchWidth arch + ArchWidth arch)
+                      , KnownRepr BaseArchRepr arch)
 
 -- Instances
 $(return [])

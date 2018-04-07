@@ -51,6 +51,7 @@ data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
   , stMemory    :: STArray s (BitVector (ArchWidth arch)) (BitVector 8)
   , stMaxAddr   :: BitVector (ArchWidth arch)
   , stException :: STRef s (Maybe Exception)
+  , stSteps     :: STRef s Int
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> STArray s i (BitVector 8) -> ST s ()
@@ -73,9 +74,10 @@ mkSTMachine _ _ maxAddr progBytes = do
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
   e         <- newSTRef Nothing
+  steps     <- newSTRef 0
 
   writeBS 0 progBytes memory
-  return (STMachine pc registers memory maxAddr e)
+  return (STMachine pc registers memory maxAddr e steps)
 
 -- | Run a STMachineM transformation on an initial state and return the result
 execSTMachine :: (KnownArch arch, KnownExtensions exts)
@@ -84,17 +86,19 @@ execSTMachine :: (KnownArch arch, KnownExtensions exts)
               -> ST s ( BitVector (ArchWidth arch)
                       , Array (BitVector 5) (BitVector (ArchWidth arch))
                       , Array (BitVector (ArchWidth arch)) (BitVector 8)
+                      , Int
                       , Maybe Exception
                       )
 execSTMachine action m = do
-  (stPC', stRegisters', stMemory', e') <- flip runReaderT m $ runSTMachineM $ do
+  (stPC', stRegisters', stMemory', stSteps', e') <- flip runReaderT m $ runSTMachineM $ do
     e <- action
     m' <- R.ask
-    return (stPC m', stRegisters m', stMemory m', e)
+    return (stPC m', stRegisters m', stMemory m', stSteps m', e)
   pc <- readSTRef stPC'
   registers <- freeze stRegisters'
   memory <- freeze stMemory'
-  return (pc, registers, memory, e')
+  steps <- readSTRef stSteps'
+  return (pc, registers, memory, steps, e')
 
 -- | The 'STMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -120,8 +124,13 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
     return byte
 
   setPC pcVal = STMachineM $ do
+    -- We assume that every time we are setting the PC, we have just finished
+    -- executing an instruction, so increment steps.
     pcRef <- stPC <$> ask
+    stepsRef <- stSteps <$> ask
+    stepsVal <- lift $ readSTRef stepsRef
     lift $ writeSTRef pcRef pcVal
+    lift $ writeSTRef stepsRef (stepsVal+1)
   setReg 0 _ = return ()
   setReg rid regVal = STMachineM $ do
     regArray <- stRegisters <$> ask

@@ -40,7 +40,7 @@ base32 :: KnownArch arch => InstructionSet arch exts
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 :: (KnownArch arch, arch >> RV64I) => InstructionSet arch exts
+base64 :: (KnownArch arch, 64 <= ArchWidth arch) => InstructionSet arch exts
 base64 = base32 <> instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap arch
@@ -386,7 +386,7 @@ baseSemantics = Map.fromList
       raiseException (litBV 0b1) IllegalInstruction
   ]
 
-base64Encode :: arch >> RV64I => EncodeMap arch
+base64Encode :: 64 <= ArchWidth arch => EncodeMap arch
 base64Encode = Map.fromList
   [ Pair Addw  (ROpBits 0b0111011 0b000 0b0000000)
   , Pair Subw  (ROpBits 0b0111011 0b000 0b0100000)
@@ -398,7 +398,7 @@ base64Encode = Map.fromList
   , Pair Sd    (SOpBits 0b0100011 0b011)
   ]
 
-base64Semantics :: (KnownArch arch, arch >> RV64I) => SemanticsMap arch
+base64Semantics :: (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch
 base64Semantics = Map.fromList
   [ Pair Addw $ getFormula $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."
