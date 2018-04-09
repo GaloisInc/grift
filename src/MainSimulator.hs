@@ -21,33 +21,74 @@ Tool for simulating RISC-V programs in the ELF executable format.
 
 module Main where
 
-import Control.Monad
-import Control.Monad.ST
+import           Control.Monad
+import           Data.Bits
+import           Data.BitVector.Sized
+import           Data.Bool
 import qualified Data.ByteString as BS
-import Data.Array.IArray
-import System.Environment
+import           Data.Monoid
+import           Data.Parameterized
+import           System.Environment
+import           System.Exit
+import           Data.ElfEdit
 
-import RISCV.Simulation
-import RISCV.Simulation.STMachine
-import RISCV.Types
+import           RISCV.Types
+import           RISCV.Instruction
+import           RISCV.InstructionSet
+import           RISCV.Decode
+import           RISCV.Extensions
 
-truncBS :: BS.ByteString -> BS.ByteString
-truncBS bs = BS.pack (chunks (BS.unpack bs))
-  where chunks (a:b:c:d:rst) = a:b:c:d:chunks rst
-        chunks _ = []
+type DisArch = RV64I
+type DisExts = (Exts '(MYes, FDNo))
 
 main :: IO ()
-main = return ()
--- main = do
---   (progFile:[]) <- getArgs
+main = do
+  args <- getArgs
+  when (length args /= 1) $ do
+    putStrLn "Please supply exactly one RISC-V ELF binary."
+    exitFailure
 
---   progBytes <- truncBS <$> BS.readFile progFile
---   let (pc, registers, _) = runST $ do
---         m <- mkSTMachine RV32IRepr (ExtensionsRepr MNoRepr FDNoRepr) 0x10000 progBytes
---         execSTMachine (runRV 1000) m
---   putStrLn $ "Final PC: " ++ show pc
---   putStrLn $ "Final register state:"
---   forM_ (assocs registers) $ \(r, v) -> do
---     putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+  let [fileName] = args
 
+  insts <- disFile fileName
+  forM_ insts $ \(inst, instBV) -> do
+    putStrLn $ show instBV ++ ": " ++ show inst
 
+disFile :: String -> IO [(Some (Instruction DisArch), BitVector 32)]
+disFile fileName = do
+  fileBS <- BS.readFile fileName
+  case parseElf fileBS of
+    Elf32Res _err e -> disElf e
+    Elf64Res _err e -> disElf e
+    ElfHeaderError _byteOffset _msg -> return []
+
+disElf :: ElfWidthConstraints w => Elf w -> IO [(Some (Instruction DisArch), BitVector 32)]
+disElf e = do
+  let [textSection] = findSectionByName ".text" e
+      bs  = elfSectionData textSection
+      dis = disInstructions bs
+  return dis
+
+-- | Decode a single instruction from a bytestring and returns the instruction along
+-- with the remaining bytes and the number of bytes consumed. Since we currently only
+-- support RV32I, this function only decodes 4-byte words.
+disInstruction :: BS.ByteString -> Maybe (Some (Instruction DisArch), BitVector 32, BS.ByteString, Int)
+disInstruction bs =
+  bool Nothing (Just (inst, instBV, rb, numBytes)) (BS.length bs >= 4)
+  where (ib, rb) = BS.splitAt 4 bs
+        (b0:b1:b2:b3:[]) = fromIntegral <$> BS.unpack ib :: [Integer]
+        instWordI = b3 `shiftL` 24 .|.
+                    b2 `shiftL` 16 .|.
+                    b1 `shiftL` 8  .|.
+                    b0
+        instBV = bitVector instWordI
+        inst = decode (knownISet :: InstructionSet DisArch DisExts) instBV
+        numBytes = 4
+
+-- | Decode a bytestring as a RISC-V program
+disInstructions :: BS.ByteString -> [(Some (Instruction DisArch), BitVector 32)]
+disInstructions bs = case disInstruction bs of
+  -- not enough bytes to disassemble an instruction. We should probably detect if
+  -- length bs < 4 and give some kind of warning, but I'm not worried about that for now.
+  Nothing -> []
+  Just (inst, instBV, bsRst, _) -> (inst, instBV) : disInstructions bsRst

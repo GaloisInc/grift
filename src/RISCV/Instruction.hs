@@ -125,8 +125,6 @@ instance OrdF Operands where
 ----------------------------------------
 -- Opcodes
 
--- TODO: At some point, there is a chance it will make sense to parameterize this by
--- Extensions. For instance, Mul :: exts *>> M => Opcode arch exts R.
 -- | RISC-V Opcodes, parameterized by base architecture and format.
 --
 -- We note here that the 'Srai' and 'Srli' instructions are combined into the same

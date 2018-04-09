@@ -144,7 +144,6 @@ type M = 'M
 type F = 'F
 type D = 'D
 
-
 -- | Type operator that determines whether the 'Extensions' contains a particular
 -- 'Extension'.
 type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool where
@@ -155,5 +154,5 @@ type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool whe
   ExtensionsContains _ _ = 'False
 
 -- | 'ExtensionsContains' in constraint form.
-type (*>>) (exts :: Extensions) (e :: Extension)
+type (<<) (e :: Extension) (exts :: Extensions)
   = ExtensionsContains exts e ~ 'True
