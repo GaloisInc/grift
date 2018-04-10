@@ -34,6 +34,7 @@ library
                      , bv-sized >= 0.2 && < 0.3
                      , bytestring >= 0.10.8 && < 0.10.9
                      , containers >= 0.5.11 && < 0.5.12
+                     , elf-edit
                      , lens >= 4 && < 5
                      , mtl >= 2.2 && < 2.3
                      , parameterized-utils

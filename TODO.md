@@ -39,8 +39,13 @@ SoftFloat -- talk to Flemming when I get to this
 
 ## Simulator
 
-I've implemented an ST-based simulation backend, and have yet to run it or
-create a good command-line interface for it.
+Once I'm done with loading ELF files into the simulator, I will run some of the
+benchmarks on it. I also want to tighten up the STMachine interface, maybe create a
+separate module for loading ELF files, and ultimately replicate the STMachine with an
+IOMachine that will enable smoother debugging.
+
+I probably should have done it as an IOMachine to begin with, but it should be pretty
+straightforward to port the ST code to IO.
 
 ## Assembler
 
@@ -70,5 +75,4 @@ What to do first? Should be fun.
   that you couldn't decode an instruction that wasn't supported by the execution
   environment.
 - Semantics should take into account the fact that rd is hardwired to 0.
-
 

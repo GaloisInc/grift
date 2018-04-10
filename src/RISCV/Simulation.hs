@@ -26,11 +26,14 @@ module RISCV.Simulation
   , evalExpr
   , execFormula
   , runRV
+  , ElfLoadException(..)
+  , loadElfSegment
   ) where
 
 import Control.Lens ( (^.) )
 import Control.Monad ( forM_, when )
 import Data.BitVector.Sized
+import Data.ElfEdit
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
 
@@ -174,6 +177,7 @@ evalExpr operands ib (RemUE e1 e2) = do
 evalExpr operands ib (SllE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
+  -- traceM $ show e1Val ++ " << " ++ show e2Val ++ " = " ++ show (e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val))
   return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
 evalExpr operands ib (SrlE e1 e2) = do
   e1Val <- evalExpr operands ib e1
@@ -226,8 +230,6 @@ execStmt operands ib (AssignMem addrE e) = do
   eVal <- evalExpr operands ib e
 
   setMem addr eVal
---   memVal <- getMem bRepr addr
---   traceM $ "M[" ++ show addr ++ "] := " ++ show memVal
 
 execStmt operands ib (AssignPC pcE) = do
   pcVal <- evalExpr operands ib pcE
@@ -246,7 +248,6 @@ execFormula :: (RVState m arch exts, KnownArch arch)
             -> m ()
 execFormula operands ib f = forM_ (f ^. fDefs) $ execStmt operands ib
 
--- TODO: When we add exception stuff, exit early in that case.
 -- | Fetch, decode, and execute a single instruction.
 stepRV :: forall m arch exts
           . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
@@ -260,7 +261,7 @@ stepRV iset = do
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
   Some inst <- return $ decode iset instBV
---  traceM $ show pcVal ++ ": " ++ show inst
+  -- traceM $ show pcVal ++ ": " ++ show inst
 
   let operands = instOperands inst
       formula  = semanticsFromOpcode iset (instOpcode inst)
@@ -281,3 +282,17 @@ runRV n = runRV' knownISet n
           case e of
             Just e' -> return (Just e')
             Nothing -> stepRV iset >> runRV' iset (i-1)
+
+----------------------------------------
+-- ELF files
+
+-- We provide a function to load a statically linked ELF file, segment by segment,
+-- via absolute addressing.
+
+newtype ElfLoadException = ElfLoadException String
+
+loadElfSegment :: (RVState m arch exts, KnownArch arch, KnownExtensions exts)
+               => ElfSegment (ArchWidth arch)
+               -> m (Maybe ElfLoadException)
+loadElfSegment segment = do
+  undefined

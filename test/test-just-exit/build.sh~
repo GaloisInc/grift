@@ -1,0 +1,5 @@
+#!/bin/bash
+set -x
+
+riscv64-unknown-elf-gcc -static -nostdlib -nostartfiles test-just-exit.s -o test-just-exit64
+riscv64-unknown-elf-objdump -D test-just-exit64 >test-just-exit64.text

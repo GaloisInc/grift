@@ -370,11 +370,12 @@ baseSemantics = Map.fromList
       (rd, imm20') <- params
       ib' <- instBytes
       ib <- zextE ib'
-      imm20 <- sextE imm20'
+      imm21' <- imm20' `sllE` litBV 1
+      imm21 <- sextE imm21'
 
       pc <- pcRead
       incr_pc <- pc `addE` ib
-      pc_offset <- pc `addE` imm20
+      pc_offset <- pc `addE` imm21
 
       assignReg rd incr_pc
       assignPC pc_offset

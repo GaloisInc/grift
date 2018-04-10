@@ -24,11 +24,13 @@ unspecified.
 
 module RISCV.Simulation.STMachine
   ( STMachine(..)
+  , writeBS
   , mkSTMachine
   , execSTMachine
   , STMachineM(..)
   ) where
 
+import           Control.Monad (forM_)
 import qualified Control.Monad.Reader.Class as R
 import           Control.Monad.Trans
 import           Control.Monad.Trans.Reader
@@ -39,10 +41,13 @@ import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.STRef
 import           GHC.TypeLits
+import           Numeric (showHex)
 
 import RISCV.Semantics (Exception)
 import RISCV.Simulation
 import RISCV.Types
+
+import Debug.Trace (traceM)
 
 -- | An ST-based backend for a RISC-V simulator.
 data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
@@ -63,20 +68,23 @@ writeBS ix bs arr = do
       writeBS (ix+1) (BS.tail bs) arr
 
 -- | Construct an STMachine with a given maximum address and program.
-mkSTMachine :: KnownNat (ArchWidth arch)
+mkSTMachine :: (Integral i, Show i, KnownNat (ArchWidth arch))
             => BaseArchRepr arch
             -> ExtensionsRepr exts
             -> BitVector (ArchWidth arch)
-            -> BS.ByteString
+            -> i
+            -> [(i, BS.ByteString)]
             -> ST s (STMachine s arch exts)
-mkSTMachine _ _ maxAddr progBytes = do
-  pc        <- newSTRef 0
+mkSTMachine _ _ maxAddr entryPoint byteStrings = do
+  pc        <- newSTRef (fromIntegral entryPoint)
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
   e         <- newSTRef Nothing
   steps     <- newSTRef 0
 
-  writeBS 0 progBytes memory
+  forM_ byteStrings $ \(addr, bs) -> do
+    traceM $ "writing section to address " ++ showHex addr ""
+    writeBS (fromIntegral addr) bs memory
   return (STMachine pc registers memory maxAddr e steps)
 
 -- | Run a STMachineM transformation on an initial state and return the result

@@ -94,8 +94,9 @@ main = do
         m <- mkSTMachine
           (knownRepr :: BaseArchRepr BaseArchType)
           (knownRepr :: ExtensionsRepr ExtensionsType)
+          0x0
           0x10000
-          progBytes
+          [(0, progBytes)]
         execSTMachine (runRV 10000000) m
   case e of
     Nothing -> return ()

@@ -248,7 +248,9 @@ type CompOp arch fmt = BVExpr arch (ArchWidth arch)
 
 b :: KnownArch arch => CompOp arch 'B -> FormulaBuilder arch 'B ()
 b cmp = do
-  (rs1, rs2, offset) <- params
+  (rs1, rs2, offset') <- params
+  -- Need to left shift the offset by 1
+  offset <- offset' `sllE` litBV 1
 
   x_rs1 <- regRead rs1
   x_rs2 <- regRead rs2
