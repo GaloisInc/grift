@@ -21,14 +21,10 @@ Helper functions for defining instruction semantics.
 -}
 
 module RISCV.Extensions.Helpers
-  ( incrPC
-  , ArithOp
-  , rOp, rOp32
-  , iOp
-  , MemReadFn, ExtFn
-  , l, s
-  , CompOp
-  , b
+  ( ArithOp, MemReadFn, MemWriteFn, ExtFn, CompOp
+  , incrPC
+  , rOp, rOp32 , iOp
+  , l, s, b
   , memRead16, memRead32, memRead64
   , assignMem16, assignMem32, assignMem64
   ) where

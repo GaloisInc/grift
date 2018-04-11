@@ -26,14 +26,11 @@ module RISCV.Simulation
   , evalExpr
   , execFormula
   , runRV
-  , ElfLoadException(..)
-  , loadElfSegment
   ) where
 
 import Control.Lens ( (^.) )
 import Control.Monad ( forM_, when )
 import Data.BitVector.Sized
-import Data.ElfEdit
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
 
@@ -282,17 +279,3 @@ runRV n = runRV' knownISet n
           case e of
             Just e' -> return (Just e')
             Nothing -> stepRV iset >> runRV' iset (i-1)
-
-----------------------------------------
--- ELF files
-
--- We provide a function to load a statically linked ELF file, segment by segment,
--- via absolute addressing.
-
-newtype ElfLoadException = ElfLoadException String
-
-loadElfSegment :: (RVState m arch exts, KnownArch arch, KnownExtensions exts)
-               => ElfSegment (ArchWidth arch)
-               -> m (Maybe ElfLoadException)
-loadElfSegment segment = do
-  undefined

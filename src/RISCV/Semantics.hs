@@ -42,6 +42,7 @@ instructions.
 module RISCV.Semantics
   ( -- * Types
     OperandID(..)
+  , type Rd, type Rs1, type Rs2, type Imm12, type Imm20, type Imm32
   , OperandIDRepr(..)
   , OperandIDWidth
   , OperandParam(..)

@@ -5,8 +5,7 @@ A general-purpose RISC-V library for Haskell (for use in SSITH)
 ## Overview
 The RISC-V ISA (instruction set architecture) is an open-source ISA developed at UC
 Berkeley. riscv-tools is a Haskell library that encodes the core of the ISA -- the
-encoding and decoding of instructions, as well as their semantics. The intent is to
-facilitate easy assembler/disassembler/simulator building.
+encoding and decoding of instructions, as well as their semantics. 
 
 ## Getting/Building
 
@@ -22,4 +21,5 @@ stack build
 Nothing to run, this is a library.
 
 ## Current status
-Encoding/decoding are complete for the base ISA (RV32I).
+Encoding/decoding are complete for the base ISA and M extension
+(RV32IM/RV64IM). 
