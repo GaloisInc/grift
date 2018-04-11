@@ -7,6 +7,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Module      : RISCV.Simulation.IOMachine
@@ -33,11 +34,10 @@ import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
-import           GHC.TypeLits
 
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics (Exception)
+import RISCV.Semantics (Exception(..))
 
 data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
   { ioPC        :: IORef (BitVector (ArchWidth arch))
@@ -82,7 +82,7 @@ newtype IOMachineM (arch :: BaseArch) (exts :: Extensions) a =
   deriving (Functor, Applicative, Monad, R.MonadReader (IOMachine arch exts))
 
 -- TODO: add dynamic checking for memory out of bounds; just throw an error for now
-instance KnownNat (ArchWidth arch) => RVState (IOMachineM arch exts) arch exts where
+instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
   getPC = IOMachineM $ do
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef
@@ -94,8 +94,14 @@ instance KnownNat (ArchWidth arch) => RVState (IOMachineM arch exts) arch exts w
     return regVal
   getMem addr = IOMachineM $ do
     memArray <- ioMemory <$> ask
-    byte     <- lift $ readArray memArray addr
-    return byte
+    maxAddr <- ioMaxAddr <$> ask
+    case addr < maxAddr of
+      True -> do byte <- lift $ readArray memArray addr
+                 return byte
+      False -> do
+        eRef <- ioException <$> ask
+        lift $ writeIORef eRef (Just MemoryAccessError)
+        return 0
 
   setPC pcVal = IOMachineM $ do
     -- We assume that every time we are setting the PC, we have just finished
@@ -109,10 +115,14 @@ instance KnownNat (ArchWidth arch) => RVState (IOMachineM arch exts) arch exts w
   setReg rid regVal = IOMachineM $ do
     regArray <- ioRegisters <$> ask
     lift $ writeArray regArray rid regVal
-  setMem 0 _ = return ()
   setMem addr byte = IOMachineM $ do
     memArray <- ioMemory <$> ask
-    lift $ writeArray memArray addr byte
+    maxAddr <- ioMaxAddr <$> ask
+    case addr < maxAddr of
+      True -> lift $ writeArray memArray addr byte
+      False -> do
+        eRef <- ioException <$> ask
+        lift $ writeIORef eRef (Just MemoryAccessError)
 
   throwException e = IOMachineM $ do
     eRef <- ioException <$> ask
@@ -122,23 +132,18 @@ instance KnownNat (ArchWidth arch) => RVState (IOMachineM arch exts) arch exts w
     eRef <- ioException <$> ask
     lift $ readIORef eRef
 
--- | Run a IOMachineM transformation on an initial state and return the result
-execIOMachine :: (KnownArch arch, KnownExtensions exts)
-              => IOMachineM arch exts (Maybe Exception)
-              -> IOMachine arch exts
-              -> IO ( BitVector (ArchWidth arch)
-                    , Array (BitVector 5) (BitVector (ArchWidth arch))
-                    , Array (BitVector (ArchWidth arch)) (BitVector 8)
-                    , Int
-                    , Maybe Exception
-                    )
-execIOMachine action m = do
-  (ioPC', ioRegisters', ioMemory', ioSteps', e') <- flip runReaderT m $ runIOMachineM $ do
-    e <- action
-    m' <- R.ask
-    return (ioPC m', ioRegisters m', ioMemory m', ioSteps m', e)
-  pc <- readIORef ioPC'
-  registers <- freeze ioRegisters'
-  memory <- freeze ioMemory'
-  steps <- readIORef ioSteps'
-  return (pc, registers, memory, steps, e')
+freezeRegisters :: IOMachine arch exts
+                -> IO (Array (BitVector 5) (BitVector (ArchWidth arch)))
+freezeRegisters = freeze . ioRegisters
+
+freezeMemory :: KnownArch arch
+             => IOMachine arch exts
+             -> IO (Array (BitVector (ArchWidth arch)) (BitVector 8))
+freezeMemory = freeze . ioMemory
+
+runIOMachine :: (KnownArch arch, KnownExtensions exts)
+             => Int
+             -> IOMachine arch exts
+             -> IO (Maybe Exception)
+runIOMachine stepsToRun m =
+  flip runReaderT m $ runIOMachineM $ runRV stepsToRun

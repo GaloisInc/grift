@@ -275,6 +275,7 @@ instance ShowF (BVExpr arch)
 data Exception = EnvironmentCall
                | Breakpoint
                | IllegalInstruction
+               | MemoryAccessError
   deriving (Show)
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment

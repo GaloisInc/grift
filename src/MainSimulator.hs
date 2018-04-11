@@ -5,6 +5,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -26,10 +27,12 @@ import           Control.Lens ( (^..) )
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Array.IArray
+import           Data.Array.IO
 import           Data.Bits
 import           Data.BitVector.Sized
 import           Data.Bool
 import qualified Data.ByteString as BS
+import           Data.IORef
 import           Data.Monoid
 import           Data.Parameterized
 import           System.Environment
@@ -62,12 +65,15 @@ main = do
   case parseElf fileBS of
     Elf64Res _err e -> do
       let byteStrings = elfBytes e
-      (pc, registers, _, steps, err) <- do
-        m :: IOMachine SimArch SimExts <- mkIOMachine
-             0x1000000
-             (fromIntegral $ elfEntry e)
-             byteStrings
-        execIOMachine (runRV stepsToRun) m
+      m :: IOMachine SimArch SimExts <-
+        mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      runIOMachine stepsToRun m
+
+      err       <- readIORef (ioException m)
+      steps     <- readIORef (ioSteps m)
+      pc        <- readIORef (ioPC m)
+      registers <- freezeRegisters m
+
       case err of
         Nothing -> return ()
         Just err' -> putStrLn $ "Encountered exception: " ++ show err'

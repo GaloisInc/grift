@@ -76,6 +76,7 @@ mSemantics = Map.fromList
       assignReg rd result
       incrPC
 
+  -- TODO: Fix the following three.
   , Pair Mulh $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
       comment "Writes the upper half of the product in x[rd]."
