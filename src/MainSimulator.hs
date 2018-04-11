@@ -64,7 +64,7 @@ main = do
             m <- mkSTMachine
               (knownRepr :: BaseArchRepr SimArch)
               (knownRepr :: ExtensionsRepr SimExts)
-              0x80000
+              0x1000000
               (fromIntegral $ elfEntry e)
               byteStrings
             execSTMachine (runRV stepsToRun) m

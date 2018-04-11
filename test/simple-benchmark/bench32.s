@@ -6,7 +6,7 @@
 	.type	ITERS, @object
 	.size	ITERS, 4
 ITERS:
-	.word	10000000
+	.word	1000000
 	.text
 	.align	2
 	.globl	main
@@ -26,8 +26,8 @@ main:
 	add	a5,a5,1
 	sw	a5,-20(s0)
 .L2:
-	li	a5,9998336
-	add	a5,a5,1664
+	li	a5,999424
+	add	a5,a5,576
 	lw	a4,-20(s0)
 	blt	a4,a5,.L3
 	lw	a5,-24(s0)

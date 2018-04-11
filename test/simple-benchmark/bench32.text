@@ -23,8 +23,8 @@ Disassembly of section .text:
    100a8:	fec42783          	lw	a5,-20(s0)
    100ac:	00178793          	addi	a5,a5,1
    100b0:	fef42623          	sw	a5,-20(s0)
-   100b4:	009897b7          	lui	a5,0x989
-   100b8:	68078793          	addi	a5,a5,1664 # 989680 <__global_pointer$+0x977da8>
+   100b4:	000f47b7          	lui	a5,0xf4
+   100b8:	24078793          	addi	a5,a5,576 # f4240 <__global_pointer$+0xe2968>
    100bc:	fec42703          	lw	a4,-20(s0)
    100c0:	fcf74ee3          	blt	a4,a5,1009c <main+0x18>
    100c4:	fe842783          	lw	a5,-24(s0)
@@ -36,8 +36,8 @@ Disassembly of section .text:
 Disassembly of section .sdata:
 
 000110d8 <ITERS>:
-   110d8:	9680                	0x9680
-   110da:	0098                	addi	a4,sp,64
+   110d8:	4240                	lw	s0,4(a2)
+   110da:	7fd3000f          	fence	unknown,unknown
 
 Disassembly of section .comment:
 

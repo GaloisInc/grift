@@ -56,9 +56,9 @@ type SemanticsMap arch = MapF (Opcode arch) (Formula arch)
 -- | A set of RISC-V instructions. We use this type to group the various instructions
 -- into categories based on extension and register width.
 data InstructionSet (arch :: BaseArch) (exts :: Extensions)
-  = InstructionSet { isEncodeMap    :: EncodeMap arch
-                   , isDecodeMap    :: DecodeMap arch
-                   , isSemanticsMap :: SemanticsMap arch
+  = InstructionSet { isEncodeMap    :: !(EncodeMap arch)
+                   , isDecodeMap    :: !(DecodeMap arch)
+                   , isSemanticsMap :: !(SemanticsMap arch)
                    }
 
 instance Monoid (InstructionSet arch exts) where

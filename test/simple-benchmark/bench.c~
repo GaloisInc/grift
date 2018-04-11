@@ -1,4 +1,4 @@
-const int ITERS=1000000000;
+const int ITERS=100000;
 
 int main() {
   int i;

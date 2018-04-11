@@ -107,8 +107,8 @@ Disassembly of section .text:
    1020c:	fec42783          	lw	a5,-20(s0)
    10210:	0017879b          	addiw	a5,a5,1
    10214:	fef42623          	sw	a5,-20(s0)
-   10218:	009897b7          	lui	a5,0x989
-   1021c:	68078713          	addi	a4,a5,1664 # 989680 <__global_pointer$+0x9770c8>
+   10218:	000f47b7          	lui	a5,0xf4
+   1021c:	24078713          	addi	a4,a5,576 # f4240 <__global_pointer$+0xe1c88>
    10220:	fec42783          	lw	a5,-20(s0)
    10224:	0007879b          	sext.w	a5,a5
    10228:	fce7cce3          	blt	a5,a4,10200 <main+0x18>
@@ -454,9 +454,8 @@ Disassembly of section .sdata:
 	...
 
 0000000000011dc0 <ITERS>:
-   11dc0:	9680                	0x9680
-   11dc2:	0098                	addi	a4,sp,64
-   11dc4:	0000                	unimp
+   11dc0:	4240                	lw	s0,4(a2)
+   11dc2:	0000000f          	fence	unknown,unknown
 	...
 
 0000000000011dc8 <_global_impure_ptr>:

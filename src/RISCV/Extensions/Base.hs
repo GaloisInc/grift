@@ -149,7 +149,7 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
-      rOp srlE
+      rOp sraE
   , Pair Or $ getFormula $ do
       comment "Computes the bitwise inclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
@@ -391,6 +391,9 @@ base64Encode :: 64 <= ArchWidth arch => EncodeMap arch
 base64Encode = Map.fromList
   [ Pair Addw  (ROpBits 0b0111011 0b000 0b0000000)
   , Pair Subw  (ROpBits 0b0111011 0b000 0b0100000)
+  , Pair Sllw  (ROpBits 0b0111011 0b001 0b0000000)
+  , Pair Srlw  (ROpBits 0b0111011 0b101 0b0000000)
+  , Pair Sraw  (ROpBits 0b0111011 0b101 0b0100000)
   , Pair Lwu   (IOpBits 0b0000011 0b110)
   , Pair Ld    (IOpBits 0b0000011 0b011)
   , Pair Addiw (IOpBits 0b0011011 0b000)
@@ -420,6 +423,39 @@ base64Semantics = Map.fromList
 
       rOp $ \e1 e2 -> do
         a  <- e1 `subE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Sllw $ getFormula $ do
+      comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
+      comment "Writes the sign-extended result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      rOp $ \e1 e2 -> do
+        a  <- e1 `sllE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Srlw $ getFormula $ do
+      comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
+      comment "Writes the sign-extended result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      rOp $ \e1 e2 -> do
+        a  <- e1 `srlE` e2
+        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+
+        res <- sextE a'
+        return res
+  , Pair Sraw $ getFormula $ do
+      comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
+      comment "Writes the sign-extended result to x[rd]."
+      comment "Arithmetic overflow is ignored."
+
+      rOp $ \e1 e2 -> do
+        a  <- e1 `sraE` e2
         a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
 
         res <- sextE a'
