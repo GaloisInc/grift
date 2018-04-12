@@ -4,3 +4,6 @@
 [submodule "submodules/elf-edit"]
 	path = submodules/elf-edit
 	url = git@github.com:GaloisInc/elf-edit.git
+[submodule "submodules/clash-compiler"]
+	path = submodules/clash-compiler
+	url = git@github.com:clash-lang/clash-compiler.git
