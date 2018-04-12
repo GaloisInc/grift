@@ -39,6 +39,7 @@ import RISCV.Types
 import RISCV.Simulation
 import RISCV.Semantics (Exception(..))
 
+-- | IO-based machine state.
 data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
   { ioPC        :: IORef (BitVector (ArchWidth arch))
   , ioRegisters :: IOArray (BitVector 5) (BitVector (ArchWidth arch))

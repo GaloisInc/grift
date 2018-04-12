@@ -43,20 +43,15 @@ import RISCV.Types
 
 import Debug.Trace (traceM)
 
--- TODO: maybe make a constructor in this class somehow...? That would allow us to
--- compute the instruction set once and for all so we don't have to rebuild it every
--- time we step the machine.
 -- | State monad for simulating RISC-V code
-class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts where
+class (Monad m) => RVState m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
   -- | Get the current PC.
   getPC  :: m (BitVector (ArchWidth arch))
-  -- TODO: Is there a more elegant way to bypass the requirement below?
   -- | Get the value of a register. Note that for all valid implementations, we
   -- require that getReg 0 = return 0.
   getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
   -- | Read a single byte from memory.
-  getMem :: BitVector (ArchWidth arch)
-         -> m (BitVector 8)
+  getMem :: BitVector (ArchWidth arch) -> m (BitVector 8)
 
   -- | Set the PC.
   setPC :: BitVector (ArchWidth arch) -> m ()
@@ -64,9 +59,7 @@ class (Monad m) => RVState m arch (exts :: Extensions) | m -> arch, m -> exts wh
   -- setReg 0 = return ().
   setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
   -- | Write a single byte to memory.
-  setMem :: BitVector (ArchWidth arch)
-         -> BitVector 8
-         -> m ()
+  setMem :: BitVector (ArchWidth arch) -> BitVector 8 -> m ()
 
   throwException :: Exception -> m ()
   exceptionStatus :: m (Maybe Exception)
