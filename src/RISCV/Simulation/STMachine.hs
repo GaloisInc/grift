@@ -84,24 +84,23 @@ mkSTMachine _ _ maxAddr entryPoint byteStrings = do
 
 -- | Run a STMachineM transformation on an initial state and return the result
 execSTMachine :: (KnownArch arch, KnownExtensions exts)
-              => STMachineM s arch exts (Maybe Exception)
+              => STMachineM s arch exts ()
               -> STMachine s arch exts
               -> ST s ( BitVector (ArchWidth arch)
                       , Array (BitVector 5) (BitVector (ArchWidth arch))
                       , Array (BitVector (ArchWidth arch)) (BitVector 8)
                       , Int
-                      , Maybe Exception
                       )
 execSTMachine action m = do
-  (stPC', stRegisters', stMemory', stSteps', e') <- flip runReaderT m $ runSTMachineM $ do
-    e <- action
+  (stPC', stRegisters', stMemory', stSteps') <- flip runReaderT m $ runSTMachineM $ do
+    action
     m' <- R.ask
-    return (stPC m', stRegisters m', stMemory m', stSteps m', e)
+    return (stPC m', stRegisters m', stMemory m', stSteps m')
   pc <- readSTRef stPC'
   registers <- freeze stRegisters'
   memory <- freeze stMemory'
   steps <- readSTRef stSteps'
-  return (pc, registers, memory, steps, e')
+  return (pc, registers, memory, steps)
 
 -- | The 'STMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable

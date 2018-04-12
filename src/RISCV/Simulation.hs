@@ -167,7 +167,6 @@ evalExpr operands ib (RemUE e1 e2) = do
 evalExpr operands ib (SllE e1 e2) = do
   e1Val <- evalExpr operands ib e1
   e2Val <- evalExpr operands ib e2
-  -- traceM $ show e1Val ++ " << " ++ show e2Val ++ " = " ++ show (e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val))
   return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
 evalExpr operands ib (SrlE e1 e2) = do
   e1Val <- evalExpr operands ib e1
@@ -251,7 +250,6 @@ stepRV iset = do
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
   Some inst <- return $ decode iset instBV
-  -- traceM $ show pcVal ++ ": " ++ show inst
 
   let operands = instOperands inst
       formula  = semanticsFromOpcode iset (instOpcode inst)
@@ -259,16 +257,15 @@ stepRV iset = do
   -- Execute
   execFormula operands 4 formula
 
--- TODO: When we add exception stuff, exit early in that case.
 -- | Run for a given number of steps.
 runRV :: forall m arch exts
          . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
       => Int
-      -> m (Maybe Exception)
+      -> m ()
 runRV n = runRV' knownISet n
-  where runRV' _ i | i <= 0 = return Nothing
+  where runRV' _ i | i <= 0 = return ()
         runRV' iset i = do
           e <- exceptionStatus
           case e of
-            Just e' -> return (Just e')
+            Just _' -> return ()
             Nothing -> stepRV iset >> runRV' iset (i-1)

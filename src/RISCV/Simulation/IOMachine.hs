@@ -145,6 +145,6 @@ freezeMemory = freeze . ioMemory
 runIOMachine :: (KnownArch arch, KnownExtensions exts)
              => Int
              -> IOMachine arch exts
-             -> IO (Maybe Exception)
+             -> IO ()
 runIOMachine stepsToRun m =
   flip runReaderT m $ runIOMachineM $ runRV stepsToRun

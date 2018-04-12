@@ -90,7 +90,7 @@ progBytes = BS.concat $ iwordBS <$> viewSome (encode (knownISet :: ISetType)) <$
 
 main :: IO ()
 main = do
-  let (pc, registers, _, steps, e) = runST $ do
+  let (pc, registers, _, steps) = runST $ do
         m <- mkSTMachine
           (knownRepr :: BaseArchRepr BaseArchType)
           (knownRepr :: ExtensionsRepr ExtensionsType)
@@ -98,9 +98,6 @@ main = do
           0x10000
           [(0, progBytes)]
         execSTMachine (runRV 10000000) m
-  case e of
-    Nothing -> return ()
-    Just e' -> putStrLn $ "Encountered exception: " ++ show e'
   putStrLn $ "Executed " ++ show steps ++ " instructions."
   putStrLn $ "Final PC: " ++ show pc
   putStrLn $ "Final register state:"

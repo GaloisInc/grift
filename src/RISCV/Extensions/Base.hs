@@ -240,9 +240,8 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       iOp sllE
-    -- TODO: Need to fix semantics here. When imm10 = 0, we do a logical shift, and
-    -- when it's 1 we do an arithmetic shift. We should also check that the other
-    -- bits are 0, but that depends on architecture width, so.... yuck.
+  -- TODO: Modify this to dynamically check if arch is 32, 64, or 128 bits. Remove
+  -- the XLen constructor from the semantics if possible.
   , Pair Sri $ getFormula $ do
       comment "Shifts register x[rs1] right by shamt bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."

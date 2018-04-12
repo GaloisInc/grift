@@ -48,7 +48,7 @@ import           RISCV.Extensions
 import           RISCV.Simulation
 import           RISCV.Simulation.IOMachine
 
-type SimArch = RV64I
+type SimArch = RV32I
 type SimExts = (Exts '(MYes, FDNo))
 
 main :: IO ()
@@ -63,7 +63,7 @@ main = do
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
-    Elf64Res _err e -> do
+    Elf32Res _err e -> do
       let byteStrings = elfBytes e
       m :: IOMachine SimArch SimExts <-
         mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
