@@ -48,9 +48,9 @@ incrPC = do
   assignPC new_pc
 
 -- | Type of arithmetic operator in 'FormulaBuilder'.
-type ArithOp arch fmt w = BVExpr arch (ArchWidth arch)
-                       -> BVExpr arch (ArchWidth arch)
-                       -> FormulaBuilder arch fmt (BVExpr arch w)
+type ArithOp arch fmt w = BVExpr arch fmt (ArchWidth arch)
+                       -> BVExpr arch fmt (ArchWidth arch)
+                       -> FormulaBuilder arch fmt (BVExpr arch fmt w)
 
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
 rOp :: KnownArch arch => ArithOp arch 'R (ArchWidth arch) -> FormulaBuilder arch 'R ()
@@ -92,8 +92,8 @@ iOp op = do
   assignReg rd result
   incrPC
 
-type MemReadFn arch w fmt = KnownArch arch => BVExpr arch (ArchWidth arch) -> FormulaBuilder arch fmt (BVExpr arch w)
-type ExtFn arch w fmt = KnownArch arch => BVExpr arch w -> FormulaBuilder arch fmt (BVExpr arch (ArchWidth arch))
+type MemReadFn arch w fmt = KnownArch arch => BVExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (BVExpr arch fmt w)
+type ExtFn arch w fmt = KnownArch arch => BVExpr arch fmt w -> FormulaBuilder arch fmt (BVExpr arch fmt (ArchWidth arch))
 
 memRead16 :: MemReadFn arch 16 fmt
 memRead16 addr = do
@@ -165,7 +165,7 @@ l rdFn extFn = do
   assignReg rd ext_byte
   incrPC
 
-type MemWriteFn arch w fmt = KnownArch arch => BVExpr arch (ArchWidth arch) -> BVExpr arch w -> FormulaBuilder arch fmt ()
+type MemWriteFn arch w fmt = KnownArch arch => BVExpr arch fmt (ArchWidth arch) -> BVExpr arch fmt w -> FormulaBuilder arch fmt ()
 
 assignMem16 :: MemWriteFn arch 16 fmt
 assignMem16 addr val = do
@@ -238,9 +238,9 @@ s wrFn = do
   wrFn addr mVal
   incrPC
 
-type CompOp arch fmt = BVExpr arch (ArchWidth arch)
-                    -> BVExpr arch (ArchWidth arch)
-                    -> FormulaBuilder arch fmt (BVExpr arch 1)
+type CompOp arch fmt = BVExpr arch fmt (ArchWidth arch)
+                    -> BVExpr arch fmt (ArchWidth arch)
+                    -> FormulaBuilder arch fmt (BVExpr arch fmt 1)
 
 b :: KnownArch arch => CompOp arch 'B -> FormulaBuilder arch 'B ()
 b cmp = do

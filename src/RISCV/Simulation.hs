@@ -73,35 +73,33 @@ getMem32 addr = do
   return $ b3 <:> b2 <:> b1 <:> b0
 
 -- | Evaluate a parameter's value from an 'Operands'.
-evalParam :: OperandParam arch oid
+evalParam :: OperandParam arch fmt oid
           -> Operands fmt
           -> BitVector (OperandIDWidth oid)
-evalParam (OperandParam RdRepr)    (ROperands  rd   _   _) = rd
-evalParam (OperandParam Rs1Repr)   (ROperands   _ rs1   _) = rs1
-evalParam (OperandParam Rs2Repr)   (ROperands   _   _ rs2) = rs2
-evalParam (OperandParam RdRepr)    (IOperands  rd   _   _) = rd
-evalParam (OperandParam Rs1Repr)   (IOperands   _ rs1   _) = rs1
-evalParam (OperandParam Imm12Repr) (IOperands   _   _ imm) = imm
-evalParam (OperandParam Rs1Repr)   (SOperands rs1   _   _) = rs1
-evalParam (OperandParam Rs2Repr)   (SOperands   _ rs2   _) = rs2
-evalParam (OperandParam Imm12Repr) (SOperands   _   _ imm) = imm
-evalParam (OperandParam Rs1Repr)   (BOperands rs1   _   _) = rs1
-evalParam (OperandParam Rs2Repr)   (BOperands   _ rs2   _) = rs2
-evalParam (OperandParam Imm12Repr) (BOperands   _   _ imm) = imm
-evalParam (OperandParam RdRepr)    (UOperands  rd       _) = rd
-evalParam (OperandParam Imm20Repr) (UOperands   _     imm) = imm
-evalParam (OperandParam RdRepr)    (JOperands  rd       _) = rd
-evalParam (OperandParam Imm20Repr) (JOperands   _     imm) = imm
-evalParam (OperandParam Imm32Repr) (XOperands         imm) = imm
-evalParam oidRepr operands = error $
-  "No operand " ++ show oidRepr ++ " in operands " ++ show operands
+evalParam (OperandParam RRd)    (ROperands  rd   _   _) = rd
+evalParam (OperandParam RRs1)   (ROperands   _ rs1   _) = rs1
+evalParam (OperandParam RRs2)   (ROperands   _   _ rs2) = rs2
+evalParam (OperandParam IRd)    (IOperands  rd   _   _) = rd
+evalParam (OperandParam IRs1)   (IOperands   _ rs1   _) = rs1
+evalParam (OperandParam IImm12) (IOperands   _   _ imm) = imm
+evalParam (OperandParam SRs1)   (SOperands rs1   _   _) = rs1
+evalParam (OperandParam SRs2)   (SOperands   _ rs2   _) = rs2
+evalParam (OperandParam SImm12) (SOperands   _   _ imm) = imm
+evalParam (OperandParam BRs1)   (BOperands rs1   _   _) = rs1
+evalParam (OperandParam BRs2)   (BOperands   _ rs2   _) = rs2
+evalParam (OperandParam BImm12) (BOperands   _   _ imm) = imm
+evalParam (OperandParam URd)    (UOperands  rd       _) = rd
+evalParam (OperandParam UImm20) (UOperands   _     imm) = imm
+evalParam (OperandParam JRd)    (JOperands  rd       _) = rd
+evalParam (OperandParam JImm20) (JOperands   _     imm) = imm
+evalParam (OperandParam XImm32) (XOperands         imm) = imm
 
 -- | Evaluate a 'BVExpr', given an 'RVState' implementation.
 evalExpr :: forall m arch exts fmt w
             . (RVState m arch exts, KnownArch arch)
          => Operands fmt    -- ^ Operands
          -> Integer         -- ^ Instruction width (in bytes)
-         -> BVExpr arch w   -- ^ Expression to be evaluated
+         -> BVExpr arch fmt w   -- ^ Expression to be evaluated
          -> m (BitVector w)
 evalExpr _ _ (LitBV bv) = return bv
 evalExpr operands _ (ParamBV p) = return (evalParam p operands)
@@ -206,9 +204,9 @@ evalExpr operands ib (IteE testE tE fE) = do
 
 -- | Execute an assignment statement, given an 'RVState' implementation.
 execStmt :: (RVState m arch exts, KnownArch arch)
-         => Operands fmt -- ^ Operands
-         -> Integer      -- ^ Instruction width (in bytes)
-         -> Stmt arch    -- ^ Statement to be executed
+         => Operands fmt  -- ^ Operands
+         -> Integer       -- ^ Instruction width (in bytes)
+         -> Stmt arch fmt -- ^ Statement to be executed
          -> m ()
 execStmt operands ib (AssignReg ridE e) = do
   rid  <- evalExpr operands ib ridE
