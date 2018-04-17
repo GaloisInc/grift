@@ -25,30 +25,18 @@ module Main where
 
 import           Control.Lens ( (^..) )
 import           Control.Monad
-import           Control.Monad.ST
 import           Data.Array.IArray
-import           Data.Array.IO
-import           Data.Bits
 import           Data.BitVector.Sized
-import           Data.Bool
 import qualified Data.ByteString as BS
 import           Data.IORef
-import           Data.Monoid
-import           Data.Parameterized
 import           System.Environment
 import           System.Exit
 import           Data.ElfEdit
 import           GHC.TypeLits
 
 import           RISCV.Types
-import           RISCV.Instruction
-import           RISCV.InstructionSet
-import           RISCV.Decode
-import           RISCV.Extensions
-import           RISCV.Simulation
 import           RISCV.Simulation.IOMachine
 
-type SimArch = RV32I
 type SimExts = (Exts '(MYes, FDNo))
 
 main :: IO ()
@@ -63,9 +51,9 @@ main = do
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
-    Elf32Res _err e -> do
+    Elf64Res _err e -> do
       let byteStrings = elfBytes e
-      m :: IOMachine SimArch SimExts <-
+      m :: IOMachine RV64I SimExts <-
         mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
       runIOMachine stepsToRun m
 

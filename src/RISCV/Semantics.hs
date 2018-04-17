@@ -45,7 +45,6 @@ module RISCV.Semantics
   , pcRead
   , regRead
   , memRead
-  , xlen
   -- ** Bitwise
   , andE
   , orE
@@ -88,12 +87,10 @@ import Control.Monad.State
 import Data.BitVector.Sized
 import Data.Foldable (toList)
 import Data.Parameterized
-import Data.Parameterized.TH.GADT
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
 
-import RISCV.Instruction
 import RISCV.Types
 
 ----------------------------------------
@@ -112,8 +109,6 @@ data BVExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   RegRead :: BVExpr arch fmt 5 -> BVExpr arch fmt (ArchWidth arch)
   MemRead :: BVExpr arch fmt (ArchWidth arch)
           -> BVExpr arch fmt 8
-  -- | This is temporary; when we have CSRs this will change.
-  XLen :: BVExpr arch fmt (ArchWidth arch)
 
   -- Bitwise operations
   AndE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
@@ -261,10 +256,6 @@ regRead = return . RegRead
 memRead :: BVExpr arch fmt (ArchWidth arch)
         -> FormulaBuilder arch fmt (BVExpr arch fmt 8)
 memRead addr = return (MemRead addr)
-
--- | Get XLEN.
-xlen :: BVExpr arch fmt (ArchWidth arch)
-xlen = XLen
 
 -- | Bitwise and.
 andE :: BVExpr arch fmt w

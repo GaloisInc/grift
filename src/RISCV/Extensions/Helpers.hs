@@ -22,6 +22,7 @@ Helper functions for defining instruction semantics.
 
 module RISCV.Extensions.Helpers
   ( ArithOp, MemReadFn, MemWriteFn, ExtFn, CompOp
+  , getArchWidth, getArchWidthBV
   , incrPC
   , rOp, rOp32 , iOp
   , l, s, b
@@ -33,9 +34,17 @@ import Data.BitVector.Sized
 import Data.Parameterized
 import GHC.TypeLits
 
-import RISCV.Instruction
 import RISCV.Semantics
 import RISCV.Types
+
+-- | Get the architecture width as a NatRepr
+getArchWidth :: KnownArch arch => FormulaBuilder arch fmt (NatRepr (ArchWidth arch))
+getArchWidth = return knownNat
+
+getArchWidthBV :: (KnownArch arch, KnownNat w) => FormulaBuilder arch fmt (BVExpr arch fmt w)
+getArchWidthBV = do
+  aw <- getArchWidth
+  return $ litBV $ bitVector $ fromIntegral $ natValue aw
 
 -- | Increment the PC
 incrPC :: KnownArch arch => FormulaBuilder arch fmt ()

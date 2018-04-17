@@ -104,7 +104,6 @@ evalExpr :: forall m arch exts fmt w
 evalExpr _ _ (LitBV bv) = return bv
 evalExpr operands _ (ParamBV p) = return (evalParam p operands)
 evalExpr _ _ PCRead = getPC
-evalExpr _ _ XLen = return $ bitVector $ natValue (knownRepr :: NatRepr (ArchWidth arch))
 evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr operands ib (RegRead ridE) =
   evalExpr operands ib ridE >>= getReg

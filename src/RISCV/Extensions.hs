@@ -27,10 +27,6 @@ Extensions for RISC-V.
 
 module RISCV.Extensions
   ( -- * RISC-V Base ISA and extensions
-  --   base32
-  -- , base64
-  -- , m32
-  -- , m64
     knownISet
   ) where
 

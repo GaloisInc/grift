@@ -76,7 +76,6 @@ mSemantics = Map.fromList
       assignReg rd result
       incrPC
 
-  -- TODO: Fix the following three.
   , Pair Mulh $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
       comment "Writes the upper half of the product in x[rd]."
@@ -87,9 +86,8 @@ mSemantics = Map.fromList
       x_rs2 <- regRead rs2
 
       result' <- x_rs1 `mulsE` x_rs2
-      -- TODO: This is incompatible with RV64. Might make sense to just define
-      -- different versions of each extension.
-      result  <- extractE 32 result'
+      archWidth <- getArchWidth
+      result  <- extractE (fromIntegral $ natValue archWidth) result'
       assignReg rd result
       incrPC
 
@@ -103,9 +101,8 @@ mSemantics = Map.fromList
       x_rs2 <- regRead rs2
 
       result'  <- x_rs1 `mulsuE` x_rs2
-      -- shift    <- zextE xlen
-      -- result'' <- result' `sraE` xlen
-      result   <- extractE 0 result'
+      archWidth <- getArchWidth
+      result  <- extractE (fromIntegral $ natValue archWidth) result'
       assignReg rd result
       incrPC
 
@@ -119,9 +116,8 @@ mSemantics = Map.fromList
       x_rs2 <- regRead rs2
 
       result'  <- x_rs1 `muluE` x_rs2
-      shift    <- zextE xlen
-      result'' <- result' `sraE` shift
-      result   <- extractE 0 result''
+      archWidth <- getArchWidth
+      result  <- extractE (fromIntegral $ natValue archWidth) result'
       assignReg rd result
       incrPC
 
