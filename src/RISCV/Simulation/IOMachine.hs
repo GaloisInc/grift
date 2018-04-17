@@ -23,7 +23,14 @@ directly for the underlying values, which allows us to keep the architecture wid
 unspecified.
 -}
 
-module RISCV.Simulation.IOMachine where
+module RISCV.Simulation.IOMachine
+  ( IOMachine(..)
+  , mkIOMachine
+  , IOMachineM
+  , freezeRegisters
+  , freezeMemory
+  , runIOMachine
+  ) where
 
 import           Control.Monad (forM_)
 import qualified Control.Monad.Reader.Class as R
@@ -133,18 +140,22 @@ instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
     eRef <- ioException <$> ask
     lift $ readIORef eRef
 
+-- | Create an immutable copy of the register file.
 freezeRegisters :: IOMachine arch exts
                 -> IO (Array (BitVector 5) (BitVector (ArchWidth arch)))
 freezeRegisters = freeze . ioRegisters
 
+-- TODO: Why does this need KnownNat (ArchWidth arch) but freezeRegisters does not?
+-- | Create an immutable copy of the memory.
 freezeMemory :: KnownArch arch
              => IOMachine arch exts
              -> IO (Array (BitVector (ArchWidth arch)) (BitVector 8))
 freezeMemory = freeze . ioMemory
 
+-- | Run the simulator for a given number of steps.
 runIOMachine :: (KnownArch arch, KnownExtensions exts)
              => Int
              -> IOMachine arch exts
              -> IO ()
-runIOMachine stepsToRun m =
-  flip runReaderT m $ runIOMachineM $ runRV stepsToRun
+runIOMachine steps m =
+  flip runReaderT m $ runIOMachineM $ runRV steps

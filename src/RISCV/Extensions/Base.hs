@@ -25,6 +25,7 @@ module RISCV.Extensions.Base
   )
   where
 
+import Data.BitVector.Sized
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
@@ -107,7 +108,7 @@ baseEncode = Map.fromList
   , Pair Illegal XOpBits
   ]
 
-baseSemantics :: KnownArch arch => SemanticsMap arch
+baseSemantics :: forall arch . KnownArch arch => SemanticsMap arch
 baseSemantics = Map.fromList
   [ Pair Add $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -119,6 +120,7 @@ baseSemantics = Map.fromList
       comment "Arithmetic overflow is ignored."
 
       rOp subE
+  -- TODO: Correct this
   , Pair Sll $ getFormula $ do
       comment "Shifts register x[rs1] left by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is writtein to x[rd]."
@@ -139,11 +141,13 @@ baseSemantics = Map.fromList
       comment "Writes the result to x[rd]."
 
       rOp xorE
+  -- TODO: Correct this
   , Pair Srl $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp srlE
+  -- TODO: Correct this
   , Pair Sra $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
@@ -161,7 +165,7 @@ baseSemantics = Map.fromList
 
       rOp andE
 
-  -- -- I type
+  -- I type
   , Pair Jalr $ getFormula $ do
       comment "Sets the pc to x[rs1] + sext(offset)."
       comment "Masks off the least significant bit of the computed address."
@@ -239,40 +243,62 @@ baseSemantics = Map.fromList
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
-      iOp sllE
-  -- TODO: Modify this to dynamically check if arch is 32, 64, or 128 bits. Remove
-  -- the XLen constructor from the semantics if possible.
+      (rd, rs1, imm12) <- params
+
+      x_rs1 <- regRead rs1
+      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+
+      -- Check that the control bits are all zero.
+      ctrlOK <- ctrl `eqE` litBV 0b00000
+      ctrlIllegal <- notE ctrlOK
+      raiseException ctrlIllegal IllegalInstruction
+
+      -- Check that the shift amount is within the architecture width.
+      let archWidthNat = knownNat :: NatRepr (ArchWidth arch)
+          shiftBound = litBV (bitVector (natValue archWidthNat) :: BitVector 7)
+      shamtOK <- shamt `ltuE` shiftBound
+      shamtIllegal <- notE shamtOK
+      raiseException shamtIllegal IllegalInstruction
+
+      -- Perform the left logical shift.
+      zext_shamt <- zextE shamt
+      result <- x_rs1 `sllE` zext_shamt
+      assignReg rd result
+      incrPC
+
   , Pair Sri $ getFormula $ do
-      comment "Shifts register x[rs1] right by shamt bit positions."
+      comment "Shifts register x[rs1] right (arithmetic or logical) by shamt bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
       (rd, rs1, imm12) <- params
 
       x_rs1 <- regRead rs1
-      -- Extract the LS 7 bits from the immediate.
       shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-      -- Extract the HS 5 bits from the immediate.
       ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
 
       -- The control bits determine if the shift is arithmetic or logical.
       lShift <- ctrl `eqE` litBV 0b00000
       aShift <- ctrl `eqE` litBV 0b01000
 
-      -- Conditionally throw an exception if the shift control bits are invalid.
-      shiftTypeOK <- lShift `orE` aShift
-      illShiftType <- notE shiftTypeOK
-      raiseException illShiftType IllegalInstruction
+      -- Check that the control bits are valid.
+      ctrlOK <- lShift `orE` aShift
+      ctrlIllegal <- notE ctrlOK
+      raiseException ctrlIllegal IllegalInstruction
 
-      -- Conditionally throw an exception if the shift amount is too large.
+      -- Check that the shift amount is within the architecture width.
+      let archWidthNat = knownNat :: NatRepr (ArchWidth arch)
+          shiftBound = litBV (bitVector (natValue archWidthNat) :: BitVector 7)
+      shamtOK <- shamt `ltuE` shiftBound
+      shamtIllegal <- notE shamtOK
+      raiseException shamtIllegal IllegalInstruction
+
+      -- Perform the right logical/arithmetic shift.
       zext_shamt <- zextE shamt
-      shamtOK <- zext_shamt `ltuE` xlen
-      illShiftAmount <- notE shamtOK
-      raiseException illShiftAmount IllegalInstruction
-
-      x_rs1_l <- srlE x_rs1 zext_shamt
-      x_rs1_r <- sraE x_rs1 zext_shamt
-      result <- iteE lShift x_rs1_l x_rs1_r
+      result_l <- x_rs1 `srlE` zext_shamt
+      result_r <- x_rs1 `sraE` zext_shamt
+      result <- iteE lShift result_l result_r
       assignReg rd result
       incrPC
 
@@ -426,6 +452,7 @@ base64Semantics = Map.fromList
 
         res <- sextE a'
         return res
+  -- TODO: Correct this
   , Pair Sllw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
@@ -437,6 +464,7 @@ base64Semantics = Map.fromList
 
         res <- sextE a'
         return res
+  -- TODO: Correct this
   , Pair Srlw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
@@ -448,6 +476,7 @@ base64Semantics = Map.fromList
 
         res <- sextE a'
         return res
+  -- TODO: Correct this
   , Pair Sraw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
@@ -480,6 +509,7 @@ base64Semantics = Map.fromList
 
         res <- sextE a'
         return res
+  -- TODO: Correct this
   , Pair Slliw $ getFormula $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "Truncates the result to 32 bits."
@@ -491,6 +521,7 @@ base64Semantics = Map.fromList
 
         res <- sextE a'
         return res
+  -- TODO: Correct this
   , Pair Sriw $ getFormula $ do
       comment "Shifts register x[rs1] right logically/arithmetically by shamt bit positions."
       comment "Truncates the result to 32 bits."

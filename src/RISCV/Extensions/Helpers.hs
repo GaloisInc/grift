@@ -29,6 +29,7 @@ module RISCV.Extensions.Helpers
   , assignMem16, assignMem32, assignMem64
   ) where
 
+import Data.BitVector.Sized
 import Data.Parameterized
 import GHC.TypeLits
 

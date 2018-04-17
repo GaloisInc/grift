@@ -73,26 +73,26 @@ getMem32 addr = do
   return $ b3 <:> b2 <:> b1 <:> b0
 
 -- | Evaluate a parameter's value from an 'Operands'.
-evalParam :: OperandParam arch fmt oid
+evalParam :: OperandID fmt otp
           -> Operands fmt
-          -> BitVector (OperandIDWidth oid)
-evalParam (OperandParam RRd)    (ROperands  rd   _   _) = rd
-evalParam (OperandParam RRs1)   (ROperands   _ rs1   _) = rs1
-evalParam (OperandParam RRs2)   (ROperands   _   _ rs2) = rs2
-evalParam (OperandParam IRd)    (IOperands  rd   _   _) = rd
-evalParam (OperandParam IRs1)   (IOperands   _ rs1   _) = rs1
-evalParam (OperandParam IImm12) (IOperands   _   _ imm) = imm
-evalParam (OperandParam SRs1)   (SOperands rs1   _   _) = rs1
-evalParam (OperandParam SRs2)   (SOperands   _ rs2   _) = rs2
-evalParam (OperandParam SImm12) (SOperands   _   _ imm) = imm
-evalParam (OperandParam BRs1)   (BOperands rs1   _   _) = rs1
-evalParam (OperandParam BRs2)   (BOperands   _ rs2   _) = rs2
-evalParam (OperandParam BImm12) (BOperands   _   _ imm) = imm
-evalParam (OperandParam URd)    (UOperands  rd       _) = rd
-evalParam (OperandParam UImm20) (UOperands   _     imm) = imm
-evalParam (OperandParam JRd)    (JOperands  rd       _) = rd
-evalParam (OperandParam JImm20) (JOperands   _     imm) = imm
-evalParam (OperandParam XImm32) (XOperands         imm) = imm
+          -> BitVector (OperandWidth otp)
+evalParam RRd    (ROperands  rd   _   _) = rd
+evalParam RRs1   (ROperands   _ rs1   _) = rs1
+evalParam RRs2   (ROperands   _   _ rs2) = rs2
+evalParam IRd    (IOperands  rd   _   _) = rd
+evalParam IRs1   (IOperands   _ rs1   _) = rs1
+evalParam IImm12 (IOperands   _   _ imm) = imm
+evalParam SRs1   (SOperands rs1   _   _) = rs1
+evalParam SRs2   (SOperands   _ rs2   _) = rs2
+evalParam SImm12 (SOperands   _   _ imm) = imm
+evalParam BRs1   (BOperands rs1   _   _) = rs1
+evalParam BRs2   (BOperands   _ rs2   _) = rs2
+evalParam BImm12 (BOperands   _   _ imm) = imm
+evalParam URd    (UOperands  rd       _) = rd
+evalParam UImm20 (UOperands   _     imm) = imm
+evalParam JRd    (JOperands  rd       _) = rd
+evalParam JImm20 (JOperands   _     imm) = imm
+evalParam XImm32 (XOperands         imm) = imm
 
 -- | Evaluate a 'BVExpr', given an 'RVState' implementation.
 evalExpr :: forall m arch exts fmt w

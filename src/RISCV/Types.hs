@@ -156,3 +156,107 @@ type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool whe
 -- | 'ExtensionsContains' in constraint form.
 type (<<) (e :: Extension) (exts :: Extensions)
   = ExtensionsContains exts e ~ 'True
+
+----------------------------------------
+-- Formats
+
+-- | The RISC-V instruction formats. Each RISC-V instruction has one of several
+-- encoding formats, corresponding to its operands and the way those operands are
+-- laid out as bits in the instruction word. We include one additional format, X,
+-- inhabited only by an illegal instruction.
+
+data Format = R | I | S | B | U | J | X
+
+type R = 'R
+type I = 'I
+type S = 'S
+type B = 'B
+type U = 'U
+type J = 'J
+type X = 'X
+
+-- | A runtime representative for 'Format' for dependent typing.
+data FormatRepr :: Format -> * where
+  RRepr :: FormatRepr R
+  IRepr :: FormatRepr I
+  SRepr :: FormatRepr S
+  BRepr :: FormatRepr B
+  URepr :: FormatRepr U
+  JRepr :: FormatRepr J
+  XRepr :: FormatRepr X
+
+-- Instances
+$(return [])
+deriving instance Show (FormatRepr k)
+instance ShowF FormatRepr
+deriving instance Eq (FormatRepr k)
+instance EqF FormatRepr where
+  eqF = (==)
+instance TestEquality FormatRepr where
+  testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
+instance OrdF FormatRepr where
+  compareF = $(structuralTypeOrd [t|FormatRepr|] [])
+instance KnownRepr FormatRepr R where knownRepr = RRepr
+instance KnownRepr FormatRepr I where knownRepr = IRepr
+instance KnownRepr FormatRepr S where knownRepr = SRepr
+instance KnownRepr FormatRepr B where knownRepr = BRepr
+instance KnownRepr FormatRepr U where knownRepr = URepr
+instance KnownRepr FormatRepr J where knownRepr = JRepr
+instance KnownRepr FormatRepr X where knownRepr = XRepr
+
+----------------------------------------
+-- Operands
+
+-- | Operand types
+data OperandType = RegID | Imm12 | Imm20 | Imm32
+
+type RegID = 'RegID
+type Imm12 = 'Imm12
+type Imm20 = 'Imm20
+type Imm32 = 'Imm32
+
+-- | Operand identifier, parameterized by a 'Format' and an 'OperandType'.
+data OperandID :: Format -> OperandType -> * where
+  RRd    :: OperandID R RegID
+  RRs1   :: OperandID R RegID
+  RRs2   :: OperandID R RegID
+
+  IRd    :: OperandID I RegID
+  IRs1   :: OperandID I RegID
+  IImm12 :: OperandID I Imm12
+
+  SRs1   :: OperandID S RegID
+  SRs2   :: OperandID S RegID
+  SImm12 :: OperandID S Imm12
+
+  BRs1   :: OperandID B RegID
+  BRs2   :: OperandID B RegID
+  BImm12 :: OperandID B Imm12
+
+  URd    :: OperandID U RegID
+  UImm20 :: OperandID U Imm20
+
+  JRd    :: OperandID J RegID
+  JImm20 :: OperandID J Imm20
+
+  XImm32 :: OperandID X Imm32
+
+-- | Maps an 'OperandType' to its length as a 'BitVector'.
+type family OperandWidth (otp :: OperandType) :: Nat where
+  OperandWidth RegID = 5
+  OperandWidth Imm12 = 12
+  OperandWidth Imm20 = 20
+  OperandWidth Imm32 = 32
+
+-- Instances
+$(return [])
+deriving instance Show (OperandID fmt ot)
+
+instance ShowF (OperandID fmt)
+deriving instance Eq (OperandID fmt ot)
+instance EqF (OperandID fmt) where
+  eqF = (==)
+instance TestEquality (OperandID fmt) where
+  testEquality = $(structuralTypeEquality [t|OperandID|] [])
+instance OrdF (OperandID fmt) where
+  compareF = $(structuralTypeOrd [t|OperandID|] [])

@@ -25,28 +25,9 @@ Several types and functions enabling specification of semantics for RISC-V
 instructions.
 -}
 
--- TODO: get pretty printing into a separate entity rather than using Show.
--- TODO: Pretty printing needs to parenthesize expressions appropriately.
--- TODO: It might make sense to remove arch as a type parameter to Formula and
--- Semantics, and add a BVExpr constructor, XLen, which queries the environment for
--- the register width.
--- TODO: It might make sense to parameterize BVExpr and Stmt over a Format, since
--- Formula is as well. If we do this, we might want to change how we're dealing with
--- OperandParams.
--- TODO: This is a variable-width ISA, but we have separated the semantics out from
--- the decoding so cleanly that we actually don't know how big the instruction word
--- is here, and therefore we don't know how much to increment the PC by after most
--- instructions. We could either handle that externally (yuck), or we could include
--- an additional field in each instruction. Then the params function could provide
--- that information along with the operands. Something to think about.
 module RISCV.Semantics
   ( -- * Types
-    OperandType(..)
-  , type RegID, type Imm12, type Imm20, type Imm32
-  , OperandID(..)
-  , OperandIDWidth
-  , OperandParam(..)
-  , BVExpr(..)
+    BVExpr(..)
   , Exception(..)
   , Stmt(..)
   , Formula, fComments, fDefs
@@ -115,78 +96,15 @@ import GHC.TypeLits
 import RISCV.Instruction
 import RISCV.Types
 
--- | Operand identifiers.
--- data OperandType = Rd | Rs1 | Rs2 | Imm12 | Imm20 | Imm32
-data OperandType = RegID | Imm12 | Imm20 | Imm32
-
-type RegID = 'RegID
-type Imm12 = 'Imm12
-type Imm20 = 'Imm20
-type Imm32 = 'Imm32
-
--- | Type-level representative for 'OperandID'.
-data OperandID :: Format -> OperandType -> * where
-  RRd    :: OperandID R RegID
-  RRs1   :: OperandID R RegID
-  RRs2   :: OperandID R RegID
-
-  IRd    :: OperandID I RegID
-  IRs1   :: OperandID I RegID
-  IImm12 :: OperandID I Imm12
-
-  SRs1   :: OperandID S RegID
-  SRs2   :: OperandID S RegID
-  SImm12 :: OperandID S Imm12
-
-  BRs1   :: OperandID B RegID
-  BRs2   :: OperandID B RegID
-  BImm12 :: OperandID B Imm12
-
-  URd    :: OperandID U RegID
-  UImm20 :: OperandID U Imm20
-
-  JRd    :: OperandID J RegID
-  JImm20 :: OperandID J Imm20
-
-  XImm32 :: OperandID X Imm32
-
--- | Maps an 'OperandID' to its length as a 'BitVector'.
-type family OperandIDWidth (ot :: OperandType) :: Nat where
-  OperandIDWidth RegID = 5
-  OperandIDWidth Imm12 = 12
-  OperandIDWidth Imm20 = 20
-  OperandIDWidth Imm32 = 32
-
--- Instances
-$(return [])
-deriving instance Show (OperandID fmt ot)
-
-instance ShowF (OperandID fmt)
-deriving instance Eq (OperandID fmt ot)
-instance EqF (OperandID fmt) where
-  eqF = (==)
-instance TestEquality (OperandID fmt) where
-  testEquality = $(structuralTypeEquality [t|OperandID|] [])
-instance OrdF (OperandID fmt) where
-  compareF = $(structuralTypeOrd [t|OperandID|] [])
-
 ----------------------------------------
 -- Expressions, statements, and formulas
 
--- | Formula parameter (represents unknown operands)
-data OperandParam (arch :: BaseArch) (fmt :: Format) (oid :: OperandType)
-  = OperandParam (OperandID fmt oid)
-
-deriving instance Show (OperandParam arch fmt oid)
-instance ShowF (OperandParam arch fmt)
-
--- TODO: Parameterize by fmt?
 -- | BitVector expressions. These are the building blocks for semantic formulas for
 -- an instruction.
 data BVExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Basic constructors
   LitBV :: BitVector w -> BVExpr arch fmt w
-  ParamBV :: OperandParam arch fmt oid -> BVExpr arch fmt (OperandIDWidth oid)
+  ParamBV :: OperandID fmt otp -> BVExpr arch fmt (OperandWidth otp)
   InstBytes :: BVExpr arch fmt (ArchWidth arch)
 
   -- Accessing state
@@ -213,6 +131,10 @@ data BVExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   DivSE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
   RemUE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
   RemSE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
+
+  -- TODO: Should we allow the shifter operand to have any width? This would simplify
+  -- the semantics, but might make it more complicated to interpret.
+  -- Shifts
   SllE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
   SrlE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
   SraE :: BVExpr arch fmt w -> BVExpr arch fmt w -> BVExpr arch fmt w
@@ -256,11 +178,7 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
   AssignPC  :: BVExpr arch fmt (ArchWidth arch) -> Stmt arch fmt
   RaiseException :: BVExpr arch fmt 1 -> Exception -> Stmt arch fmt
 
-instance Show (Stmt arch fmt) where
-  show (AssignReg r e) = "x[" ++ show r ++ "]' := " ++ show e
-  show (AssignMem addr e) = "M[" ++ show addr ++ "]' := " ++ show e
-  show (AssignPC pc) = "pc' := " ++ show pc
-  show (RaiseException cond e) = "if (" ++ show cond ++ ") then RaiseException(" ++ show e ++ ")"
+deriving instance Show (Stmt arch fmt)
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- parameters (potentially zero), which represent the input to the formula. These are
@@ -536,37 +454,13 @@ type family FormatParams (arch :: BaseArch) (fmt :: Format) :: * where
 params' :: FormatRepr fmt
         -> FormulaBuilder arch fmt (FormatParams arch fmt)
 params' repr = case repr of
-    RRepr -> do
-      let rd  = OperandParam RRd
-          rs1 = OperandParam RRs1
-          rs2 = OperandParam RRs2
-      return (ParamBV rd, ParamBV rs1, ParamBV rs2)
-    IRepr -> do
-      let rd    = OperandParam IRd
-          rs1   = OperandParam IRs1
-          imm12 = OperandParam IImm12
-      return (ParamBV rd, ParamBV rs1, ParamBV imm12)
-    SRepr -> do
-      let rs1   = OperandParam SRs1
-          rs2   = OperandParam SRs2
-          imm12 = OperandParam SImm12
-      return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
-    BRepr -> do
-      let rs1   = OperandParam BRs1
-          rs2   = OperandParam BRs2
-          imm12 = OperandParam BImm12
-      return (ParamBV rs1, ParamBV rs2, ParamBV imm12)
-    URepr -> do
-      let rd    = OperandParam URd
-          imm20 = OperandParam UImm20
-      return (ParamBV rd, ParamBV imm20)
-    JRepr -> do
-      let rd    = OperandParam JRd
-          imm20 = OperandParam JImm20
-      return (ParamBV rd, ParamBV imm20)
-    XRepr -> do
-      let ill = OperandParam XImm32
-      return (ParamBV ill)
+    RRepr -> return (ParamBV RRd, ParamBV RRs1, ParamBV RRs2)
+    IRepr -> return (ParamBV IRd, ParamBV IRs1, ParamBV IImm12)
+    SRepr -> return (ParamBV SRs1, ParamBV SRs2, ParamBV SImm12)
+    BRepr -> return (ParamBV BRs1, ParamBV BRs2, ParamBV BImm12)
+    URepr -> return (ParamBV URd, ParamBV UImm20)
+    JRepr -> return (ParamBV JRd, ParamBV JImm20)
+    XRepr -> return (ParamBV XImm32)
 
 -- | Get the parameters for a particular known format
 params :: (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (FormatParams arch fmt)

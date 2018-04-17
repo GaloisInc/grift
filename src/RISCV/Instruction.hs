@@ -29,12 +29,8 @@ AST for Instruction data type, parameterized by instruction format (R, I, S, ...
 -- number of bits. It's confusing to have two kinds of NatRepr's floating around.
 
 module RISCV.Instruction
-  ( -- * Instruction formats
-    Format(..)
-  , R, I, S, B, U, J, X
-  , FormatRepr(..)
-    -- * Instructions
-  , Instruction(..)
+  ( -- * Instructions
+    Instruction(..)
     -- * Opcodes
   , Opcode(..)
   , OpBits(..)
@@ -47,53 +43,6 @@ import Data.Parameterized
 import Data.Parameterized.TH.GADT
 
 import RISCV.Types
-
-----------------------------------------
--- Formats
-
--- | The RISC-V instruction formats. Each RISC-V instruction has one of several
--- encoding formats, corresponding to its operands and the way those operands are
--- laid out as bits in the instruction word. We include one additional format, X,
--- inhabited only by an illegal instruction.
-
-data Format = R | I | S | B | U | J | X
-
-type R = 'R
-type I = 'I
-type S = 'S
-type B = 'B
-type U = 'U
-type J = 'J
-type X = 'X
-
--- | A runtime representative for 'Format' for dependent typing.
-data FormatRepr :: Format -> * where
-  RRepr :: FormatRepr R
-  IRepr :: FormatRepr I
-  SRepr :: FormatRepr S
-  BRepr :: FormatRepr B
-  URepr :: FormatRepr U
-  JRepr :: FormatRepr J
-  XRepr :: FormatRepr X
-
--- Instances
-$(return [])
-deriving instance Show (FormatRepr k)
-instance ShowF FormatRepr
-deriving instance Eq (FormatRepr k)
-instance EqF FormatRepr where
-  eqF = (==)
-instance TestEquality FormatRepr where
-  testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
-instance OrdF FormatRepr where
-  compareF = $(structuralTypeOrd [t|FormatRepr|] [])
-instance KnownRepr FormatRepr R where knownRepr = RRepr
-instance KnownRepr FormatRepr I where knownRepr = IRepr
-instance KnownRepr FormatRepr S where knownRepr = SRepr
-instance KnownRepr FormatRepr B where knownRepr = BRepr
-instance KnownRepr FormatRepr U where knownRepr = URepr
-instance KnownRepr FormatRepr J where knownRepr = JRepr
-instance KnownRepr FormatRepr X where knownRepr = XRepr
 
 ----------------------------------------
 -- Operands
