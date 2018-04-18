@@ -2,6 +2,18 @@
 
 Summary of pending tasks and things to think about.
 
+## BVExpr and semantics
+
+One thing that is absolutely crucial to do is separate out the "pure" bitvector
+expression language, BVExpr, from the "impure" getters and setters that actually
+refer to components of the global state, or to operands (ParamBV, MemRead, etc.). By
+doing this, we can keep the monadic binds to a minimum (shortening a lot of the
+code), and we can also separate out those state functions into a completely separate
+datatype, perhaps as Stmt constructors instead of BVExpr constructors.
+
+I'm going to create a separate branch to experiment with modifying the way I build up
+BVExprs.
+
 ## Decoding and encoding
 
 Right now, the decoding and encoding are very nice, but purely
