@@ -23,7 +23,7 @@ module RISCV.Simulation
   ( -- * State monad
     RVState(..)
   , evalParam
-  , evalRVExpr
+  , evalExpr
   , execFormula
   , runRV
   ) where
@@ -31,18 +31,15 @@ module RISCV.Simulation
 import Control.Lens ( (^.) )
 import Control.Monad ( forM_, when )
 import Data.BitVector.Sized
+import Data.BitVector.Sized.App
 import Data.Parameterized
-import Foreign.Marshal.Utils (fromBool)
 
-import RISCV.BVApp
 import RISCV.Decode
 import RISCV.Extensions
 import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
-
-import Debug.Trace (traceM)
 
 -- | State monad for simulating RISC-V code
 class (Monad m) => RVState m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
@@ -95,22 +92,22 @@ evalParam JRd    (JOperands  rd       _) = rd
 evalParam JImm20 (JOperands   _     imm) = imm
 evalParam XImm32 (XOperands         imm) = imm
 
--- | Evaluate a 'RVExpr', given an 'RVState' implementation.
-evalRVExpr :: forall m arch exts fmt w
+-- | Evaluate a 'Expr', given an 'RVState' implementation.
+evalExpr :: forall m arch exts fmt w
             . (RVState m arch exts, KnownArch arch)
          => Operands fmt    -- ^ Operands
          -> Integer         -- ^ Instruction width (in bytes)
-         -> RVExpr arch fmt w   -- ^ Expression to be evaluated
+         -> Expr arch fmt w   -- ^ Expression to be evaluated
          -> m (BitVector w)
-evalRVExpr operands _ (ParamBV p) = return (evalParam p operands)
-evalRVExpr _ _ PCRead = getPC
-evalRVExpr _ ib InstBytes = return $ bitVector ib
-evalRVExpr operands ib (RegRead ridE) =
-  evalRVExpr operands ib ridE >>= getReg
-evalRVExpr operands ib (MemRead addrE) =
-  evalRVExpr operands ib addrE >>= getMem
-evalRVExpr operands ib (BVAppVal bvApp) =
-  evalBVAppM (evalRVExpr operands ib) bvApp
+evalExpr operands _ (ParamBV p) = return (evalParam p operands)
+evalExpr _ _ PCRead = getPC
+evalExpr _ ib InstBytes = return $ bitVector ib
+evalExpr operands ib (RegRead ridE) =
+  evalExpr operands ib ridE >>= getReg
+evalExpr operands ib (MemRead addrE) =
+  evalExpr operands ib addrE >>= getMem
+evalExpr operands ib (AppExpr bvApp) =
+  evalBVAppM (evalExpr operands ib) bvApp
 
 -- | Execute an assignment statement, given an 'RVState' implementation.
 execStmt :: (RVState m arch exts, KnownArch arch)
@@ -119,19 +116,19 @@ execStmt :: (RVState m arch exts, KnownArch arch)
          -> Stmt arch fmt -- ^ Statement to be executed
          -> m ()
 execStmt operands ib (AssignReg ridE e) = do
-  rid  <- evalRVExpr operands ib ridE
-  eVal <- evalRVExpr operands ib e
+  rid  <- evalExpr operands ib ridE
+  eVal <- evalExpr operands ib e
   setReg rid eVal
 execStmt operands ib (AssignMem addrE e) = do
-  addr <- evalRVExpr operands ib addrE
-  eVal <- evalRVExpr operands ib e
+  addr <- evalExpr operands ib addrE
+  eVal <- evalExpr operands ib e
   setMem addr eVal
 execStmt operands ib (AssignPC pcE) = do
-  pcVal <- evalRVExpr operands ib pcE
+  pcVal <- evalExpr operands ib pcE
   setPC pcVal
 -- TODO: How do we want to throw exceptions?
 execStmt operands ib (RaiseException cond e) = do
-  condVal <- evalRVExpr operands ib cond
+  condVal <- evalExpr operands ib cond
   when (condVal == 1) $ throwException e
 
 -- | Execute a formula, given an 'RVState' implementation. This function represents
