@@ -23,7 +23,7 @@ module RISCV.Simulation
   ( -- * State monad
     RVState(..)
   , evalParam
-  , evalExpr
+  , evalRVExpr
   , execFormula
   , runRV
   ) where
@@ -94,111 +94,112 @@ evalParam JRd    (JOperands  rd       _) = rd
 evalParam JImm20 (JOperands   _     imm) = imm
 evalParam XImm32 (XOperands         imm) = imm
 
--- | Evaluate a 'BVExpr', given an 'RVState' implementation.
-evalExpr :: forall m arch exts fmt w
+-- | Evaluate a 'RVExpr', given an 'RVState' implementation.
+evalRVExpr :: forall m arch exts fmt w
             . (RVState m arch exts, KnownArch arch)
          => Operands fmt    -- ^ Operands
          -> Integer         -- ^ Instruction width (in bytes)
-         -> BVExpr arch fmt w   -- ^ Expression to be evaluated
+         -> RVExpr arch fmt w   -- ^ Expression to be evaluated
          -> m (BitVector w)
-evalExpr _ _ (LitBV bv) = return bv
-evalExpr operands _ (ParamBV p) = return (evalParam p operands)
-evalExpr _ _ PCRead = getPC
-evalExpr _ ib InstBytes = return $ bitVector ib
-evalExpr operands ib (RegRead ridE) =
-  evalExpr operands ib ridE >>= getReg
-evalExpr operands ib (MemRead addrE) =
-  evalExpr operands ib addrE >>= getMem
-evalExpr operands ib (AndE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands _ (ParamBV p) = return (evalParam p operands)
+evalRVExpr _ _ PCRead = getPC
+evalRVExpr _ ib InstBytes = return $ bitVector ib
+evalRVExpr operands ib (RegRead ridE) =
+  evalRVExpr operands ib ridE >>= getReg
+evalRVExpr operands ib (MemRead addrE) =
+  evalRVExpr operands ib addrE >>= getMem
+
+evalRVExpr _ _ (BVExprVal (LitBV bv)) = return bv
+evalRVExpr operands ib (BVExprVal (AndE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvAnd` e2Val
-evalExpr operands ib (OrE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (OrE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvOr` e2Val
-evalExpr operands ib (XorE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (XorE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvXor` e2Val
-evalExpr operands ib (NotE e) =
-  bvComplement <$> evalExpr operands ib e
-evalExpr operands ib (AddE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (NotE e)) =
+  bvComplement <$> evalRVExpr operands ib e
+evalRVExpr operands ib (BVExprVal (AddE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvAdd` e2Val
-evalExpr operands ib (SubE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (SubE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvAdd` bvNegate e2Val
-evalExpr operands ib (MulSE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (MulSE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvMulFS` e2Val
-evalExpr operands ib (MulUE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (MulUE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvMulFU` e2Val
-evalExpr operands ib (MulSUE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (MulSUE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvMulFSU` e2Val
-evalExpr operands ib (DivSE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (DivSE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvQuotS` e2Val
-evalExpr operands ib (DivUE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (DivUE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvQuotU` e2Val
-evalExpr operands ib (RemSE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (RemSE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvRemS` e2Val
-evalExpr operands ib (RemUE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (RemUE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvRemU` e2Val
 -- TODO: throw some kind of exception if the shifter operand is larger than the
 -- architecture width?
-evalExpr operands ib (SllE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (SllE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
-evalExpr operands ib (SrlE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (SrlE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvShiftRL` fromIntegral (bvIntegerU e2Val)
-evalExpr operands ib (SraE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (SraE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvShiftRA` fromIntegral (bvIntegerU e2Val)
-evalExpr operands ib (EqE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (EqE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ fromBool (e1Val == e2Val)
-evalExpr operands ib (LtuE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (LtuE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ fromBool (e1Val `bvLTU` e2Val)
-evalExpr operands ib (LtsE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (LtsE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ fromBool (e1Val `bvLTS` e2Val)
-evalExpr operands ib (ZExtE wRepr e) =
-  bvZextWithRepr wRepr <$> evalExpr operands ib e
-evalExpr operands ib (SExtE wRepr e) =
-  bvSextWithRepr wRepr <$> evalExpr operands ib e
-evalExpr operands ib (ExtractE wRepr base e) =
-  bvExtractWithRepr wRepr base <$> evalExpr operands ib e
-evalExpr operands ib (ConcatE e1 e2) = do
-  e1Val <- evalExpr operands ib e1
-  e2Val <- evalExpr operands ib e2
+evalRVExpr operands ib (BVExprVal (ZExtE wRepr e)) =
+  bvZextWithRepr wRepr <$> evalRVExpr operands ib e
+evalRVExpr operands ib (BVExprVal (SExtE wRepr e)) =
+  bvSextWithRepr wRepr <$> evalRVExpr operands ib e
+evalRVExpr operands ib (BVExprVal (ExtractE wRepr base e)) =
+  bvExtractWithRepr wRepr base <$> evalRVExpr operands ib e
+evalRVExpr operands ib (BVExprVal (ConcatE e1 e2)) = do
+  e1Val <- evalRVExpr operands ib e1
+  e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvConcat` e2Val
-evalExpr operands ib (IteE testE tE fE) = do
-  testVal <- evalExpr operands ib testE
-  tVal <- evalExpr operands ib tE
-  fVal <- evalExpr operands ib fE
+evalRVExpr operands ib (BVExprVal (IteE testE tE fE)) = do
+  testVal <- evalRVExpr operands ib testE
+  tVal <- evalRVExpr operands ib tE
+  fVal <- evalRVExpr operands ib fE
   return $ if testVal == 1 then tVal else fVal
 
 -- | Execute an assignment statement, given an 'RVState' implementation.
@@ -208,21 +209,21 @@ execStmt :: (RVState m arch exts, KnownArch arch)
          -> Stmt arch fmt -- ^ Statement to be executed
          -> m ()
 execStmt operands ib (AssignReg ridE e) = do
-  rid  <- evalExpr operands ib ridE
-  eVal <- evalExpr operands ib e
+  rid  <- evalRVExpr operands ib ridE
+  eVal <- evalRVExpr operands ib e
   setReg rid eVal
 execStmt operands ib (AssignMem addrE e) = do
-  addr <- evalExpr operands ib addrE
-  eVal <- evalExpr operands ib e
+  addr <- evalRVExpr operands ib addrE
+  eVal <- evalRVExpr operands ib e
 
   setMem addr eVal
 
 execStmt operands ib (AssignPC pcE) = do
-  pcVal <- evalExpr operands ib pcE
+  pcVal <- evalRVExpr operands ib pcE
   setPC pcVal
 -- TODO: How do we want to throw exceptions?
 execStmt operands ib (RaiseException cond e) = do
-  condVal <- evalExpr operands ib cond
+  condVal <- evalRVExpr operands ib cond
   when (condVal == 1) $ throwException e
 
 -- | Execute a formula, given an 'RVState' implementation. This function represents
