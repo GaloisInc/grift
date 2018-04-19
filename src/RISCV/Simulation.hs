@@ -34,6 +34,7 @@ import Data.BitVector.Sized
 import Data.Parameterized
 import Foreign.Marshal.Utils (fromBool)
 
+import RISCV.BVApp
 import RISCV.Decode
 import RISCV.Extensions
 import RISCV.Instruction
@@ -108,97 +109,8 @@ evalRVExpr operands ib (RegRead ridE) =
   evalRVExpr operands ib ridE >>= getReg
 evalRVExpr operands ib (MemRead addrE) =
   evalRVExpr operands ib addrE >>= getMem
-
-evalRVExpr _ _ (BVAppVal (LitBVApp bv)) = return bv
-evalRVExpr operands ib (BVAppVal (AndApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvAnd` e2Val
-evalRVExpr operands ib (BVAppVal (OrApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvOr` e2Val
-evalRVExpr operands ib (BVAppVal (XorApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvXor` e2Val
-evalRVExpr operands ib (BVAppVal (NotApp e)) =
-  bvComplement <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVAppVal (AddApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvAdd` e2Val
-evalRVExpr operands ib (BVAppVal (SubApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvAdd` bvNegate e2Val
-evalRVExpr operands ib (BVAppVal (MulSApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvMulFS` e2Val
-evalRVExpr operands ib (BVAppVal (MulUApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvMulFU` e2Val
-evalRVExpr operands ib (BVAppVal (MulSUApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvMulFSU` e2Val
-evalRVExpr operands ib (BVAppVal (DivSApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvQuotS` e2Val
-evalRVExpr operands ib (BVAppVal (DivUApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvQuotU` e2Val
-evalRVExpr operands ib (BVAppVal (RemSApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvRemS` e2Val
-evalRVExpr operands ib (BVAppVal (RemUApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvRemU` e2Val
-evalRVExpr operands ib (BVAppVal (SllApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
-evalRVExpr operands ib (BVAppVal (SrlApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvShiftRL` fromIntegral (bvIntegerU e2Val)
-evalRVExpr operands ib (BVAppVal (SraApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvShiftRA` fromIntegral (bvIntegerU e2Val)
-evalRVExpr operands ib (BVAppVal (EqApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ fromBool (e1Val == e2Val)
-evalRVExpr operands ib (BVAppVal (LtuApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ fromBool (e1Val `bvLTU` e2Val)
-evalRVExpr operands ib (BVAppVal (LtsApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ fromBool (e1Val `bvLTS` e2Val)
-evalRVExpr operands ib (BVAppVal (ZExtApp wRepr e)) =
-  bvZextWithRepr wRepr <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVAppVal (SExtApp wRepr e)) =
-  bvSextWithRepr wRepr <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVAppVal (ExtractApp wRepr base e)) =
-  bvExtractWithRepr wRepr base <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVAppVal (ConcatApp e1 e2)) = do
-  e1Val <- evalRVExpr operands ib e1
-  e2Val <- evalRVExpr operands ib e2
-  return $ e1Val `bvConcat` e2Val
-evalRVExpr operands ib (BVAppVal (IteApp testE tE fE)) = do
-  testVal <- evalRVExpr operands ib testE
-  tVal <- evalRVExpr operands ib tE
-  fVal <- evalRVExpr operands ib fE
-  return $ if testVal == 1 then tVal else fVal
+evalRVExpr operands ib (BVAppVal bvApp) =
+  evalBVAppM (evalRVExpr operands ib) bvApp
 
 -- | Execute an assignment statement, given an 'RVState' implementation.
 execStmt :: (RVState m arch exts, KnownArch arch)
@@ -213,9 +125,7 @@ execStmt operands ib (AssignReg ridE e) = do
 execStmt operands ib (AssignMem addrE e) = do
   addr <- evalRVExpr operands ib addrE
   eVal <- evalRVExpr operands ib e
-
   setMem addr eVal
-
 execStmt operands ib (AssignPC pcE) = do
   pcVal <- evalRVExpr operands ib pcE
   setPC pcVal
