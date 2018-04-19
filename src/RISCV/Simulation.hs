@@ -109,94 +109,92 @@ evalRVExpr operands ib (RegRead ridE) =
 evalRVExpr operands ib (MemRead addrE) =
   evalRVExpr operands ib addrE >>= getMem
 
-evalRVExpr _ _ (BVExprVal (LitBV bv)) = return bv
-evalRVExpr operands ib (BVExprVal (AndE e1 e2)) = do
+evalRVExpr _ _ (BVAppVal (LitBVApp bv)) = return bv
+evalRVExpr operands ib (BVAppVal (AndApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvAnd` e2Val
-evalRVExpr operands ib (BVExprVal (OrE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (OrApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvOr` e2Val
-evalRVExpr operands ib (BVExprVal (XorE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (XorApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvXor` e2Val
-evalRVExpr operands ib (BVExprVal (NotE e)) =
+evalRVExpr operands ib (BVAppVal (NotApp e)) =
   bvComplement <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVExprVal (AddE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (AddApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvAdd` e2Val
-evalRVExpr operands ib (BVExprVal (SubE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (SubApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvAdd` bvNegate e2Val
-evalRVExpr operands ib (BVExprVal (MulSE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (MulSApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvMulFS` e2Val
-evalRVExpr operands ib (BVExprVal (MulUE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (MulUApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvMulFU` e2Val
-evalRVExpr operands ib (BVExprVal (MulSUE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (MulSUApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvMulFSU` e2Val
-evalRVExpr operands ib (BVExprVal (DivSE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (DivSApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvQuotS` e2Val
-evalRVExpr operands ib (BVExprVal (DivUE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (DivUApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvQuotU` e2Val
-evalRVExpr operands ib (BVExprVal (RemSE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (RemSApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvRemS` e2Val
-evalRVExpr operands ib (BVExprVal (RemUE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (RemUApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvRemU` e2Val
--- TODO: throw some kind of exception if the shifter operand is larger than the
--- architecture width?
-evalRVExpr operands ib (BVExprVal (SllE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (SllApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvShiftL` fromIntegral (bvIntegerU e2Val)
-evalRVExpr operands ib (BVExprVal (SrlE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (SrlApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvShiftRL` fromIntegral (bvIntegerU e2Val)
-evalRVExpr operands ib (BVExprVal (SraE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (SraApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvShiftRA` fromIntegral (bvIntegerU e2Val)
-evalRVExpr operands ib (BVExprVal (EqE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (EqApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ fromBool (e1Val == e2Val)
-evalRVExpr operands ib (BVExprVal (LtuE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (LtuApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ fromBool (e1Val `bvLTU` e2Val)
-evalRVExpr operands ib (BVExprVal (LtsE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (LtsApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ fromBool (e1Val `bvLTS` e2Val)
-evalRVExpr operands ib (BVExprVal (ZExtE wRepr e)) =
+evalRVExpr operands ib (BVAppVal (ZExtApp wRepr e)) =
   bvZextWithRepr wRepr <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVExprVal (SExtE wRepr e)) =
+evalRVExpr operands ib (BVAppVal (SExtApp wRepr e)) =
   bvSextWithRepr wRepr <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVExprVal (ExtractE wRepr base e)) =
+evalRVExpr operands ib (BVAppVal (ExtractApp wRepr base e)) =
   bvExtractWithRepr wRepr base <$> evalRVExpr operands ib e
-evalRVExpr operands ib (BVExprVal (ConcatE e1 e2)) = do
+evalRVExpr operands ib (BVAppVal (ConcatApp e1 e2)) = do
   e1Val <- evalRVExpr operands ib e1
   e2Val <- evalRVExpr operands ib e2
   return $ e1Val `bvConcat` e2Val
-evalRVExpr operands ib (BVExprVal (IteE testE tE fE)) = do
+evalRVExpr operands ib (BVAppVal (IteApp testE tE fE)) = do
   testVal <- evalRVExpr operands ib testE
   tVal <- evalRVExpr operands ib tE
   fVal <- evalRVExpr operands ib fE

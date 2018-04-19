@@ -27,7 +27,7 @@ instructions.
 
 module RISCV.Semantics
   ( -- * Types
-    BVExpr(..)
+    BVApp(..)
   , RVExpr(..)
   , Exception(..)
   , Stmt(..)
@@ -92,57 +92,11 @@ import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
 
+import RISCV.BVApp
 import RISCV.Types
 
 ----------------------------------------
 -- Expressions, statements, and formulas
-
--- | BitVector expressions. These are the building blocks for semantic formulas for
--- an instruction.
-data BVExpr (f :: Nat -> *) (w :: Nat) where
-  -- Literal BitVector
-  LitBV :: BitVector w -> BVExpr f w
-
-  -- Bitwise operations
-  AndE :: !(f w) -> !(f w) -> BVExpr f w
-  OrE  :: !(f w) -> !(f w) -> BVExpr f w
-  XorE :: !(f w) -> !(f w) -> BVExpr f w
-  NotE :: !(f w) -> BVExpr f w
-
-  -- Arithmetic operations
-  AddE :: !(f w) -> !(f w) -> BVExpr f w
-  SubE :: !(f w) -> !(f w) -> BVExpr f w
-  MulSE :: !(f w) -> !(f w) -> BVExpr f (w+w)
-  MulUE :: !(f w) -> !(f w) -> BVExpr f (w+w)
-  MulSUE :: !(f w) -> !(f w) -> BVExpr f (w+w)
-  DivUE :: !(f w) -> !(f w) -> BVExpr f w
-  DivSE :: !(f w) -> !(f w) -> BVExpr f w
-  RemUE :: !(f w) -> !(f w) -> BVExpr f w
-  RemSE :: !(f w) -> !(f w) -> BVExpr f w
-
-  -- TODO: Should we allow the shifter operand to have any width? This would simplify
-  -- the semantics, but might make it more complicated to interpret.
-  -- Shifts
-  SllE :: !(f w) -> !(f w) -> BVExpr f w
-  SrlE :: !(f w) -> !(f w) -> BVExpr f w
-  SraE :: !(f w) -> !(f w) -> BVExpr f w
-
-  -- Comparisons
-  EqE  :: !(f w) -> !(f w) -> BVExpr f 1
-  LtuE :: !(f w) -> !(f w) -> BVExpr f 1
-  LtsE :: !(f w) -> !(f w) -> BVExpr f 1
-
-  -- Width-changing
-  ZExtE :: NatRepr w' -> !(f w) -> BVExpr f w'
-  SExtE :: NatRepr w' -> !(f w) -> BVExpr f w'
-  ExtractE :: NatRepr w' -> Int -> !(f w) -> BVExpr f w'
-  ConcatE :: !(f w) -> !(f w') -> BVExpr f (w+w')
-
-  -- Other operations
-  IteE :: !(f 1)
-       -> !(f w)
-       -> !(f w)
-       -> BVExpr f w
 
 data RVExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing the instruction
@@ -155,8 +109,8 @@ data RVExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   MemRead :: RVExpr arch fmt (ArchWidth arch)
           -> RVExpr arch fmt 8
 
-  -- BVExpr with RVExpr subexpressions
-  BVExprVal :: BVExpr (RVExpr arch fmt) w -> RVExpr arch fmt w
+  -- BVApp with RVExpr subexpressions
+  BVAppVal :: BVApp (RVExpr arch fmt) w -> RVExpr arch fmt w
 
 -- deriving instance Show (RVExpr arch fmt w)
 
@@ -234,59 +188,59 @@ newtype FormulaBuilder arch (fmt :: Format) a =
 -- order to enable us to add some side effects later if we want to.
 
 ----------------------------------------
--- Smart constructors for BVExpr functions
+-- Smart constructors for BVApp functions
 
 -- | Literal bit vector.
 litBV :: BitVector w -> RVExpr arch fmt w
-litBV = BVExprVal . LitBV
+litBV = BVAppVal . LitBVApp
 
 -- | Bitwise and.
 andE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-andE e1 e2 = return $ BVExprVal (AndE e1 e2)
+andE e1 e2 = return $ BVAppVal (AndApp e1 e2)
 
 -- | Bitwise or.
 orE :: RVExpr arch fmt w
     -> RVExpr arch fmt w
     -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-orE e1 e2 = return $ BVExprVal (OrE e1 e2)
+orE e1 e2 = return $ BVAppVal (OrApp e1 e2)
 
 -- | Bitwise xor.
 xorE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-xorE e1 e2 = return $ BVExprVal (XorE e1 e2)
+xorE e1 e2 = return $ BVAppVal (XorApp e1 e2)
 
 -- | Bitwise not.
 notE :: RVExpr arch fmt w -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-notE e = return $ BVExprVal (NotE e)
+notE e = return $ BVAppVal (NotApp e)
 
 -- | Add two expressions.
 addE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-addE e1 e2 = return $ BVExprVal (AddE e1 e2)
+addE e1 e2 = return $ BVAppVal (AddApp e1 e2)
 
 -- | Subtract the second expression from the first.
 subE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-subE e1 e2 = return $ BVExprVal (SubE e1 e2)
+subE e1 e2 = return $ BVAppVal (SubApp e1 e2)
 
 -- | Signed multiply two 'BitVectors', doubling the width of the result to hold all
 -- arithmetic overflow bits.
 mulsE :: RVExpr arch fmt w
       -> RVExpr arch fmt w
       -> FormulaBuilder arch fmt (RVExpr arch fmt (w+w))
-mulsE e1 e2 = return $ BVExprVal (MulSE e1 e2)
+mulsE e1 e2 = return $ BVAppVal (MulSApp e1 e2)
 
 -- | Unsigned multiply two 'BitVectors', doubling the width of the result to hold
 -- all arithmetic overflow bits.
 muluE :: RVExpr arch fmt w
       -> RVExpr arch fmt w
       -> FormulaBuilder arch fmt (RVExpr arch fmt (w+w))
-muluE e1 e2 = return $ BVExprVal (MulUE e1 e2)
+muluE e1 e2 = return $ BVAppVal (MulUApp e1 e2)
 
 -- | Multiply two 'BitVectors', treating the first as a signed number and the second
 -- as an unsigned number, doubling the width of the result to hold all arithmetic
@@ -294,98 +248,98 @@ muluE e1 e2 = return $ BVExprVal (MulUE e1 e2)
 mulsuE :: RVExpr arch fmt w
        -> RVExpr arch fmt w
        -> FormulaBuilder arch fmt (RVExpr arch fmt (w+w))
-mulsuE e1 e2 = return $ BVExprVal (MulSUE e1 e2)
+mulsuE e1 e2 = return $ BVAppVal (MulSUApp e1 e2)
 
 -- | Signed divide two 'BitVectors', rounding to zero.
 divsE :: RVExpr arch fmt w
       -> RVExpr arch fmt w
       -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-divsE e1 e2 = return $ BVExprVal (DivSE e1 e2)
+divsE e1 e2 = return $ BVAppVal (DivSApp e1 e2)
 
 -- | Unsigned divide two 'BitVectors', rounding to zero.
 divuE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-divuE e1 e2 = return $ BVExprVal (DivUE e1 e2)
+divuE e1 e2 = return $ BVAppVal (DivUApp e1 e2)
 
 -- | Remainder after signed division of two 'BitVectors', when rounded to zero.
 remsE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-remsE e1 e2 = return $ BVExprVal (RemSE e1 e2)
+remsE e1 e2 = return $ BVAppVal (RemSApp e1 e2)
 
 -- | Remainder after unsigned division of two 'BitVectors', when rounded to zero.
 remuE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-remuE e1 e2 = return $ BVExprVal (RemUE e1 e2)
+remuE e1 e2 = return $ BVAppVal (RemUApp e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sllE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-sllE e1 e2 = return $ BVExprVal (SllE e1 e2)
+sllE e1 e2 = return $ BVAppVal (SllApp e1 e2)
 
 -- | Left logical shift the first expression by the second.
 srlE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-srlE e1 e2 = return $ BVExprVal (SrlE e1 e2)
+srlE e1 e2 = return $ BVAppVal (SrlApp e1 e2)
 
 -- | Left logical shift the first expression by the second.
 sraE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-sraE e1 e2 = return $ BVExprVal (SraE e1 e2)
+sraE e1 e2 = return $ BVAppVal (SraApp e1 e2)
 
 -- | Test for equality of two expressions.
 eqE :: RVExpr arch fmt w
     -> RVExpr arch fmt w
     -> FormulaBuilder arch fmt (RVExpr arch fmt 1)
-eqE e1 e2 = return $ BVExprVal (EqE e1 e2)
+eqE e1 e2 = return $ BVAppVal (EqApp e1 e2)
 
 -- | Signed less than
 ltsE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt 1)
-ltsE e1 e2 = return $ BVExprVal (LtsE e1 e2)
+ltsE e1 e2 = return $ BVAppVal (LtsApp e1 e2)
 
 -- | Unsigned less than
 ltuE :: RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt 1)
-ltuE e1 e2 = return $ BVExprVal (LtuE e1 e2)
+ltuE e1 e2 = return $ BVAppVal (LtuApp e1 e2)
 
 -- | Zero-extension
 -- zextE :: KnownNat w' => RVExpr arch fmt w -> FormulaBuilder arch fmt (RVExpr arch fmt w')
 zextE :: KnownNat w' => RVExpr arch fmt w -> FormulaBuilder arch fmt (RVExpr arch fmt w')
-zextE e = return $ BVExprVal (ZExtE knownNat e)
+zextE e = return $ BVAppVal (ZExtApp knownNat e)
 
 -- | Sign-extension
 sextE :: KnownNat w' => RVExpr arch fmt w -> FormulaBuilder arch fmt (RVExpr arch fmt w')
-sextE e = return $ BVExprVal (SExtE knownNat e)
+sextE e = return $ BVAppVal (SExtApp knownNat e)
 
 -- | Extract bits
 extractE :: KnownNat w' => Int -> RVExpr arch fmt w -> FormulaBuilder arch fmt (RVExpr arch fmt w')
-extractE base e = return $ BVExprVal (ExtractE knownNat base e)
+extractE base e = return $ BVAppVal (ExtractApp knownNat base e)
 
 -- | Extract bits with an explicit width argument
 extractEWithRepr :: NatRepr w'
                  -> Int
                  -> RVExpr arch fmt w
                  -> FormulaBuilder arch fmt (RVExpr arch fmt w')
-extractEWithRepr wRepr base e = return $ BVExprVal (ExtractE wRepr base e)
+extractEWithRepr wRepr base e = return $ BVAppVal (ExtractApp wRepr base e)
 
 -- | Concatenation
 concatE :: RVExpr arch fmt w -> RVExpr arch fmt w' -> FormulaBuilder arch fmt (RVExpr arch fmt (w+w'))
-concatE e1 e2 = return $ BVExprVal (ConcatE e1 e2)
+concatE e1 e2 = return $ BVAppVal (ConcatApp e1 e2)
 
 -- | Conditional branch.
 iteE :: RVExpr arch fmt 1
      -> RVExpr arch fmt w
      -> RVExpr arch fmt w
      -> FormulaBuilder arch fmt (RVExpr arch fmt w)
-iteE t e1 e2 = return $ BVExprVal (IteE t e1 e2)
+iteE t e1 e2 = return $ BVAppVal (IteApp t e1 e2)
 
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt
