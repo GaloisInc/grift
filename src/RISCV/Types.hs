@@ -7,6 +7,7 @@
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE PolyKinds              #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE TemplateHaskell        #-}
@@ -27,7 +28,9 @@ Definitions for RISC-V base ISA and extensions
 
 module RISCV.Types where
 
+import Data.BitVector.Sized
 import Data.Parameterized
+import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
 import GHC.TypeLits
 
@@ -189,13 +192,13 @@ data FormatRepr :: Format -> * where
 $(return [])
 deriving instance Show (FormatRepr k)
 instance ShowF FormatRepr
-deriving instance Eq (FormatRepr k)
-instance EqF FormatRepr where
-  eqF = (==)
-instance TestEquality FormatRepr where
-  testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
-instance OrdF FormatRepr where
-  compareF = $(structuralTypeOrd [t|FormatRepr|] [])
+-- deriving instance Eq (FormatRepr k)
+-- instance EqF FormatRepr where
+--   eqF = (==)
+-- instance TestEquality FormatRepr where
+--   testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
+-- instance OrdF FormatRepr where
+--   compareF = $(structuralTypeOrd [t|FormatRepr|] [])
 instance KnownRepr FormatRepr R where knownRepr = RRepr
 instance KnownRepr FormatRepr I where knownRepr = IRepr
 instance KnownRepr FormatRepr S where knownRepr = SRepr
@@ -207,56 +210,60 @@ instance KnownRepr FormatRepr X where knownRepr = XRepr
 ----------------------------------------
 -- Operands
 
--- | Operand types
-data OperandType = RegID | Imm12 | Imm20 | Imm32
+-- | Maps each format type to the list of the corresponding operand widths.
+type family OperandTypes (fmt :: Format) :: [Nat] where
+  OperandTypes R = '[5, 5, 5]
+  OperandTypes I = '[5, 5, 12]
+  OperandTypes S = '[5, 5, 12]
+  OperandTypes B = '[5, 5, 12]
+  OperandTypes U = '[5, 20]
+  OperandTypes J = '[5, 20]
+  OperandTypes X = '[32]
 
-type RegID = 'RegID
-type Imm12 = 'Imm12
-type Imm20 = 'Imm20
-type Imm32 = 'Imm32
+type OperandID (fmt :: Format) = Index (OperandTypes fmt)
 
--- | Operand identifier, parameterized by a 'Format' and an 'OperandType'.
-data OperandID :: Format -> OperandType -> * where
-  RRd    :: OperandID R RegID
-  RRs1   :: OperandID R RegID
-  RRs2   :: OperandID R RegID
+-- | RISC-V Operand lists, parameterized by format.
+data Operands :: Format -> * where
+  Operands :: FormatRepr fmt -> List BitVector (OperandTypes fmt) -> Operands fmt
 
-  IRd    :: OperandID I RegID
-  IRs1   :: OperandID I RegID
-  IImm12 :: OperandID I Imm12
-
-  SRs1   :: OperandID S RegID
-  SRs2   :: OperandID S RegID
-  SImm12 :: OperandID S Imm12
-
-  BRs1   :: OperandID B RegID
-  BRs2   :: OperandID B RegID
-  BImm12 :: OperandID B Imm12
-
-  URd    :: OperandID U RegID
-  UImm20 :: OperandID U Imm20
-
-  JRd    :: OperandID J RegID
-  JImm20 :: OperandID J Imm20
-
-  XImm32 :: OperandID X Imm32
-
--- | Maps an 'OperandType' to its length as a 'BitVector'.
-type family OperandWidth (otp :: OperandType) :: Nat where
-  OperandWidth RegID = 5
-  OperandWidth Imm12 = 12
-  OperandWidth Imm20 = 20
-  OperandWidth Imm32 = 32
-
--- Instances
 $(return [])
-deriving instance Show (OperandID fmt ot)
+deriving instance Show (Operands k)
+instance ShowF Operands
 
-instance ShowF (OperandID fmt)
-deriving instance Eq (OperandID fmt ot)
-instance EqF (OperandID fmt) where
-  eqF = (==)
-instance TestEquality (OperandID fmt) where
-  testEquality = $(structuralTypeEquality [t|OperandID|] [])
-instance OrdF (OperandID fmt) where
-  compareF = $(structuralTypeOrd [t|OperandID|] [])
+----------------------------------------
+-- OpBits
+
+-- type family OpBitsTypes (fmt :: Format) :: [Nat] where
+--   OpBitsTypes R = '[7, 3, 7]
+--   OpBitsTypes I = '[7, 3]
+--   OpBitsTypes S = '[7, 3]
+--   OpBitsTypes B = '[7, 3]
+--   OpBitsTypes U = '[7]
+--   OpBitsTypes J = '[7]
+--   OpBitsTypes X = '[]
+
+-- -- | Bits fixed by an opcode.
+-- -- Holds all the bits that are fixed by a particular opcode. Each format maps to a
+-- -- potentially different set of bits.
+-- data OpBits :: Format -> * where
+--   OpBits :: FormatRepr fmt -> List BitVector (OpBitsTypes fmt) -> OpBits fmt
+
+-- -- Instances
+-- $(return [])
+-- deriving instance Show (OpBits k)
+-- instance ShowF OpBits
+-- -- deriving instance Eq (OpBits k)
+-- -- instance EqF OpBits where
+-- --   eqF = (==)
+
+-- instance TestEquality OpBits where
+--   testEquality = $(structuralTypeOrd [t|OpBits|]
+--                    [ (
+
+-- instance TestEquality OpBits where
+--   (OpBits RRepr (rd :< rs1 :< rs2 :< Nil)) `testEquality` (OpBits RRepr (rd' :< rs1' :< rs2' :< Nil)) =
+--       if rd == rd' && rs1 == rs1' && rs2 == rs2'
+--       then Just Refl
+--       else Nothing
+-- instance OrdF OpBits where
+--   compareF = $(structuralTypeOrd [t|OpBits|] [])

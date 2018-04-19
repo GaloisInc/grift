@@ -31,14 +31,13 @@ module RISCV.Semantics
   , Exception(..)
   , Stmt(..)
   , Formula, fComments, fDefs
-  , FormatParams
   -- * FormulaBuilder monad
   , FormulaBuilder
   , getFormula
   -- * FormulaBuilder operations
   -- ** Auxiliary
   , comment
-  , params
+  , operandEs
   , instBytes
   , litBV
   -- ** Access to state
@@ -86,6 +85,7 @@ import Control.Lens ( (%=), Simple, Lens, lens )
 import Control.Monad.State
 import Data.BitVector.Sized
 import Data.Parameterized
+import Data.Parameterized.List
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
@@ -96,9 +96,10 @@ import RISCV.Types
 ----------------------------------------
 -- Expressions, statements, and formulas
 
+-- | Expressions for computations over the RISC-V machine state.
 data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing the instruction
-  ParamBV :: OperandID fmt otp -> Expr arch fmt (OperandWidth otp)
+  OperandExpr :: OperandID fmt w -> Expr arch fmt w
   InstBytes :: Expr arch fmt (ArchWidth arch)
 
   -- Accessing state
@@ -109,8 +110,6 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
 
   -- BVApp with Expr subexpressions
   AppExpr :: BVApp (Expr arch fmt) w -> Expr arch fmt w
-
--- deriving instance Show (Expr arch fmt w)
 
 -- | Runtime exception.
 data Exception = EnvironmentCall
@@ -130,10 +129,8 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
   AssignPC  :: Expr arch fmt (ArchWidth arch) -> Stmt arch fmt
   RaiseException :: Expr arch fmt 1 -> Exception -> Stmt arch fmt
 
--- deriving instance Show (Stmt arch fmt)
-
 -- | Formula representing the semantics of an instruction. A formula has a number of
--- parameters (potentially zero), which represent the input to the formula. These are
+-- operands (potentially zero), which represent the input to the formula. These are
 -- going to the be the operands of the instruction -- register ids, immediate values,
 -- and so forth.
 --
@@ -157,14 +154,6 @@ fComments = lens _fComments (\(Formula _ d) c -> Formula c d)
 -- | Lens for 'Formula' statements.
 fDefs :: Simple Lens (Formula arch fmt) (Seq (Stmt arch fmt))
 fDefs = lens _fDefs (\(Formula c _) d -> Formula c d)
-
--- instance Show (Formula arch fmt) where
---   show (Formula comments defs) =
---     showComments ++
---     showDefs
---     where showComments = concat (toList ((++ "\n") <$> comments))
---           showDefs = concat (toList ((\d -> "  " ++ show d ++ "\n") <$> defs))
--- instance ShowF (Formula arch)
 
 -- | Every definition begins with the empty formula.
 emptyFormula :: Formula arch fmt
@@ -339,6 +328,17 @@ iteE :: Expr arch fmt 1
      -> FormulaBuilder arch fmt (Expr arch fmt w)
 iteE t e1 e2 = return $ AppExpr (IteApp t e1 e2)
 
+-- | Get the operands for a particular known format
+operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (List (Expr arch fmt) (OperandTypes fmt))
+operandEs = case knownRepr :: FormatRepr fmt of
+  RRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
+  IRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
+  SRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
+  BRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
+  URepr -> return (OperandExpr index0 :< OperandExpr index1 :< Nil)
+  JRepr -> return (OperandExpr index0 :< OperandExpr index1 :< Nil)
+  XRepr -> return (OperandExpr index0 :< Nil)
+
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt
 getFormula = flip execState emptyFormula . unFormulaBuilder
@@ -389,30 +389,3 @@ assignPC pc = addStmt (AssignPC pc)
 -- | Conditionally raise an exception.
 raiseException :: Expr arch fmt 1 -> Exception -> FormulaBuilder arch fmt ()
 raiseException cond e = addStmt (RaiseException cond e)
-
--- | Maps each format to the parameter types for its operands.
--- We include an extra parameter indicating the size of the instruction word for pc
--- incrementing.
-type family FormatParams (arch :: BaseArch) (fmt :: Format) :: * where
-  FormatParams arch R = (Expr arch R 5, Expr arch R 5, Expr arch R 5)
-  FormatParams arch I = (Expr arch I 5, Expr arch I 5, Expr arch I 12)
-  FormatParams arch S = (Expr arch S 5, Expr arch S 5, Expr arch S 12)
-  FormatParams arch B = (Expr arch B 5, Expr arch B 5, Expr arch B 12)
-  FormatParams arch U = (Expr arch U 5, Expr arch U 20)
-  FormatParams arch J = (Expr arch J 5, Expr arch J 20)
-  FormatParams arch X = (Expr arch X 32)
-
-params' :: FormatRepr fmt
-        -> FormulaBuilder arch fmt (FormatParams arch fmt)
-params' repr = case repr of
-    RRepr -> return (ParamBV RRd, ParamBV RRs1, ParamBV RRs2)
-    IRepr -> return (ParamBV IRd, ParamBV IRs1, ParamBV IImm12)
-    SRepr -> return (ParamBV SRs1, ParamBV SRs2, ParamBV SImm12)
-    BRepr -> return (ParamBV BRs1, ParamBV BRs2, ParamBV BImm12)
-    URepr -> return (ParamBV URd, ParamBV UImm20)
-    JRepr -> return (ParamBV JRd, ParamBV JImm20)
-    XRepr -> return (ParamBV XImm32)
-
--- | Get the parameters for a particular known format
-params :: (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (FormatParams arch fmt)
-params = params' knownRepr

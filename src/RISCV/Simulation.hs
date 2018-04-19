@@ -22,7 +22,6 @@ A type class for simulating RISC-V code.
 module RISCV.Simulation
   ( -- * State monad
     RVState(..)
-  , evalParam
   , evalExpr
   , execFormula
   , runRV
@@ -33,6 +32,8 @@ import Control.Monad ( forM_, when )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.Parameterized
+import Data.Parameterized.List
+import Prelude hiding ((!!))
 
 import RISCV.Decode
 import RISCV.Extensions
@@ -70,36 +71,14 @@ getMem32 addr = do
   b3 <- getMem (addr+3)
   return $ b3 <:> b2 <:> b1 <:> b0
 
--- | Evaluate a parameter's value from an 'Operands'.
-evalParam :: OperandID fmt otp
-          -> Operands fmt
-          -> BitVector (OperandWidth otp)
-evalParam RRd    (ROperands  rd   _   _) = rd
-evalParam RRs1   (ROperands   _ rs1   _) = rs1
-evalParam RRs2   (ROperands   _   _ rs2) = rs2
-evalParam IRd    (IOperands  rd   _   _) = rd
-evalParam IRs1   (IOperands   _ rs1   _) = rs1
-evalParam IImm12 (IOperands   _   _ imm) = imm
-evalParam SRs1   (SOperands rs1   _   _) = rs1
-evalParam SRs2   (SOperands   _ rs2   _) = rs2
-evalParam SImm12 (SOperands   _   _ imm) = imm
-evalParam BRs1   (BOperands rs1   _   _) = rs1
-evalParam BRs2   (BOperands   _ rs2   _) = rs2
-evalParam BImm12 (BOperands   _   _ imm) = imm
-evalParam URd    (UOperands  rd       _) = rd
-evalParam UImm20 (UOperands   _     imm) = imm
-evalParam JRd    (JOperands  rd       _) = rd
-evalParam JImm20 (JOperands   _     imm) = imm
-evalParam XImm32 (XOperands         imm) = imm
-
 -- | Evaluate a 'Expr', given an 'RVState' implementation.
 evalExpr :: forall m arch exts fmt w
             . (RVState m arch exts, KnownArch arch)
-         => Operands fmt    -- ^ Operands
-         -> Integer         -- ^ Instruction width (in bytes)
-         -> Expr arch fmt w   -- ^ Expression to be evaluated
+         => Operands fmt     -- ^ Operands
+         -> Integer          -- ^ Instruction width (in bytes)
+         -> Expr arch fmt w  -- ^ Expression to be evaluated
          -> m (BitVector w)
-evalExpr operands _ (ParamBV p) = return (evalParam p operands)
+evalExpr (Operands _ operands) _ (OperandExpr p) = return (operands !! p)
 evalExpr _ _ PCRead = getPC
 evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr operands ib (RegRead ridE) =

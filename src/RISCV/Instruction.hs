@@ -34,8 +34,6 @@ module RISCV.Instruction
     -- * Opcodes
   , Opcode(..)
   , OpBits(..)
-    -- * Operands
-  , Operands(..)
   ) where
 
 import Data.BitVector.Sized
@@ -44,32 +42,14 @@ import Data.Parameterized.TH.GADT
 
 import RISCV.Types
 
-----------------------------------------
--- Operands
-
--- TODO: Consider making the operand arguments lists of bit vector types???
--- | RISC-V Operand lists, parameterized by format. There is exactly one constructor
--- per format.
-data Operands :: Format -> * where
-  ROperands :: BitVector 5 -> BitVector 5  -> BitVector 5  -> Operands R
-  IOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands I
-  SOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands S
-  BOperands :: BitVector 5 -> BitVector 5  -> BitVector 12 -> Operands B
-  UOperands :: BitVector 5 -> BitVector 20                 -> Operands U
-  JOperands :: BitVector 5 -> BitVector 20                 -> Operands J
-  XOperands :: BitVector 32                                -> Operands X
-
 -- Instances
-$(return [])
-deriving instance Show (Operands k)
-instance ShowF Operands
-deriving instance Eq (Operands k)
-instance EqF Operands where
-  eqF = (==)
-instance TestEquality Operands where
-  testEquality = $(structuralTypeEquality [t|Operands|] [])
-instance OrdF Operands where
-  compareF = $(structuralTypeOrd [t|Operands|] [])
+-- deriving instance Eq (Operands k)
+-- instance EqF Operands where
+--   eqF = (==)
+-- instance TestEquality Operands where
+--   testEquality = $(structuralTypeEquality [t|Operands|] [])
+-- instance OrdF Operands where
+--   compareF = $(structuralTypeOrd [t|Operands|] [])
 
 ----------------------------------------
 -- Opcodes
@@ -231,60 +211,19 @@ $(return [])
 instance Show (Instruction arch fmt) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
 instance ShowF (Instruction arch)
-instance Eq (Instruction arch fmt) where
-  Inst opcode operands == Inst opcode' operands' =
-    opcode == opcode' && operands == operands'
-instance EqF (Instruction arch) where
-  eqF = (==)
-instance TestEquality (Instruction arch) where
-  (Inst opcode operands) `testEquality` (Inst opcode' operands') =
-    case (opcode   `testEquality` opcode',
-          operands `testEquality` operands') of
-      (Just Refl, Just Refl) -> Just Refl
-      _ -> Nothing
-instance OrdF (Instruction arch) where
-  Inst opcode operands `compareF` Inst opcode' operands' =
-    case opcode `compareF` opcode' of
-      EQF -> operands `compareF` operands'
-      cmp -> cmp
-
-----------------------------------------
--- TODO: Add compressed instructions
---
--- This task is a little different from just adding an extension. In fact, it's
--- really orthogonal to it, because we aren't adding *any* new instructions! Instead,
--- we define a separate opcodeOpBits mapping for those special instructions. Since
--- those mappings will under-specify the instruction word in a sense, we will need to
--- encode a predicate that determines whether a particular instruction instance is
--- compressable or not. The encode function will have to take some kind of flag, and
--- check both the flag and the compressability of the instruction before determining
--- how to encode it.
---
--- Another approach would be to use bit lenses to, instead of creating lenses mapping
--- the operands into a 16-bit instruction word, map the 16-bit instruction word into
--- the 32-bit one. Then we could create a separate function, maybe called compress,
--- that would compress those instructions that could be compressed. This might be a
--- slicker approach. We'd still need the compressibility predicate; I'm not sure if
--- there is a clever way to weave that predicate in with the BitLayout stuff. Have to
--- think about it. My feeling is that it makes more sense to just define one
--- "compressible" function and see if that looks adequate.
---
--- Do I want the decoder to know whether it is "allowed" to decode compressed
--- instructions, or any extension for that matter? My current feeling is that we
--- might as well not bother making a distinction between the various extensions in
--- the encoding/decoding end of things if we can help it. It would be nice to somehow
--- tag instructions with the extensions they belong to, though, if only for error
--- reporting purposes.
---
--- On the decoding end of things, it's a little trickier. Right now the decoder takes
--- a 32-bit word. I'm thinking maybe I should have a separate
---
---   decodeC :: BitVector 16 -> Maybe (BitVector 32)
---
--- which returns the full 32-bit word that the compressed instruction would expand
--- to. This is assuming I use the bit lens approach rather than creating an entirely
--- separate mapping for compressed instructions into the Instruction type.
---
--- Now that I'm really thinking about it, I believe the above is exactly the right
--- approach. It captures the fact that these compressed guys are being embedded into
--- a larger instruction word.
+-- instance Eq (Instruction arch fmt) where
+--   Inst opcode operands == Inst opcode' operands' =
+--     opcode == opcode' && operands == operands'
+-- instance EqF (Instruction arch) where
+--   eqF = (==)
+-- instance TestEquality (Instruction arch) where
+--   (Inst opcode operands) `testEquality` (Inst opcode' operands') =
+--     case (opcode   `testEquality` opcode',
+--           operands `testEquality` operands') of
+--       (Just Refl, Just Refl) -> Just Refl
+--       _ -> Nothing
+-- instance OrdF (Instruction arch) where
+--   Inst opcode operands `compareF` Inst opcode' operands' =
+--     case opcode `compareF` opcode' of
+--       EQF -> operands `compareF` operands'
+--       cmp -> cmp

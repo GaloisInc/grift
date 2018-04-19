@@ -26,6 +26,7 @@ module RISCV.Decode
 import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.Parameterized
+import Data.Parameterized.List
 
 import RISCV.Instruction
 import RISCV.InstructionSet
@@ -73,13 +74,13 @@ decodeFormat bv = case (bv ^. opcodeLens) of
 -- | From the format, get the operands
 decodeOperands :: FormatRepr fmt -> BitVector 32 -> Operands fmt
 decodeOperands repr bv = case repr of
-  RRepr -> ROperands (bv ^. rdLens)  (bv ^. rs1Lens) (bv ^. rs2Lens)
-  IRepr -> IOperands (bv ^. rdLens)  (bv ^. rs1Lens) (bv ^. imm12ILens)
-  SRepr -> SOperands (bv ^. rs1Lens) (bv ^. rs2Lens) (bv ^. imm12SLens)
-  BRepr -> BOperands (bv ^. rs1Lens) (bv ^. rs2Lens) (bv ^. imm12BLens)
-  URepr -> UOperands (bv ^. rdLens)  (bv ^. imm20ULens)
-  JRepr -> JOperands (bv ^. rdLens)  (bv ^. imm20JLens)
-  XRepr -> XOperands (bv ^. illegalLens)
+  RRepr -> Operands RRepr ((bv ^. rdLens)  :< (bv ^. rs1Lens) :< (bv ^. rs2Lens) :< Nil)
+  IRepr -> Operands IRepr ((bv ^. rdLens)  :< (bv ^. rs1Lens) :< (bv ^. imm12ILens) :< Nil)
+  SRepr -> Operands SRepr ((bv ^. rs1Lens) :< (bv ^. rs2Lens) :< (bv ^. imm12SLens) :< Nil)
+  BRepr -> Operands BRepr ((bv ^. rs1Lens) :< (bv ^. rs2Lens) :< (bv ^. imm12BLens) :< Nil)
+  URepr -> Operands URepr ((bv ^. rdLens)  :< (bv ^. imm20ULens) :< Nil)
+  JRepr -> Operands JRepr ((bv ^. rdLens)  :< (bv ^. imm20JLens) :< Nil)
+  XRepr -> Operands XRepr ((bv ^. illegalLens) :< Nil)
 
 -- | From the format, get the opbits
 decodeOpBits :: FormatRepr fmt -> BitVector 32 -> OpBits fmt

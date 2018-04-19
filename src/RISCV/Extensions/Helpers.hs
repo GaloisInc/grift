@@ -32,6 +32,7 @@ module RISCV.Extensions.Helpers
 
 import Data.BitVector.Sized
 import Data.Parameterized
+import Data.Parameterized.List
 import GHC.TypeLits
 
 import RISCV.Semantics
@@ -65,7 +66,7 @@ type ArithOp arch fmt w = Expr arch fmt (ArchWidth arch)
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
 rOp :: KnownArch arch => ArithOp arch 'R (ArchWidth arch) -> FormulaBuilder arch 'R ()
 rOp op = do
-  (rd, rs1, rs2)  <- params
+  rd :< rs1 :< rs2 :< Nil <- operandEs
 
   x_rs1 <- regRead rs1
   x_rs2 <- regRead rs2
@@ -78,7 +79,7 @@ rOp op = do
 -- destination register.
 rOp32 :: KnownArch arch => ArithOp arch 'R w -> FormulaBuilder arch 'R ()
 rOp32 op = do
-  (rd, rs1, rs2)  <- params
+  rd :< rs1 :< rs2 :< Nil  <- operandEs
 
   x_rs1 <- regRead rs1
   x_rs2 <- regRead rs2
@@ -93,7 +94,7 @@ rOp32 op = do
 -- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
 iOp :: KnownArch arch => ArithOp arch 'I (ArchWidth arch) -> FormulaBuilder arch 'I ()
 iOp op = do
-  (rd, rs1, imm12) <- params
+  rd :< rs1 :< imm12 :< Nil <- operandEs
 
   x_rs1 <- regRead rs1
   sext_imm12 <- sextE imm12
@@ -164,7 +165,7 @@ l :: KnownArch arch
   -> ExtFn arch w I
   -> FormulaBuilder arch I ()
 l rdFn extFn = do
-  (rd, rs1, offset) <- params
+  rd :< rs1 :< offset :< Nil <- operandEs
 
   x_rs1       <- regRead rs1
   sext_offset <- sextE offset
@@ -236,7 +237,7 @@ s :: (KnownArch arch, KnownNat w)
   => MemWriteFn arch w S
   -> FormulaBuilder arch S ()
 s wrFn = do
-  (rs1, rs2, offset) <- params
+  rs1 :< rs2 :< offset :< Nil <- operandEs
 
   x_rs1 <- regRead rs1
   x_rs2 <- regRead rs2
@@ -254,7 +255,7 @@ type CompOp arch fmt = Expr arch fmt (ArchWidth arch)
 
 b :: KnownArch arch => CompOp arch 'B -> FormulaBuilder arch 'B ()
 b cmp = do
-  (rs1, rs2, offset') <- params
+  rs1 :< rs2 :< offset' :< Nil <- operandEs
   -- Need to left shift the offset by 1
   offset <- offset' `sllE` litBV 1
 

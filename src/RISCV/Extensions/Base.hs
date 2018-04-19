@@ -29,6 +29,7 @@ import Data.BitVector.Sized
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
+import Data.Parameterized.List
 
 import RISCV.Extensions.Helpers
 import RISCV.Instruction
@@ -189,7 +190,7 @@ baseSemantics = Map.fromList
       comment "Masks off the least significant bit of the computed address."
       comment "Writes the previous pc+4 to x[rd]."
 
-      (rd, rs1, offset) <- params
+      rd :< rs1 :< offset :< Nil <- operandEs
 
       pc <- pcRead
       t  <- pc `addE` litBV 4
@@ -261,7 +262,7 @@ baseSemantics = Map.fromList
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
-      (rd, rs1, imm12) <- params
+      rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
@@ -290,7 +291,7 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
-      (rd, rs1, imm12) <- params
+      rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
@@ -384,7 +385,7 @@ baseSemantics = Map.fromList
       comment "Writes the sign-extended 20-bit immediate, left-shifted by 12 bits, to x[rd]."
       comment "Zeros the lower 12 bits."
 
-      (rd, imm20) <- params
+      rd :< imm20 :< Nil <- operandEs
 
       sext_imm20 <- sextE imm20
       result <- sext_imm20 `sllE` litBV 12
@@ -395,7 +396,7 @@ baseSemantics = Map.fromList
       comment "Adds the sign-extended 20-bit immediate, left-shifted by 12 bits, to the pc."
       comment "Writes the result to x[rd]."
 
-      (rd, imm20) <- params
+      rd :< imm20 :< Nil <- operandEs
 
       sext_imm20 <- sextE imm20
       shifted <- sext_imm20 `sllE` litBV 12
@@ -410,7 +411,7 @@ baseSemantics = Map.fromList
       comment "Writes the address of the next instruction to x[rd]."
       comment "Then sets the pc to the current pc plus the sign-extended offset."
 
-      (rd, imm20') <- params
+      rd :< imm20' :< Nil <- operandEs
       ib' <- instBytes
       ib <- zextE ib'
       imm21' <- imm20' `sllE` litBV 1
@@ -533,7 +534,7 @@ base64Semantics = Map.fromList
       comment "Truncates the result to 32 bits."
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
-      (rd, rs1, imm12) <- params
+      rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
@@ -562,7 +563,7 @@ base64Semantics = Map.fromList
       comment "Truncates the result to 32 bits."
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
-      (rd, rs1, imm12) <- params
+      rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12

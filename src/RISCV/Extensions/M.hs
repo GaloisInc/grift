@@ -24,6 +24,7 @@ module RISCV.Extensions.M
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
+import Data.Parameterized.List
 
 import RISCV.Extensions.Helpers
 import RISCV.Instruction
@@ -66,7 +67,7 @@ mSemantics = Map.fromList
       comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      (rd, rs1, rs2) <- params
+      rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
@@ -80,7 +81,7 @@ mSemantics = Map.fromList
       comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
       comment "Writes the upper half of the product in x[rd]."
 
-      (rd, rs1, rs2) <- params
+      rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
@@ -95,7 +96,7 @@ mSemantics = Map.fromList
       comment "Multiplies x[rs1] by x[rs2], treating x[rs1] as a two's complement number and x[rs2] as an unsigned number."
       comment "Writes the upper half of the product in x[rd]."
 
-      (rd, rs1, rs2) <- params
+      rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
@@ -110,7 +111,7 @@ mSemantics = Map.fromList
       comment "Multiplies x[rs1] by x[rs2], treating the values as unsigned numbers."
       comment "Writes the upper half of the product in x[rd]."
 
-      (rd, rs1, rs2) <- params
+      rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
