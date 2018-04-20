@@ -192,13 +192,14 @@ data FormatRepr :: Format -> * where
 $(return [])
 deriving instance Show (FormatRepr k)
 instance ShowF FormatRepr
--- deriving instance Eq (FormatRepr k)
--- instance EqF FormatRepr where
---   eqF = (==)
--- instance TestEquality FormatRepr where
---   testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
--- instance OrdF FormatRepr where
---   compareF = $(structuralTypeOrd [t|FormatRepr|] [])
+deriving instance Eq (FormatRepr k)
+instance EqF FormatRepr where
+  eqF = (==)
+instance TestEquality FormatRepr where
+  testEquality = $(structuralTypeEquality [t|FormatRepr|] [])
+instance OrdF FormatRepr where
+  compareF = $(structuralTypeOrd [t|FormatRepr|] [])
+
 instance KnownRepr FormatRepr R where knownRepr = RRepr
 instance KnownRepr FormatRepr I where knownRepr = IRepr
 instance KnownRepr FormatRepr S where knownRepr = SRepr
@@ -220,6 +221,7 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes J = '[5, 20]
   OperandTypes X = '[32]
 
+-- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
 type OperandID (fmt :: Format) = Index (OperandTypes fmt)
 
 -- | RISC-V Operand lists, parameterized by format.
@@ -233,37 +235,30 @@ instance ShowF Operands
 ----------------------------------------
 -- OpBits
 
--- type family OpBitsTypes (fmt :: Format) :: [Nat] where
---   OpBitsTypes R = '[7, 3, 7]
---   OpBitsTypes I = '[7, 3]
---   OpBitsTypes S = '[7, 3]
---   OpBitsTypes B = '[7, 3]
---   OpBitsTypes U = '[7]
---   OpBitsTypes J = '[7]
---   OpBitsTypes X = '[]
+-- | Maps each format to the list of the corresponding opbits widths.
+type family OpBitsTypes (fmt :: Format) :: [Nat] where
+  OpBitsTypes R = '[7, 3, 7]
+  OpBitsTypes I = '[7, 3]
+  OpBitsTypes S = '[7, 3]
+  OpBitsTypes B = '[7, 3]
+  OpBitsTypes U = '[7]
+  OpBitsTypes J = '[7]
+  OpBitsTypes X = '[]
 
--- -- | Bits fixed by an opcode.
--- -- Holds all the bits that are fixed by a particular opcode. Each format maps to a
--- -- potentially different set of bits.
--- data OpBits :: Format -> * where
---   OpBits :: FormatRepr fmt -> List BitVector (OpBitsTypes fmt) -> OpBits fmt
+-- | Bits fixed by an opcode.
+-- Holds all the bits that are fixed by a particular opcode.
+data OpBits :: Format -> * where
+  OpBits :: FormatRepr fmt -> List BitVector (OpBitsTypes fmt) -> OpBits fmt
 
--- -- Instances
--- $(return [])
--- deriving instance Show (OpBits k)
--- instance ShowF OpBits
--- -- deriving instance Eq (OpBits k)
--- -- instance EqF OpBits where
--- --   eqF = (==)
+$(return [])
+instance TestEquality OpBits where
+  testEquality = $(structuralTypeEquality [t|OpBits|]
+                   [ (ConType [t|FormatRepr|] `TypeApp` AnyType, [|testEquality|])
+                   , (ConType [t|List|] `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|])
+                   ])
 
--- instance TestEquality OpBits where
---   testEquality = $(structuralTypeOrd [t|OpBits|]
---                    [ (
-
--- instance TestEquality OpBits where
---   (OpBits RRepr (rd :< rs1 :< rs2 :< Nil)) `testEquality` (OpBits RRepr (rd' :< rs1' :< rs2' :< Nil)) =
---       if rd == rd' && rs1 == rs1' && rs2 == rs2'
---       then Just Refl
---       else Nothing
--- instance OrdF OpBits where
---   compareF = $(structuralTypeOrd [t|OpBits|] [])
+instance OrdF OpBits where
+  compareF = $(structuralTypeOrd [t|OpBits|]
+               [ (ConType [t|FormatRepr|] `TypeApp` AnyType, [|compareF|])
+               , (ConType [t|List|] `TypeApp` AnyType `TypeApp` AnyType, [|compareF|])
+               ])

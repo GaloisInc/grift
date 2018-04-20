@@ -38,7 +38,7 @@ encode :: InstructionSet arch exts -> Instruction arch fmt -> BitVector 32
 encode iset inst = case inst of
   Inst opcode (Operands RRepr (rd :< rs1 :< rs2 :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      ROpBits o f3 f7 -> 0 &
+      OpBits RRepr (o :< f3 :< f7 :< Nil) -> 0 &
         opcodeLens .~ o   &
         funct3Lens .~ f3  &
         funct7Lens .~ f7  &
@@ -47,7 +47,7 @@ encode iset inst = case inst of
         rs2Lens    .~ rs2
   Inst opcode (Operands IRepr (rd :< rs1 :< imm12 :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      IOpBits o f3 -> 0 &
+      OpBits IRepr (o :< f3 :< Nil) -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
         rdLens     .~ rd &
@@ -55,7 +55,7 @@ encode iset inst = case inst of
         imm12ILens .~ imm12
   Inst opcode (Operands SRepr (rs1 :< rs2 :< imm12 :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      SOpBits o f3 -> 0 &
+      OpBits SRepr (o :< f3 :< Nil) -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
         rs1Lens    .~ rs1 &
@@ -63,7 +63,7 @@ encode iset inst = case inst of
         imm12SLens .~ imm12
   Inst opcode (Operands BRepr (rs1 :< rs2 :< imm12 :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      BOpBits o f3 -> 0 &
+      OpBits BRepr (o :< f3 :< Nil) -> 0 &
         opcodeLens .~ o &
         funct3Lens .~ f3 &
         rs1Lens    .~ rs1 &
@@ -71,16 +71,16 @@ encode iset inst = case inst of
         imm12BLens .~ imm12
   Inst opcode (Operands URepr (rd :< imm20 :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      UOpBits o -> 0 &
+      OpBits URepr (o :< Nil) -> 0 &
         opcodeLens .~ o &
         rdLens     .~ rd &
         imm20ULens .~ imm20
   Inst opcode (Operands JRepr (rd :< imm20 :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      JOpBits o -> 0 &
+      OpBits JRepr (o :< Nil) -> 0 &
         opcodeLens .~ o &
         rdLens     .~ rd &
         imm20JLens .~ imm20
   Inst opcode (Operands XRepr (illBits :< Nil)) ->
     case opBitsFromOpcode iset opcode of
-      XOpBits -> 0 & illegalLens .~ illBits
+      OpBits XRepr Nil -> 0 & illegalLens .~ illBits
