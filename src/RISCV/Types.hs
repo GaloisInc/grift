@@ -23,10 +23,52 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-Definitions for RISC-V base ISA and extensions
+This module provides several data kinds and types that are used by many other
+modules.
+
+It defines the notion of a 'BaseArch', encoding which "base" RISC-V ISA a
+machine uses, as well as that of 'Extensions', encoding which extensions are
+present in that machine. Together, these two data kinds comprise the feature
+model of the RISC-V architecture. There are more dimensions to be added,
+including (but probably not limited to) which privilege levels are
+supported.
+
+We also define a data kind called 'Format', which denotes the format of an
+instruction. An instruction's format specifies exactly which bits correspond to
+what within an instruction word, and is therefore necessary for defining
+encoding, decoding, and semantics.
+
+Finally, we define 'Opcode', 'Operands', and 'Instruction', which encode our
+representation of a RISC-V instruction.
 -}
 
-module RISCV.Types where
+module RISCV.Types
+  ( -- * Base architecture
+    BaseArch, type RV32I, type RV32E, type RV64I, type RV128I
+  , BaseArchRepr(..)
+  , ArchWidth
+  , KnownArch
+    -- * Extensions
+  , Extensions, type Exts
+  , MConfig, type MYes, type MNo
+  , FDConfig, type FDYes, type FYesDNo, type FDNo
+  , ExtensionsRepr(..)
+  , MConfigRepr(..)
+  , FDConfigRepr(..)
+  , KnownExtensions
+  , Extension, type M, type F, type D
+  , ExtensionsContains, type (<<)
+  -- * Instructions
+  , Format, type R, type I, type S, type B, type U, type J, type X
+  , FormatRepr(..)
+  , OperandTypes
+  , OperandID
+  , Operands(..)
+  , OpBitsTypes
+  , OpBits(..)
+  , Opcode(..)
+  , Instruction(..)
+  ) where
 
 import Data.BitVector.Sized
 import Data.Parameterized
@@ -256,9 +298,143 @@ instance TestEquality OpBits where
                    [ (ConType [t|FormatRepr|] `TypeApp` AnyType, [|testEquality|])
                    , (ConType [t|List|] `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|])
                    ])
-
 instance OrdF OpBits where
   compareF = $(structuralTypeOrd [t|OpBits|]
                [ (ConType [t|FormatRepr|] `TypeApp` AnyType, [|compareF|])
                , (ConType [t|List|] `TypeApp` AnyType `TypeApp` AnyType, [|compareF|])
                ])
+
+
+----------------------------------------
+-- Opcodes
+
+-- | RISC-V Opcodes, parameterized by base architecture and format.
+--
+-- We note here that the 'Srai' and 'Srli' instructions are combined into the same
+-- instruction. The reason for this is that they are actually encoded as format I
+-- rather than R, which means that the bit that distinguishes them is classified as
+-- an operand. Therefore, for our representation, we use the same constructor and
+-- push the distinction into the semantics. It is a shame that these instruction
+-- weren't encoded differently; if they used different OpBits, this could have been
+-- avoided. Similarly, 'Ecall' and 'Ebreak' are combined into a single instruction.
+data Opcode :: BaseArch -> Format -> * where
+
+  -- RV32I
+  Add    :: Opcode arch R
+  Sub    :: Opcode arch R
+  Sll    :: Opcode arch R
+  Slt    :: Opcode arch R
+  Sltu   :: Opcode arch R
+  Xor    :: Opcode arch R
+  Srl    :: Opcode arch R
+  Sra    :: Opcode arch R
+  Or     :: Opcode arch R
+  And    :: Opcode arch R
+
+  Jalr    :: Opcode arch I
+  Lb      :: Opcode arch I
+  Lh      :: Opcode arch I
+  Lw      :: Opcode arch I
+  Lbu     :: Opcode arch I
+  Lhu     :: Opcode arch I
+  Addi    :: Opcode arch I
+  Slti    :: Opcode arch I
+  Sltiu   :: Opcode arch I
+  Xori    :: Opcode arch I
+  Ori     :: Opcode arch I
+  Andi    :: Opcode arch I
+  Slli    :: Opcode arch I
+  -- | @srai@ and @srli@ combined into a single instruction.
+  Sri     :: Opcode arch I
+  Fence   :: Opcode arch I
+  FenceI  :: Opcode arch I
+  Csrrw   :: Opcode arch I
+  Csrrs   :: Opcode arch I
+  Csrrc   :: Opcode arch I
+  Csrrwi  :: Opcode arch I
+  Csrrsi  :: Opcode arch I
+  Csrrci  :: Opcode arch I
+  -- | @ecall@ and @ebreak@ combined into a single instruction.
+  Ecb     :: Opcode arch I
+
+  -- S type
+  Sb :: Opcode arch S
+  Sh :: Opcode arch S
+  Sw :: Opcode arch S
+
+  -- B type
+  Beq  :: Opcode arch B
+  Bne  :: Opcode arch B
+  Blt  :: Opcode arch B
+  Bge  :: Opcode arch B
+  Bltu :: Opcode arch B
+  Bgeu :: Opcode arch B
+
+  -- U type
+  Lui   :: Opcode arch U
+  Auipc :: Opcode arch U
+
+  -- J type
+  Jal :: Opcode arch J
+
+
+  -- X type (illegal instruction)
+  Illegal :: Opcode arch X
+
+  -- RV64I
+  Addw   :: 64 <= ArchWidth arch => Opcode arch R
+  Subw   :: 64 <= ArchWidth arch => Opcode arch R
+  Sllw   :: 64 <= ArchWidth arch => Opcode arch R
+  Srlw   :: 64 <= ArchWidth arch => Opcode arch R
+  Sraw   :: 64 <= ArchWidth arch => Opcode arch R
+  Lwu    :: 64 <= ArchWidth arch => Opcode arch I
+  Ld     :: 64 <= ArchWidth arch => Opcode arch I
+  Addiw  :: 64 <= ArchWidth arch => Opcode arch I
+  Slliw  :: 64 <= ArchWidth arch => Opcode arch I
+  -- | @sraiw@ and @srliw@ combined into a single instruction.
+  Sriw   :: 64 <= ArchWidth arch => Opcode arch I
+  Sd     :: 64 <= ArchWidth arch => Opcode arch S
+
+  -- RV32M
+  Mul    :: Opcode arch R
+  Mulh   :: Opcode arch R
+  Mulhsu :: Opcode arch R
+  Mulhu  :: Opcode arch R
+  Div    :: Opcode arch R
+  Divu   :: Opcode arch R
+  Rem    :: Opcode arch R
+  Remu   :: Opcode arch R
+
+  -- RV64M
+  Mulw   :: 64 <= ArchWidth arch => Opcode arch R
+  Divw   :: 64 <= ArchWidth arch => Opcode arch R
+  Divuw  :: 64 <= ArchWidth arch => Opcode arch R
+  Remw   :: 64 <= ArchWidth arch => Opcode arch R
+  Remuw  :: 64 <= ArchWidth arch => Opcode arch R
+
+-- Instances
+$(return [])
+deriving instance Show (Opcode arch fmt)
+instance ShowF (Opcode arch)
+deriving instance Eq (Opcode arch fmt)
+instance EqF (Opcode arch) where
+  eqF = (==)
+instance TestEquality (Opcode arch) where
+  testEquality = $(structuralTypeEquality [t|Opcode|] [])
+instance OrdF (Opcode arch) where
+  compareF = $(structuralTypeOrd [t|Opcode|] [])
+
+----------------------------------------
+-- Instructions
+
+-- | RISC-V Instruction, parameterized by base architecture and format.
+data Instruction (arch :: BaseArch) (fmt :: Format) =
+  Inst { instOpcode   :: Opcode arch fmt
+       , instOperands :: Operands fmt
+       }
+
+-- Instances
+$(return [])
+instance Show (Instruction arch fmt) where
+  show (Inst opcode operands) = show opcode ++ " " ++ show operands
+instance ShowF (Instruction arch)

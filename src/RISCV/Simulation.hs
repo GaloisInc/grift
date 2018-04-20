@@ -37,7 +37,6 @@ import Prelude hiding ((!!))
 
 import RISCV.Decode
 import RISCV.Extensions
-import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types

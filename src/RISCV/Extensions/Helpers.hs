@@ -64,7 +64,7 @@ type ArithOp arch fmt w = Expr arch fmt (ArchWidth arch)
                        -> FormulaBuilder arch fmt (Expr arch fmt w)
 
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
-rOp :: KnownArch arch => ArithOp arch 'R (ArchWidth arch) -> FormulaBuilder arch 'R ()
+rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder arch R ()
 rOp op = do
   rd :< rs1 :< rs2 :< Nil <- operandEs
 
@@ -77,7 +77,7 @@ rOp op = do
 
 -- | Like 'rOp', but truncate the result to 32 bits before storing the result in the
 -- destination register.
-rOp32 :: KnownArch arch => ArithOp arch 'R w -> FormulaBuilder arch 'R ()
+rOp32 :: KnownArch arch => ArithOp arch R w -> FormulaBuilder arch R ()
 rOp32 op = do
   rd :< rs1 :< rs2 :< Nil  <- operandEs
 
@@ -92,7 +92,7 @@ rOp32 op = do
   incrPC
 
 -- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
-iOp :: KnownArch arch => ArithOp arch 'I (ArchWidth arch) -> FormulaBuilder arch 'I ()
+iOp :: KnownArch arch => ArithOp arch I (ArchWidth arch) -> FormulaBuilder arch I ()
 iOp op = do
   rd :< rs1 :< imm12 :< Nil <- operandEs
 
@@ -253,7 +253,7 @@ type CompOp arch fmt = Expr arch fmt (ArchWidth arch)
                     -> Expr arch fmt (ArchWidth arch)
                     -> FormulaBuilder arch fmt (Expr arch fmt 1)
 
-b :: KnownArch arch => CompOp arch 'B -> FormulaBuilder arch 'B ()
+b :: KnownArch arch => CompOp arch B -> FormulaBuilder arch B ()
 b cmp = do
   rs1 :< rs2 :< offset' :< Nil <- operandEs
   -- Need to left shift the offset by 1

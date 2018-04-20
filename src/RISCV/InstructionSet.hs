@@ -29,7 +29,7 @@ module RISCV.InstructionSet
     InstructionSet(..)
   , instructionSet
   , EncodeMap, DecodeMap, SemanticsMap
-    -- * Semantics <-> Opcode <-> OpBits
+    -- * Using instruction sets
   , opcodeFromOpBits
   , opBitsFromOpcode
   , semanticsFromOpcode
@@ -39,7 +39,6 @@ import Data.Parameterized
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized.Map (MapF)
 
-import RISCV.Instruction
 import RISCV.Semantics
 import RISCV.Types
 

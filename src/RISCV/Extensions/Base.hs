@@ -32,7 +32,6 @@ import Data.Parameterized
 import Data.Parameterized.List
 
 import RISCV.Extensions.Helpers
-import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types

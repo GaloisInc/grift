@@ -28,7 +28,6 @@ import Data.BitVector.Sized
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Layouts
 import RISCV.Types
@@ -44,9 +43,6 @@ decode iset bv = case decodeFormat bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
     Left Illegal -> Some $ Inst Illegal (decodeOperands XRepr bv)
 
--- TODO: Decide whether we want to abstract this guy. I think we probably can compute
--- it from the encoding map, but it'll be tricky to do that unless I combine the
--- srai/srli and ecall/ebreak into single instructions.
 -- | First, get the format
 decodeFormat :: BitVector 32 -> Some FormatRepr
 decodeFormat bv = case (bv ^. opcodeLens) of
@@ -69,7 +65,7 @@ decodeFormat bv = case (bv ^. opcodeLens) of
 
   0b1101111 -> Some JRepr
 
-  _ ->              Some XRepr
+  _ ->         Some XRepr
 
 -- | From the format, get the operands
 decodeOperands :: FormatRepr fmt -> BitVector 32 -> Operands fmt

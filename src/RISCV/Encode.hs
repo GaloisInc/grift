@@ -26,7 +26,6 @@ import Data.BitVector.Sized
 import Data.Parameterized.List
 
 import RISCV.Types
-import RISCV.Instruction
 import RISCV.InstructionSet
 import RISCV.Layouts
 
