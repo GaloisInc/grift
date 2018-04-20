@@ -28,7 +28,7 @@ import Data.Parameterized.List
 import RISCV.Types
 import RISCV.Instruction
 import RISCV.InstructionSet
-import RISCV.Instruction.Layouts
+import RISCV.Layouts
 
 ----------------------------------------
 -- Encoding

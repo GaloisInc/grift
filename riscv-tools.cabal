@@ -23,7 +23,7 @@ library
                      , RISCV.Extensions.M
                      , RISCV.Instruction
                      , RISCV.InstructionSet
-                     , RISCV.Instruction.Layouts
+                     , RISCV.Layouts
                      , RISCV.Semantics
                      , RISCV.Simulation
                      , RISCV.Simulation.STMachine
@@ -54,7 +54,7 @@ executable riscv-sim
                      , RISCV.Extensions.M
                      , RISCV.Instruction
                      , RISCV.InstructionSet
-                     , RISCV.Instruction.Layouts
+                     , RISCV.Layouts
                      , RISCV.Semantics
                      , RISCV.Simulation
                      , RISCV.Simulation.STMachine

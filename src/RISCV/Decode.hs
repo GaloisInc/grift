@@ -30,7 +30,7 @@ import Data.Parameterized.List
 
 import RISCV.Instruction
 import RISCV.InstructionSet
-import RISCV.Instruction.Layouts
+import RISCV.Layouts
 import RISCV.Types
 
 -- | Decode an instruction word. Since we won't know the format ahead of time, we
