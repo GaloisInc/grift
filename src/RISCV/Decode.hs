@@ -85,13 +85,13 @@ decodeOperands repr bv = case repr of
 -- | From the format, get the opbits
 decodeOpBits :: FormatRepr fmt -> BitVector 32 -> OpBits fmt
 decodeOpBits repr bv = case repr of
-  RRepr -> ROpBits (bv ^. opcodeLens) (bv ^. funct3Lens) (bv ^. funct7Lens)
-  IRepr -> IOpBits (bv ^. opcodeLens) (bv ^. funct3Lens)
-  SRepr -> SOpBits (bv ^. opcodeLens) (bv ^. funct3Lens)
-  BRepr -> BOpBits (bv ^. opcodeLens) (bv ^. funct3Lens)
-  URepr -> UOpBits (bv ^. opcodeLens)
-  JRepr -> JOpBits (bv ^. opcodeLens)
-  XRepr -> XOpBits
+  RRepr -> OpBits RRepr (bv ^. opcodeLens :< bv ^. funct3Lens :< bv ^. funct7Lens :< Nil)
+  IRepr -> OpBits IRepr (bv ^. opcodeLens :< bv ^. funct3Lens :< Nil)
+  SRepr -> OpBits SRepr (bv ^. opcodeLens :< bv ^. funct3Lens :< Nil)
+  BRepr -> OpBits BRepr (bv ^. opcodeLens :< bv ^. funct3Lens :< Nil)
+  URepr -> OpBits URepr (bv ^. opcodeLens :< Nil)
+  JRepr -> OpBits JRepr (bv ^. opcodeLens :< Nil)
+  XRepr -> OpBits XRepr Nil
 
 decodeOpcode :: InstructionSet arch exts
              -> FormatRepr fmt

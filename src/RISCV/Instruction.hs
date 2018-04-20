@@ -33,7 +33,6 @@ module RISCV.Instruction
     Instruction(..)
     -- * Opcodes
   , Opcode(..)
-  , OpBits(..)
   ) where
 
 import Data.BitVector.Sized
@@ -169,33 +168,6 @@ instance TestEquality (Opcode arch) where
   testEquality = $(structuralTypeEquality [t|Opcode|] [])
 instance OrdF (Opcode arch) where
   compareF = $(structuralTypeOrd [t|Opcode|] [])
-
-----------------------------------------
--- OpBits
-
--- | Bits fixed by an opcode.
--- Holds all the bits that are fixed by a particular opcode. Each format maps to a
--- potentially different set of bits.
-data OpBits :: Format -> * where
-  ROpBits :: BitVector 7 -> BitVector 3 -> BitVector 7 -> OpBits R
-  IOpBits :: BitVector 7 -> BitVector 3                -> OpBits I
-  SOpBits :: BitVector 7 -> BitVector 3                -> OpBits S
-  BOpBits :: BitVector 7 -> BitVector 3                -> OpBits B
-  UOpBits :: BitVector 7                               -> OpBits U
-  JOpBits :: BitVector 7                               -> OpBits J
-  XOpBits ::                                              OpBits X
-
--- Instances
-$(return [])
-deriving instance Show (OpBits k)
-instance ShowF OpBits
-deriving instance Eq (OpBits k)
-instance EqF OpBits where
-  eqF = (==)
-instance TestEquality OpBits where
-  testEquality = $(structuralTypeEquality [t|OpBits|] [])
-instance OrdF OpBits where
-  compareF = $(structuralTypeOrd [t|OpBits|] [])
 
 ----------------------------------------
 -- Instructions

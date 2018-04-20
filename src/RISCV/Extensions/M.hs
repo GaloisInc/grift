@@ -42,23 +42,23 @@ m64 = m32 <> instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch
 mEncode = Map.fromList
-  [ Pair Mul    (ROpBits 0b0110011 0b000 0b0000001)
-  , Pair Mulh   (ROpBits 0b0110011 0b001 0b0000001)
-  , Pair Mulhsu (ROpBits 0b0110011 0b010 0b0000001)
-  , Pair Mulhu  (ROpBits 0b0110011 0b011 0b0000001)
-  , Pair Div    (ROpBits 0b0110011 0b100 0b0000001)
-  , Pair Divu   (ROpBits 0b0110011 0b101 0b0000001)
-  , Pair Rem    (ROpBits 0b0110011 0b110 0b0000001)
-  , Pair Remu   (ROpBits 0b0110011 0b111 0b0000001)
+  [ Pair Mul    (OpBits RRepr (0b0110011 :< 0b000 :< 0b0000001 :< Nil))
+  , Pair Mulh   (OpBits RRepr (0b0110011 :< 0b001 :< 0b0000001 :< Nil))
+  , Pair Mulhsu (OpBits RRepr (0b0110011 :< 0b010 :< 0b0000001 :< Nil))
+  , Pair Mulhu  (OpBits RRepr (0b0110011 :< 0b011 :< 0b0000001 :< Nil))
+  , Pair Div    (OpBits RRepr (0b0110011 :< 0b100 :< 0b0000001 :< Nil))
+  , Pair Divu   (OpBits RRepr (0b0110011 :< 0b101 :< 0b0000001 :< Nil))
+  , Pair Rem    (OpBits RRepr (0b0110011 :< 0b110 :< 0b0000001 :< Nil))
+  , Pair Remu   (OpBits RRepr (0b0110011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
 m64Encode :: 64 <= ArchWidth arch => EncodeMap arch
 m64Encode = Map.fromList
-  [ Pair Mulw  (ROpBits 0b0111011 0b000 0b0000001)
-  , Pair Divw  (ROpBits 0b0111011 0b100 0b0000001)
-  , Pair Divuw (ROpBits 0b0111011 0b101 0b0000001)
-  , Pair Remw  (ROpBits 0b0111011 0b110 0b0000001)
-  , Pair Remuw (ROpBits 0b0111011 0b111 0b0000001)
+  [ Pair Mulw  (OpBits RRepr (0b0111011 :< 0b000 :< 0b0000001 :< Nil))
+  , Pair Divw  (OpBits RRepr (0b0111011 :< 0b100 :< 0b0000001 :< Nil))
+  , Pair Divuw (OpBits RRepr (0b0111011 :< 0b101 :< 0b0000001 :< Nil))
+  , Pair Remw  (OpBits RRepr (0b0111011 :< 0b110 :< 0b0000001 :< Nil))
+  , Pair Remuw (OpBits RRepr (0b0111011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
 mSemantics :: KnownArch arch => SemanticsMap arch
