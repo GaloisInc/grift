@@ -16,13 +16,11 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     RISCV.Decode
-                     , RISCV.Encode
                      , RISCV.Extensions
                      , RISCV.Extensions.Base
                      , RISCV.Extensions.Helpers
                      , RISCV.Extensions.M
                      , RISCV.InstructionSet
-                     , RISCV.Layouts
                      , RISCV.Semantics
                      , RISCV.Simulation
                      , RISCV.Simulation.STMachine
@@ -46,13 +44,11 @@ executable riscv-sim
   hs-source-dirs:      src
   main-is:             MainSimulator.hs
   other-modules:       RISCV.Decode
-                     , RISCV.Encode
                      , RISCV.Extensions
                      , RISCV.Extensions.Base
                      , RISCV.Extensions.Helpers
                      , RISCV.Extensions.M
                      , RISCV.InstructionSet
-                     , RISCV.Layouts
                      , RISCV.Semantics
                      , RISCV.Simulation
                      , RISCV.Simulation.STMachine
