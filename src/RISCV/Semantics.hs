@@ -99,8 +99,7 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing state
   PCRead  :: Expr arch fmt (ArchWidth arch)
   RegRead :: !(Expr arch fmt 5) -> Expr arch fmt (ArchWidth arch)
-  MemRead :: !(Expr arch fmt (ArchWidth arch))
-          -> Expr arch fmt 8
+  MemRead :: !(Expr arch fmt (ArchWidth arch)) -> Expr arch fmt 8
 
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
@@ -117,9 +116,7 @@ data Exception = EnvironmentCall
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
   AssignReg :: !(Expr arch fmt 5) -> !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
-  AssignMem :: !(Expr arch fmt (ArchWidth arch))
-            -> !(Expr arch fmt 8)
-            -> Stmt arch fmt
+  AssignMem :: !(Expr arch fmt (ArchWidth arch)) -> !(Expr arch fmt 8) -> Stmt arch fmt
   AssignPC  :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
   RaiseException :: !(Expr arch fmt 1) -> !Exception -> Stmt arch fmt
 
