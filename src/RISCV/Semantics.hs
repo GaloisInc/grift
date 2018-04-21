@@ -116,12 +116,12 @@ data Exception = EnvironmentCall
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
-  AssignReg :: Expr arch fmt 5 -> Expr arch fmt (ArchWidth arch) -> Stmt arch fmt
-  AssignMem :: Expr arch fmt (ArchWidth arch)
-            -> Expr arch fmt 8
+  AssignReg :: !(Expr arch fmt 5) -> !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
+  AssignMem :: !(Expr arch fmt (ArchWidth arch))
+            -> !(Expr arch fmt 8)
             -> Stmt arch fmt
-  AssignPC  :: Expr arch fmt (ArchWidth arch) -> Stmt arch fmt
-  RaiseException :: Expr arch fmt 1 -> Exception -> Stmt arch fmt
+  AssignPC  :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
+  RaiseException :: !(Expr arch fmt 1) -> !Exception -> Stmt arch fmt
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- operands (potentially zero), which represent the input to the formula. These are
@@ -135,9 +135,9 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
 -- another statement reads the pc, then the latter should use the *original* value of
 -- the PC rather than the new one, regardless of the orders of the statements.
 data Formula arch (fmt :: Format)
-  = Formula { _fComments :: Seq String
+  = Formula { _fComments :: !(Seq String)
               -- ^ multiline comment
-            , _fDefs    :: Seq (Stmt arch fmt)
+            , _fDefs    :: !(Seq (Stmt arch fmt))
               -- ^ sequence of statements defining the formula
             }
 
@@ -353,7 +353,7 @@ pcRead = return PCRead
 regRead' :: Expr arch fmt 5 -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
 regRead' = return . RegRead
 
--- | Read a value from a register. Note: register x0 is hardwired to 0.
+-- | Read a value from a register. Register x0 is hardwired to 0.
 regRead :: KnownArch arch
         => Expr arch fmt 5
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
