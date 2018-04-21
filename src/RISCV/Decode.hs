@@ -1,12 +1,7 @@
-{-# LANGUAGE BinaryLiterals #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE BinaryLiterals      #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
 
 {-|
 Module      : RISCV.Decode
@@ -27,7 +22,7 @@ module RISCV.Decode
   , encode
   ) where
 
-import Control.Lens hiding ( (:<), Index, imap, op, iset )
+import Control.Lens hiding ( (:<), Index, op, iset )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
@@ -36,8 +31,11 @@ import Data.Parameterized.List
 import RISCV.InstructionSet
 import RISCV.Types
 
+type OpBitsLayout fmt = List (BitLayout 32) (OpBitsTypes fmt)
+type OperandsLayout fmt = List (BitLayout 32) (OperandTypes fmt)
+
 -- | Given a format, get the 'BitLayout's for the 'OpBits' of that format.
-opBitsLayouts :: FormatRepr fmt -> List (BitLayout 32) (OpBitsTypes fmt)
+opBitsLayouts :: FormatRepr fmt -> OpBitsLayout fmt
 opBitsLayouts repr = case repr of
   RRepr -> opcode :< funct3 :< funct7 :< Nil
   IRepr -> opcode :< funct3 :< Nil
@@ -52,7 +50,7 @@ opBitsLayouts repr = case repr of
         funct7 = singleChunk 25
 
 -- | Given a format, get the 'BitLayout's for the 'Operands' of that format.
-operandsLayouts :: FormatRepr fmt -> List (BitLayout 32) (OperandTypes fmt)
+operandsLayouts :: FormatRepr fmt -> OperandsLayout fmt
 operandsLayouts repr = case repr of
   RRepr -> rdLayout  :< rs1Layout :< rs2Layout :< Nil
   IRepr -> rdLayout  :< rs1Layout :< imm12ILayout :< Nil
@@ -83,7 +81,7 @@ opcode = chunk 0 <: empty
 
 -- | Get the format of an instruction word.
 getFormat :: BitVector 32 -> Some FormatRepr
-getFormat bv = case (bv ^. layoutLens opcode) of
+getFormat bv = case bv ^. layoutLens opcode of
   0b0110011 -> Some RRepr
   0b0111011 -> Some RRepr
 

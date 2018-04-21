@@ -1,11 +1,8 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE BinaryLiterals #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE BinaryLiterals   #-}
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE TypeOperators    #-}
 
 {-|
 Module      : RISCV.Extensions.Base
@@ -108,7 +105,7 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: forall arch . KnownArch arch => SemanticsMap arch
+baseSemantics :: KnownArch arch => SemanticsMap arch
 baseSemantics = Map.fromList
   [ Pair Add $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."

@@ -1,16 +1,10 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeOperators              #-}
 
 {-|
 Module      : RISCV.Semantics
@@ -99,17 +93,17 @@ import RISCV.Types
 -- | Expressions for computations over the RISC-V machine state.
 data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing the instruction
-  OperandExpr :: OperandID fmt w -> Expr arch fmt w
+  OperandExpr :: !(OperandID fmt w) -> Expr arch fmt w
   InstBytes :: Expr arch fmt (ArchWidth arch)
 
   -- Accessing state
   PCRead  :: Expr arch fmt (ArchWidth arch)
-  RegRead :: Expr arch fmt 5 -> Expr arch fmt (ArchWidth arch)
-  MemRead :: Expr arch fmt (ArchWidth arch)
+  RegRead :: !(Expr arch fmt 5) -> Expr arch fmt (ArchWidth arch)
+  MemRead :: !(Expr arch fmt (ArchWidth arch))
           -> Expr arch fmt 8
 
   -- BVApp with Expr subexpressions
-  AppExpr :: BVApp (Expr arch fmt) w -> Expr arch fmt w
+  AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
 -- | Runtime exception.
 data Exception = EnvironmentCall
@@ -329,7 +323,8 @@ iteE :: Expr arch fmt 1
 iteE t e1 e2 = return $ AppExpr (IteApp t e1 e2)
 
 -- | Get the operands for a particular known format
-operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt) => FormulaBuilder arch fmt (List (Expr arch fmt) (OperandTypes fmt))
+operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
+          => FormulaBuilder arch fmt (List (Expr arch fmt) (OperandTypes fmt))
 operandEs = case knownRepr :: FormatRepr fmt of
   RRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
   IRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
@@ -355,9 +350,17 @@ instBytes = return InstBytes
 pcRead :: FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
 pcRead = return PCRead
 
--- | Read a register.
-regRead :: Expr arch fmt 5 -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-regRead = return . RegRead
+regRead' :: Expr arch fmt 5 -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+regRead' = return . RegRead
+
+-- | Read a value from a register. Note: register x0 is hardwired to 0.
+regRead :: KnownArch arch
+        => Expr arch fmt 5
+        -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+regRead ridE = do
+  isR0 <- ridE `eqE` litBV 0
+  rVal <- regRead' ridE
+  iteE isR0 (litBV 0) rVal
 
 -- | Read a byte from memory.
 memRead :: Expr arch fmt (ArchWidth arch)

@@ -4,6 +4,7 @@ packages:
 - .
 - submodules/bv-sized
 - submodules/elf-edit
+- submodules/parameterized-utils
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
@@ -12,5 +13,4 @@ extra-deps:
 - containers-0.5.11.0
 - lens-4.16
 - mtl-2.2.2
-- parameterized-utils-1.0.0
 - QuickCheck-2.11.3

@@ -429,9 +429,7 @@ instance OrdF (Opcode arch) where
 
 -- | RISC-V Instruction, parameterized by base architecture and format.
 data Instruction (arch :: BaseArch) (fmt :: Format) =
-  Inst { instOpcode   :: Opcode arch fmt
-       , instOperands :: Operands fmt
-       }
+  Inst (Opcode arch fmt) (Operands fmt)
 
 -- Instances
 $(return [])

@@ -1,12 +1,5 @@
-{-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PartialTypeSignatures #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-|
@@ -47,10 +40,30 @@ main = do
     exitFailure
 
   let [stepStr, fileName] = args
-  stepsToRun <- return $ (read stepStr :: Int)
+      stepsToRun = read stepStr :: Int
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
+    Elf32Res _err e -> do
+      let byteStrings = elfBytes e
+      m :: IOMachine RV32I SimExts <-
+        mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      runIOMachine stepsToRun m
+
+      err       <- readIORef (ioException m)
+      stepsRan  <- readIORef (ioSteps m)
+      pc        <- readIORef (ioPC m)
+      registers <- freezeRegisters m
+
+      case err of
+        Nothing -> return ()
+        Just err' -> putStrLn $ "Encountered exception: " ++ show err'
+      putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
+      putStrLn $ "Final PC: " ++ show pc
+      putStrLn "Final register state:"
+      forM_ (assocs registers) $ \(r, v) ->
+        putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+
     Elf64Res _err e -> do
       let byteStrings = elfBytes e
       m :: IOMachine RV64I SimExts <-
@@ -58,17 +71,17 @@ main = do
       runIOMachine stepsToRun m
 
       err       <- readIORef (ioException m)
-      steps     <- readIORef (ioSteps m)
+      stepsRan  <- readIORef (ioSteps m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
 
       case err of
         Nothing -> return ()
         Just err' -> putStrLn $ "Encountered exception: " ++ show err'
-      putStrLn $ "Executed " ++ show steps ++ " instructions."
+      putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
       putStrLn $ "Final PC: " ++ show pc
-      putStrLn $ "Final register state:"
-      forM_ (assocs registers) $ \(r, v) -> do
+      putStrLn "Final register state:"
+      forM_ (assocs registers) $ \(r, v) ->
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
 

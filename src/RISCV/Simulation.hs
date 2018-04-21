@@ -1,11 +1,8 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE Rank2Types             #-}
+{-# LANGUAGE TypeFamilies           #-}
 
 {-|
 Module      : RISCV.Simulation
@@ -45,8 +42,8 @@ import RISCV.Types
 class (Monad m) => RVState m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
   -- | Get the current PC.
   getPC  :: m (BitVector (ArchWidth arch))
-  -- | Get the value of a register. Note that for all valid implementations, we
-  -- require that getReg 0 = return 0.
+  -- | Get the value of a register. This function shouldn't ever be called with an
+  -- argument of 0, so there is no need to hardwire it to 0 in an implementation.
   getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
   -- | Read a single byte from memory.
   getMem :: BitVector (ArchWidth arch) -> m (BitVector 8)
@@ -130,23 +127,20 @@ stepRV iset = do
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-  Some inst <- return $ decode iset instBV
-
-  let operands = instOperands inst
-      formula  = semanticsFromOpcode iset (instOpcode inst)
+  Some (Inst opcode operands) <- return $ decode iset instBV
 
   -- Execute
-  execFormula operands 4 formula
+  execFormula operands 4 (semanticsFromOpcode iset opcode)
 
 -- | Run for a given number of steps.
 runRV :: forall m arch exts
          . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
       => Int
       -> m ()
-runRV n = runRV' knownISet n
+runRV = runRV' knownISet
   where runRV' _ i | i <= 0 = return ()
         runRV' iset i = do
           e <- exceptionStatus
           case e of
-            Just _' -> return ()
+            Just _ -> return ()
             Nothing -> stepRV iset >> runRV' iset (i-1)

@@ -95,7 +95,7 @@ instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef
     return pcVal
-  getReg 0 = return 0 -- rid 0 is hardwired to the constant 0.
+  -- getReg 0 = return 0 -- rid 0 is hardwired to the constant 0.
   getReg rid = IOMachineM $ do
     regArray <- ioRegisters <$> ask
     regVal   <- lift $ readArray regArray rid

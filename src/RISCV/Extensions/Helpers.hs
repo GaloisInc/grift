@@ -1,12 +1,9 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE BinaryLiterals #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 {-|
 Module      : RISCV.Extensions.Helpers
@@ -43,9 +40,7 @@ getArchWidth :: KnownArch arch => FormulaBuilder arch fmt (NatRepr (ArchWidth ar
 getArchWidth = return knownNat
 
 getArchWidthBV :: (KnownArch arch, KnownNat w) => FormulaBuilder arch fmt (Expr arch fmt w)
-getArchWidthBV = do
-  aw <- getArchWidth
-  return $ litBV $ bitVector $ fromIntegral $ natValue aw
+getArchWidthBV = litBV . bitVector . fromIntegral . natValue <$> getArchWidth
 
 -- | Increment the PC
 incrPC :: KnownArch arch => FormulaBuilder arch fmt ()
