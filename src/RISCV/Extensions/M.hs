@@ -120,13 +120,13 @@ mSemantics = Map.fromList
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp $ \x y -> return (divsE x y)
+      rOp $ \x y -> return (quotsE x y)
 
   , Pair Divu $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp $ \x y -> return (divuE x y)
+      rOp $ \x y -> return (quotuE x y)
 
   , Pair Rem $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
@@ -150,22 +150,22 @@ m64Semantics = Map.fromList
 
       rOp32 $ \x y -> return (muluE x y)
   , Pair Divw $ getFormula $ do
-      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Divides x[rs1] by x[rs2] as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (divsE x y)
+      rOp32 $ \x y -> return (quotsE x y)
   , Pair Divuw $ getFormula $ do
-      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Divides x[rs1] by x[rs2] as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (divuE x y)
+      rOp32 $ \x y -> return (quotuE x y)
   , Pair Remw $ getFormula $ do
-      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
       rOp32 $ \x y -> return (remsE x y)
   , Pair Remuw $ getFormula $ do
-      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
       rOp32 $ \x y -> return (remuE x y)
