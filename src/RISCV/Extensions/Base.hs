@@ -1,6 +1,7 @@
 {-# LANGUAGE BinaryLiterals   #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
@@ -23,6 +24,7 @@ module RISCV.Extensions.Base
   where
 
 import Data.BitVector.Sized
+import Data.BitVector.Sized.App
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
@@ -105,80 +107,69 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: KnownArch arch => SemanticsMap arch
+baseSemantics :: forall arch . KnownArch arch => SemanticsMap arch
 baseSemantics = Map.fromList
   [ Pair Add $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp addE
+      rOp $ \x y -> return (addE x y)
   , Pair Sub $ getFormula $ do
       comment "Subtracts register x[rs2] from register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp subE
+      rOp $ \x y -> return (subE x y)
   , Pair Sll $ getFormula $ do
       comment "Shifts register x[rs1] left by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        archWidth <- getArchWidth
-        let mask = litBV (bitVector (natValue archWidth - 1))
-
-        shifter <- e2 `andE` mask
-        shifted <- e1 `sllE` shifter
-
-        return shifted
+        let archWidth = knownNat :: NatRepr (ArchWidth arch)
+        return $ e1 `sllE` (e2 `andE` litBV (bitVector (fromIntegral (natValue archWidth) - 1)))
   , Pair Slt $ getFormula $ do
       comment "Compares x[rs1] and x[rs2] as two's complement numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
-      rOp (\e1 e2 -> ltsE e1 e2 >>= zextE)
+      rOp $ \e1 e2 -> return (zextE (ltsE e1 e2))
   , Pair Sltu $ getFormula $ do
       comment "Compares x[rs1] and x[rs2] as unsigned numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
-      rOp (\e1 e2 -> ltuE e1 e2 >>= zextE)
+      rOp $ \e1 e2 -> return (zextE (ltuE e1 e2))
   , Pair Xor $ getFormula $ do
       comment "Computes the bitwise exclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
-      rOp xorE
+      rOp $ \x y -> return (xorE x y)
   , Pair Srl $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        archWidth <- getArchWidth
-        let mask = litBV (bitVector (natValue archWidth - 1))
+        let archWidth = knownNat :: NatRepr (ArchWidth arch)
+            mask = litBV (bitVector (natValue archWidth - 1))
 
-        shifter <- e2 `andE` mask
-        shifted <- e1 `srlE` shifter
-
-        return shifted
+        return $ e1 `srlE` (e2 `andE` mask)
   , Pair Sra $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        archWidth <- getArchWidth
+        let archWidth = knownNat :: NatRepr (ArchWidth arch)
         let mask = litBV (bitVector (natValue archWidth - 1))
 
-        shifter <- e2 `andE` mask
-        shifted <- e1 `sraE` shifter
-
-        return shifted
+        return $ e1 `sraE` (e2 `andE` mask)
   , Pair Or $ getFormula $ do
       comment "Computes the bitwise inclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
-      rOp orE
+      rOp $ \x y -> return (orE x y)
   , Pair And $ getFormula $ do
       comment "Computes the bitwise AND of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
-      rOp andE
+      rOp $ \x y -> return (andE x y)
 
   -- I type
   , Pair Jalr $ getFormula $ do
@@ -187,18 +178,11 @@ baseSemantics = Map.fromList
       comment "Writes the previous pc+4 to x[rd]."
 
       rd :< rs1 :< offset :< Nil <- operandEs
-
       pc <- pcRead
-      t  <- pc `addE` litBV 4
+      x_rs1 <- regRead rs1
 
-      x_rs1       <- regRead rs1
-      sext_offset <- sextE offset
-      new_pc'     <- x_rs1 `addE` sext_offset
-      mask        <- notE (litBV 1)
-      new_pc      <- new_pc' `andE` mask
-
-      assignPC new_pc
-      assignReg rd t
+      assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
+      assignReg rd (pc `addE` litBV 4)
   , Pair Lb $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
@@ -228,32 +212,32 @@ baseSemantics = Map.fromList
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      iOp addE
+      iOp $ \x y -> return (addE x y)
   , Pair Slti $ getFormula $ do
       comment "Compares x[rs1] and the sign-extended immediate as two's not numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
-      iOp (\e1 e2 -> ltsE e1 e2 >>= zextE)
+      iOp $ \e1 e2 -> return (zextE (ltsE e1 e2))
   , Pair Sltiu $ getFormula $ do
       comment "Compares x[rs1] and the sign-extended immediate as unsigned numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
-      iOp (\e1 e2 -> ltuE e1 e2 >>= zextE)
+      iOp $ \e1 e2 -> return (zextE (ltuE e1 e2))
   , Pair Xori $ getFormula $ do
       comment "Computes the bitwise exclusive-OR of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
-      iOp xorE
+      iOp $ \x y -> return (xorE x y)
   , Pair Ori $ getFormula $ do
       comment "Computes the bitwise inclusive-OR of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
-      iOp orE
+      iOp $ \x y -> return (orE x y)
   , Pair Andi $ getFormula $ do
       comment "Computes the bitwise AND of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
-      iOp andE
+      iOp $ \x y -> return (andE x y)
   , Pair Slli $ getFormula $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
@@ -261,25 +245,19 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
-      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
 
       -- Check that the control bits are all zero.
-      ctrlOK <- ctrl `eqE` litBV 0b00000
-      ctrlIllegal <- notE ctrlOK
-      raiseException ctrlIllegal IllegalInstruction
+      raiseException (notE (ctrl `eqE` litBV 0b00000)) IllegalInstruction
 
       -- Check that the shift amount is within the architecture width.
-      archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
-      shamtOK <- shamt `ltuE` shiftBound
-      shamtIllegal <- notE shamtOK
-      raiseException shamtIllegal IllegalInstruction
+      let archWidth  = knownNat :: NatRepr (ArchWidth arch)
+          shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
       -- Perform the left logical shift.
-      zext_shamt <- zextE shamt
-      result <- x_rs1 `sllE` zext_shamt
-      assignReg rd result
+      assignReg rd $ x_rs1 `sllE` zextE shamt
       incrPC
 
   , Pair Sri $ getFormula $ do
@@ -290,31 +268,26 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
-      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
 
       -- The control bits determine if the shift is arithmetic or logical.
-      lShift <- ctrl `eqE` litBV 0b00000
-      aShift <- ctrl `eqE` litBV 0b01000
+      let lShift = ctrl `eqE` litBV 0b00000
+          aShift = ctrl `eqE` litBV 0b01000
 
       -- Check that the control bits are valid.
-      ctrlOK <- lShift `orE` aShift
-      ctrlIllegal <- notE ctrlOK
-      raiseException ctrlIllegal IllegalInstruction
+      raiseException (notE (lShift `orE` aShift)) IllegalInstruction
 
       -- Check that the shift amount is within the architecture width.
-      archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
-      shamtOK <- shamt `ltuE` shiftBound
-      shamtIllegal <- notE shamtOK
-      raiseException shamtIllegal IllegalInstruction
+      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+          shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
       -- Perform the right logical/arithmetic shift.
-      zext_shamt <- zextE shamt
-      result_l <- x_rs1 `srlE` zext_shamt
-      result_r <- x_rs1 `sraE` zext_shamt
-      result <- iteE lShift result_l result_r
-      assignReg rd result
+      let zext_shamt = zextE shamt
+          result_l   = x_rs1 `srlE` zext_shamt
+          result_r   = x_rs1 `sraE` zext_shamt
+      assignReg rd $ iteE lShift result_l result_r
       incrPC
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
@@ -358,7 +331,7 @@ baseSemantics = Map.fromList
   , Pair Bne $ getFormula $ do
       comment "If register x[rs1] does not equal register x[rs2], add sext(offset) to the pc."
 
-      b (\e1 e2 -> eqE e1 e2 >>= notE)
+      b $ \e1 e2 -> notE (eqE e1 e2)
   , Pair Blt $ getFormula $ do
       comment "If register x[rs1] is less than register x[rs2], add sext(offset) to the pc."
 
@@ -366,7 +339,7 @@ baseSemantics = Map.fromList
   , Pair Bge $ getFormula $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2], add sext(offset) to the pc."
 
-      b (\e1 e2 -> ltsE e1 e2 >>= notE)
+      b $ \e1 e2 -> notE (ltsE e1 e2)
   , Pair Bltu $ getFormula $ do
       comment "If register x[rs1] is less than register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
@@ -374,7 +347,7 @@ baseSemantics = Map.fromList
   , Pair Bgeu $ getFormula $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
-      b (\e1 e2 -> ltuE e1 e2 >>= notE)
+      b $ \e1 e2 -> notE (ltuE e1 e2)
 
   -- U type
   , Pair Lui $ getFormula $ do
@@ -383,23 +356,16 @@ baseSemantics = Map.fromList
 
       rd :< imm20 :< Nil <- operandEs
 
-      sext_imm20 <- sextE imm20
-      result <- sext_imm20 `sllE` litBV 12
-
-      assignReg rd result
+      assignReg rd $ sextE imm20 `sllE` litBV 12
       incrPC
   , Pair Auipc $ getFormula $ do
       comment "Adds the sign-extended 20-bit immediate, left-shifted by 12 bits, to the pc."
       comment "Writes the result to x[rd]."
 
       rd :< imm20 :< Nil <- operandEs
-
-      sext_imm20 <- sextE imm20
-      shifted <- sext_imm20 `sllE` litBV 12
       pc <- pcRead
-      result <- pc `addE` shifted
 
-      assignReg rd result
+      assignReg rd $ pc `addE` sextE imm20 `sllE` litBV 12
       incrPC
 
   -- J type
@@ -407,18 +373,12 @@ baseSemantics = Map.fromList
       comment "Writes the address of the next instruction to x[rd]."
       comment "Then sets the pc to the current pc plus the sign-extended offset."
 
-      rd :< imm20' :< Nil <- operandEs
-      ib' <- instBytes
-      ib <- zextE ib'
-      imm21' <- imm20' `sllE` litBV 1
-      imm21 <- sextE imm21'
-
+      rd :< imm20 :< Nil <- operandEs
+      ib <- instBytes
       pc <- pcRead
-      incr_pc <- pc `addE` ib
-      pc_offset <- pc `addE` imm21
 
-      assignReg rd incr_pc
-      assignPC pc_offset
+      assignReg rd $ pc `addE` zextE ib
+      assignPC $ pc `addE` sextE (imm20 `sllE` litBV 1)
 
   -- X type
   , Pair Illegal $ getFormula $ do
@@ -449,60 +409,38 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> do
-        a  <- e1 `addE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
-
-        res <- sextE a'
-        return res
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `addE` e2))
 
   , Pair Subw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> do
-        a  <- e1 `subE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `subE` e2))
 
-        res <- sextE a'
-        return res
   -- TODO: Correct this
   , Pair Sllw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> do
-        a  <- e1 `sllE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `sllE` e2))
 
-        res <- sextE a'
-        return res
   -- TODO: Correct this
   , Pair Srlw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> do
-        a  <- e1 `srlE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `srlE` e2))
 
-        res <- sextE a'
-        return res
   -- TODO: Correct this
   , Pair Sraw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> do
-        a  <- e1 `sraE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
-
-        res <- sextE a'
-        return res
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `sraE` e2))
   , Pair Lwu $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
@@ -518,12 +456,8 @@ base64Semantics = Map.fromList
       comment "Writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      iOp $ \e1 e2 -> do
-        a  <- e1 `addE` e2
-        a' <- extractEWithRepr (knownNat :: NatRepr 32) 0 a
+      iOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `addE` e2))
 
-        res <- sextE a'
-        return res
   -- TODO: Correct this
   , Pair Slliw $ getFormula $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
@@ -531,26 +465,20 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-
       x_rs1 <- regRead rs1
-      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+
+      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
 
       -- Check that the control bits are all zero.
-      ctrlOK <- ctrl `eqE` litBV 0b00000
-      ctrlIllegal <- notE ctrlOK
-      raiseException ctrlIllegal IllegalInstruction
+      raiseException (notE (ctrl `eqE` litBV 0b00000)) IllegalInstruction
 
       -- Check that the shift amount is within 5 bits.
       let shiftBound = litBV (bitVector 32 :: BitVector 7)
-      shamtOK <- shamt `ltuE` shiftBound
-      shamtIllegal <- notE shamtOK
-      raiseException shamtIllegal IllegalInstruction
+      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
       -- Perform the left logical shift.
-      zext_shamt <- zextE shamt
-      result <- x_rs1 `sllE` zext_shamt
-      assignReg rd result
+      assignReg rd $ x_rs1 `sllE` zextE shamt
       incrPC
 
   -- TODO: Correct this
@@ -560,32 +488,26 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-
       x_rs1 <- regRead rs1
-      shamt <- extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-      ctrl <- extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+
+      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
 
       -- The control bits determine if the shift is arithmetic or logical.
-      lShift <- ctrl `eqE` litBV 0b00000
-      aShift <- ctrl `eqE` litBV 0b01000
+      let lShift = ctrl `eqE` litBV 0b00000
+          aShift = ctrl `eqE` litBV 0b01000
 
       -- Check that the control bits are valid.
-      ctrlOK <- lShift `orE` aShift
-      ctrlIllegal <- notE ctrlOK
-      raiseException ctrlIllegal IllegalInstruction
+      raiseException (notE (lShift `orE` aShift)) IllegalInstruction
 
       -- Check that the shift amount is within the architecture width.
       let shiftBound = litBV (bitVector 32 :: BitVector 7)
-      shamtOK <- shamt `ltuE` shiftBound
-      shamtIllegal <- notE shamtOK
-      raiseException shamtIllegal IllegalInstruction
+      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
       -- Perform the right logical/arithmetic shift.
-      zext_shamt <- zextE shamt
-      result_l <- x_rs1 `srlE` zext_shamt
-      result_r <- x_rs1 `sraE` zext_shamt
-      result <- iteE lShift result_l result_r
-      assignReg rd result
+      let result_l = x_rs1 `srlE` zextE shamt
+          result_r = x_rs1 `sraE` zextE shamt
+      assignReg rd $ iteE lShift result_l result_r
       incrPC
   , Pair Sd $ getFormula $ do
       comment "Computes the least-significant double-word in register x[rs2]."

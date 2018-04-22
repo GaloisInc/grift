@@ -1,6 +1,7 @@
 {-# LANGUAGE BinaryLiterals   #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
@@ -21,6 +22,7 @@ module RISCV.Extensions.M
   , m64
   ) where
 
+import Data.BitVector.Sized.App
 import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
@@ -60,7 +62,7 @@ m64Encode = Map.fromList
   , Pair Remuw (OpBits RRepr (0b0111011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
-mSemantics :: KnownArch arch => SemanticsMap arch
+mSemantics :: forall arch . KnownArch arch => SemanticsMap arch
 mSemantics = Map.fromList
   [ Pair Mul $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."
@@ -71,9 +73,7 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      result' <- x_rs1 `muluE` x_rs2
-      result  <- extractE 0 result'
-      assignReg rd result
+      assignReg rd $ extractE 0 (x_rs1 `muluE` x_rs2)
       incrPC
 
   , Pair Mulh $ getFormula $ do
@@ -85,14 +85,13 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      result' <- x_rs1 `mulsE` x_rs2
-      archWidth <- getArchWidth
-      result  <- extractE (fromIntegral $ natValue archWidth) result'
-      assignReg rd result
+      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsE` x_rs2)
       incrPC
 
   , Pair Mulhsu $ getFormula $ do
-      comment "Multiplies x[rs1] by x[rs2], treating x[rs1] as a two's complement number and x[rs2] as an unsigned number."
+      comment "Multiplies x[rs1] by x[rs2]."
+      comment "Treats x[rs1] as a two's complement number and x[rs2] as an unsigned number."
       comment "Writes the upper half of the product in x[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
@@ -100,10 +99,8 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      result'  <- x_rs1 `mulsuE` x_rs2
-      archWidth <- getArchWidth
-      result  <- extractE (fromIntegral $ natValue archWidth) result'
-      assignReg rd result
+      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsuE` x_rs2)
       incrPC
 
   , Pair Mulhu $ getFormula $ do
@@ -115,35 +112,33 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      result'  <- x_rs1 `muluE` x_rs2
-      archWidth <- getArchWidth
-      result  <- extractE (fromIntegral $ natValue archWidth) result'
-      assignReg rd result
+      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `muluE` x_rs2)
       incrPC
 
   , Pair Div $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp divsE
+      rOp $ \x y -> return (divsE x y)
 
   , Pair Divu $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp divuE
+      rOp $ \x y -> return (divuE x y)
 
   , Pair Rem $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp remsE
+      rOp $ \x y -> return (remsE x y)
 
   , Pair Remu $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp remuE
+      rOp $ \x y -> return (remuE x y)
 
   ]
 
@@ -153,25 +148,25 @@ m64Semantics = Map.fromList
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 muluE
+      rOp32 $ \x y -> return (muluE x y)
   , Pair Divw $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 divsE
+      rOp32 $ \x y -> return (divsE x y)
   , Pair Divuw $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 divuE
+      rOp32 $ \x y -> return (divuE x y)
   , Pair Remw $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 remsE
+      rOp32 $ \x y -> return (remsE x y)
   , Pair Remuw $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 remuE
+      rOp32 $ \x y -> return (remuE x y)
   ]

@@ -38,36 +38,6 @@ module RISCV.Semantics
   , pcRead
   , regRead
   , memRead
-  -- ** Bitwise
-  , andE
-  , orE
-  , xorE
-  , notE
-  -- ** Arithmetic
-  , addE
-  , subE
-  , muluE
-  , mulsE
-  , mulsuE
-  , divuE
-  , divsE
-  , remuE
-  , remsE
-  , sllE
-  , srlE
-  , sraE
-  -- ** Comparison
-  , eqE
-  , ltuE
-  , ltsE
-  -- ** Width-changing
-  , zextE
-  , sextE
-  , extractE
-  , extractEWithRepr
-  , concatE
-  -- ** Control
-  , iteE
   -- ** State actions
   , assignReg
   , assignMem
@@ -168,156 +138,8 @@ newtype FormulaBuilder arch (fmt :: Format) a =
 ----------------------------------------
 -- Smart constructors for BVApp functions
 
--- | Literal bit vector.
-litBV :: BitVector w -> Expr arch fmt w
-litBV = AppExpr . LitBVApp
-
--- | Bitwise and.
-andE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-andE e1 e2 = return $ AppExpr (AndApp e1 e2)
-
--- | Bitwise or.
-orE :: Expr arch fmt w
-    -> Expr arch fmt w
-    -> FormulaBuilder arch fmt (Expr arch fmt w)
-orE e1 e2 = return $ AppExpr (OrApp e1 e2)
-
--- | Bitwise xor.
-xorE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-xorE e1 e2 = return $ AppExpr (XorApp e1 e2)
-
--- | Bitwise not.
-notE :: Expr arch fmt w -> FormulaBuilder arch fmt (Expr arch fmt w)
-notE e = return $ AppExpr (NotApp e)
-
--- | Add two expressions.
-addE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-addE e1 e2 = return $ AppExpr (AddApp e1 e2)
-
--- | Subtract the second expression from the first.
-subE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-subE e1 e2 = return $ AppExpr (SubApp e1 e2)
-
--- | Signed multiply two 'BitVectors', doubling the width of the result to hold all
--- arithmetic overflow bits.
-mulsE :: Expr arch fmt w
-      -> Expr arch fmt w
-      -> FormulaBuilder arch fmt (Expr arch fmt (w+w))
-mulsE e1 e2 = return $ AppExpr (MulSApp e1 e2)
-
--- | Unsigned multiply two 'BitVectors', doubling the width of the result to hold
--- all arithmetic overflow bits.
-muluE :: Expr arch fmt w
-      -> Expr arch fmt w
-      -> FormulaBuilder arch fmt (Expr arch fmt (w+w))
-muluE e1 e2 = return $ AppExpr (MulUApp e1 e2)
-
--- | Multiply two 'BitVectors', treating the first as a signed number and the second
--- as an unsigned number, doubling the width of the result to hold all arithmetic
--- overflow bits.
-mulsuE :: Expr arch fmt w
-       -> Expr arch fmt w
-       -> FormulaBuilder arch fmt (Expr arch fmt (w+w))
-mulsuE e1 e2 = return $ AppExpr (MulSUApp e1 e2)
-
--- | Signed divide two 'BitVectors', rounding to zero.
-divsE :: Expr arch fmt w
-      -> Expr arch fmt w
-      -> FormulaBuilder arch fmt (Expr arch fmt w)
-divsE e1 e2 = return $ AppExpr (DivSApp e1 e2)
-
--- | Unsigned divide two 'BitVectors', rounding to zero.
-divuE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-divuE e1 e2 = return $ AppExpr (DivUApp e1 e2)
-
--- | Remainder after signed division of two 'BitVectors', when rounded to zero.
-remsE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-remsE e1 e2 = return $ AppExpr (RemSApp e1 e2)
-
--- | Remainder after unsigned division of two 'BitVectors', when rounded to zero.
-remuE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-remuE e1 e2 = return $ AppExpr (RemUApp e1 e2)
-
--- | Left logical shift the first expression by the second.
-sllE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-sllE e1 e2 = return $ AppExpr (SllApp e1 e2)
-
--- | Left logical shift the first expression by the second.
-srlE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-srlE e1 e2 = return $ AppExpr (SrlApp e1 e2)
-
--- | Left logical shift the first expression by the second.
-sraE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-sraE e1 e2 = return $ AppExpr (SraApp e1 e2)
-
--- | Test for equality of two expressions.
-eqE :: Expr arch fmt w
-    -> Expr arch fmt w
-    -> FormulaBuilder arch fmt (Expr arch fmt 1)
-eqE e1 e2 = return $ AppExpr (EqApp e1 e2)
-
--- | Signed less than
-ltsE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt 1)
-ltsE e1 e2 = return $ AppExpr (LtsApp e1 e2)
-
--- | Unsigned less than
-ltuE :: Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt 1)
-ltuE e1 e2 = return $ AppExpr (LtuApp e1 e2)
-
--- | Zero-extension
--- zextE :: KnownNat w' => Expr arch fmt w -> FormulaBuilder arch fmt (Expr arch fmt w')
-zextE :: KnownNat w' => Expr arch fmt w -> FormulaBuilder arch fmt (Expr arch fmt w')
-zextE e = return $ AppExpr (ZExtApp knownNat e)
-
--- | Sign-extension
-sextE :: KnownNat w' => Expr arch fmt w -> FormulaBuilder arch fmt (Expr arch fmt w')
-sextE e = return $ AppExpr (SExtApp knownNat e)
-
--- | Extract bits
-extractE :: KnownNat w' => Int -> Expr arch fmt w -> FormulaBuilder arch fmt (Expr arch fmt w')
-extractE base e = return $ AppExpr (ExtractApp knownNat base e)
-
--- | Extract bits with an explicit width argument
-extractEWithRepr :: NatRepr w'
-                 -> Int
-                 -> Expr arch fmt w
-                 -> FormulaBuilder arch fmt (Expr arch fmt w')
-extractEWithRepr wRepr base e = return $ AppExpr (ExtractApp wRepr base e)
-
--- | Concatenation
-concatE :: Expr arch fmt w -> Expr arch fmt w' -> FormulaBuilder arch fmt (Expr arch fmt (w+w'))
-concatE e1 e2 = return $ AppExpr (ConcatApp e1 e2)
-
--- | Conditional branch.
-iteE :: Expr arch fmt 1
-     -> Expr arch fmt w
-     -> Expr arch fmt w
-     -> FormulaBuilder arch fmt (Expr arch fmt w)
-iteE t e1 e2 = return $ AppExpr (IteApp t e1 e2)
+instance BVExpr (Expr arch fmt) where
+  appExpr = AppExpr
 
 -- | Get the operands for a particular known format
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
@@ -355,9 +177,8 @@ regRead :: KnownArch arch
         => Expr arch fmt 5
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
 regRead ridE = do
-  isR0 <- ridE `eqE` litBV 0
   rVal <- regRead' ridE
-  iteE isR0 (litBV 0) rVal
+  return $ iteE (ridE `eqE` litBV 0) (litBV 0) rVal
 
 -- | Read a byte from memory.
 memRead :: Expr arch fmt (ArchWidth arch)
@@ -368,14 +189,12 @@ memRead addr = return (MemRead addr)
 addStmt :: Stmt arch fmt -> FormulaBuilder arch fmt ()
 addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
 
--- TODO: protect against multiple assignments? (for all of the assign* functions)
 -- | Add a register assignment to the formula.
 assignReg :: Expr arch fmt 5
           -> Expr arch fmt (ArchWidth arch)
           -> FormulaBuilder arch fmt ()
 assignReg r e = addStmt (AssignReg r e)
 
--- TODO: Should we allow arbitrary width assignments?
 -- | Add a memory location assignment to the formula.
 assignMem :: Expr arch fmt (ArchWidth arch)
           -> Expr arch fmt 8
