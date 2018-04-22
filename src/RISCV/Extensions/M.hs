@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
@@ -66,7 +67,7 @@ mSemantics :: forall arch . KnownArch arch => SemanticsMap arch
 mSemantics = Map.fromList
   [ Pair Mul $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."
-      comment "Arithmetic overflow is ignored."
+      comment "Arithmetic ovexbrflow is ignored."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
@@ -85,7 +86,7 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      let archWidth = knownNat @(ArchWidth arch)
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsE` x_rs2)
       incrPC
 
@@ -99,7 +100,7 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      let archWidth = knownNat @(ArchWidth arch)
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsuE` x_rs2)
       incrPC
 
@@ -112,7 +113,7 @@ mSemantics = Map.fromList
       x_rs1 <- regRead rs1
       x_rs2 <- regRead rs2
 
-      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      let archWidth = knownNat @(ArchWidth arch)
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `muluE` x_rs2)
       incrPC
 

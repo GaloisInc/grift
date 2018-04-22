@@ -47,7 +47,6 @@ module RISCV.Semantics
 
 import Control.Lens ( (%=), Simple, Lens, lens )
 import Control.Monad.State
-import Data.BitVector.Sized
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as Seq

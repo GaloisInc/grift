@@ -44,22 +44,22 @@ representation of a RISC-V instruction.
 
 module RISCV.Types
   ( -- * Base architecture
-    BaseArch, type RV32I, type RV32E, type RV64I, type RV128I
+    BaseArch(..), type RV32I, type RV32E, type RV64I, type RV128I
   , BaseArchRepr(..)
   , ArchWidth
   , KnownArch
     -- * Extensions
-  , Extensions, type Exts
-  , MConfig, type MYes, type MNo
-  , FDConfig, type FDYes, type FYesDNo, type FDNo
+  , Extensions(..), type Exts
+  , MConfig(..), type MYes, type MNo
+  , FDConfig(..), type FDYes, type FYesDNo, type FDNo
   , ExtensionsRepr(..)
   , MConfigRepr(..)
   , FDConfigRepr(..)
   , KnownExtensions
-  , Extension, type M, type F, type D
+  , Extension(..), type M, type F, type D
   , ExtensionsContains, type (<<)
   -- * Instructions
-  , Format, type R, type I, type S, type B, type U, type J, type X
+  , Format(..), type R, type I, type S, type B, type U, type J, type X
   , FormatRepr(..)
   , OperandTypes
   , OperandID

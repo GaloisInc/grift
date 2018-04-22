@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
@@ -124,7 +125,7 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        let archWidth = knownNat :: NatRepr (ArchWidth arch)
+        let archWidth = knownNat @(ArchWidth arch)
         return $ e1 `sllE` (e2 `andE` litBV (bitVector (fromIntegral (natValue archWidth) - 1)))
   , Pair Slt $ getFormula $ do
       comment "Compares x[rs1] and x[rs2] as two's complement numbers."
@@ -146,7 +147,7 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        let archWidth = knownNat :: NatRepr (ArchWidth arch)
+        let archWidth = knownNat @(ArchWidth arch)
             mask = litBV (bitVector (natValue archWidth - 1))
 
         return $ e1 `srlE` (e2 `andE` mask)
@@ -156,7 +157,7 @@ baseSemantics = Map.fromList
       comment "The result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        let archWidth = knownNat :: NatRepr (ArchWidth arch)
+        let archWidth = knownNat @(ArchWidth arch)
         let mask = litBV (bitVector (natValue archWidth - 1))
 
         return $ e1 `sraE` (e2 `andE` mask)
@@ -245,14 +246,14 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
-      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+      let shamt = extractEWithRepr (knownNat @7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
       -- Check that the control bits are all zero.
       raiseException (notE (ctrl `eqE` litBV 0b00000)) IllegalInstruction
 
       -- Check that the shift amount is within the architecture width.
-      let archWidth  = knownNat :: NatRepr (ArchWidth arch)
+      let archWidth  = knownNat @(ArchWidth arch)
           shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
       raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
@@ -268,8 +269,8 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       x_rs1 <- regRead rs1
-      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+      let shamt = extractEWithRepr (knownNat @7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
       -- The control bits determine if the shift is arithmetic or logical.
       let lShift = ctrl `eqE` litBV 0b00000
@@ -279,7 +280,7 @@ baseSemantics = Map.fromList
       raiseException (notE (lShift `orE` aShift)) IllegalInstruction
 
       -- Check that the shift amount is within the architecture width.
-      let archWidth = knownNat :: NatRepr (ArchWidth arch)
+      let archWidth = knownNat @(ArchWidth arch)
           shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
       raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
@@ -409,14 +410,14 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `addE` e2))
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `addE` e2))
 
   , Pair Subw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `subE` e2))
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `subE` e2))
 
   -- TODO: Correct this
   , Pair Sllw $ getFormula $ do
@@ -424,7 +425,7 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `sllE` e2))
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `sllE` e2))
 
   -- TODO: Correct this
   , Pair Srlw $ getFormula $ do
@@ -432,7 +433,7 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `srlE` e2))
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `srlE` e2))
 
   -- TODO: Correct this
   , Pair Sraw $ getFormula $ do
@@ -440,7 +441,7 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `sraE` e2))
+      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `sraE` e2))
   , Pair Lwu $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
@@ -456,7 +457,7 @@ base64Semantics = Map.fromList
       comment "Writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      iOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 (e1 `addE` e2))
+      iOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `addE` e2))
 
   -- TODO: Correct this
   , Pair Slliw $ getFormula $ do
@@ -467,8 +468,8 @@ base64Semantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
       x_rs1 <- regRead rs1
 
-      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+      let shamt = extractEWithRepr (knownNat @7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
       -- Check that the control bits are all zero.
       raiseException (notE (ctrl `eqE` litBV 0b00000)) IllegalInstruction
@@ -490,8 +491,8 @@ base64Semantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
       x_rs1 <- regRead rs1
 
-      let shamt = extractEWithRepr (knownNat :: NatRepr 7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat :: NatRepr 5) 7 imm12
+      let shamt = extractEWithRepr (knownNat @7) 0 imm12
+          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
       -- The control bits determine if the shift is arithmetic or logical.
       let lShift = ctrl `eqE` litBV 0b00000

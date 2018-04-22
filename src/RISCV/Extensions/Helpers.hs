@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
@@ -68,7 +69,7 @@ rOp32 op = do
   x_rs2 <- regRead rs2
   res   <- x_rs1 `op` x_rs2
 
-  assignReg rd $ sextE (extractEWithRepr (knownNat :: NatRepr 32) 0 res)
+  assignReg rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
   incrPC
 
 -- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
@@ -155,9 +156,7 @@ assignMem64 addr val = do
   assignMem (addr `addE` litBV 7) (extractE 56 val)
 
 
-s :: (KnownArch arch, KnownNat w)
-  => MemWriteFn arch w S
-  -> FormulaBuilder arch S ()
+s :: (KnownArch arch, KnownNat w) => MemWriteFn arch w S -> FormulaBuilder arch S ()
 s wrFn = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
