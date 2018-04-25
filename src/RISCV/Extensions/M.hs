@@ -71,8 +71,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
 
       assignReg rd $ extractE 0 (x_rs1 `muluE` x_rs2)
       incrPC
@@ -83,8 +83,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
 
       let archWidth = knownNat @(ArchWidth arch)
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsE` x_rs2)
@@ -97,8 +97,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
 
       let archWidth = knownNat @(ArchWidth arch)
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsuE` x_rs2)
@@ -110,13 +110,14 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- regRead rs1
-      x_rs2 <- regRead rs2
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
 
       let archWidth = knownNat @(ArchWidth arch)
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `muluE` x_rs2)
       incrPC
 
+  -- TODO: Handle division by 0 as specified in the manual
   , Pair Div $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."

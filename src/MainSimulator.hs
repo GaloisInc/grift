@@ -48,10 +48,9 @@ main = do
       let byteStrings = elfBytes e
       m :: IOMachine RV32I SimExts <-
         mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-      runIOMachine stepsToRun m
 
+      stepsRan  <- runIOMachine stepsToRun m
       err       <- readIORef (ioException m)
-      stepsRan  <- readIORef (ioSteps m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
 

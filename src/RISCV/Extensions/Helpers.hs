@@ -23,7 +23,7 @@ module RISCV.Extensions.Helpers
   , incrPC
   , rOp, rOp32 , iOp
   , l, s, b
-  , memRead16, memRead32, memRead64
+  , readMem16, readMem32, readMem64
   , assignMem16, assignMem32, assignMem64
   ) where
 
@@ -39,7 +39,7 @@ import RISCV.Types
 incrPC :: KnownArch arch => FormulaBuilder arch fmt ()
 incrPC = do
   ib <- instBytes
-  pc <- pcRead
+  pc <- readPC
   assignPC $ pc `addE` (zextE ib)
 
 -- | Type of arithmetic operator in 'FormulaBuilder'.
@@ -52,8 +52,8 @@ rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder arch 
 rOp op = do
   rd :< rs1 :< rs2 :< Nil <- operandEs
 
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
+  x_rs1 <- readReg rs1
+  x_rs2 <- readReg rs2
   res   <- x_rs1 `op` x_rs2
 
   assignReg rd res
@@ -65,8 +65,8 @@ rOp32 :: KnownArch arch => ArithOp arch R w -> FormulaBuilder arch R ()
 rOp32 op = do
   rd :< rs1 :< rs2 :< Nil  <- operandEs
 
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
+  x_rs1 <- readReg rs1
+  x_rs2 <- readReg rs2
   res   <- x_rs1 `op` x_rs2
 
   assignReg rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
@@ -77,46 +77,53 @@ iOp :: KnownArch arch => ArithOp arch I (ArchWidth arch) -> FormulaBuilder arch 
 iOp op = do
   rd :< rs1 :< imm12 :< Nil <- operandEs
 
-  x_rs1 <- regRead rs1
+  x_rs1 <- readReg rs1
   res   <- x_rs1 `op` (sextE imm12)
 
   assignReg rd res
   incrPC
 
+-- | Generic type for functions that read from memory.
 type MemReadFn arch w fmt = KnownArch arch => Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt w)
+
+-- | Generic type for functions that extend a value to the register width.
 type ExtFn arch w fmt = KnownArch arch => Expr arch fmt w -> Expr arch fmt (ArchWidth arch)
 
-memRead16 :: MemReadFn arch 16 fmt
-memRead16 addr = do
-  m0 <- memRead addr
-  m1 <- memRead $ addr `addE` litBV 1
+-- | Read two bytes from memory.
+readMem16 :: MemReadFn arch 16 fmt
+readMem16 addr = do
+  m0 <- readMem addr
+  m1 <- readMem $ addr `addE` litBV 1
 
   return $ m1 `concatE` m0
 
-memRead32 :: MemReadFn arch 32 fmt
-memRead32 addr = do
-  m0 <- memRead addr
-  m1 <- memRead $ addr `addE` litBV 1
-  m2 <- memRead $ addr `addE` litBV 2
-  m3 <- memRead $ addr `addE` litBV 3
+-- | Read four bytes from memory.
+readMem32 :: MemReadFn arch 32 fmt
+readMem32 addr = do
+  m0 <- readMem addr
+  m1 <- readMem $ addr `addE` litBV 1
+  m2 <- readMem $ addr `addE` litBV 2
+  m3 <- readMem $ addr `addE` litBV 3
 
   return $ m3 `concatE` m2 `concatE` m1 `concatE` m0
 
-memRead64 :: MemReadFn arch 64 fmt
-memRead64 addr = do
-  m0 <- memRead addr
-  m1 <- memRead $ addr `addE` litBV 1
-  m2 <- memRead $ addr `addE` litBV 2
-  m3 <- memRead $ addr `addE` litBV 3
-  m4 <- memRead $ addr `addE` litBV 4
-  m5 <- memRead $ addr `addE` litBV 5
-  m6 <- memRead $ addr `addE` litBV 6
-  m7 <- memRead $ addr `addE` litBV 7
+-- | Read eright bytes from memory.
+readMem64 :: MemReadFn arch 64 fmt
+readMem64 addr = do
+  m0 <- readMem addr
+  m1 <- readMem $ addr `addE` litBV 1
+  m2 <- readMem $ addr `addE` litBV 2
+  m3 <- readMem $ addr `addE` litBV 3
+  m4 <- readMem $ addr `addE` litBV 4
+  m5 <- readMem $ addr `addE` litBV 5
+  m6 <- readMem $ addr `addE` litBV 6
+  m7 <- readMem $ addr `addE` litBV 7
 
   return $
     m7 `concatE` m6 `concatE` m5 `concatE` m4 `concatE`
     m3 `concatE` m2 `concatE` m1 `concatE` m0
 
+-- | Generic load.
 l :: KnownArch arch
   => MemReadFn arch w I
   -> ExtFn arch w I
@@ -124,19 +131,22 @@ l :: KnownArch arch
 l rdFn extFn = do
   rd :< rs1 :< offset :< Nil <- operandEs
 
-  x_rs1       <- regRead rs1
+  x_rs1       <- readReg rs1
   mVal        <- rdFn (x_rs1 `addE` sextE offset)
 
   assignReg rd $ extFn mVal
   incrPC
 
+-- | Generic type for functions that write to memory.
 type MemWriteFn arch w fmt = KnownArch arch => Expr arch fmt (ArchWidth arch) -> Expr arch fmt w -> FormulaBuilder arch fmt ()
 
+-- | Write two bytes to memory.
 assignMem16 :: MemWriteFn arch 16 fmt
 assignMem16 addr val = do
   assignMem addr (extractE 0 val)
   assignMem (addr `addE` litBV 1) (extractE 8 val)
 
+-- | Write four bytes to memory.
 assignMem32 :: MemWriteFn arch 32 fmt
 assignMem32 addr val = do
   assignMem addr (extractE 0 val)
@@ -144,6 +154,7 @@ assignMem32 addr val = do
   assignMem (addr `addE` litBV 2) (extractE 16 val)
   assignMem (addr `addE` litBV 3) (extractE 24 val)
 
+-- | Write eight bytes to memory.
 assignMem64 :: MemWriteFn arch 64 fmt
 assignMem64 addr val = do
   assignMem addr (extractE 0 val)
@@ -155,13 +166,13 @@ assignMem64 addr val = do
   assignMem (addr `addE` litBV 6) (extractE 48 val)
   assignMem (addr `addE` litBV 7) (extractE 56 val)
 
-
+-- | Generic store.
 s :: (KnownArch arch, KnownNat w) => MemWriteFn arch w S -> FormulaBuilder arch S ()
 s wrFn = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
+  x_rs1 <- readReg rs1
+  x_rs2 <- readReg rs2
 
   wrFn (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
   incrPC
@@ -174,10 +185,10 @@ b :: KnownArch arch => CompOp arch B -> FormulaBuilder arch B ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
-  x_rs1 <- regRead rs1
-  x_rs2 <- regRead rs2
+  x_rs1 <- readReg rs1
+  x_rs2 <- readReg rs2
 
-  pc <- pcRead
+  pc <- readPC
   ib <- instBytes
 
   assignPC (iteE (x_rs1 `cmp` x_rs2) (pc `addE` sextE (offset `sllE` litBV 1)) (pc `addE` zextE ib))

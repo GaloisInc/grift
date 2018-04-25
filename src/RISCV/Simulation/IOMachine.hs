@@ -1,3 +1,4 @@
+{-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -51,6 +52,7 @@ data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
   { ioPC        :: IORef (BitVector (ArchWidth arch))
   , ioRegisters :: IOArray (BitVector 5) (BitVector (ArchWidth arch))
   , ioMemory    :: IOArray (BitVector (ArchWidth arch)) (BitVector 8)
+  , ioPriv      :: IORef (BitVector 2)
   , ioMaxAddr   :: BitVector (ArchWidth arch)
   , ioException :: IORef (Maybe Exception)
   , ioSteps     :: IORef Int
@@ -75,12 +77,13 @@ mkIOMachine maxAddr entryPoint byteStrings = do
   pc        <- newIORef entryPoint
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
+  priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (IOMachine pc registers memory maxAddr e steps)
+  return (IOMachine pc registers memory priv maxAddr e steps)
 
 -- | The 'IOMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -89,13 +92,11 @@ newtype IOMachineM (arch :: BaseArch) (exts :: Extensions) a =
   IOMachineM { runIOMachineM :: ReaderT (IOMachine arch exts) IO a }
   deriving (Functor, Applicative, Monad, R.MonadReader (IOMachine arch exts))
 
--- TODO: add dynamic checking for memory out of bounds; just throw an error for now
 instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
   getPC = IOMachineM $ do
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef
     return pcVal
-  -- getReg 0 = return 0 -- rid 0 is hardwired to the constant 0.
   getReg rid = IOMachineM $ do
     regArray <- ioRegisters <$> ask
     regVal   <- lift $ readArray regArray rid
@@ -110,6 +111,10 @@ instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just MemoryAccessError)
         return 0
+  getPriv = IOMachineM $ do
+    privRef <- ioPriv <$> ask
+    privVal <- lift $ readIORef privRef
+    return privVal
 
   setPC pcVal = IOMachineM $ do
     -- We assume that every time we are setting the PC, we have just finished
@@ -131,6 +136,9 @@ instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
       False -> do
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just MemoryAccessError)
+  setPriv privVal = IOMachineM $ do
+    privRef <- ioPriv <$> ask
+    lift $ writeIORef privRef privVal
 
   throwException e = IOMachineM $ do
     eRef <- ioException <$> ask
@@ -156,6 +164,6 @@ freezeMemory = freeze . ioMemory
 runIOMachine :: (KnownArch arch, KnownExtensions exts)
              => Int
              -> IOMachine arch exts
-             -> IO ()
+             -> IO Int
 runIOMachine steps m =
   flip runReaderT m $ runIOMachineM $ runRV steps

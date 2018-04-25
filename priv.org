@@ -1,0 +1,43 @@
+Summary of/thoughts on privileged ISA
+
+* high-level
+** traps
+What exactly happens when a trap occurs, either interrupt or exception?
+
+Without delegation:
+- privilege is set to M
+- mtval sometimes gets some information (bad address or instruction)
+- mpp gets the previous privilege mode
+- mepc gets the current pc
+- mcause gets the isInterrupt bit and the corresponding exception code
+- PC gets set according to mtvec
+** CSR R/W-ness
+In general, do we want to model the r/w-ness of a CSR in the semantics? It'd be
+simple enough, since it's encoded in the high four bits, and we can compare that
+against the privilege level. It would be somewhat like the hardwiring of x0 to
+the constant 0.
+** CSR Field R/W-ness
+Assuming we want to model the above, we may also want to model the individual
+fields read/write-ness.
+
+* misa
+
+** # Bits : XLEN
+** R/W
+** Must be readable, but a value of zero can be returned to indicate it has not been implemented
+** MXL field = native base ISA width
+*** May be writable in implementations that support multiple base ISA widths
+*** Effective XLEN in M-mode, /M-XLEN/, is given by MXL, or is fixed if misa is 0.
+*** MXL is always set to widest supported ISA at reset.
+*** If MXL < widest supported XLEN
+**** operations must ignore source operand register bits above M-XLEN
+**** and must sign-extend results to fill destination register
+** Extensions field encodes presence of the standard extensions
+*** We could model this by swapping out an instruction set with one that contains fewer instructions.
+* mtime/mtimecmp
+mtime and mtimecmp are 64-bit precision memory mapped. The idea is that mtimecmp
+remains fixed, while mtime is a counter starting at 0. When mtime == mtimecmp, a
+timer interrupt is thrown. I believe both registers are in fact writeable.
+
+My feeling is that this should mainly be handled on the simulation side,
+although we could provide a semantics for it as well.

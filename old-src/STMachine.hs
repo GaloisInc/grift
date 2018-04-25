@@ -1,3 +1,4 @@
+{-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -49,6 +50,7 @@ data STMachine s (arch :: BaseArch) (exts :: Extensions) = STMachine
   { stPC        :: STRef s (BitVector (ArchWidth arch))
   , stRegisters :: STArray s (BitVector 5) (BitVector (ArchWidth arch))
   , stMemory    :: STArray s (BitVector (ArchWidth arch)) (BitVector 8)
+  , stPriv      :: STRef s (BitVector 2)
   , stMaxAddr   :: BitVector (ArchWidth arch)
   , stException :: STRef s (Maybe Exception)
   , stSteps     :: STRef s Int
@@ -75,12 +77,13 @@ mkSTMachine _ _ maxAddr entryPoint byteStrings = do
   pc        <- newSTRef entryPoint
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
+  priv      <- newSTRef 0b00
   e         <- newSTRef Nothing
   steps     <- newSTRef 0
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (STMachine pc registers memory maxAddr e steps)
+  return (STMachine pc registers memory priv maxAddr e steps)
 
 -- | Run a STMachineM transformation on an initial state and return the result
 execSTMachine :: (KnownArch arch, KnownExtensions exts)
@@ -89,18 +92,20 @@ execSTMachine :: (KnownArch arch, KnownExtensions exts)
               -> ST s ( BitVector (ArchWidth arch)
                       , Array (BitVector 5) (BitVector (ArchWidth arch))
                       , Array (BitVector (ArchWidth arch)) (BitVector 8)
+                      , BitVector 2
                       , Int
                       )
 execSTMachine action m = do
-  (stPC', stRegisters', stMemory', stSteps') <- flip runReaderT m $ runSTMachineM $ do
+  (stPC', stRegisters', stMemory', stPriv', stSteps') <- flip runReaderT m $ runSTMachineM $ do
     action
     m' <- R.ask
-    return (stPC m', stRegisters m', stMemory m', stSteps m')
+    return (stPC m', stRegisters m', stMemory m', stPriv m', stSteps m')
   pc <- readSTRef stPC'
   registers <- freeze stRegisters'
   memory <- freeze stMemory'
+  priv <- readSTRef stPriv'
   steps <- readSTRef stSteps'
-  return (pc, registers, memory, steps)
+  return (pc, registers, memory, priv, steps)
 
 -- | The 'STMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -124,10 +129,12 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
     memArray <- stMemory <$> ask
     byte     <- lift $ readArray memArray addr
     return byte
+  getPriv = STMachineM $ do
+    privRef <- stPriv <$> ask
+    privVal <- lift $ readSTRef privRef
+    return privVal
 
   setPC pcVal = STMachineM $ do
-    -- We assume that every time we are setting the PC, we have just finished
-    -- executing an instruction, so increment steps.
     pcRef <- stPC <$> ask
     stepsRef <- stSteps <$> ask
     stepsVal <- lift $ readSTRef stepsRef
@@ -141,6 +148,9 @@ instance KnownArch arch => RVState (STMachineM s arch exts) arch exts where
   setMem addr byte = STMachineM $ do
     memArray <- stMemory <$> ask
     lift $ writeArray memArray addr byte
+  setPriv privVal = STMachineM $ do
+    privRef <- stPriv <$> ask
+    lift $ writeSTRef privRef privVal
 
   throwException e = STMachineM $ do
     eRef <- stException <$> ask

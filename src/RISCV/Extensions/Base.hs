@@ -179,8 +179,8 @@ baseSemantics = Map.fromList
       comment "Writes the previous pc+4 to x[rd]."
 
       rd :< rs1 :< offset :< Nil <- operandEs
-      pc <- pcRead
-      x_rs1 <- regRead rs1
+      pc <- readPC
+      x_rs1 <- readReg rs1
 
       assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
       assignReg rd (pc `addE` litBV 4)
@@ -188,27 +188,27 @@ baseSemantics = Map.fromList
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l memRead sextE
+      l readMem sextE
   , Pair Lh $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l memRead16 sextE
+      l readMem16 sextE
   , Pair Lw $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l memRead32 sextE
+      l readMem32 sextE
   , Pair Lbu $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      l memRead zextE
+      l readMem zextE
   , Pair Lhu $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      l memRead16 zextE
+      l readMem16 zextE
   , Pair Addi $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -245,7 +245,7 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
-      x_rs1 <- regRead rs1
+      x_rs1 <- readReg rs1
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
@@ -268,7 +268,7 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
-      x_rs1 <- regRead rs1
+      x_rs1 <- readReg rs1
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
@@ -364,7 +364,7 @@ baseSemantics = Map.fromList
       comment "Writes the result to x[rd]."
 
       rd :< imm20 :< Nil <- operandEs
-      pc <- pcRead
+      pc <- readPC
 
       assignReg rd $ pc `addE` sextE imm20 `sllE` litBV 12
       incrPC
@@ -376,7 +376,7 @@ baseSemantics = Map.fromList
 
       rd :< imm20 :< Nil <- operandEs
       ib <- instBytes
-      pc <- pcRead
+      pc <- readPC
 
       assignReg rd $ pc `addE` zextE ib
       assignPC $ pc `addE` sextE (imm20 `sllE` litBV 1)
@@ -446,12 +446,12 @@ base64Semantics = Map.fromList
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      l memRead32 zextE
+      l readMem32 zextE
   , Pair Ld $ getFormula $ do
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l memRead64 sextE
+      l readMem64 sextE
   , Pair Addiw $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
       comment "Writes the result to x[rd]."
@@ -466,7 +466,7 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-      x_rs1 <- regRead rs1
+      x_rs1 <- readReg rs1
 
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
@@ -489,7 +489,7 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-      x_rs1 <- regRead rs1
+      x_rs1 <- readReg rs1
 
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12

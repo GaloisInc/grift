@@ -41,20 +41,24 @@ import RISCV.Types
 -- | State monad for simulating RISC-V code
 class (Monad m) => RVState m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
   -- | Get the current PC.
-  getPC  :: m (BitVector (ArchWidth arch))
+  getPC   :: m (BitVector (ArchWidth arch))
   -- | Get the value of a register. This function shouldn't ever be called with an
   -- argument of 0, so there is no need to hardwire it to 0 in an implementation.
-  getReg :: BitVector 5 -> m (BitVector (ArchWidth arch))
+  getReg  :: BitVector 5 -> m (BitVector (ArchWidth arch))
   -- | Read a single byte from memory.
-  getMem :: BitVector (ArchWidth arch) -> m (BitVector 8)
+  getMem  :: BitVector (ArchWidth arch) -> m (BitVector 8)
+  -- | Get the current privilege level.
+  getPriv :: m (BitVector 2)
 
   -- | Set the PC.
-  setPC :: BitVector (ArchWidth arch) -> m ()
+  setPC   :: BitVector (ArchWidth arch) -> m ()
   -- | Write to a register. Note that for all valid implementations, we require that
   -- setReg 0 = return ().
-  setReg :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
+  setReg  :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
   -- | Write a single byte to memory.
-  setMem :: BitVector (ArchWidth arch) -> BitVector 8 -> m ()
+  setMem  :: BitVector (ArchWidth arch) -> BitVector 8 -> m ()
+  -- | Set the privilege level.
+  setPriv :: BitVector 2 -> m ()
 
   throwException :: Exception -> m ()
   exceptionStatus :: m (Maybe Exception)
@@ -75,12 +79,13 @@ evalExpr :: forall m arch exts fmt w
          -> Expr arch fmt w  -- ^ Expression to be evaluated
          -> m (BitVector w)
 evalExpr (Operands _ operands) _ (OperandExpr p) = return (operands !! p)
-evalExpr _ _ PCRead = getPC
+evalExpr _ _ ReadPC = getPC
 evalExpr _ ib InstBytes = return $ bitVector ib
-evalExpr operands ib (RegRead ridE) =
+evalExpr operands ib (ReadReg ridE) =
   evalExpr operands ib ridE >>= getReg
-evalExpr operands ib (MemRead addrE) =
+evalExpr operands ib (ReadMem addrE) =
   evalExpr operands ib addrE >>= getMem
+evalExpr _ _ ReadPriv = getPriv
 evalExpr operands ib (AppExpr bvApp) =
   evalBVAppM (evalExpr operands ib) bvApp
 
@@ -90,6 +95,9 @@ execStmt :: (RVState m arch exts, KnownArch arch)
          -> Integer       -- ^ Instruction width (in bytes)
          -> Stmt arch fmt -- ^ Statement to be executed
          -> m ()
+execStmt operands ib (AssignPC pcE) = do
+  pcVal <- evalExpr operands ib pcE
+  setPC pcVal
 execStmt operands ib (AssignReg ridE e) = do
   rid  <- evalExpr operands ib ridE
   eVal <- evalExpr operands ib e
@@ -98,9 +106,9 @@ execStmt operands ib (AssignMem addrE e) = do
   addr <- evalExpr operands ib addrE
   eVal <- evalExpr operands ib e
   setMem addr eVal
-execStmt operands ib (AssignPC pcE) = do
-  pcVal <- evalExpr operands ib pcE
-  setPC pcVal
+execStmt operands ib (AssignPriv privE) = do
+  privVal <- evalExpr operands ib privE
+  setPriv privVal
 -- TODO: How do we want to throw exceptions?
 execStmt operands ib (RaiseException cond e) = do
   condVal <- evalExpr operands ib cond
@@ -136,11 +144,11 @@ stepRV iset = do
 runRV :: forall m arch exts
          . (RVState m arch exts, KnownArch arch, KnownExtensions exts)
       => Int
-      -> m ()
-runRV = runRV' knownISet
-  where runRV' _ i | i <= 0 = return ()
-        runRV' iset i = do
+      -> m Int
+runRV = runRV' knownISet 0
+  where runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
+        runRV' iset currSteps maxSteps = do
           e <- exceptionStatus
           case e of
-            Just _ -> return ()
-            Nothing -> stepRV iset >> runRV' iset (i-1)
+            Just _ -> return currSteps
+            Nothing -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
