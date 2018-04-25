@@ -1,0 +1,68 @@
+
+fact64:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+00000000000100b0 <_start>:
+   100b0:	00000113          	li	sp,0
+   100b4:	00900137          	lui	sp,0x900
+   100b8:	05c000ef          	jal	ra,10114 <main>
+   100bc:	00000073          	ecall
+
+00000000000100c0 <fact>:
+   100c0:	fd010113          	addi	sp,sp,-48 # 8fffd0 <__global_pointer$+0x8ee688>
+   100c4:	02813423          	sd	s0,40(sp)
+   100c8:	03010413          	addi	s0,sp,48
+   100cc:	fca43c23          	sd	a0,-40(s0)
+   100d0:	00100793          	li	a5,1
+   100d4:	fef43423          	sd	a5,-24(s0)
+   100d8:	0200006f          	j	100f8 <fact+0x38>
+   100dc:	fe843703          	ld	a4,-24(s0)
+   100e0:	fd843783          	ld	a5,-40(s0)
+   100e4:	02f707b3          	mul	a5,a4,a5
+   100e8:	fef43423          	sd	a5,-24(s0)
+   100ec:	fd843783          	ld	a5,-40(s0)
+   100f0:	fff78793          	addi	a5,a5,-1
+   100f4:	fcf43c23          	sd	a5,-40(s0)
+   100f8:	fd843783          	ld	a5,-40(s0)
+   100fc:	fef040e3          	bgtz	a5,100dc <fact+0x1c>
+   10100:	fe843783          	ld	a5,-24(s0)
+   10104:	00078513          	mv	a0,a5
+   10108:	02813403          	ld	s0,40(sp)
+   1010c:	03010113          	addi	sp,sp,48
+   10110:	00008067          	ret
+
+0000000000010114 <main>:
+   10114:	ff010113          	addi	sp,sp,-16
+   10118:	00113423          	sd	ra,8(sp)
+   1011c:	00813023          	sd	s0,0(sp)
+   10120:	01010413          	addi	s0,sp,16
+   10124:	01400793          	li	a5,20
+   10128:	00078513          	mv	a0,a5
+   1012c:	f95ff0ef          	jal	ra,100c0 <fact>
+   10130:	00050793          	mv	a5,a0
+   10134:	00078513          	mv	a0,a5
+   10138:	00813083          	ld	ra,8(sp)
+   1013c:	00013403          	ld	s0,0(sp)
+   10140:	01010113          	addi	sp,sp,16
+   10144:	00008067          	ret
+
+Disassembly of section .sdata:
+
+0000000000011148 <INPUT>:
+   11148:	0014                	0x14
+   1114a:	0000                	unimp
+   1114c:	0000                	unimp
+	...
+
+Disassembly of section .comment:
+
+0000000000000000 <.comment>:
+   0:	3a434347          	fmsub.d	ft6,ft6,ft4,ft7,rmm
+   4:	2820                	fld	fs0,80(s0)
+   6:	29554e47          	fmsub.s	ft8,fa0,fs5,ft5,rmm
+   a:	3720                	fld	fs0,104(a4)
+   c:	322e                	fld	ft4,232(sp)
+   e:	302e                	fld	ft0,232(sp)
+	...
