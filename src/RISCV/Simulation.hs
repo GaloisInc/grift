@@ -47,16 +47,19 @@ class (Monad m) => RVState m (arch :: BaseArch) (exts :: Extensions) | m -> arch
   getReg  :: BitVector 5 -> m (BitVector (ArchWidth arch))
   -- | Read a single byte from memory.
   getMem  :: BitVector (ArchWidth arch) -> m (BitVector 8)
+  -- | Get the value of a CSR.
+  getCSR  :: BitVector 12 -> m (BitVector (ArchWidth arch))
   -- | Get the current privilege level.
   getPriv :: m (BitVector 2)
 
   -- | Set the PC.
   setPC   :: BitVector (ArchWidth arch) -> m ()
-  -- | Write to a register. Note that for all valid implementations, we require that
-  -- setReg 0 = return ().
+  -- | Write to a register.
   setReg  :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
   -- | Write a single byte to memory.
   setMem  :: BitVector (ArchWidth arch) -> BitVector 8 -> m ()
+  -- | Write to a CSR.
+  setCSR  :: BitVector 12 -> BitVector (ArchWidth arch) -> m ()
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
 

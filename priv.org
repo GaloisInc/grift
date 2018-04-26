@@ -1,6 +1,20 @@
 Summary of/thoughts on privileged ISA
 
 * high-level
+** putting stuff in semantics vs. simulation
+In general, unless something is *really* easy to bake into the semantics and
+there's a good reason for it (i.e. it's something that's clearly not supposed to
+be implementation-defined), it is probably good practice to leave it out of the
+semantics. For example, some CSRs are not required to be implemented but may be
+hardwired to 0, but this is dependent on the particular CSR. In order to check
+this in the semantics, we'd have to check the CSR address, and if it were equal
+to one of the addresses that is optional, we'd have to have a mechanism to check
+whether that particular CSR were implemented. In short, it'd be real hairy to
+bake that into the semantics.
+
+At any point in the future, it'd be simple enough to selectively push some
+things to the semantics, but it's best to leave anything that's not clearly a
+win out of it.
 ** traps
 What exactly happens when a trap occurs, either interrupt or exception?
 
@@ -20,6 +34,20 @@ the constant 0.
 Assuming we want to model the above, we may also want to model the individual
 fields read/write-ness.
 
+* plan
+** implement getting/setting CSRs
+... in both semantics and csr* instructions. For now, we may punt on whether to
+check permissions against the privilege level and the type of instruction, but
+that's probably something we do want to model in the semantics. If a CSR does
+not exist, we're supposed to throw an illegal instruction exception, but given
+that implementations may be allowed to implement additional nonstandard CSRs, it
+may not make sense to bake that into the semantics.
+** implement traps in semantics
+Follow MIT's semantics for this, which look mostly correct.
+** implement certain CSRs in simulation
+In particular, mtval, mpp, mepc, and mcause. Later we can define misa and
+mstatus.
+** Add SExt and UExt to extension hierarchy.
 * misa
 
 ** # Bits : XLEN

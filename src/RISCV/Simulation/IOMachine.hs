@@ -42,6 +42,8 @@ import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
+import qualified Data.Map as Map
+import           Data.Map (Map)
 
 import RISCV.Types
 import RISCV.Simulation

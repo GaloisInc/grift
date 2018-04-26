@@ -298,15 +298,81 @@ baseSemantics = Map.fromList
 
       raiseException (litBV 0b1) EnvironmentCall
 
-  -- TODO: Fence/csr instructions.
+  -- TODO: Fence instructions.
   -- , Pair Fence   undefined
   -- , Pair FenceI  undefined
-  -- , Pair Csrrw   undefined
-  -- , Pair Csrrs   undefined
-  -- , Pair Csrrc   undefined
-  -- , Pair Csrrwi  undefined
-  -- , Pair Csrrsi  undefined
-  -- , Pair Csrrci  undefined
+  , Pair Csrrw $ getFormula $ do
+      comment "Let t be the value of control and status register csr."
+      comment "Copy x[rs1] to the csr, then write t to x[rd]."
+
+      rd :< rs1 :< csr :< Nil <- operandEs
+      checkCSR (litBV 0b0 `ltuE` rs1) csr
+
+      t <- readCSR csr
+      x_rs1 <- readReg rs1
+
+      assignCSR csr x_rs1
+      assignReg rd t
+  , Pair Csrrs $ getFormula $ do
+      comment "Let t be the value of control and status register csr."
+      comment "Write the bitwise OR of t and x[rs1] to the csr, then write t to x[rd]."
+
+      rd :< rs1 :< csr :< Nil <- operandEs
+      checkCSR (litBV 0b0 `ltuE` rs1) csr
+
+      t <- readCSR csr
+      x_rs1 <- readReg rs1
+
+      assignCSR csr (x_rs1 `orE` t)
+      assignReg rd t
+  , Pair Csrrc $ getFormula $ do
+      comment "Let t be the value of control and status register csr."
+      comment "Write the bitwise AND of t and the ones' complement of x[rs1] to the csr."
+      comment "Then, write t to x[rd]."
+
+      rd :< rs1 :< csr :< Nil <- operandEs
+      checkCSR (litBV 0b0 `ltuE` rs1) csr
+
+      t <- readCSR csr
+      x_rs1 <- readReg rs1
+
+      assignCSR csr ((notE x_rs1) `andE` t)
+      assignReg rd t
+  , Pair Csrrwi $ getFormula $ do
+      comment "Copies the control and status register csr to x[rd]."
+      comment "Then, writes the five-bit zero-extended immediate zimm to the csr."
+
+      rd :< zimm :< csr :< Nil <- operandEs
+      checkCSR (litBV 0b1) csr
+
+      t <- readCSR csr
+
+      assignReg rd t
+      assignCSR csr (zextE zimm)
+  , Pair Csrrsi $ getFormula $ do
+      comment "Let t be the value of control and status register csr."
+      comment "Write the bitwise OR of t and the five-bit zero-extended immediate zimm to the csr."
+      comment "Then, write to to x[rd]."
+
+      rd :< zimm :< csr :< Nil <- operandEs
+      checkCSR (litBV 0b1) csr
+
+      t <- readCSR csr
+
+      assignCSR csr (zextE zimm `orE` t)
+      assignReg rd t
+  , Pair Csrrci $ getFormula $ do
+      comment "Let t be the value of control and status register csr."
+      comment "Write the bitwise AND of t and the ones' complement of the five-bit zero-extended zimm to the csr."
+      comment "Then, write t to x[rd]."
+
+      rd :< zimm :< csr :< Nil <- operandEs
+      checkCSR (litBV 0b1) csr
+
+      t <- readCSR csr
+
+      assignCSR csr (notE (zextE zimm) `andE` t)
+      assignReg rd t
 
   -- S type
   , Pair Sb $ getFormula $ do

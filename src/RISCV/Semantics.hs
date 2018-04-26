@@ -38,11 +38,13 @@ module RISCV.Semantics
   , readPC
   , readReg
   , readMem
+  , readCSR
   , readPriv
     -- ** State actions
+  , assignPC
   , assignReg
   , assignMem
-  , assignPC
+  , assignCSR
   , assignPriv
   , raiseException
   ) where
@@ -88,9 +90,10 @@ data Exception = EnvironmentCall
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
+  AssignPC   :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
   AssignReg  :: !(Expr arch fmt 5) -> !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
   AssignMem  :: !(Expr arch fmt (ArchWidth arch)) -> !(Expr arch fmt 8) -> Stmt arch fmt
-  AssignPC   :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
+  AssignCSR  :: !(Expr arch fmt 12) -> !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
   AssignPriv :: !(Expr arch fmt 2) -> Stmt arch fmt
   RaiseException :: !(Expr arch fmt 1) -> !Exception -> Stmt arch fmt
 
@@ -183,6 +186,12 @@ readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (ReadReg ridE)
 readMem :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt 8)
 readMem addr = return (ReadMem addr)
 
+-- | Read a value from a CSR.
+readCSR :: KnownArch arch
+        => Expr arch fmt 12
+        -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+readCSR csr = return (ReadCSR csr)
+
 -- | Read the current privilege level.
 readPriv :: FormulaBuilder arch fmt (Expr arch fmt 2)
 readPriv = return ReadPriv
@@ -206,6 +215,12 @@ assignMem :: Expr arch fmt (ArchWidth arch)
           -> Expr arch fmt 8
           -> FormulaBuilder arch fmt ()
 assignMem addr val = addStmt (AssignMem addr val)
+
+-- | Add a CSR assignment to the formula.
+assignCSR :: Expr arch fmt 12
+          -> Expr arch fmt (ArchWidth arch)
+          -> FormulaBuilder arch fmt ()
+assignCSR addr val = addStmt (AssignCSR addr val)
 
 -- | Add a privilege assignment to the formula.
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()

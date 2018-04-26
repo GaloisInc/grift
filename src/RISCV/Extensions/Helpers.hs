@@ -1,3 +1,4 @@
+{-# LANGUAGE BinaryLiterals      #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE RankNTypes          #-}
@@ -25,6 +26,7 @@ module RISCV.Extensions.Helpers
   , l, s, b
   , readMem16, readMem32, readMem64
   , assignMem16, assignMem32, assignMem64
+  , checkCSR
   ) where
 
 import Data.BitVector.Sized.App
@@ -193,3 +195,14 @@ b cmp = do
 
   assignPC (iteE (x_rs1 `cmp` x_rs2) (pc `addE` sextE (offset `sllE` litBV 1)) (pc `addE` zextE ib))
 
+-- | Check if a csr is accessible. The Boolean argument should be true if we need
+-- write access, False if we are accessing in a read-only fashion.
+checkCSR :: KnownArch arch => Expr arch fmt 1 -> Expr arch fmt 12 -> FormulaBuilder arch fmt ()
+checkCSR write csr = do
+  priv <- readPriv
+  let csrPriv = extractEWithRepr (knownNat @2) 10 csr
+  let csrRW   = extractEWithRepr (knownNat @2) 8 csr
+
+  let csrOK = (csrPriv `ltuE` priv) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
+
+  raiseException (notE csrOK) IllegalInstruction
