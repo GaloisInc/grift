@@ -42,6 +42,8 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
+import Debug.Trace (traceM)
+
 -- | State monad for simulating RISC-V code
 class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
   -- | Get the current PC.
@@ -140,7 +142,9 @@ execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (Mem addr) val) = setMem addr val
-execAssignment (Assignment (CSR csr) val) = setCSR csr val
+execAssignment (Assignment (CSR csr) val) = do
+  traceM $ "CSR[" ++ show csr ++ "] := " ++ show val
+  setCSR csr val
 execAssignment (Assignment Priv val) = setPriv val
 execAssignment (Branch condVal tAssignments fAssignments) =
   case condVal of
@@ -186,8 +190,8 @@ stepRV iset = do
 -- | Check whether the machine has halted.
 isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
 isHalted = do
-  mtVec <- getCSR (csrAddr MCause)
-  return (mtVec == 0)
+  mcause <- getCSR (csrAddr MCause)
+  return (mcause == 2 || mcause == 3 || mcause == 8)
 
 -- | Run for a given number of steps.
 runRV :: forall m arch exts

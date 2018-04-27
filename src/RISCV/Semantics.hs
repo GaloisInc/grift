@@ -269,7 +269,7 @@ getMCause IllegalInstruction = 2
 getMCause Breakpoint         = 3
 getMCause LoadAccessFault    = 5
 getMCause StoreAccessFault   = 7
-getMCause EnvironmentCall    = 8
+getMCause EnvironmentCall    = 11 -- This is only true for M mode.
 
 data CSR = MVendorID
          | MArchID

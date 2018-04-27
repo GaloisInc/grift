@@ -153,7 +153,8 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
     csrMap  <- lift $ readIORef csrsRef
     case Map.member csr csrMap of
       True -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap)
-      False -> return () -- TODO: throw exception in this case
+      False -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap) -- TODO:
+               -- throw exception in this case
   setPriv privVal = IOMachineM $ do
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
