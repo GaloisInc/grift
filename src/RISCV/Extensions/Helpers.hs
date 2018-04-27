@@ -197,13 +197,18 @@ b cmp = do
 
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
-checkCSR :: KnownArch arch => Expr arch fmt 1 -> Expr arch fmt 12 -> FormulaBuilder arch fmt ()
-checkCSR write csr = do
+checkCSR :: KnownArch arch
+         => Expr arch fmt 1
+         -> Expr arch fmt 12
+         -> FormulaBuilder arch fmt ()
+         -> FormulaBuilder arch fmt ()
+checkCSR write csr rst = do
   priv <- readPriv
   let csrPriv = extractEWithRepr (knownNat @2) 10 csr
   let csrRW   = extractEWithRepr (knownNat @2) 8 csr
-
   let csrOK = (csrPriv `ltuE` priv) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
 
-  raiseException (notE csrOK) IllegalInstruction
+  branch (notE csrOK)
+    $> raiseException IllegalInstruction
+    $> rst
 

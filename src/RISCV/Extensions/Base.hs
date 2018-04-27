@@ -249,17 +249,18 @@ baseSemantics = Map.fromList
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
-      -- Check that the control bits are all zero.
-      raiseException (notE (ctrl `eqE` litBV 0b00000)) IllegalInstruction
-
-      -- Check that the shift amount is within the architecture width.
       let archWidth  = knownNat @(ArchWidth arch)
           shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
-      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
-      -- Perform the left logical shift.
-      assignReg rd $ x_rs1 `sllE` zextE shamt
-      incrPC
+      let ctrlBad  = notE (ctrl `eqE` litBV 0b00000)
+          shamtBad = notE (shamt `ltuE` shiftBound)
+
+      -- Check that the control bits are all zero.
+
+      branch (ctrlBad `orE` shamtBad)
+        $> raiseException IllegalInstruction
+        $> do assignReg rd $ x_rs1 `sllE` zextE shamt
+              incrPC
 
   , Pair Sri $ getFormula $ do
       comment "Shifts register x[rs1] right (arithmetic or logical) by shamt bit positions."
@@ -276,27 +277,29 @@ baseSemantics = Map.fromList
       let lShift = ctrl `eqE` litBV 0b00000
           aShift = ctrl `eqE` litBV 0b01000
 
-      -- Check that the control bits are valid.
-      raiseException (notE (lShift `orE` aShift)) IllegalInstruction
 
       -- Check that the shift amount is within the architecture width.
       let archWidth = knownNat @(ArchWidth arch)
           shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
-      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
-      -- Perform the right logical/arithmetic shift.
+      let ctrlBad  = notE (lShift `orE` aShift)
+          shamtBad = notE (shamt `ltuE` shiftBound)
+
       let zext_shamt = zextE shamt
           result_l   = x_rs1 `srlE` zext_shamt
           result_r   = x_rs1 `sraE` zext_shamt
-      assignReg rd $ iteE lShift result_l result_r
-      incrPC
+
+      branch (ctrlBad `orE` shamtBad)
+        $> raiseException IllegalInstruction
+        $> do assignReg rd $ iteE lShift result_l result_r
+              incrPC
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
   -- EnvironmentBreak exception.
   , Pair Ecb $ getFormula $ do
       comment "Makes a request of the execution environment or the debugger."
 
-      raiseException (litBV 0b1) EnvironmentCall
+      raiseException EnvironmentCall
 
   -- TODO: Fence instructions.
   -- , Pair Fence   undefined
@@ -306,73 +309,70 @@ baseSemantics = Map.fromList
       comment "Copy x[rs1] to the csr, then write t to x[rd]."
 
       rd :< rs1 :< csr :< Nil <- operandEs
-      checkCSR (litBV 0b0 `ltuE` rs1) csr
 
       t <- readCSR csr
       x_rs1 <- readReg rs1
 
-      assignCSR csr x_rs1
-      assignReg rd t
+      checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
+        assignCSR csr x_rs1
+        assignReg rd t
   , Pair Csrrs $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and x[rs1] to the csr, then write t to x[rd]."
 
       rd :< rs1 :< csr :< Nil <- operandEs
-      checkCSR (litBV 0b0 `ltuE` rs1) csr
 
       t <- readCSR csr
       x_rs1 <- readReg rs1
 
-      assignCSR csr (x_rs1 `orE` t)
-      assignReg rd t
+      checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
+        assignCSR csr (x_rs1 `orE` t)
+        assignReg rd t
   , Pair Csrrc $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of x[rs1] to the csr."
       comment "Then, write t to x[rd]."
 
       rd :< rs1 :< csr :< Nil <- operandEs
-      checkCSR (litBV 0b0 `ltuE` rs1) csr
 
       t <- readCSR csr
       x_rs1 <- readReg rs1
 
-      assignCSR csr ((notE x_rs1) `andE` t)
-      assignReg rd t
+      checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
+        assignCSR csr ((notE x_rs1) `andE` t)
+        assignReg rd t
   , Pair Csrrwi $ getFormula $ do
       comment "Copies the control and status register csr to x[rd]."
       comment "Then, writes the five-bit zero-extended immediate zimm to the csr."
 
       rd :< zimm :< csr :< Nil <- operandEs
-      checkCSR (litBV 0b1) csr
-
       t <- readCSR csr
 
-      assignReg rd t
-      assignCSR csr (zextE zimm)
+      checkCSR (litBV 0b1) csr $ do
+        assignReg rd t
+        assignCSR csr (zextE zimm)
   , Pair Csrrsi $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and the five-bit zero-extended immediate zimm to the csr."
       comment "Then, write to to x[rd]."
 
       rd :< zimm :< csr :< Nil <- operandEs
-      checkCSR (litBV 0b1) csr
-
       t <- readCSR csr
 
-      assignCSR csr (zextE zimm `orE` t)
-      assignReg rd t
+      checkCSR (litBV 0b1) csr $ do
+        assignCSR csr (zextE zimm `orE` t)
+        assignReg rd t
   , Pair Csrrci $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of the five-bit zero-extended zimm to the csr."
       comment "Then, write t to x[rd]."
 
       rd :< zimm :< csr :< Nil <- operandEs
-      checkCSR (litBV 0b1) csr
-
       t <- readCSR csr
 
-      assignCSR csr (notE (zextE zimm) `andE` t)
-      assignReg rd t
+      checkCSR (litBV 0b1) csr $ do
+        assignCSR csr (notE (zextE zimm) `andE` t)
+        assignReg rd t
 
   -- S type
   , Pair Sb $ getFormula $ do
@@ -451,7 +451,7 @@ baseSemantics = Map.fromList
   , Pair Illegal $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
 
-      raiseException (litBV 0b1) IllegalInstruction
+      raiseException IllegalInstruction
   ]
 
 base64Encode :: 64 <= ArchWidth arch => EncodeMap arch
@@ -537,16 +537,15 @@ base64Semantics = Map.fromList
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
-      -- Check that the control bits are all zero.
-      raiseException (notE (ctrl `eqE` litBV 0b00000)) IllegalInstruction
-
-      -- Check that the shift amount is within 5 bits.
       let shiftBound = litBV (bitVector 32 :: BitVector 7)
-      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
-      -- Perform the left logical shift.
-      assignReg rd $ x_rs1 `sllE` zextE shamt
-      incrPC
+      let ctrlBad  = notE (ctrl `eqE` litBV 0b00000)
+          shiftBad = notE (shamt `ltuE` shiftBound)
+
+      branch (ctrlBad `orE` shiftBad)
+        $> raiseException IllegalInstruction
+        $> do assignReg rd $ x_rs1 `sllE` zextE shamt
+              incrPC
 
   -- TODO: Correct this
   , Pair Sriw $ getFormula $ do
@@ -564,18 +563,19 @@ base64Semantics = Map.fromList
       let lShift = ctrl `eqE` litBV 0b00000
           aShift = ctrl `eqE` litBV 0b01000
 
-      -- Check that the control bits are valid.
-      raiseException (notE (lShift `orE` aShift)) IllegalInstruction
-
-      -- Check that the shift amount is within the architecture width.
       let shiftBound = litBV (bitVector 32 :: BitVector 7)
-      raiseException (notE (shamt `ltuE` shiftBound)) IllegalInstruction
 
-      -- Perform the right logical/arithmetic shift.
+      let ctrlBad  = notE (lShift `orE` aShift)
+          shiftBad = notE (shamt `ltuE` shiftBound)
+
       let result_l = x_rs1 `srlE` zextE shamt
           result_r = x_rs1 `sraE` zextE shamt
-      assignReg rd $ iteE lShift result_l result_r
-      incrPC
+
+      branch (ctrlBad `orE` shiftBad)
+        $> raiseException IllegalInstruction
+        $> do assignReg rd $ iteE lShift result_l result_r
+              incrPC
+
   , Pair Sd $ getFormula $ do
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."

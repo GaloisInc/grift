@@ -5,6 +5,7 @@
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE TypeApplications           #-}
 
 {-|
 Module      : RISCV.Semantics
@@ -20,10 +21,9 @@ instructions.
 -}
 
 module RISCV.Semantics
-  ( -- * Types
+  ( -- * Types for semantic formulas
     LocExpr(..)
   , Expr(..)
-  , Exception(..)
   , Stmt(..)
   , Formula, fComments, fDefs
     -- * FormulaBuilder monad
@@ -48,11 +48,16 @@ module RISCV.Semantics
   , assignCSR
   , assignPriv
   , branch
+  -- ** Exceptions
+  , Exception(..)
   , raiseException
+  -- * Convenience
+  , ($>)
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
+import Data.BitVector.Sized
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as Seq
@@ -87,13 +92,6 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
--- | Runtime exception. This is a convenience type for
-data Exception = EnvironmentCall
-               | Breakpoint
-               | IllegalInstruction
-               | MemoryAccessError
-  deriving (Show)
-
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
 -- appropriate width.
@@ -105,7 +103,6 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
              -> !(Seq (Stmt arch fmt))
              -> !(Seq (Stmt arch fmt))
              -> Stmt arch fmt
-  RaiseException :: !(Expr arch fmt 1) -> !Exception -> Stmt arch fmt
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- operands (potentially zero), which represent the input to the formula. These are
@@ -236,6 +233,12 @@ assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
+-- | A convience
+($>) :: (a -> b) -> a -> b
+($>) = ($)
+
+infixl 0 $>
+
 -- | Add a branch statement to the formula. Note that comments in the subformulas
 -- will be ignored.
 branch :: Expr arch fmt 1
@@ -247,6 +250,100 @@ branch e fbTrue fbFalse = do
       fFalse = getFormula fbFalse ^. fDefs
   addStmt (BranchStmt e fTrue fFalse)
 
--- | Conditionally raise an exception.
-raiseException :: Expr arch fmt 1 -> Exception -> FormulaBuilder arch fmt ()
-raiseException cond e = addStmt (RaiseException cond e)
+-- TODO: Annotate appropriate exceptions with an Mcause.
+-- | Runtime exception. This is a convenience type for calls to 'raiseException'.
+data Exception = EnvironmentCall
+               | Breakpoint
+               | IllegalInstruction
+               | LoadAccessFault
+               | StoreAccessFault
+  deriving (Show)
+
+interruptBV :: forall w . KnownNat w => BitVector w
+interruptBV = 1 `bvShiftL` fromIntegral (natValue (knownNat @w) - 1)
+
+getMCause :: KnownNat w => Exception -> BitVector w
+getMCause IllegalInstruction = 2
+getMCause Breakpoint         = 3
+getMCause LoadAccessFault    = 5
+getMCause StoreAccessFault   = 7
+getMCause EnvironmentCall    = 8
+
+data CSR = MVendorID
+         | MArchID
+         | MImpID
+         | MHartID
+         | MStatus
+         | MISA
+         | MEDeleg
+         | MIDeleg
+         | MIE
+         | MTVec
+         | MCounterEn
+         | MScratch
+         | MEPC
+         | MCause
+         | MTVal
+         | MIP
+         -- Skipping PMP registers
+         | MCycle
+         | MInstRet
+         -- Skipping MHPM counters
+         | MCycleh
+         | MInstReth
+         -- Skipping MHPMh counters
+         -- Skipping MHPMEvents
+         -- Skipping debug/trace registers
+         -- Skipping debug mode registers
+
+csrAddr :: CSR -> BitVector 12
+
+csrAddr MVendorID  = 0xF11
+csrAddr MArchID    = 0xF12
+csrAddr MImpID     = 0xF13
+csrAddr MHartID    = 0xF14
+
+csrAddr MStatus    = 0x300
+csrAddr MISA       = 0x301
+csrAddr MEDeleg    = 0x302
+csrAddr MIDeleg    = 0x303
+csrAddr MIE        = 0x304
+csrAddr MTVec      = 0x305
+csrAddr MCounterEn = 0x306
+
+csrAddr MScratch   = 0x340
+csrAddr MEPC       = 0x341
+csrAddr MCause     = 0x342
+csrAddr MTVal      = 0x343
+csrAddr MIP        = 0x344
+
+csrAddr MCycle     = 0xB00
+csrAddr MInstRet   = 0xB02
+csrAddr MCycleh    = 0xB80
+csrAddr MInstReth  = 0xB82
+
+data Privilege = MPriv | SPriv | UPriv
+
+getPrivCode :: Privilege -> BitVector 2
+getPrivCode MPriv = 3
+getPrivCode SPriv = 1
+getPrivCode UPriv = 0
+
+-- | Raise an exception.
+raiseException :: KnownArch arch => Exception -> FormulaBuilder arch fmt ()
+raiseException e = do
+  pc    <- readPC
+  priv  <- readPriv
+  mtVec <- readCSR (litBV $ csrAddr MTVec)
+  mstatus <- readCSR (litBV $ csrAddr MStatus)
+
+  let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
+      mcause = getMCause e
+
+  assignPriv (litBV $ getPrivCode MPriv)
+  assignCSR (litBV $ csrAddr MTVal) (litBV 0) -- TODO: actually thread info in here
+  assignCSR (litBV $ csrAddr MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
+  assignCSR (litBV $ csrAddr MEPC) pc
+  assignCSR (litBV $ csrAddr MCause) (litBV mcause)
+
+  assignPC mtVecBase

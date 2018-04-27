@@ -109,7 +109,7 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
                  return byte
       False -> do
         eRef <- ioException <$> ask
-        lift $ writeIORef eRef (Just MemoryAccessError)
+        lift $ writeIORef eRef (Just LoadAccessFault)
         return 0
   getPriv = IOMachineM $ do
     privRef <- ioPriv <$> ask
@@ -135,18 +135,10 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
       True -> lift $ writeArray memArray addr byte
       False -> do
         eRef <- ioException <$> ask
-        lift $ writeIORef eRef (Just MemoryAccessError)
+        lift $ writeIORef eRef (Just StoreAccessFault)
   setPriv privVal = IOMachineM $ do
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
-
-  throwException e = IOMachineM $ do
-    eRef <- ioException <$> ask
-    lift $ writeIORef eRef (Just e)
-
-  exceptionStatus = IOMachineM $ do
-    eRef <- ioException <$> ask
-    lift $ readIORef eRef
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: IOMachine arch exts

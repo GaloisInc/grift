@@ -67,8 +67,8 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
 
-  throwException :: Exception -> m ()
-  exceptionStatus :: m (Maybe Exception)
+  -- | Check whether the machine has halted.
+  isHalted :: m Bool
 
 -- | Evaluate a 'Expr', given an 'RVStateM' implementation.
 evalExpr :: forall m arch exts fmt w
@@ -109,8 +109,6 @@ data Loc arch w where
 data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
   Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
-  -- | This is a placeholder and will be removed.
-  Throw :: BitVector 1 -> Exception -> Assignment arc
 
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                 => Operands fmt
@@ -140,9 +138,6 @@ buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
   tAssignments <- traverse (buildAssignment operands ib) tStmts
   fAssignments <- traverse (buildAssignment operands ib) fStmts
   return (Branch condVal tAssignments fAssignments)
-buildAssignment operands ib (RaiseException condE e) = do
-  condVal <- evalExpr operands ib condE
-  return (Throw condVal e)
 
 execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m ()
 execAssignment (Assignment PC val) = setPC val
@@ -154,10 +149,6 @@ execAssignment (Branch condVal tAssignments fAssignments) =
   case condVal of
     1 -> traverse_ execAssignment tAssignments
     _ -> traverse_ execAssignment fAssignments
-execAssignment (Throw condVal e) =
-  case condVal of
-    1 -> throwException e
-    _ -> return ()
 
 -- | execute a formula, given an 'RVStateM' implementation. This function represents
 -- the "execute" state in a fetch\/decode\/execute sequence.
@@ -203,7 +194,7 @@ runRV :: forall m arch exts
 runRV = runRV' knownISet 0
   where runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
         runRV' iset currSteps maxSteps = do
-          e <- exceptionStatus
-          case e of
-            Just _ -> return currSteps
-            Nothing -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
+          halted <- isHalted
+          case halted of
+            True  -> return currSteps
+            False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
