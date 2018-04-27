@@ -47,10 +47,11 @@ module RISCV.Semantics
   , assignMem
   , assignCSR
   , assignPriv
+  , branch
   , raiseException
   ) where
 
-import Control.Lens ( (%=), Simple, Lens, lens )
+import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
 import Data.Parameterized
 import Data.Parameterized.List
@@ -86,7 +87,7 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
--- | Runtime exception.
+-- | Runtime exception. This is a convenience type for
 data Exception = EnvironmentCall
                | Breakpoint
                | IllegalInstruction
@@ -97,7 +98,13 @@ data Exception = EnvironmentCall
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
+  -- | Assign a piece of state to a value.
   AssignStmt :: !(LocExpr arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
+  -- | If-then-else branch statement.
+  BranchStmt :: !(Expr arch fmt 1)
+             -> !(Seq (Stmt arch fmt))
+             -> !(Seq (Stmt arch fmt))
+             -> Stmt arch fmt
   RaiseException :: !(Expr arch fmt 1) -> !Exception -> Stmt arch fmt
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
@@ -228,6 +235,17 @@ assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 -- | Add a privilege assignment to the formula.
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
+
+-- | Add a branch statement to the formula. Note that comments in the subformulas
+-- will be ignored.
+branch :: Expr arch fmt 1
+       -> FormulaBuilder arch fmt ()
+       -> FormulaBuilder arch fmt ()
+       -> FormulaBuilder arch fmt ()
+branch e fbTrue fbFalse = do
+  let fTrue  = getFormula fbTrue  ^. fDefs
+      fFalse = getFormula fbFalse ^. fDefs
+  addStmt (BranchStmt e fTrue fFalse)
 
 -- | Conditionally raise an exception.
 raiseException :: Expr arch fmt 1 -> Exception -> FormulaBuilder arch fmt ()

@@ -27,15 +27,13 @@ module RISCV.Simulation
   ) where
 
 import Control.Lens ( (^.) )
-import Control.Monad ( forM_, when )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.Foldable
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
-import qualified Data.Sequence as Seq
-import           Data.Sequence (Seq)
+import Data.Sequence (Seq)
 import Prelude hiding ((!!))
 
 import RISCV.Decode
@@ -103,36 +101,14 @@ data Loc arch w where
   CSR :: BitVector 12 -> Loc arch (ArchWidth arch)
   Priv :: Loc arch 2
 
--- | Execute an assignment statement, given an 'RVStateM' implementation.
-execStmt :: (RVStateM m arch exts, KnownArch arch)
-         => Operands fmt  -- ^ Operands
-         -> Integer       -- ^ Instruction width (in bytes)
-         -> Stmt arch fmt -- ^ Statement to be executed
-         -> m ()
-execStmt operands ib (AssignStmt PCExpr pcE) = do
-  pcVal <- evalExpr operands ib pcE
-  setPC pcVal
-execStmt operands ib (AssignStmt (RegExpr ridE) e) = do
-  rid  <- evalExpr operands ib ridE
-  eVal <- evalExpr operands ib e
-  setReg rid eVal
-execStmt operands ib (AssignStmt (MemExpr addrE) e) = do
-  addr <- evalExpr operands ib addrE
-  eVal <- evalExpr operands ib e
-  setMem addr eVal
-execStmt operands ib (AssignStmt (CSRExpr csrE) e) = do
-  csr  <- evalExpr operands ib csrE
-  eVal <- evalExpr operands ib e
-  setCSR csr eVal
-execStmt operands ib (AssignStmt PrivExpr privE) = do
-  privVal <- evalExpr operands ib privE
-  setPriv privVal
-execStmt operands ib (RaiseException cond e) = do
-  condVal <- evalExpr operands ib cond
-  when (condVal == 1) $ throwException e
-
+-- | This type represents a concrete assignment statement, where the left-hand side
+-- is a known location and the right-hand side is a known BitVector value. Because we
+-- are still abstracting out the notion of throwing an exception, we also have a
+-- constructor for that; however, this will be removed once we wire exception
+-- handling into the semantics themselves.
 data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
+  Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
   -- | This is a placeholder and will be removed.
   Throw :: BitVector 1 -> Exception -> Assignment arc
 
@@ -159,8 +135,13 @@ buildAssignment operands ib (AssignStmt (CSRExpr csrE) e) = do
 buildAssignment operands ib (AssignStmt PrivExpr privE) = do
   privVal <- evalExpr operands ib privE
   return (Assignment Priv privVal)
-buildAssignment operands ib (RaiseException cond e) = do
-  condVal <- evalExpr operands ib cond
+buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
+  condVal <- evalExpr operands ib condE
+  tAssignments <- traverse (buildAssignment operands ib) tStmts
+  fAssignments <- traverse (buildAssignment operands ib) fStmts
+  return (Branch condVal tAssignments fAssignments)
+buildAssignment operands ib (RaiseException condE e) = do
+  condVal <- evalExpr operands ib condE
   return (Throw condVal e)
 
 execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m ()
@@ -169,6 +150,10 @@ execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (Mem addr) val) = setMem addr val
 execAssignment (Assignment (CSR csr) val) = setCSR csr val
 execAssignment (Assignment Priv val) = setPriv val
+execAssignment (Branch condVal tAssignments fAssignments) =
+  case condVal of
+    1 -> traverse_ execAssignment tAssignments
+    _ -> traverse_ execAssignment fAssignments
 execAssignment (Throw condVal e) =
   case condVal of
     1 -> throwException e
