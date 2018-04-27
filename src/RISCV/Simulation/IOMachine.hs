@@ -42,8 +42,6 @@ import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
-import qualified Data.Map as Map
-import           Data.Map (Map)
 
 import RISCV.Types
 import RISCV.Simulation
@@ -94,7 +92,7 @@ newtype IOMachineM (arch :: BaseArch) (exts :: Extensions) a =
   IOMachineM { runIOMachineM :: ReaderT (IOMachine arch exts) IO a }
   deriving (Functor, Applicative, Monad, R.MonadReader (IOMachine arch exts))
 
-instance KnownArch arch => RVState (IOMachineM arch exts) arch exts where
+instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
   getPC = IOMachineM $ do
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef

@@ -21,7 +21,7 @@ instructions.
 
 module RISCV.Semantics
   ( -- * Types
-    Loc(..)
+    LocExpr(..)
   , Expr(..)
   , Exception(..)
   , Stmt(..)
@@ -64,12 +64,15 @@ import RISCV.Types
 ----------------------------------------
 -- Expressions, statements, and formulas
 
-data Loc arch fmt w where
-  PC :: Loc arch fmt (ArchWidth arch)
-  Reg :: Expr arch fmt 5 -> Loc arch fmt (ArchWidth arch)
-  Mem :: Expr arch fmt (ArchWidth arch) -> Loc arch fmt 8
-  CSR :: Expr arch fmt 12 -> Loc arch fmt (ArchWidth arch)
-  Priv :: Loc arch fmt 2
+-- | This type represents an abstract component of the global state, and should be
+-- used both for building expressions in our expression language and for interpreting
+-- those expressions.
+data LocExpr arch fmt w where
+  PCExpr   ::                                   LocExpr arch fmt (ArchWidth arch)
+  RegExpr  :: Expr arch fmt 5                -> LocExpr arch fmt (ArchWidth arch)
+  MemExpr  :: Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt 8
+  CSRExpr  :: Expr arch fmt 12               -> LocExpr arch fmt (ArchWidth arch)
+  PrivExpr ::                                   LocExpr arch fmt 2
 
 -- | Expressions for computations over the RISC-V machine state.
 data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
@@ -78,12 +81,7 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   InstBytes :: Expr arch fmt (ArchWidth arch)
 
   -- Accessing state
-  LocExpr :: Loc arch fmt w -> Expr arch fmt w
-  -- ReadPC   :: Expr arch fmt (ArchWidth arch)
-  -- ReadReg  :: !(Expr arch fmt 5) -> Expr arch fmt (ArchWidth arch)
-  -- ReadMem  :: !(Expr arch fmt (ArchWidth arch)) -> Expr arch fmt 8
-  -- ReadCSR  :: !(Expr arch fmt 12) -> Expr arch fmt (ArchWidth arch)
-  -- ReadPriv :: Expr arch fmt 2
+  LocExpr :: LocExpr arch fmt w -> Expr arch fmt w
 
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
@@ -99,12 +97,7 @@ data Exception = EnvironmentCall
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
-  -- AssignPC   :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
-  -- AssignReg  :: !(Expr arch fmt 5) -> !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
-  -- AssignMem  :: !(Expr arch fmt (ArchWidth arch)) -> !(Expr arch fmt 8) -> Stmt arch fmt
-  -- AssignCSR  :: !(Expr arch fmt 12) -> !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
-  -- AssignPriv :: !(Expr arch fmt 2) -> Stmt arch fmt
-  Assign :: !(Loc arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
+  AssignStmt :: !(LocExpr arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
   RaiseException :: !(Expr arch fmt 1) -> !Exception -> Stmt arch fmt
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
@@ -184,27 +177,27 @@ instBytes = return InstBytes
 
 -- | Read the pc.
 readPC :: FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-readPC = return (LocExpr PC)
+readPC = return (LocExpr PCExpr)
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
 readReg :: KnownArch arch
         => Expr arch fmt 5
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (LocExpr (Reg ridE))
+readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (LocExpr (RegExpr ridE))
 
 -- | Read a byte from memory.
 readMem :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt 8)
-readMem addr = return (LocExpr (Mem addr))
+readMem addr = return (LocExpr (MemExpr addr))
 
 -- | Read a value from a CSR.
 readCSR :: KnownArch arch
         => Expr arch fmt 12
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-readCSR csr = return (LocExpr (CSR csr))
+readCSR csr = return (LocExpr (CSRExpr csr))
 
 -- | Read the current privilege level.
 readPriv :: FormulaBuilder arch fmt (Expr arch fmt 2)
-readPriv = return (LocExpr Priv)
+readPriv = return (LocExpr PrivExpr)
 
 -- | Add a statement to the formula.
 addStmt :: Stmt arch fmt -> FormulaBuilder arch fmt ()
@@ -212,29 +205,29 @@ addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
 
 -- | Add a PC assignment to the formula.
 assignPC :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
-assignPC pc = addStmt (Assign PC pc)
+assignPC pc = addStmt (AssignStmt PCExpr pc)
 
 -- | Add a register assignment to the formula.
 assignReg :: Expr arch fmt 5
           -> Expr arch fmt (ArchWidth arch)
           -> FormulaBuilder arch fmt ()
-assignReg r e = addStmt (Assign (Reg r) e)
+assignReg r e = addStmt (AssignStmt (RegExpr r) e)
 
 -- | Add a memory location assignment to the formula.
 assignMem :: Expr arch fmt (ArchWidth arch)
           -> Expr arch fmt 8
           -> FormulaBuilder arch fmt ()
-assignMem addr val = addStmt (Assign (Mem addr) val)
+assignMem addr val = addStmt (AssignStmt (MemExpr addr) val)
 
 -- | Add a CSR assignment to the formula.
 assignCSR :: Expr arch fmt 12
           -> Expr arch fmt (ArchWidth arch)
           -> FormulaBuilder arch fmt ()
-assignCSR csr val = addStmt (Assign (CSR csr) val)
+assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 
 -- | Add a privilege assignment to the formula.
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
-assignPriv priv = addStmt (Assign Priv priv)
+assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
 -- | Conditionally raise an exception.
 raiseException :: Expr arch fmt 1 -> Exception -> FormulaBuilder arch fmt ()
