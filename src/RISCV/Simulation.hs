@@ -92,6 +92,14 @@ evalExpr _ _ ReadPriv = getPriv
 evalExpr operands ib (AppExpr bvApp) =
   evalBVAppM (evalExpr operands ib) bvApp
 
+-- **** IMPORTANT TODO:
+-- The way we construct the semantics for instructions is considering them in
+-- isolation. Every read from state should refer to the state **before executing any
+-- part of the instruction.** Right now, we are not doing this correctly. We need to
+-- execute each *instruction* monolithically, interpreting each expression on the
+-- right hand side of a statement as referring to the initial state before executing
+-- the instruction.
+
 -- | Execute an assignment statement, given an 'RVState' implementation.
 execStmt :: (RVState m arch exts, KnownArch arch)
          => Operands fmt  -- ^ Operands
