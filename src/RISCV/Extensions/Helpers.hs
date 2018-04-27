@@ -206,3 +206,4 @@ checkCSR write csr = do
   let csrOK = (csrPriv `ltuE` priv) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
 
   raiseException (notE csrOK) IllegalInstruction
+

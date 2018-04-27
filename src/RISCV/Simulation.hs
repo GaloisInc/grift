@@ -112,7 +112,6 @@ execStmt operands ib (AssignMem addrE e) = do
 execStmt operands ib (AssignPriv privE) = do
   privVal <- evalExpr operands ib privE
   setPriv privVal
--- TODO: How do we want to throw exceptions?
 execStmt operands ib (RaiseException cond e) = do
   condVal <- evalExpr operands ib cond
   when (condVal == 1) $ throwException e
