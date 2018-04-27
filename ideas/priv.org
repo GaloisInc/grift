@@ -69,3 +69,11 @@ timer interrupt is thrown. I believe both registers are in fact writeable.
 
 My feeling is that this should mainly be handled on the simulation side,
 although we could provide a semantics for it as well.
+* access faults
+We can model access faults by returning a Maybe in simulation. Working that into
+semantics would be tricky, perhaps. One thing we could do would be to return an extra
+bit in the semantics, indicating whether there was an access fault or not. That's
+kind of ugly, but we could easily use a wrapper to hide it, throwing an exception if
+the bit was 1. Interesting idea. Alternatively, we could add a separate CheckAddr
+construct, which is basically an assert statement that the address is valid for
+load/store.

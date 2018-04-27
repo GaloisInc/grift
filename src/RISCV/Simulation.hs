@@ -67,9 +67,6 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
 
-  -- | Check whether the machine has halted.
-  isHalted :: m Bool
-
 -- | Evaluate a 'Expr', given an 'RVStateM' implementation.
 evalExpr :: forall m arch exts fmt w
             . (RVStateM m arch exts, KnownArch arch)
@@ -185,6 +182,12 @@ stepRV iset = do
 
   -- Execute
   execFormula operands 4 (semanticsFromOpcode iset opcode)
+
+-- | Check whether the machine has halted.
+isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
+isHalted = do
+  mtVec <- getCSR (csrAddr MCause)
+  return (mtVec == 0)
 
 -- | Run for a given number of steps.
 runRV :: forall m arch exts

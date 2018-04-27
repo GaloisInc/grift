@@ -42,16 +42,19 @@ import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
+import qualified Data.Map as Map
+import           Data.Map (Map)
 
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics (Exception(..))
+import RISCV.Semantics ( Exception(..) )
 
 -- | IO-based machine state.
 data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
   { ioPC        :: IORef (BitVector (ArchWidth arch))
   , ioRegisters :: IOArray (BitVector 5) (BitVector (ArchWidth arch))
   , ioMemory    :: IOArray (BitVector (ArchWidth arch)) (BitVector 8)
+  , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (ArchWidth arch)))
   , ioPriv      :: IORef (BitVector 2)
   , ioMaxAddr   :: BitVector (ArchWidth arch)
   , ioException :: IORef (Maybe Exception)
@@ -77,13 +80,15 @@ mkIOMachine maxAddr entryPoint byteStrings = do
   pc        <- newIORef entryPoint
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
+  csrs      <- newIORef $ Map.fromList $
+    [ ]
   priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (IOMachine pc registers memory priv maxAddr e steps)
+  return (IOMachine pc registers memory csrs priv maxAddr e steps)
 
 -- | The 'IOMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -111,6 +116,13 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just LoadAccessFault)
         return 0
+  getCSR csr = IOMachineM $ do
+    csrsRef <- ioCSRs <$> ask
+    csrMap  <- lift $ readIORef csrsRef
+    let csrVal = case Map.lookup csr csrMap of
+          Just val -> val
+          Nothing  -> 0 -- TODO: throw exception in this case
+    return csrVal
   getPriv = IOMachineM $ do
     privRef <- ioPriv <$> ask
     privVal <- lift $ readIORef privRef
@@ -136,6 +148,12 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
       False -> do
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just StoreAccessFault)
+  setCSR csr csrVal = IOMachineM $ do
+    csrsRef <- ioCSRs <$> ask
+    csrMap  <- lift $ readIORef csrsRef
+    case Map.member csr csrMap of
+      True -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap)
+      False -> return () -- TODO: throw exception in this case
   setPriv privVal = IOMachineM $ do
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal

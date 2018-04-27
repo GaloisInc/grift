@@ -48,7 +48,9 @@ module RISCV.Semantics
   , assignCSR
   , assignPriv
   , branch
-  -- ** Exceptions
+  -- ** CSRs and Exceptions
+  , CSR(..)
+  , csrAddr
   , Exception(..)
   , raiseException
   -- * Convenience
