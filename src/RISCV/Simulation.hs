@@ -22,6 +22,10 @@ module RISCV.Simulation
   ( -- * State monad
     RVStateM(..)
   , evalExpr
+  , Loc(..)
+  , Assignment(..)
+  , buildAssignment
+  , execAssignment
   , execFormula
   , runRV
   ) where
@@ -109,6 +113,7 @@ data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
   Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
 
+-- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                 => Operands fmt
                 -> Integer
@@ -138,6 +143,7 @@ buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
   fAssignments <- traverse (buildAssignment operands ib) fStmts
   return (Branch condVal tAssignments fAssignments)
 
+-- | Execute an assignment.
 execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
@@ -151,7 +157,7 @@ execAssignment (Branch condVal tAssignments fAssignments) =
     1 -> traverse_ execAssignment tAssignments
     _ -> traverse_ execAssignment fAssignments
 
--- | execute a formula, given an 'RVStateM' implementation. This function represents
+-- | Execute a formula, given an 'RVStateM' implementation. This function represents
 -- the "execute" state in a fetch\/decode\/execute sequence.
 execFormula :: forall m arch fmt exts . (RVStateM m arch exts, KnownArch arch)
             => Operands fmt
