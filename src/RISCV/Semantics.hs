@@ -50,7 +50,7 @@ module RISCV.Semantics
   , branch
   -- ** CSRs and Exceptions
   , CSR(..)
-  , csrAddr
+  , encodeCSR
   , Exception(..)
   , raiseException
   -- * Convenience
@@ -235,7 +235,8 @@ assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
--- | A convience
+-- | Left-associative application (use with 'branch' to avoid parentheses around @do@
+-- notation)
 ($>) :: (a -> b) -> a -> b
 ($>) = ($)
 
@@ -271,6 +272,7 @@ getMCause LoadAccessFault    = 5
 getMCause StoreAccessFault   = 7
 getMCause EnvironmentCall    = 11 -- This is only true for M mode.
 
+-- | Abstract datatype for CSR.
 data CSR = MVendorID
          | MArchID
          | MImpID
@@ -298,31 +300,32 @@ data CSR = MVendorID
          -- Skipping debug/trace registers
          -- Skipping debug mode registers
 
-csrAddr :: CSR -> BitVector 12
+-- | Translate a CSR to its 'BitVector' code.
+encodeCSR :: CSR -> BitVector 12
 
-csrAddr MVendorID  = 0xF11
-csrAddr MArchID    = 0xF12
-csrAddr MImpID     = 0xF13
-csrAddr MHartID    = 0xF14
+encodeCSR MVendorID  = 0xF11
+encodeCSR MArchID    = 0xF12
+encodeCSR MImpID     = 0xF13
+encodeCSR MHartID    = 0xF14
 
-csrAddr MStatus    = 0x300
-csrAddr MISA       = 0x301
-csrAddr MEDeleg    = 0x302
-csrAddr MIDeleg    = 0x303
-csrAddr MIE        = 0x304
-csrAddr MTVec      = 0x305
-csrAddr MCounterEn = 0x306
+encodeCSR MStatus    = 0x300
+encodeCSR MISA       = 0x301
+encodeCSR MEDeleg    = 0x302
+encodeCSR MIDeleg    = 0x303
+encodeCSR MIE        = 0x304
+encodeCSR MTVec      = 0x305
+encodeCSR MCounterEn = 0x306
 
-csrAddr MScratch   = 0x340
-csrAddr MEPC       = 0x341
-csrAddr MCause     = 0x342
-csrAddr MTVal      = 0x343
-csrAddr MIP        = 0x344
+encodeCSR MScratch   = 0x340
+encodeCSR MEPC       = 0x341
+encodeCSR MCause     = 0x342
+encodeCSR MTVal      = 0x343
+encodeCSR MIP        = 0x344
 
-csrAddr MCycle     = 0xB00
-csrAddr MInstRet   = 0xB02
-csrAddr MCycleh    = 0xB80
-csrAddr MInstReth  = 0xB82
+encodeCSR MCycle     = 0xB00
+encodeCSR MInstRet   = 0xB02
+encodeCSR MCycleh    = 0xB80
+encodeCSR MInstReth  = 0xB82
 
 data Privilege = MPriv | SPriv | UPriv
 
@@ -336,16 +339,16 @@ raiseException :: KnownArch arch => Exception -> FormulaBuilder arch fmt ()
 raiseException e = do
   pc    <- readPC
   priv  <- readPriv
-  mtVec <- readCSR (litBV $ csrAddr MTVec)
-  mstatus <- readCSR (litBV $ csrAddr MStatus)
+  mtVec <- readCSR (litBV $ encodeCSR MTVec)
+  mstatus <- readCSR (litBV $ encodeCSR MStatus)
 
   let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
       mcause = getMCause e
 
   assignPriv (litBV $ getPrivCode MPriv)
-  assignCSR (litBV $ csrAddr MTVal) (litBV 0) -- TODO: actually thread info in here
-  assignCSR (litBV $ csrAddr MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
-  assignCSR (litBV $ csrAddr MEPC) pc
-  assignCSR (litBV $ csrAddr MCause) (litBV mcause)
+  assignCSR (litBV $ encodeCSR MTVal)   (litBV 0) -- TODO: actually thread info in here
+  assignCSR (litBV $ encodeCSR MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
+  assignCSR (litBV $ encodeCSR MEPC)    pc
+  assignCSR (litBV $ encodeCSR MCause)  (litBV mcause)
 
   assignPC mtVecBase

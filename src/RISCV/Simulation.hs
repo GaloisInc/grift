@@ -190,7 +190,7 @@ stepRV iset = do
 -- | Check whether the machine has halted.
 isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
 isHalted = do
-  mcause <- getCSR (csrAddr MCause)
+  mcause <- getCSR (encodeCSR MCause)
   return (mcause == 2 || mcause == 3 || mcause == 8)
 
 -- | Run for a given number of steps.

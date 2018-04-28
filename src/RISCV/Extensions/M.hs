@@ -66,7 +66,7 @@ m64Encode = Map.fromList
 mSemantics :: forall arch . KnownArch arch => SemanticsMap arch
 mSemantics = Map.fromList
   [ Pair Mul $ getFormula $ do
-      comment "Multiplies x[rs1] by x[rs2] and writes the product to x[rd]."
+      comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
       comment "Arithmetic ovexbrflow is ignored."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
@@ -74,47 +74,59 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      assignReg rd $ extractE 0 (x_rs1 `muluE` x_rs2)
+      assignReg rd $ extractE 0 (x_rs1 `mulE` x_rs2)
       incrPC
 
   , Pair Mulh $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
-      comment "Writes the upper half of the product in x[rd]."
+      comment "Writes the upper half of the prod in x[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
+      let sext_x_rs1 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs1
+          sext_x_rs2 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs2
+          prod = sext_x_rs1 `mulE` sextE sext_x_rs2
+
       let archWidth = knownNat @(ArchWidth arch)
-      assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsE` x_rs2)
+      assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
   , Pair Mulhsu $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2]."
       comment "Treats x[rs1] as a two's complement number and x[rs2] as an unsigned number."
-      comment "Writes the upper half of the product in x[rd]."
+      comment "Writes the upper half of the prod in x[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
+      let sext_x_rs1 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs1
+          zext_x_rs2 = zextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs2
+          prod = sext_x_rs1 `mulE` sextE zext_x_rs2
+
       let archWidth = knownNat @(ArchWidth arch)
-      assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `mulsuE` x_rs2)
+      assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
   , Pair Mulhu $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2], treating the values as unsigned numbers."
-      comment "Writes the upper half of the product in x[rd]."
+      comment "Writes the upper half of the prod in x[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
+      let zext_x_rs1 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs1
+          zext_x_rs2 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs2
+          prod = zext_x_rs1 `mulE` zextE zext_x_rs2
+
       let archWidth = knownNat @(ArchWidth arch)
-      assignReg rd $ extractE (fromIntegral $ natValue archWidth) (x_rs1 `muluE` x_rs2)
+      assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
   -- TODO: Handle division by 0 as specified in the manual
@@ -147,10 +159,10 @@ mSemantics = Map.fromList
 m64Semantics :: (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch
 m64Semantics = Map.fromList
   [ Pair Mulw $ getFormula $ do
-      comment "Multiples x[rs1] by x[rs2], truncating the product to 32 bits."
+      comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (muluE x y)
+      rOp32 $ \x y -> return (mulE x y)
   , Pair Divw $ getFormula $ do
       comment "Divides x[rs1] by x[rs2] as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
