@@ -1,0 +1,5 @@
+* Page 51 of the privilege spec says, "The sstatus register is a subset of the
+  mstatus register. In a straightforward implementation, reading or writing any field
+  in sstatus is equivalent to reading or writing the homonymous field in mstatus."
+  Does this mean sstatus is ALWAYS the same register as mstatus? If not, is the way
+  it's being modeled in the MIT and Bluespec Haskell specs too specific?

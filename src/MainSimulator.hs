@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 {-|
 Module      : MainSimulator
@@ -22,10 +24,12 @@ import           Data.Array.IArray
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
+import           Data.Parameterized
 import           System.Environment
 import           System.Exit
 import           Data.ElfEdit
 import           GHC.TypeLits
+import           System.FilePath.Posix
 
 import           RISCV.Types
 import           RISCV.Simulation.IOMachine
@@ -41,6 +45,7 @@ main = do
 
   let [stepStr, fileName] = args
       stepsToRun = read stepStr :: Int
+      log = replaceExtensions fileName "log"
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
@@ -53,6 +58,7 @@ main = do
       err       <- readIORef (ioException m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
+      insts     <- readIORef (ioInsts m)
 
       case err of
         Nothing -> return ()
@@ -73,6 +79,7 @@ main = do
       stepsRan  <- readIORef (ioSteps m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
+      insts     <- readIORef (ioInsts m)
 
       case err of
         Nothing -> return ()
@@ -83,6 +90,8 @@ main = do
       forM_ (assocs registers) $ \(r, v) ->
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
+      writeFile log ""
+      forM_ insts $ \(Some inst) -> appendFile log (show inst ++ "\n")
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

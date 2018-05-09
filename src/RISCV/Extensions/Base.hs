@@ -34,6 +34,7 @@ import Data.Parameterized.List
 import RISCV.Extensions.Helpers
 import RISCV.InstructionSet
 import RISCV.Semantics
+import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | RV32I/E base instruction set.

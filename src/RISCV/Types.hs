@@ -103,11 +103,8 @@ type family ArchWidth (arch :: BaseArch) :: Nat where
   ArchWidth RV64I  = 64
   ArchWidth RV128I = 128
 
--- TODO: Is there any way we can avoid needing the KnownNat (ArchWidth arch)?
--- TODO: Ok now this is just fucking gross, I must fix it.
 -- | Everything we might need to know about a 'BaseArch' at compile time.
 type KnownArch arch = ( KnownNat (ArchWidth arch)
-                      , KnownNat (ArchWidth arch + ArchWidth arch)
                       , KnownRepr BaseArchRepr arch)
 
 -- Instances

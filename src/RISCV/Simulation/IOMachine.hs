@@ -44,10 +44,13 @@ import qualified Data.ByteString as BS
 import           Data.IORef
 import qualified Data.Map as Map
 import           Data.Map (Map)
+import           Data.Parameterized
+import qualified Data.Sequence as Seq
+import           Data.Sequence (Seq)
 
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics ( Exception(..) )
+import RISCV.Semantics.Exceptions
 
 -- | IO-based machine state.
 data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
@@ -59,6 +62,7 @@ data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
   , ioMaxAddr   :: BitVector (ArchWidth arch)
   , ioException :: IORef (Maybe Exception)
   , ioSteps     :: IORef Int
+  , ioInsts     :: IORef (Seq (Some (Instruction arch)))
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -85,10 +89,11 @@ mkIOMachine maxAddr entryPoint byteStrings = do
   priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
+  insts     <- newIORef Seq.empty
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (IOMachine pc registers memory csrs priv maxAddr e steps)
+  return (IOMachine pc registers memory csrs priv maxAddr e steps insts)
 
 -- | The 'IOMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -158,6 +163,11 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
   setPriv privVal = IOMachineM $ do
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
+
+  logInstruction inst = IOMachineM $ do
+    instsRef <- ioInsts <$> ask
+    insts <- lift $ readIORef instsRef
+    lift $ writeIORef instsRef (insts Seq.|> inst)
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: IOMachine arch exts

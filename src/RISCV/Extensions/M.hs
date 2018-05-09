@@ -74,7 +74,7 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      assignReg rd $ extractE 0 (x_rs1 `mulE` x_rs2)
+      assignReg rd (x_rs1 `mulE` x_rs2)
       incrPC
 
   , Pair Mulh $ getFormula $ do
@@ -86,11 +86,12 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      let sext_x_rs1 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs1
-          sext_x_rs2 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs2
-          prod = sext_x_rs1 `mulE` sextE sext_x_rs2
-
       let archWidth = knownNat @(ArchWidth arch)
+          mulWidth  = archWidth `addNat` archWidth
+          sext_x_rs1 = sextEWithRepr mulWidth x_rs1
+          sext_x_rs2 = sextEWithRepr mulWidth x_rs2
+          prod = sext_x_rs1 `mulE` sext_x_rs2
+
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
@@ -104,11 +105,12 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      let sext_x_rs1 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs1
-          zext_x_rs2 = zextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs2
-          prod = sext_x_rs1 `mulE` sextE zext_x_rs2
-
       let archWidth = knownNat @(ArchWidth arch)
+          mulWidth  = archWidth `addNat` archWidth
+          sext_x_rs1 = sextEWithRepr mulWidth x_rs1
+          zext_x_rs2 = zextEWithRepr mulWidth x_rs2
+          prod = sext_x_rs1 `mulE` zext_x_rs2
+
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
@@ -121,11 +123,12 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      let zext_x_rs1 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs1
-          zext_x_rs2 = sextEWithRepr (knownNat @ (ArchWidth arch + ArchWidth arch)) x_rs2
-          prod = zext_x_rs1 `mulE` zextE zext_x_rs2
-
       let archWidth = knownNat @(ArchWidth arch)
+          mulWidth  = archWidth `addNat` archWidth
+          zext_x_rs1 = sextEWithRepr mulWidth x_rs1
+          zext_x_rs2 = sextEWithRepr mulWidth x_rs2
+          prod = zext_x_rs1 `mulE` zext_x_rs2
+
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 

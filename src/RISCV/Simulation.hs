@@ -44,6 +44,7 @@ import RISCV.Decode
 import RISCV.Extensions
 import RISCV.InstructionSet
 import RISCV.Semantics
+import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 import Debug.Trace (traceM)
@@ -72,6 +73,9 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   setCSR  :: BitVector 12 -> BitVector (ArchWidth arch) -> m ()
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
+
+  -- | Log the execution of a particular instruction.
+  logInstruction :: Some (Instruction arch) -> m ()
 
 -- | Evaluate a 'Expr', given an 'RVStateM' implementation.
 evalExpr :: forall m arch exts fmt w
@@ -188,7 +192,10 @@ stepRV iset = do
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-  Some (Inst opcode operands) <- return $ decode iset instBV
+  inst@(Some (Inst opcode operands)) <- return $ decode iset instBV
+
+  -- Log instruction
+  logInstruction inst
 
   -- Execute
   execFormula operands 4 (semanticsFromOpcode iset opcode)
@@ -211,3 +218,4 @@ runRV = runRV' knownISet 0
           case halted of
             True  -> return currSteps
             False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
+

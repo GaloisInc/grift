@@ -1,63 +1,63 @@
 digraph G {
 size="6,4";
 ratio="fill";
-u10[label="Main",style="filled",fillcolor="#bbffbb",penwidth="0"];
+u0[label="Main",style="filled",fillcolor="#bbffbb",penwidth="0"];
 subgraph cluster_0 {
 label="RISCV";
 color="#0000000F";
 style="filled";
-u0[label="Decode",style="filled",fillcolor="#ffffbb",penwidth="0"];
-u1[label="InstructionSet",style="filled",fillcolor="#ffffbb",penwidth="0"];
-u2[label="Semantics",style="filled",fillcolor="#ffffbb",penwidth="0"];
-u3[label="Types",style="filled",fillcolor="#ffffbb",penwidth="0"];
+u1[label="Decode",style="filled",fillcolor="#ffffbb",penwidth="0"];
+u6[label="InstructionSet",style="filled",fillcolor="#ffffbb",penwidth="0"];
+u7[label="Semantics",style="filled",fillcolor="#ffffbb",penwidth="0"];
+u10[label="Types",style="filled",fillcolor="#ffffbb",penwidth="0"];
 subgraph cluster_1 {
 label="Extensions";
 color="#0000000F";
 style="filled";
-u4[label="Extensions",style="filled,bold",fillcolor="#ffffbb"];
-u5[label="Base",style="filled",fillcolor="#bbbbff",penwidth="0"];
-u6[label="Helpers",style="filled",fillcolor="#bbbbff",penwidth="0"];
-u7[label="M",style="filled",fillcolor="#bbbbff",penwidth="0"];
+u5[label="Extensions",style="filled,bold",fillcolor="#ffffbb"];
+u2[label="Base",style="filled",fillcolor="#bbbbff",penwidth="0"];
+u3[label="Helpers",style="filled",fillcolor="#bbbbff",penwidth="0"];
+u4[label="M",style="filled",fillcolor="#bbbbff",penwidth="0"];
 
 }
 subgraph cluster_2 {
 label="Simulation";
 color="#0000000F";
 style="filled";
-u8[label="Simulation",style="filled,bold",fillcolor="#ffffbb"];
-u9[label="IOMachine",style="filled",fillcolor="#ffbbbb",penwidth="0"];
+u9[label="Simulation",style="filled,bold",fillcolor="#ffffbb"];
+u8[label="IOMachine",style="filled",fillcolor="#ffbbbb",penwidth="0"];
 
 }
 
 }
-u0 -> u1;
-u0 -> u3;
-u1 -> u2;
-u1 -> u3;
+u0 -> u8;
+u0 -> u10;
+u1 -> u6;
+u1 -> u10;
 u2 -> u3;
-u4 -> u1;
+u2 -> u6;
+u2 -> u7;
+u2 -> u10;
+u3 -> u7;
+u3 -> u10;
 u4 -> u3;
-u4 -> u5;
+u4 -> u6;
 u4 -> u7;
-u5 -> u1;
+u4 -> u10;
 u5 -> u2;
-u5 -> u3;
+u5 -> u4;
 u5 -> u6;
-u6 -> u2;
-u6 -> u3;
-u7 -> u1;
-u7 -> u2;
-u7 -> u3;
-u7 -> u6;
-u8 -> u0;
-u8 -> u1;
-u8 -> u2;
-u8 -> u3;
-u8 -> u4;
-u9 -> u2;
-u9 -> u3;
-u9 -> u8;
-u10 -> u3;
-u10 -> u9;
+u5 -> u10;
+u6 -> u7;
+u6 -> u10;
+u7 -> u10;
+u8 -> u7;
+u8 -> u9;
+u8 -> u10;
+u9 -> u1;
+u9 -> u5;
+u9 -> u6;
+u9 -> u7;
+u9 -> u10;
 
 }

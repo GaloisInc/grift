@@ -35,6 +35,7 @@ import Data.Parameterized.List
 import GHC.TypeLits
 
 import RISCV.Semantics
+import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | Increment the PC
