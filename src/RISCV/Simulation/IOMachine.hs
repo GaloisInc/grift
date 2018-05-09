@@ -42,15 +42,16 @@ import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
-import qualified Data.Map as Map
-import           Data.Map (Map)
+import qualified Data.Map.Strict as Map
+import           Data.Map.Strict (Map)
 import           Data.Parameterized
-import qualified Data.Sequence as Seq
-import           Data.Sequence (Seq)
 
 import RISCV.Types
 import RISCV.Simulation
 import RISCV.Semantics.Exceptions
+
+-- | Count number of each instruction occurred
+type OpcodeCount arch = Map (Some (Opcode arch)) Int
 
 -- | IO-based machine state.
 data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
@@ -62,7 +63,7 @@ data IOMachine (arch :: BaseArch) (exts :: Extensions) = IOMachine
   , ioMaxAddr   :: BitVector (ArchWidth arch)
   , ioException :: IORef (Maybe Exception)
   , ioSteps     :: IORef Int
-  , ioInsts     :: IORef (Seq (Some (Instruction arch)))
+  , ioOpcodeCounts     :: IORef (OpcodeCount arch)
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -89,7 +90,7 @@ mkIOMachine maxAddr entryPoint byteStrings = do
   priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
-  insts     <- newIORef Seq.empty
+  insts     <- newIORef Map.empty
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
@@ -164,10 +165,10 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
 
-  logInstruction inst = IOMachineM $ do
-    instsRef <- ioInsts <$> ask
-    insts <- lift $ readIORef instsRef
-    lift $ writeIORef instsRef (insts Seq.|> inst)
+  logInstruction (Some (Inst opcode _)) = IOMachineM $ do
+    instsRef <- ioOpcodeCounts <$> ask
+    lift $ modifyIORef instsRef $ \m ->
+      Map.insertWith (+) (Some opcode) 1 m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: IOMachine arch exts

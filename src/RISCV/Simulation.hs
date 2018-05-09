@@ -34,6 +34,7 @@ import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.Foldable
+import Control.Monad (when)
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable

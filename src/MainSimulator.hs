@@ -24,6 +24,7 @@ import           Data.Array.IArray
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.IORef
+import qualified Data.Map as Map
 import           Data.Parameterized
 import           System.Environment
 import           System.Exit
@@ -58,7 +59,7 @@ main = do
       err       <- readIORef (ioException m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
-      insts     <- readIORef (ioInsts m)
+      -- insts     <- readIORef (ioInsts m)
 
       case err of
         Nothing -> return ()
@@ -75,11 +76,11 @@ main = do
         mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
       runIOMachine stepsToRun m
 
-      err       <- readIORef (ioException m)
-      stepsRan  <- readIORef (ioSteps m)
-      pc        <- readIORef (ioPC m)
-      registers <- freezeRegisters m
-      insts     <- readIORef (ioInsts m)
+      err        <- readIORef (ioException m)
+      stepsRan   <- readIORef (ioSteps m)
+      pc         <- readIORef (ioPC m)
+      registers  <- freezeRegisters m
+      opcodeCounts <- readIORef (ioOpcodeCounts m)
 
       case err of
         Nothing -> return ()
@@ -91,7 +92,9 @@ main = do
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
       writeFile log ""
-      forM_ insts $ \(Some inst) -> appendFile log (show inst ++ "\n")
+
+      forM_ (Map.assocs opcodeCounts) $ \(opcode, n) ->
+        appendFile log $ show opcode ++ ", " ++ show n ++ "\n"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
