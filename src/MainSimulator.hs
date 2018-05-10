@@ -59,7 +59,7 @@ main = do
       err       <- readIORef (ioException m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
-      -- insts     <- readIORef (ioInsts m)
+      opcodeCounts <- readIORef (ioOpcodeCounts m)
 
       case err of
         Nothing -> return ()
@@ -69,6 +69,11 @@ main = do
       putStrLn "Final register state:"
       forM_ (assocs registers) $ \(r, v) ->
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+
+      writeFile log "Opcode, Hits\n"
+
+      forM_ (Map.assocs opcodeCounts) $ \(opcode, n) ->
+        appendFile log $ show opcode ++ ", " ++ show n ++ "\n"
 
     Elf64Res _err e -> do
       let byteStrings = elfBytes e
@@ -91,7 +96,7 @@ main = do
       forM_ (assocs registers) $ \(r, v) ->
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
-      writeFile log ""
+      writeFile log "Opcode, Hits\n"
 
       forM_ (Map.assocs opcodeCounts) $ \(opcode, n) ->
         appendFile log $ show opcode ++ ", " ++ show n ++ "\n"
