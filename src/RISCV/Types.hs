@@ -44,7 +44,7 @@ representation of a RISC-V instruction.
 
 module RISCV.Types
   ( -- * Base architecture
-    BaseArch(..), type RV32I, type RV32E, type RV64I, type RV128I
+    BaseArch(..), type RV32, type RV64, type RV128
   , BaseArchRepr(..)
   , ArchWidth
   , KnownArch
@@ -79,29 +79,25 @@ import GHC.TypeLits
 ----------------------------------------
 -- Architecture types
 -- | Base architecture types.
-data BaseArch = RV32I
-              | RV32E
-              | RV64I
-              | RV128I
+data BaseArch = RV32
+              | RV64
+              | RV128
 
-type RV32I  = 'RV32I
-type RV32E  = 'RV32E
-type RV64I  = 'RV64I
-type RV128I = 'RV128I
+type RV32  = 'RV32
+type RV64  = 'RV64
+type RV128 = 'RV128
 
 -- | A runtime representative for 'BaseArch' for dependent typing.
 data BaseArchRepr :: BaseArch -> * where
-  RV32IRepr  :: BaseArchRepr RV32I
-  RV32ERepr  :: BaseArchRepr RV32E
-  RV64IRepr  :: BaseArchRepr RV64I
-  RV128IRepr :: BaseArchRepr RV128I
+  RV32Repr  :: BaseArchRepr RV32
+  RV64Repr  :: BaseArchRepr RV64
+  RV128Repr :: BaseArchRepr RV128
 
 -- | Maps an architecture to its register width.
 type family ArchWidth (arch :: BaseArch) :: Nat where
-  ArchWidth RV32I  = 32
-  ArchWidth RV32E  = 32
-  ArchWidth RV64I  = 64
-  ArchWidth RV128I = 128
+  ArchWidth RV32  = 32
+  ArchWidth RV64  = 64
+  ArchWidth RV128 = 128
 
 -- | Everything we might need to know about a 'BaseArch' at compile time.
 type KnownArch arch = ( KnownNat (ArchWidth arch)
@@ -118,10 +114,9 @@ instance TestEquality BaseArchRepr where
   testEquality = $(structuralTypeEquality [t|BaseArchRepr|] [])
 instance OrdF BaseArchRepr where
   compareF = $(structuralTypeOrd [t|BaseArchRepr|] [])
-instance KnownRepr BaseArchRepr RV32I  where knownRepr = RV32IRepr
-instance KnownRepr BaseArchRepr RV32E  where knownRepr = RV32ERepr
-instance KnownRepr BaseArchRepr RV64I  where knownRepr = RV64IRepr
-instance KnownRepr BaseArchRepr RV128I where knownRepr = RV128IRepr
+instance KnownRepr BaseArchRepr RV32  where knownRepr = RV32Repr
+instance KnownRepr BaseArchRepr RV64  where knownRepr = RV64Repr
+instance KnownRepr BaseArchRepr RV128 where knownRepr = RV128Repr
 
 ----------------------------------------
 -- Extension configurations
@@ -316,7 +311,7 @@ instance OrdF OpBits where
 -- avoided. Similarly, 'Ecall' and 'Ebreak' are combined into a single instruction.
 data Opcode :: BaseArch -> Format -> * where
 
-  -- RV32I
+  -- RV32
   Add    :: Opcode arch R
   Sub    :: Opcode arch R
   Sll    :: Opcode arch R
@@ -378,7 +373,7 @@ data Opcode :: BaseArch -> Format -> * where
   -- X type (illegal instruction)
   Illegal :: Opcode arch X
 
-  -- RV64I
+  -- RV64
   Addw   :: 64 <= ArchWidth arch => Opcode arch R
   Subw   :: 64 <= ArchWidth arch => Opcode arch R
   Sllw   :: 64 <= ArchWidth arch => Opcode arch R

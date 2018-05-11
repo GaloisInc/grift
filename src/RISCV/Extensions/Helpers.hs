@@ -110,7 +110,7 @@ readMem32 addr = do
 
   return $ m3 `concatE` m2 `concatE` m1 `concatE` m0
 
--- | Read eright bytes from memory.
+-- | Read eight bytes from memory.
 readMem64 :: MemReadFn arch 64 fmt
 readMem64 addr = do
   m0 <- readMem addr
@@ -180,10 +180,12 @@ s wrFn = do
   wrFn (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
   incrPC
 
+-- | Generic comparison operator.
 type CompOp arch fmt = Expr arch fmt (ArchWidth arch)
                     -> Expr arch fmt (ArchWidth arch)
                     -> Expr arch fmt 1
 
+-- | Generic branch.
 b :: KnownArch arch => CompOp arch B -> FormulaBuilder arch B ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs

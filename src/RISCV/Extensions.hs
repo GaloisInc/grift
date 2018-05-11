@@ -36,14 +36,12 @@ knownISet = baseset <> mset <> fset
   where  archRepr = knownRepr :: BaseArchRepr arch
          ecRepr = knownRepr :: ExtensionsRepr exts
          baseset = case archRepr of
-           RV32IRepr -> base32
-           RV32ERepr -> base32
-           RV64IRepr -> base64
-           RV128IRepr -> error "RV128I not yet supported"
+           RV32Repr -> base32
+           RV64Repr -> base64
+           RV128Repr -> error "RV128 not yet supported"
          mset = case (archRepr, ecRepr) of
-           (RV32IRepr, ExtensionsRepr MYesRepr _) -> m32
-           (RV32ERepr, ExtensionsRepr MYesRepr _) -> m32
-           (RV64IRepr, ExtensionsRepr MYesRepr _) -> m64
+           (RV32Repr, ExtensionsRepr MYesRepr _) -> m32
+           (RV64Repr, ExtensionsRepr MYesRepr _) -> m64
            _ -> mempty
          fset = case ecRepr of
            ExtensionsRepr _ FDNoRepr -> mempty

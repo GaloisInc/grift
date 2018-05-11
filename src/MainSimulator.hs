@@ -52,7 +52,7 @@ main = do
   case parseElf fileBS of
     Elf32Res _err e -> do
       let byteStrings = elfBytes e
-      m :: IOMachine RV32I SimExts <-
+      m :: IOMachine RV32 SimExts <-
         mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
 
       stepsRan  <- runIOMachine stepsToRun m
@@ -77,7 +77,7 @@ main = do
 
     Elf64Res _err e -> do
       let byteStrings = elfBytes e
-      m :: IOMachine RV64I SimExts <-
+      m :: IOMachine RV64 SimExts <-
         mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
       runIOMachine stepsToRun m
 

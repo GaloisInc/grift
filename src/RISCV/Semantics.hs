@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE TypeApplications           #-}
 
@@ -75,6 +77,9 @@ data LocExpr arch fmt w where
   CSRExpr  :: Expr arch fmt 12               -> LocExpr arch fmt (ArchWidth arch)
   PrivExpr ::                                   LocExpr arch fmt 2
 
+deriving instance Show (LocExpr arch fmt w)
+instance ShowF (LocExpr arch fmt)
+
 -- | Expressions for computations over the RISC-V machine state.
 data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing the instruction
@@ -87,6 +92,11 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
+deriving instance Show (BVApp (Expr arch fmt) w)
+instance ShowF (BVApp (Expr arch fmt))
+deriving instance Show (Expr arch fmt w)
+instance ShowF (Expr arch fmt)
+
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
 -- appropriate width.
@@ -98,6 +108,8 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
              -> !(Seq (Stmt arch fmt))
              -> !(Seq (Stmt arch fmt))
              -> Stmt arch fmt
+
+deriving instance Show (Stmt arch fmt)
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- operands (potentially zero), which represent the input to the formula. These are
@@ -116,6 +128,8 @@ data Formula arch (fmt :: Format)
             , _fDefs    :: !(Seq (Stmt arch fmt))
               -- ^ sequence of statements defining the formula
             }
+
+deriving instance Show (Formula arch fmt)
 
 -- | Lens for 'Formula' comments.
 fComments :: Simple Lens (Formula arch fmt) (Seq String)
