@@ -85,7 +85,7 @@ evalExpr :: forall m arch exts fmt w
          -> Integer          -- ^ Instruction width (in bytes)
          -> Expr arch fmt w  -- ^ Expression to be evaluated
          -> m (BitVector w)
-evalExpr (Operands _ operands) _ (OperandExpr p) = return (operands !! p)
+evalExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr _ _ (LocExpr PCExpr) = getPC
 evalExpr operands ib (LocExpr (RegExpr ridE)) =

@@ -60,6 +60,7 @@ import Data.Parameterized.List
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
+import Text.PrettyPrint.HughesPJClass
 
 import Data.BitVector.Sized.App
 import RISCV.Types
@@ -77,8 +78,12 @@ data LocExpr arch fmt w where
   CSRExpr  :: Expr arch fmt 12               -> LocExpr arch fmt (ArchWidth arch)
   PrivExpr ::                                   LocExpr arch fmt 2
 
-deriving instance Show (LocExpr arch fmt w)
-instance ShowF (LocExpr arch fmt)
+instance Pretty (LocExpr arch fmt w) where
+  pPrint PCExpr      = text "pc"
+  pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
+  pPrint (MemExpr e) = text "M[" <> pPrint e <> text "]"
+  pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
+  pPrint PrivExpr    = text "current_priv"
 
 -- | Expressions for computations over the RISC-V machine state.
 data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
@@ -92,10 +97,8 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
-deriving instance Show (BVApp (Expr arch fmt) w)
-instance ShowF (BVApp (Expr arch fmt))
-deriving instance Show (Expr arch fmt w)
-instance ShowF (Expr arch fmt)
+instance Pretty (Expr arch fmt w) where
+  pPrint = undefined
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
@@ -108,8 +111,6 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
              -> !(Seq (Stmt arch fmt))
              -> !(Seq (Stmt arch fmt))
              -> Stmt arch fmt
-
-deriving instance Show (Stmt arch fmt)
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- operands (potentially zero), which represent the input to the formula. These are
@@ -128,8 +129,6 @@ data Formula arch (fmt :: Format)
             , _fDefs    :: !(Seq (Stmt arch fmt))
               -- ^ sequence of statements defining the formula
             }
-
-deriving instance Show (Formula arch fmt)
 
 -- | Lens for 'Formula' comments.
 fComments :: Simple Lens (Formula arch fmt) (Seq String)
@@ -168,13 +167,13 @@ instance BVExpr (Expr arch fmt) where
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
           => FormulaBuilder arch fmt (List (Expr arch fmt) (OperandTypes fmt))
 operandEs = case knownRepr :: FormatRepr fmt of
-  RRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
-  IRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
-  SRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
-  BRepr -> return (OperandExpr index0 :< OperandExpr index1 :< OperandExpr index2 :< Nil)
-  URepr -> return (OperandExpr index0 :< OperandExpr index1 :< Nil)
-  JRepr -> return (OperandExpr index0 :< OperandExpr index1 :< Nil)
-  XRepr -> return (OperandExpr index0 :< Nil)
+  RRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
+  IRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
+  SRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
+  BRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
+  URepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< Nil)
+  JRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< Nil)
+  XRepr -> return (OperandExpr (OperandID index0) :< Nil)
 
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt

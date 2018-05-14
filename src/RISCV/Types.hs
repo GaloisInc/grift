@@ -62,7 +62,7 @@ module RISCV.Types
   , Format(..), type R, type I, type S, type B, type U, type J, type X
   , FormatRepr(..)
   , OperandTypes
-  , OperandID
+  , OperandID(..)
   , Operands(..)
   , OpBitsTypes
   , OpBits(..)
@@ -256,7 +256,7 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes X = '[32]
 
 -- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
-type OperandID (fmt :: Format) = Index (OperandTypes fmt)
+newtype OperandID (fmt :: Format) (w :: Nat) = OperandID { unOperandID :: Index (OperandTypes fmt) w }
 
 -- | RISC-V Operand lists, parameterized by format.
 data Operands :: Format -> * where
