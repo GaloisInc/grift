@@ -202,7 +202,7 @@ type (<<) (e :: Extension) (exts :: Extensions)
 -- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 
-data Format = R | I | S | B | U | J | X
+data Format = R | I | S | B | U | J | A | X
 
 type R = 'R
 type I = 'I
@@ -210,6 +210,7 @@ type S = 'S
 type B = 'B
 type U = 'U
 type J = 'J
+type A = 'A
 type X = 'X
 
 -- | A runtime representative for 'Format' for dependent typing.
@@ -220,6 +221,7 @@ data FormatRepr :: Format -> * where
   BRepr :: FormatRepr B
   URepr :: FormatRepr U
   JRepr :: FormatRepr J
+  ARepr :: FormatRepr A
   XRepr :: FormatRepr X
 
 -- Instances
@@ -240,6 +242,7 @@ instance KnownRepr FormatRepr S where knownRepr = SRepr
 instance KnownRepr FormatRepr B where knownRepr = BRepr
 instance KnownRepr FormatRepr U where knownRepr = URepr
 instance KnownRepr FormatRepr J where knownRepr = JRepr
+instance KnownRepr FormatRepr A where knownRepr = ARepr
 instance KnownRepr FormatRepr X where knownRepr = XRepr
 
 ----------------------------------------
@@ -253,6 +256,7 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes B = '[5, 5, 12]
   OperandTypes U = '[5, 20]
   OperandTypes J = '[5, 20]
+  OperandTypes A = '[5, 5, 5, 1, 1]
   OperandTypes X = '[32]
 
 -- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
@@ -277,6 +281,7 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
   OpBitsTypes B = '[7, 3]
   OpBitsTypes U = '[7]
   OpBitsTypes J = '[7]
+  OpBitsTypes A = '[7, 3, 5]
   OpBitsTypes X = '[]
 
 -- | Bits fixed by an opcode.
@@ -403,6 +408,33 @@ data Opcode :: BaseArch -> Format -> * where
   Divuw  :: 64 <= ArchWidth arch => Opcode arch R
   Remw   :: 64 <= ArchWidth arch => Opcode arch R
   Remuw  :: 64 <= ArchWidth arch => Opcode arch R
+
+  -- RV32A
+  Lrw      :: Opcode arch A
+  Scw      :: Opcode arch A
+  Amoswapw :: Opcode arch A
+  Amoaddw  :: Opcode arch A
+  Amoxorw  :: Opcode arch A
+  Amoandw  :: Opcode arch A
+  Amoorw   :: Opcode arch A
+  Amominw  :: Opcode arch A
+  Amomaxw  :: Opcode arch A
+  Amominuw :: Opcode arch A
+  Amomaxuw :: Opcode arch A
+
+  -- RV64A
+  Lrd      :: 64 <= ArchWidth arch => Opcode arch A
+  Scd      :: 64 <= ArchWidth arch => Opcode arch A
+  Amoswapd :: 64 <= ArchWidth arch => Opcode arch A
+  Amoaddd  :: 64 <= ArchWidth arch => Opcode arch A
+  Amoxord  :: 64 <= ArchWidth arch => Opcode arch A
+  Amoandd  :: 64 <= ArchWidth arch => Opcode arch A
+  Amoord   :: 64 <= ArchWidth arch => Opcode arch A
+  Amomind  :: 64 <= ArchWidth arch => Opcode arch A
+  Amomaxd  :: 64 <= ArchWidth arch => Opcode arch A
+  Amominud :: 64 <= ArchWidth arch => Opcode arch A
+  Amomaxud :: 64 <= ArchWidth arch => Opcode arch A
+
 
 -- Instances
 $(return [])
