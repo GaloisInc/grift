@@ -61,7 +61,7 @@ module RISCV.Types
   , Extension(..), type MExt, type AExt, type FExt, type DExt
   , ExtensionsContains, type (<<)
   -- * Instructions
-  , Format(..), type R, type I, type S, type B, type U, type J, type X
+  , Format(..), type R, type I, type S, type B, type U, type J, type A, type X
   , FormatRepr(..)
   , OperandTypes
   , OperandID(..)
