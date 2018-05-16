@@ -278,7 +278,6 @@ baseSemantics = Map.fromList
       let lShift = ctrl `eqE` litBV 0b00000
           aShift = ctrl `eqE` litBV 0b01000
 
-
       -- Check that the shift amount is within the architecture width.
       let archWidth = knownNat @(ArchWidth arch)
           shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
@@ -303,8 +302,12 @@ baseSemantics = Map.fromList
       raiseException EnvironmentCall
 
   -- TODO: Fence instructions.
-  -- , Pair Fence   undefined
-  -- , Pair FenceI  undefined
+  , Pair Fence $ getFormula $ do
+      comment "Fence. Currently a no-op."
+      return ()
+  , Pair FenceI $ getFormula $ do
+      comment "FenceI. Currently a no-op."
+      return ()
   , Pair Csrrw $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Copy x[rs1] to the csr, then write t to x[rd]."
@@ -477,14 +480,14 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `addE` e2))
+      rOp32 $ \e1 e2 -> return (e1 `addE` e2)
 
   , Pair Subw $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `subE` e2))
+      rOp32 $ \e1 e2 -> return (e1 `subE` e2)
 
   -- TODO: Correct this
   , Pair Sllw $ getFormula $ do
@@ -492,7 +495,7 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `sllE` e2))
+      rOp32 $ \e1 e2 -> return (e1 `sllE` e2)
 
   -- TODO: Correct this
   , Pair Srlw $ getFormula $ do
@@ -500,7 +503,7 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `srlE` e2))
+      rOp32 $ \e1 e2 -> return (e1 `srlE` e2)
 
   -- TODO: Correct this
   , Pair Sraw $ getFormula $ do
@@ -508,7 +511,7 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `sraE` e2))
+      rOp32 $ \e1 e2 -> return (e1 `sraE` e2)
   , Pair Lwu $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."

@@ -89,9 +89,6 @@ iOp op = do
 -- | Generic type for functions that read from memory.
 type MemReadFn arch w fmt = KnownArch arch => Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt w)
 
--- | Generic type for functions that extend a value to the register width.
-type ExtFn arch w fmt = KnownArch arch => Expr arch fmt w -> Expr arch fmt (ArchWidth arch)
-
 -- | Read two bytes from memory.
 readMem16 :: MemReadFn arch 16 fmt
 readMem16 addr = do
@@ -126,6 +123,9 @@ readMem64 addr = do
     m7 `concatE` m6 `concatE` m5 `concatE` m4 `concatE`
     m3 `concatE` m2 `concatE` m1 `concatE` m0
 
+-- | Generic type for functions that extend a value to the register width.
+type ExtFn arch w fmt = KnownArch arch => Expr arch fmt w -> Expr arch fmt (ArchWidth arch)
+
 -- | Generic load.
 l :: KnownArch arch
   => MemReadFn arch w I
@@ -134,8 +134,8 @@ l :: KnownArch arch
 l rdFn extFn = do
   rd :< rs1 :< offset :< Nil <- operandEs
 
-  x_rs1       <- readReg rs1
-  mVal        <- rdFn (x_rs1 `addE` sextE offset)
+  x_rs1 <- readReg rs1
+  mVal  <- rdFn (x_rs1 `addE` sextE offset)
 
   assignReg rd $ extFn mVal
   incrPC
