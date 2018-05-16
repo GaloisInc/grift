@@ -169,17 +169,99 @@ amoOp32 op = do
       assignMem32 x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)
 
+
 a64Semantics :: forall arch . (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch
 a64Semantics = Map.fromList
-  [ Pair Lrd      undefined
-  , Pair Scd      undefined
-  , Pair Amoswapd undefined
-  , Pair Amoaddd  undefined
-  , Pair Amoxord  undefined
-  , Pair Amoandd  undefined
-  , Pair Amoord   undefined
-  , Pair Amomind  undefined
-  , Pair Amomaxd  undefined
-  , Pair Amominud undefined
-  , Pair Amomaxud undefined
+  [ Pair Lrd $ getFormula $ do
+      comment "Loads the eight bytes from memory at address x[rs1]."
+      comment "Writes them to x[rd], sign-extending the result."
+      comment "Registers a reservation on that memory word."
+
+      rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
+
+      -- Check that rs2 is zero
+      let illegal = notE (rs2 `eqE` litBV 0)
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMem64 x_rs1
+
+      branch illegal
+        $> raiseException IllegalInstruction
+        $> do assignReg rd (sextE mVal)
+              reserve x_rs1
+
+  , Pair Scd $ getFormula $ do
+      comment "Checks that there exists a load reservation on address x[rs1]."
+      comment "If so, stores the eight bytes in register x[rs2] at that address."
+      comment "Writes 0 to x[rd] if the store succeeded, or a nonzero error code otherwise."
+
+      rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      reserved <- checkReserved x_rs1
+
+      branch reserved
+        $> do assignMem64 x_rs1 (extractE 0 x_rs2)
+              assignReg rd (litBV 0)
+        $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
+  , Pair Amoswapd $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
+
+      amoOp64 const
+  , Pair Amoaddd $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to t + x[rs2]. Set x[rd] to the sign extension of t."
+
+      amoOp64 addE
+  , Pair Amoxord $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to t ^ x[rs2]. Set x[rd] to the sign extension of t."
+
+      amoOp64 xorE
+  , Pair Amoandd $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to t & x[rs2]. Set x[rd] to the sign extension of t."
+
+      amoOp64 andE
+  , Pair Amoord $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to t | x[rs2]. Set x[rd] to the sign extension of t."
+
+      amoOp64 orE
+  , Pair Amomind $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to min_s(t, x[rs2]). Set x[rd] to the sign extension of t."
+
+      amoOp64 $ \e1 e2 -> iteE (e1 `ltsE` e2) e1 e2
+  , Pair Amomaxd $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to max_s(t, x[rs2]). Set x[rd] to the sign extension of t."
+
+      amoOp64 $ \e1 e2 -> iteE (e1 `ltsE` e2) e2 e1
+  , Pair Amominud $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to min_u(t, x[rs2]). Set x[rd] to the sign extension of t."
+
+      amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e1 e2
+  , Pair Amomaxud $ getFormula $ do
+      comment "Atomically, let t be the value of the memory word at address x[rs1]."
+      comment "Set that memory word to max_u(t, x[rs2]). Set x[rd] to the sign extension of t."
+
+      amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
+
+amoOp64 :: KnownArch arch
+        => (Expr arch A 64 -> Expr arch A 64 -> Expr arch A 64)
+        -> FormulaBuilder arch A ()
+amoOp64 op = do
+      rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+      mVal  <- readMem64 x_rs1
+
+      assignMem64 x_rs1 (extractE 0 x_rs2 `op` mVal)
+      assignReg rd (sextE mVal)
