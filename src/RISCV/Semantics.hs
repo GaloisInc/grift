@@ -4,6 +4,7 @@
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
+{-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TypeOperators              #-}
@@ -49,6 +50,7 @@ module RISCV.Semantics
   , assignMem
   , assignCSR
   , assignPriv
+  , reserve
   , branch
   , ($>)
   ) where
@@ -106,6 +108,8 @@ instance Pretty (Expr arch fmt w) where
 data Stmt (arch :: BaseArch) (fmt :: Format) where
   -- | Assign a piece of state to a value.
   AssignStmt :: !(LocExpr arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
+  -- | Place a reservation on a memory location.
+  ReserveStmt :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
   -- | If-then-else branch statement.
   BranchStmt :: !(Expr arch fmt 1)
              -> !(Seq (Stmt arch fmt))
@@ -173,7 +177,10 @@ operandEs = case knownRepr :: FormatRepr fmt of
   BRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
   URepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< Nil)
   JRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< Nil)
+  ARepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :<
+                   OperandExpr (OperandID index3) :< OperandExpr (OperandID index4) :< Nil)
   XRepr -> return (OperandExpr (OperandID index0) :< Nil)
+  where index4 = IndexThere index3
 
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt
@@ -223,7 +230,10 @@ assignPC pc = addStmt (AssignStmt PCExpr pc)
 assignReg :: Expr arch fmt 5
           -> Expr arch fmt (ArchWidth arch)
           -> FormulaBuilder arch fmt ()
-assignReg r e = addStmt (AssignStmt (RegExpr r) e)
+assignReg r e = addStmt $
+  BranchStmt (r `eqE` litBV 0)
+  $> Seq.empty
+  $> Seq.singleton (AssignStmt (RegExpr r) e)
 
 -- | Add a memory location assignment to the formula.
 assignMem :: Expr arch fmt (ArchWidth arch)
@@ -241,12 +251,15 @@ assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
+reserve :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
+reserve addr = addStmt (ReserveStmt addr)
+
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
 -- notation)
 ($>) :: (a -> b) -> a -> b
 ($>) = ($)
 
-infixl 0 $>
+infixl 1 $>
 
 -- | Add a branch statement to the formula. Note that comments in the subformulas
 -- will be ignored.

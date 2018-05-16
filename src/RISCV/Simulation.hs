@@ -75,6 +75,9 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
 
+  -- | Reserve a memory location.
+  makeReservation :: BitVector (ArchWidth arch) -> m ()
+
   -- | Log the execution of a particular instruction.
   logInstruction :: Some (Instruction arch) -> m ()
 
@@ -116,6 +119,7 @@ data Loc arch w where
 -- handling into the semantics themselves.
 data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
+  Reserve :: BitVector (ArchWidth arch) -> Assignment arch
   Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
@@ -142,6 +146,9 @@ buildAssignment operands ib (AssignStmt (CSRExpr csrE) e) = do
 buildAssignment operands ib (AssignStmt PrivExpr privE) = do
   privVal <- evalExpr operands ib privE
   return (Assignment Priv privVal)
+buildAssignment operands ib (ReserveStmt addrE) = do
+  addr <- evalExpr operands ib addrE
+  return (Reserve addr)
 buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
   condVal <- evalExpr operands ib condE
   tAssignments <- traverse (buildAssignment operands ib) tStmts
@@ -157,6 +164,7 @@ execAssignment (Assignment (CSR csr) val) = do
   traceM $ "CSR[" ++ show csr ++ "] := " ++ show val
   setCSR csr val
 execAssignment (Assignment Priv val) = setPriv val
+execAssignment (Reserve addr) = makeReservation addr
 execAssignment (Branch condVal tAssignments fAssignments) =
   case condVal of
     1 -> traverse_ execAssignment tAssignments

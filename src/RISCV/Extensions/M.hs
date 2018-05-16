@@ -35,11 +35,11 @@ import RISCV.Semantics
 import RISCV.Types
 
 -- | M extension (RV32)
-m32 :: (KnownArch arch, M << exts) => InstructionSet arch exts
+m32 :: (KnownArch arch, MExt << exts) => InstructionSet arch exts
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownArch arch, 64 <= ArchWidth arch, M << exts) => InstructionSet arch exts
+m64 :: (KnownArch arch, 64 <= ArchWidth arch, MExt << exts) => InstructionSet arch exts
 m64 = m32 <> instructionSet m64Encode m64Semantics
 
 mEncode :: EncodeMap arch

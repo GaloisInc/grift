@@ -51,12 +51,14 @@ module RISCV.Types
     -- * Extensions
   , Extensions(..), type Exts
   , MConfig(..), type MYes, type MNo
+  , AConfig(..), type AYes, type ANo
   , FDConfig(..), type FDYes, type FYesDNo, type FDNo
   , ExtensionsRepr(..)
   , MConfigRepr(..)
+  , AConfigRepr(..)
   , FDConfigRepr(..)
   , KnownExtensions
-  , Extension(..), type M, type F, type D
+  , Extension(..), type MExt, type AExt, type FExt, type DExt
   , ExtensionsContains, type (<<)
   -- * Instructions
   , Format(..), type R, type I, type S, type B, type U, type J, type X
@@ -126,7 +128,7 @@ instance KnownRepr BaseArchRepr RV128 where knownRepr = RV128Repr
 
 -- | This data structure describes the RISC-V extensions that are enabled in a
 -- particular type context.
-data Extensions = Exts (MConfig, FDConfig)
+data Extensions = Exts (MConfig, AConfig, FDConfig)
 
 type Exts = 'Exts
 
@@ -135,6 +137,11 @@ data MConfig = MYes | MNo
 
 type MYes = 'MYes
 type MNo = 'MNo
+
+-- | The A extension is either enabled or disabled.a
+data AConfig = AYes | ANo
+type AYes = 'AYes
+type ANo = 'ANo
 
 -- | The F and D extensions can be in one of three states: Both are enabled, only F
 -- is enabled, or both are disabled.
@@ -146,12 +153,13 @@ type FDNo = 'FDNo
 
 -- | A runtime representative for 'Extensions' for dependent typing.
 data ExtensionsRepr :: Extensions -> * where
-  ExtensionsRepr :: MConfigRepr m -> FDConfigRepr fd -> ExtensionsRepr (Exts '(m, fd))
+  ExtensionsRepr :: MConfigRepr m -> AConfigRepr a -> FDConfigRepr fd -> ExtensionsRepr (Exts '(m, a, fd))
 
 instance ( KnownRepr MConfigRepr m
+         , KnownRepr AConfigRepr a
          , KnownRepr FDConfigRepr fd
-         ) => KnownRepr ExtensionsRepr (Exts '(m, fd)) where
-  knownRepr = ExtensionsRepr knownRepr knownRepr
+         ) => KnownRepr ExtensionsRepr (Exts '(m, a, fd)) where
+  knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr
 
 -- | A runtime representative for 'MConfig' for dependent typing.
 data MConfigRepr :: MConfig -> * where
@@ -160,6 +168,14 @@ data MConfigRepr :: MConfig -> * where
 
 instance KnownRepr MConfigRepr MYes where knownRepr = MYesRepr
 instance KnownRepr MConfigRepr MNo  where knownRepr = MNoRepr
+
+-- | A runtime representative for 'AConfig' for dependent typing.
+data AConfigRepr :: AConfig -> * where
+  AYesRepr :: AConfigRepr AYes
+  ANoRepr  :: AConfigRepr ANo
+
+instance KnownRepr AConfigRepr AYes where knownRepr = AYesRepr
+instance KnownRepr AConfigRepr ANo  where knownRepr = ANoRepr
 
 -- | A runtime representative for 'FDConfig' for dependent typing.
 data FDConfigRepr :: FDConfig -> * where
@@ -175,19 +191,21 @@ instance KnownRepr FDConfigRepr FDNo    where knownRepr = FDNoRepr
 type KnownExtensions exts = KnownRepr ExtensionsRepr exts
 
 -- | Type-level representation of a RISC-V extension.
-data Extension = M | F | D
+data Extension = MExt | AExt | FExt | DExt
 
-type M = 'M
-type F = 'F
-type D = 'D
+type MExt = 'MExt
+type AExt = 'MExt
+type FExt = 'FExt
+type DExt = 'DExt
 
 -- | Type operator that determines whether the 'Extensions' contains a particular
 -- 'Extension'.
 type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool where
-  ExtensionsContains (Exts '( MYes, _))       M = 'True
-  ExtensionsContains (Exts '(    _, FDYes))   F = 'True
-  ExtensionsContains (Exts '(    _, FYesDNo)) F = 'True
-  ExtensionsContains (Exts '(    _, FDYes))   D = 'True
+  ExtensionsContains (Exts '( MYes, _, _))       MExt = 'True
+  ExtensionsContains (Exts '(    _, AYes, _))    AExt = 'True
+  ExtensionsContains (Exts '(    _, _, FDYes))   FExt = 'True
+  ExtensionsContains (Exts '(    _, _, FYesDNo)) FExt = 'True
+  ExtensionsContains (Exts '(    _, _, FDYes))   DExt = 'True
   ExtensionsContains _ _ = 'False
 
 -- | 'ExtensionsContains' in constraint form.

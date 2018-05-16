@@ -142,7 +142,6 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
     stepsVal <- lift $ readIORef stepsRef
     lift $ writeIORef pcRef pcVal
     lift $ writeIORef stepsRef (stepsVal+1)
-  setReg 0 _ = return ()
   setReg rid regVal = IOMachineM $ do
     regArray <- ioRegisters <$> ask
     lift $ writeArray regArray rid regVal
@@ -164,6 +163,9 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
   setPriv privVal = IOMachineM $ do
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
+
+  -- We are uniprocessor, so reservation is a no-op.
+  makeReservation _ = return ()
 
   logInstruction (Some (Inst opcode _)) = IOMachineM $ do
     instsRef <- ioOpcodeCounts <$> ask
