@@ -32,6 +32,7 @@ import Data.Parameterized.List
 import RISCV.Extensions.Helpers
 import RISCV.InstructionSet
 import RISCV.Semantics
+import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | A extension (RV32)
@@ -40,7 +41,7 @@ a32 = instructionSet aEncode aSemantics
 
 -- | A extension (RV64)
 a64 :: (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => InstructionSet arch exts
-a64 = instructionSet a64Encode a64Semantics
+a64 = a32 <> instructionSet a64Encode a64Semantics
 
 aEncode :: EncodeMap arch
 aEncode = Map.fromList
@@ -74,8 +75,40 @@ a64Encode = Map.fromList
 
 aSemantics :: forall arch . KnownArch arch => SemanticsMap arch
 aSemantics = Map.fromList
-  [ Pair Lrw      undefined
-  , Pair Scw      undefined
+  [ Pair Lrw $ getFormula $ do
+      comment "Loads the four bytes from memory at address x[rs1]."
+      comment "Writes them to x[rd], sign-extending the result."
+      comment "Registers a reservation on that memory word."
+
+      rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
+
+      -- Check that rs2 is zero
+      let illegal = notE (rs2 `eqE` litBV 0)
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMem32 x_rs1
+
+      branch illegal
+        $> raiseException IllegalInstruction
+        $> do assignReg rd (sextE mVal)
+              reserve x_rs1
+
+  , Pair Scw $ getFormula $ do
+      comment "Checks that there exists a load reservation on address x[rs1]."
+      comment "If so, stores the four bytes in register x[rs2] at that address."
+      comment "Writes 0 to x[rd] if the store succeeded, or a nonzero error code otherwise."
+
+      rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      reserved <- checkReserved x_rs1
+
+      branch reserved
+        $> do assignMem32 x_rs1 (extractE 0 x_rs2)
+              assignReg rd (litBV 0)
+        $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
   , Pair Amoswapw undefined
   , Pair Amoaddw  undefined
   , Pair Amoxorw  undefined

@@ -137,7 +137,7 @@ l rdFn extFn = do
   x_rs1 <- readReg rs1
   mVal  <- rdFn (x_rs1 `addE` sextE offset)
 
-  assignReg rd $ extFn mVal
+  assignReg rd (extFn mVal)
   incrPC
 
 -- | Generic type for functions that write to memory.

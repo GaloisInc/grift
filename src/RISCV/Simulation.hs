@@ -34,7 +34,6 @@ import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.Foldable
-import Control.Monad (when)
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
@@ -75,9 +74,6 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
 
-  -- | Reserve a memory location.
-  makeReservation :: BitVector (ArchWidth arch) -> m ()
-
   -- | Log the execution of a particular instruction.
   logInstruction :: Some (Instruction arch) -> m ()
 
@@ -95,6 +91,8 @@ evalExpr operands ib (LocExpr (RegExpr ridE)) =
   evalExpr operands ib ridE >>= getReg
 evalExpr operands ib (LocExpr (MemExpr addrE)) =
   evalExpr operands ib addrE >>= getMem
+-- TODO: When we do SMP, implement memory reservations.
+evalExpr _ _ (LocExpr (ResExpr _)) = return 1
 evalExpr operands ib (LocExpr (CSRExpr csrE)) =
   evalExpr operands ib csrE >>= getCSR
 evalExpr _ _ (LocExpr PrivExpr) = getPriv
@@ -109,6 +107,7 @@ data Loc arch w where
   PC :: Loc arch (ArchWidth arch)
   Reg :: BitVector 5 -> Loc arch (ArchWidth arch)
   Mem :: BitVector (ArchWidth arch) -> Loc arch 8
+  Res :: BitVector (ArchWidth arch) -> Loc arch 1
   CSR :: BitVector 12 -> Loc arch (ArchWidth arch)
   Priv :: Loc arch 2
 
@@ -119,7 +118,6 @@ data Loc arch w where
 -- handling into the semantics themselves.
 data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
-  Reserve :: BitVector (ArchWidth arch) -> Assignment arch
   Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
@@ -139,6 +137,10 @@ buildAssignment operands ib (AssignStmt (MemExpr addrE) e) = do
   addr <- evalExpr operands ib addrE
   eVal <- evalExpr operands ib e
   return (Assignment (Mem addr) eVal)
+buildAssignment operands ib (AssignStmt (ResExpr addrE) e) = do
+  addr <- evalExpr operands ib addrE
+  eVal <- evalExpr operands ib e
+  return (Assignment (Res addr) eVal)
 buildAssignment operands ib (AssignStmt (CSRExpr csrE) e) = do
   csr  <- evalExpr operands ib csrE
   eVal <- evalExpr operands ib e
@@ -146,9 +148,6 @@ buildAssignment operands ib (AssignStmt (CSRExpr csrE) e) = do
 buildAssignment operands ib (AssignStmt PrivExpr privE) = do
   privVal <- evalExpr operands ib privE
   return (Assignment Priv privVal)
-buildAssignment operands ib (ReserveStmt addrE) = do
-  addr <- evalExpr operands ib addrE
-  return (Reserve addr)
 buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
   condVal <- evalExpr operands ib condE
   tAssignments <- traverse (buildAssignment operands ib) tStmts
@@ -160,11 +159,12 @@ execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (Mem addr) val) = setMem addr val
+-- TODO: When we do SMP, implement memory reservations.
+execAssignment (Assignment (Res _) _) = return ()
 execAssignment (Assignment (CSR csr) val) = do
   traceM $ "CSR[" ++ show csr ++ "] := " ++ show val
   setCSR csr val
 execAssignment (Assignment Priv val) = setPriv val
-execAssignment (Reserve addr) = makeReservation addr
 execAssignment (Branch condVal tAssignments fAssignments) =
   case condVal of
     1 -> traverse_ execAssignment tAssignments

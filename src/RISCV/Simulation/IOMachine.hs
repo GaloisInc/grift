@@ -164,9 +164,6 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
 
-  -- We are uniprocessor, so reservation is a no-op.
-  makeReservation _ = return ()
-
   logInstruction (Some (Inst opcode _)) = IOMachineM $ do
     instsRef <- ioOpcodeCounts <$> ask
     lift $ modifyIORef instsRef $ \m ->

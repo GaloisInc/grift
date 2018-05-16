@@ -44,6 +44,7 @@ module RISCV.Semantics
   , readMem
   , readCSR
   , readPriv
+  , checkReserved
     -- ** State actions
   , assignPC
   , assignReg
@@ -77,6 +78,7 @@ data LocExpr arch fmt w where
   PCExpr   ::                                   LocExpr arch fmt (ArchWidth arch)
   RegExpr  :: Expr arch fmt 5                -> LocExpr arch fmt (ArchWidth arch)
   MemExpr  :: Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt 8
+  ResExpr  :: Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt 1
   CSRExpr  :: Expr arch fmt 12               -> LocExpr arch fmt (ArchWidth arch)
   PrivExpr ::                                   LocExpr arch fmt 2
 
@@ -84,6 +86,7 @@ instance Pretty (LocExpr arch fmt w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
   pPrint (MemExpr e) = text "M[" <> pPrint e <> text "]"
+  pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
   pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
   pPrint PrivExpr    = text "current_priv"
 
@@ -108,8 +111,6 @@ instance Pretty (Expr arch fmt w) where
 data Stmt (arch :: BaseArch) (fmt :: Format) where
   -- | Assign a piece of state to a value.
   AssignStmt :: !(LocExpr arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
-  -- | Place a reservation on a memory location.
-  ReserveStmt :: !(Expr arch fmt (ArchWidth arch)) -> Stmt arch fmt
   -- | If-then-else branch statement.
   BranchStmt :: !(Expr arch fmt 1)
              -> !(Seq (Stmt arch fmt))
@@ -251,8 +252,13 @@ assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
+-- | Reserve a memory location.
 reserve :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
-reserve addr = addStmt (ReserveStmt addr)
+reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
+
+-- | Check that a memory location is reserved.
+checkReserved :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt 1)
+checkReserved addr = return (LocExpr (ResExpr addr))
 
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
 -- notation)
