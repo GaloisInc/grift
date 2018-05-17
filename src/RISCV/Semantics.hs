@@ -58,6 +58,7 @@ module RISCV.Semantics
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
+import Data.Foldable (toList)
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as Seq
@@ -103,7 +104,45 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
 instance Pretty (Expr arch fmt w) where
-  pPrint = undefined
+  pPrint = pPrintExpr' True
+
+pPrintExpr' :: Bool -> Expr arch fmt w -> Doc
+pPrintExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
+pPrintExpr' _ InstBytes = text "step"
+pPrintExpr' _ (LocExpr loc) = pPrint loc
+pPrintExpr' top (AppExpr app) = pPrintApp' top app
+
+pPrintApp' :: Bool -> BVApp (Expr arch fmt) w -> Doc
+pPrintApp' _ (NotApp e) = text "!" <> pPrintExpr' False e
+pPrintApp' _ (LitBVApp bv) = text $ show bv
+pPrintApp' _ (ZExtApp _ e) = text "zext(" <> pPrintExpr' True e <> text ")"
+pPrintApp' _ (SExtApp _ e) = text "sext(" <> pPrintExpr' True e <> text ")"
+pPrintApp' top (ExtractApp w ix e) =
+  pPrintExpr' top e <> text "[" <> pPrint ix <> text ":" <>
+  pPrint (ix + fromIntegral (natValue w)) <> text "]"
+pPrintApp' False e = parens (pPrintApp' True e)
+pPrintApp' _ (AndApp e1 e2) = pPrintExpr' False e1 <+> text "&" <+> pPrintExpr' False e2
+pPrintApp' _ (OrApp  e1 e2) = pPrintExpr' False e1 <+> text "|" <+> pPrintExpr' False e2
+pPrintApp' _ (XorApp e1 e2) = pPrintExpr' False e1 <+> text "^" <+> pPrintExpr' False e2
+pPrintApp' _ (SllApp e1 e2) = pPrintExpr' False e1 <+> text "<<" <+> pPrintExpr' False e2
+pPrintApp' _ (SrlApp e1 e2) = pPrintExpr' False e1 <+> text ">l>" <+> pPrintExpr' False e2
+pPrintApp' _ (SraApp e1 e2) = pPrintExpr' False e1 <+> text ">a>" <+> pPrintExpr' False e2
+pPrintApp' _ (AddApp e1 e2) = pPrintExpr' False e1 <+> text "+" <+> pPrintExpr' False e2
+pPrintApp' _ (SubApp e1 e2) = pPrintExpr' False e1 <+> text "-" <+> pPrintExpr' False e2
+pPrintApp' _ (MulApp e1 e2) = pPrintExpr' False e1 <+> text "*" <+> pPrintExpr' False e2
+pPrintApp' _ (QuotUApp e1 e2) = pPrintExpr' False e1 <+> text "/u" <+> pPrintExpr' False e2
+pPrintApp' _ (QuotSApp e1 e2) = pPrintExpr' False e1 <+> text "/s" <+> pPrintExpr' False e2
+pPrintApp' _ (RemUApp e1 e2) = pPrintExpr' False e1 <+> text "%u" <+> pPrintExpr' False e2
+pPrintApp' _ (RemSApp e1 e2) = pPrintExpr' False e1 <+> text "%s" <+> pPrintExpr' False e2
+pPrintApp' _ (EqApp  e1 e2) = pPrintExpr' False e1 <+> text "==" <+> pPrintExpr' False e2
+pPrintApp' _ (LtuApp e1 e2) = pPrintExpr' False e1 <+> text "<u" <+> pPrintExpr' False e2
+pPrintApp' _ (LtsApp e1 e2) = pPrintExpr' False e1 <+> text "<s" <+> pPrintExpr' False e2
+pPrintApp' _ (ConcatApp e1 e2) =
+  text "{" <> pPrintExpr' True e1 <> text ", " <> pPrintExpr' True e2 <> text "}"
+pPrintApp' _ (IteApp e1 e2 e3) =
+  text "if" <+> pPrintExpr' True e1 <+>
+  text "then" <+> pPrintExpr' True e2 <+>
+  text "else" <+> pPrintExpr' True e3
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to a 'Expr' of the
@@ -116,6 +155,15 @@ data Stmt (arch :: BaseArch) (fmt :: Format) where
              -> !(Seq (Stmt arch fmt))
              -> !(Seq (Stmt arch fmt))
              -> Stmt arch fmt
+
+instance Pretty (Stmt arch fmt) where
+  pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
+  pPrint (BranchStmt test s1s s2s) =
+    text "IF" <+> pPrint test
+    $$ nest 2 (text "THEN")
+    $$ nest 4 (vcat (pPrint <$> toList s1s))
+    $$ nest 2 (text "ELSE")
+    $$ nest 4 (vcat (pPrint <$> toList s2s))
 
 -- | Formula representing the semantics of an instruction. A formula has a number of
 -- operands (potentially zero), which represent the input to the formula. These are
@@ -134,6 +182,9 @@ data Formula arch (fmt :: Format)
             , _fDefs    :: !(Seq (Stmt arch fmt))
               -- ^ sequence of statements defining the formula
             }
+
+instance Pretty (Formula arch fmt) where
+  pPrint formula = vcat (pPrint <$> toList (formula ^. fDefs))
 
 -- | Lens for 'Formula' comments.
 fComments :: Simple Lens (Formula arch fmt) (Seq String)
@@ -172,14 +223,27 @@ instance BVExpr (Expr arch fmt) where
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
           => FormulaBuilder arch fmt (List (Expr arch fmt) (OperandTypes fmt))
 operandEs = case knownRepr :: FormatRepr fmt of
-  RRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
-  IRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
-  SRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
-  BRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :< Nil)
-  URepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< Nil)
-  JRepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< Nil)
-  ARepr -> return (OperandExpr (OperandID index0) :< OperandExpr (OperandID index1) :< OperandExpr (OperandID index2) :<
-                   OperandExpr (OperandID index3) :< OperandExpr (OperandID index4) :< Nil)
+  RRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  IRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  SRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  BRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  URepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :< Nil)
+  JRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :< Nil)
+  ARepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :<
+                   OperandExpr (OperandID index3) :<
+                   OperandExpr (OperandID index4) :< Nil)
   XRepr -> return (OperandExpr (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 

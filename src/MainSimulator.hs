@@ -35,7 +35,7 @@ import           System.FilePath.Posix
 import           RISCV.Types
 import           RISCV.Simulation.IOMachine
 
-type SimExts = (Exts '(MYes, ANo, FDNo))
+type SimExts = (Exts '(MYes, AYes, FDNo))
 
 main :: IO ()
 main = do
