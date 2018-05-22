@@ -7,6 +7,7 @@
 {-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE TypeApplications           #-}
 
@@ -54,13 +55,17 @@ module RISCV.Semantics
   , reserve
   , branch
   , ($>)
+  -- * Analysis
+  , getTests
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
 import Data.Foldable (toList)
+import Data.List (nub)
 import Data.Parameterized
 import Data.Parameterized.List
+import Data.Parameterized.TH.GADT
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
@@ -103,6 +108,15 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
+$(return [])
+instance TestEquality (LocExpr arch fmt) where
+  testEquality = $(structuralTypeEquality [t|LocExpr|] [])
+instance TestEquality (Expr arch fmt) where
+  testEquality = $(structuralTypeEquality [t|Expr|]
+                    [ (AnyType `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|]) ])
+instance Eq (Expr arch fmt w) where
+  x == y = isJust (testEquality x y)
+
 instance Pretty (Expr arch fmt w) where
   pPrint = pPrintExpr' True
 
@@ -119,7 +133,7 @@ pPrintApp' _ (ZExtApp _ e) = text "zext(" <> pPrintExpr' True e <> text ")"
 pPrintApp' _ (SExtApp _ e) = text "sext(" <> pPrintExpr' True e <> text ")"
 pPrintApp' top (ExtractApp w ix e) =
   pPrintExpr' top e <> text "[" <> pPrint ix <> text ":" <>
-  pPrint (ix + fromIntegral (natValue w)) <> text "]"
+  pPrint (ix + fromIntegral (natValue w) - 1) <> text "]"
 pPrintApp' False e = parens (pPrintApp' True e)
 pPrintApp' _ (AndApp e1 e2) = pPrintExpr' False e1 <+> text "&" <+> pPrintExpr' False e2
 pPrintApp' _ (OrApp  e1 e2) = pPrintExpr' False e1 <+> text "|" <+> pPrintExpr' False e2
@@ -341,3 +355,33 @@ branch e fbTrue fbFalse = do
   let fTrue  = getFormula fbTrue  ^. fDefs
       fFalse = getFormula fbFalse ^. fDefs
   addStmt (BranchStmt e fTrue fFalse)
+
+----------------------------------------
+-- Analysis
+
+-- | Given a formula, constructs a list of all the tests that affect the execution of
+-- that formula.
+getTests :: Formula arch fmt -> [Expr arch fmt 1]
+getTests (Formula _ defs) = nub (concat $ getTestsStmt <$> defs)
+
+getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
+getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
+getTestsStmt (BranchStmt t l r) =
+  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
+
+getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
+getTestsLocExpr (RegExpr e) = getTestsExpr e
+getTestsLocExpr (MemExpr e) = getTestsExpr e
+getTestsLocExpr (ResExpr e) = getTestsExpr e
+getTestsLocExpr (CSRExpr e) = getTestsExpr e
+getTestsLocExpr _ = []
+
+getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
+getTestsExpr (OperandExpr _) = []
+getTestsExpr InstBytes = []
+getTestsExpr (LocExpr le) = getTestsLocExpr le
+getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
+
+getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
+getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
+getTestsBVApp app = foldMapFC getTestsExpr app

@@ -3,6 +3,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
+{-|
+Module      : RISCV.Semantics.Exceptions
+Copyright   : (c) Benjamin Selfridge, 2018
+                  Galois Inc.
+License     : None (yet)
+Maintainer  : benselfridge@galois.com
+Stability   : experimental
+Portability : portable
+
+This module provides types and functions for the semantics of exception handling in
+RISC-V.
+-}
+
 module RISCV.Semantics.Exceptions
   ( -- ** CSRs and Exceptions
     CSR(..)

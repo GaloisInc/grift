@@ -279,6 +279,13 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
 
 -- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
 newtype OperandID (fmt :: Format) (w :: Nat) = OperandID { unOperandID :: Index (OperandTypes fmt) w }
+  deriving Eq
+
+$(return [])
+instance TestEquality (OperandID fmt) where
+  testEquality = $(structuralTypeEquality [t|OperandID|]
+                    [(AnyType `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|])
+                    ])
 
 -- | RISC-V Operand lists, parameterized by format.
 data Operands :: Format -> * where
@@ -335,16 +342,16 @@ instance OrdF OpBits where
 data Opcode :: BaseArch -> Format -> * where
 
   -- RV32
-  Add    :: Opcode arch R
-  Sub    :: Opcode arch R
-  Sll    :: Opcode arch R
-  Slt    :: Opcode arch R
-  Sltu   :: Opcode arch R
-  Xor    :: Opcode arch R
-  Srl    :: Opcode arch R
-  Sra    :: Opcode arch R
-  Or     :: Opcode arch R
-  And    :: Opcode arch R
+  Add  :: Opcode arch R
+  Sub  :: Opcode arch R
+  Sll  :: Opcode arch R
+  Slt  :: Opcode arch R
+  Sltu :: Opcode arch R
+  Xor  :: Opcode arch R
+  Srl  :: Opcode arch R
+  Sra  :: Opcode arch R
+  Or   :: Opcode arch R
+  And  :: Opcode arch R
 
   Jalr    :: Opcode arch I
   Lb      :: Opcode arch I
@@ -452,7 +459,6 @@ data Opcode :: BaseArch -> Format -> * where
   Amomaxd  :: 64 <= ArchWidth arch => Opcode arch A
   Amominud :: 64 <= ArchWidth arch => Opcode arch A
   Amomaxud :: 64 <= ArchWidth arch => Opcode arch A
-
 
 -- Instances
 $(return [])

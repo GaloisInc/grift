@@ -181,10 +181,11 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
       pc <- readPC
+      ib <- instBytes
       x_rs1 <- readReg rs1
 
+      assignReg rd $ pc `addE` zextE ib
       assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
-      assignReg rd (pc `addE` litBV 4)
   , Pair Lb $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."

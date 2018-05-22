@@ -33,7 +33,7 @@ import           GHC.TypeLits
 import           System.FilePath.Posix
 
 import           RISCV.Types
-import           RISCV.Simulation.IOMachine
+import           RISCV.Simulation.LogMachine
 
 type SimExts = (Exts '(MYes, AYes, FDNo))
 
@@ -52,10 +52,10 @@ main = do
   case parseElf fileBS of
     Elf32Res _err e -> do
       let byteStrings = elfBytes e
-      m :: IOMachine RV32 SimExts <-
-        mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      m :: LogMachine RV32 SimExts <-
+        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
 
-      stepsRan  <- runIOMachine stepsToRun m
+      stepsRan  <- runLogMachine stepsToRun m
       err       <- readIORef (ioException m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
@@ -77,9 +77,9 @@ main = do
 
     Elf64Res _err e -> do
       let byteStrings = elfBytes e
-      m :: IOMachine RV64 SimExts <-
-        mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-      runIOMachine stepsToRun m
+      m :: LogMachine RV64 SimExts <-
+        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      runLogMachine stepsToRun m
 
       err        <- readIORef (ioException m)
       stepsRan   <- readIORef (ioSteps m)
