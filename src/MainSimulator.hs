@@ -32,10 +32,13 @@ import           Data.ElfEdit
 import           GHC.TypeLits
 import           System.FilePath.Posix
 
+import           RISCV.Extensions
+import           RISCV.InstructionSet
 import           RISCV.Types
-import           RISCV.Simulation.LogMachine
+import           RISCV.Simulation.IOMachine
+-- import           RISCV.Simulation.LogMachine
 
-type SimExts = (Exts '(MYes, AYes, FDNo))
+type SimExts = (Exts '(MNo, ANo, FDNo))
 
 main :: IO ()
 main = do
@@ -52,41 +55,15 @@ main = do
   case parseElf fileBS of
     Elf32Res _err e -> do
       let byteStrings = elfBytes e
-      m :: LogMachine RV32 SimExts <-
-        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-
-      stepsRan  <- runLogMachine stepsToRun m
-      err       <- readIORef (ioException m)
-      pc        <- readIORef (ioPC m)
-      registers <- freezeRegisters m
-      testMap   <- readIORef (ioTestMap m)
-
-      case err of
-        Nothing -> return ()
-        Just err' -> putStrLn $ "Encountered exception: " ++ show err'
-      putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
-      putStrLn $ "Final PC: " ++ show pc
-      putStrLn "Final register state:"
-      forM_ (assocs registers) $ \(r, v) ->
-        putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
-
-      writeFile log "Opcode, Coverage\n"
-
-      forM_ (Map.assocs testMap) $ \(opcode, variants@(v:_)) ->
-        appendFile log $ show opcode ++ ", " ++ show (length variants) ++
-        "/" ++ show (2^length v) ++ "\n"
-
-    Elf64Res _err e -> do
-      let byteStrings = elfBytes e
-      m :: LogMachine RV64 SimExts <-
-        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-      runLogMachine stepsToRun m
+      m :: IOMachine RV32 SimExts <-
+        mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      runIOMachine stepsToRun m
 
       err        <- readIORef (ioException m)
       stepsRan   <- readIORef (ioSteps m)
       pc         <- readIORef (ioPC m)
       registers  <- freezeRegisters m
-      testMap   <- readIORef (ioTestMap m)
+      -- testMap   <- readIORef (ioTestMap m)
 
       case err of
         Nothing -> return ()
@@ -99,9 +76,13 @@ main = do
 
       writeFile log "Opcode, Coverage\n"
 
-      forM_ (Map.assocs testMap) $ \(opcode, variants@(v:_)) ->
-        appendFile log $ show opcode ++ ", " ++ show (length variants) ++
-        "/" ++ show (2^length v) ++ "\n"
+      -- let iset = knownISet :: InstructionSet RV32 SimExts
+      -- forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+      --   let numTests = length (getTests (semanticsFromOpcode iset opcode))
+      --   in
+      --     appendFile log $ show opcode ++ ", " ++ show (length variants) ++
+      --     "/" ++ show (2^numTests) ++ "\n"
+    _ -> error "only 64-bit supported"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

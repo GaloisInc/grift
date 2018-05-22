@@ -60,7 +60,6 @@ module RISCV.Semantics
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
 import Data.Foldable (toList)
-import Data.List (nub)
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT

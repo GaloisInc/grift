@@ -34,6 +34,7 @@ module RISCV.Simulation.LogMachine
   , freezeRegisters
   , freezeMemory
   , runLogMachine
+  , getTests
   ) where
 
 import           Control.Lens ((^.))
@@ -52,7 +53,9 @@ import           Data.List (nub, union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
+import qualified Data.Parameterized.Map as MapF
 
+import RISCV.Extensions
 import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
@@ -83,11 +86,11 @@ writeBS ix bs arr = do
 
 -- | Construct an LogMachine with a given maximum address, entry point, and list of
 -- (addr, bytestring) pairs to load into the memory.
-mkLogMachine :: (KnownArch arch, KnownExtensions exts)
-            => BitVector (ArchWidth arch)
-            -> BitVector (ArchWidth arch)
-            -> [(BitVector (ArchWidth arch), BS.ByteString)]
-            -> IO (LogMachine arch exts)
+mkLogMachine :: forall arch exts .(KnownArch arch, KnownExtensions exts)
+             => BitVector (ArchWidth arch)
+             -> BitVector (ArchWidth arch)
+             -> [(BitVector (ArchWidth arch), BS.ByteString)]
+             -> IO (LogMachine arch exts)
 mkLogMachine maxAddr entryPoint byteStrings = do
   pc        <- newIORef entryPoint
   registers <- newArray (1, 31) 0
@@ -97,7 +100,7 @@ mkLogMachine maxAddr entryPoint byteStrings = do
   priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
-  testMap   <- newIORef Map.empty
+  testMap   <- newIORef Map.empty -- $ Map.fromList (zip opcodes (repeat []))
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
