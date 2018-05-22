@@ -75,7 +75,7 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   setPriv :: BitVector 2 -> m ()
 
   -- | Log the execution of a particular instruction.
-  logInstruction :: Some (Instruction arch) -> m ()
+  logInstruction :: Some (Instruction arch) -> InstructionSet arch exts -> m ()
 
 -- | Evaluate a 'Expr', given an 'RVStateM' implementation.
 evalExpr :: forall m arch exts fmt w
@@ -204,7 +204,7 @@ stepRV iset = do
   inst@(Some (Inst opcode operands)) <- return $ decode iset instBV
 
   -- Log instruction
-  logInstruction inst
+  logInstruction inst iset
 
   -- Execute
   execFormula operands 4 (semanticsFromOpcode iset opcode)

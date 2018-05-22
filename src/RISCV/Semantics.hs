@@ -55,8 +55,6 @@ module RISCV.Semantics
   , reserve
   , branch
   , ($>)
-  -- * Analysis
-  , getTests
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
@@ -355,33 +353,3 @@ branch e fbTrue fbFalse = do
   let fTrue  = getFormula fbTrue  ^. fDefs
       fFalse = getFormula fbFalse ^. fDefs
   addStmt (BranchStmt e fTrue fFalse)
-
-----------------------------------------
--- Analysis
-
--- | Given a formula, constructs a list of all the tests that affect the execution of
--- that formula.
-getTests :: Formula arch fmt -> [Expr arch fmt 1]
-getTests (Formula _ defs) = nub (concat $ getTestsStmt <$> defs)
-
-getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
-getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
-getTestsStmt (BranchStmt t l r) =
-  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
-
-getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
-getTestsLocExpr (RegExpr e) = getTestsExpr e
-getTestsLocExpr (MemExpr e) = getTestsExpr e
-getTestsLocExpr (ResExpr e) = getTestsExpr e
-getTestsLocExpr (CSRExpr e) = getTestsExpr e
-getTestsLocExpr _ = []
-
-getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
-getTestsExpr (OperandExpr _) = []
-getTestsExpr InstBytes = []
-getTestsExpr (LocExpr le) = getTestsLocExpr le
-getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
-
-getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
-getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
-getTestsBVApp app = foldMapFC getTestsExpr app

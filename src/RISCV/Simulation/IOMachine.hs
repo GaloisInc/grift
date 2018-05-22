@@ -159,7 +159,7 @@ instance KnownArch arch => RVStateM (IOMachineM arch exts) arch exts where
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
 
-  logInstruction _ = return ()
+  logInstruction _ _ = return ()
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: IOMachine arch exts

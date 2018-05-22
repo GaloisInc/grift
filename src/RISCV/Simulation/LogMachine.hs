@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -35,6 +36,7 @@ module RISCV.Simulation.LogMachine
   , runLogMachine
   ) where
 
+import           Control.Lens ((^.))
 import           Control.Monad (forM_)
 import qualified Control.Monad.Reader.Class as R
 import           Control.Monad.Trans
@@ -42,18 +44,21 @@ import           Control.Monad.Trans.Reader
 import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
+import           Data.BitVector.Sized.App
 import qualified Data.ByteString as BS
+import           Data.Foldable (toList)
 import           Data.IORef
+import           Data.List (nub, union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
 
+import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
+import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
--- | Count number of each instruction occurred
-type OpcodeCount arch = Map (Some (Opcode arch)) Int
 
 -- | IO-based machine state.
 data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
@@ -65,7 +70,7 @@ data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   , ioMaxAddr   :: BitVector (ArchWidth arch)
   , ioException :: IORef (Maybe Exception)
   , ioSteps     :: IORef Int
-  , ioOpcodeCounts     :: IORef (OpcodeCount arch)
+  , ioTestMap   :: IORef (Map (Some (Opcode arch)) [[BitVector 1]])
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -92,11 +97,11 @@ mkLogMachine maxAddr entryPoint byteStrings = do
   priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
-  insts     <- newIORef Map.empty
+  testMap   <- newIORef Map.empty
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (LogMachine pc registers memory csrs priv maxAddr e steps insts)
+  return (LogMachine pc registers memory csrs priv maxAddr e steps testMap)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -166,10 +171,13 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
 
-  logInstruction (Some (Inst opcode _)) = LogMachineM $ do
-    instsRef <- ioOpcodeCounts <$> ask
-    lift $ modifyIORef instsRef $ \m ->
-      Map.insertWith (+) (Some opcode) 1 m
+  logInstruction (Some (Inst opcode operands)) iset = do
+    testMap <- LogMachineM (ioTestMap <$> ask)
+    let formula = semanticsFromOpcode iset opcode
+        tests = getTests formula
+    testVals <- traverse (evalExpr operands 4) tests
+    LogMachineM $ lift $ modifyIORef testMap $ \m ->
+      Map.insertWith union (Some opcode) [testVals] m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine arch exts
@@ -190,3 +198,33 @@ runLogMachine :: (KnownArch arch, KnownExtensions exts)
              -> IO Int
 runLogMachine steps m =
   flip runReaderT m $ runLogMachineM $ runRV steps
+
+----------------------------------------
+-- Analysis
+
+-- | Given a formula, constructs a list of all the tests that affect the execution of
+-- that formula.
+getTests :: Formula arch fmt -> [Expr arch fmt 1]
+getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
+
+getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
+getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
+getTestsStmt (BranchStmt t l r) =
+  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
+
+getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
+getTestsLocExpr (RegExpr e) = getTestsExpr e
+getTestsLocExpr (MemExpr e) = getTestsExpr e
+getTestsLocExpr (ResExpr e) = getTestsExpr e
+getTestsLocExpr (CSRExpr e) = getTestsExpr e
+getTestsLocExpr _ = []
+
+getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
+getTestsExpr (OperandExpr _) = []
+getTestsExpr InstBytes = []
+getTestsExpr (LocExpr le) = getTestsLocExpr le
+getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
+
+getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
+getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
+getTestsBVApp app = foldMapFC getTestsExpr app

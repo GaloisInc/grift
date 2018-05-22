@@ -59,7 +59,7 @@ main = do
       err       <- readIORef (ioException m)
       pc        <- readIORef (ioPC m)
       registers <- freezeRegisters m
-      opcodeCounts <- readIORef (ioOpcodeCounts m)
+      testMap   <- readIORef (ioTestMap m)
 
       case err of
         Nothing -> return ()
@@ -70,10 +70,11 @@ main = do
       forM_ (assocs registers) $ \(r, v) ->
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
-      writeFile log "Opcode, Hits\n"
+      writeFile log "Opcode, Coverage\n"
 
-      forM_ (Map.assocs opcodeCounts) $ \(opcode, n) ->
-        appendFile log $ show opcode ++ ", " ++ show n ++ "\n"
+      forM_ (Map.assocs testMap) $ \(opcode, variants@(v:_)) ->
+        appendFile log $ show opcode ++ ", " ++ show (length variants) ++
+        "/" ++ show (2^length v) ++ "\n"
 
     Elf64Res _err e -> do
       let byteStrings = elfBytes e
@@ -85,7 +86,7 @@ main = do
       stepsRan   <- readIORef (ioSteps m)
       pc         <- readIORef (ioPC m)
       registers  <- freezeRegisters m
-      opcodeCounts <- readIORef (ioOpcodeCounts m)
+      testMap   <- readIORef (ioTestMap m)
 
       case err of
         Nothing -> return ()
@@ -96,10 +97,11 @@ main = do
       forM_ (assocs registers) $ \(r, v) ->
         putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
-      writeFile log "Opcode, Hits\n"
+      writeFile log "Opcode, Coverage\n"
 
-      forM_ (Map.assocs opcodeCounts) $ \(opcode, n) ->
-        appendFile log $ show opcode ++ ", " ++ show n ++ "\n"
+      forM_ (Map.assocs testMap) $ \(opcode, variants@(v:_)) ->
+        appendFile log $ show opcode ++ ", " ++ show (length variants) ++
+        "/" ++ show (2^length v) ++ "\n"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
