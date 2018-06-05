@@ -35,8 +35,8 @@ import           System.FilePath.Posix
 import           RISCV.Extensions
 import           RISCV.InstructionSet
 import           RISCV.Types
-import           RISCV.Simulation.IOMachine
--- import           RISCV.Simulation.LogMachine
+-- import           RISCV.Simulation.IOMachine
+import           RISCV.Simulation.LogMachine
 
 type SimExts = (Exts '(MNo, ANo, FDNo))
 
@@ -55,15 +55,15 @@ main = do
   case parseElf fileBS of
     Elf32Res _err e -> do
       let byteStrings = elfBytes e
-      m :: IOMachine RV32 SimExts <-
-        mkIOMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-      runIOMachine stepsToRun m
+      m :: LogMachine RV32 SimExts <-
+        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      runLogMachine stepsToRun m
 
       err        <- readIORef (ioException m)
       stepsRan   <- readIORef (ioSteps m)
       pc         <- readIORef (ioPC m)
       registers  <- freezeRegisters m
-      -- testMap   <- readIORef (ioTestMap m)
+      testMap   <- readIORef (ioTestMap m)
 
       case err of
         Nothing -> return ()
@@ -76,12 +76,12 @@ main = do
 
       writeFile log "Opcode, Coverage\n"
 
-      -- let iset = knownISet :: InstructionSet RV32 SimExts
-      -- forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-      --   let numTests = length (getTests (semanticsFromOpcode iset opcode))
-      --   in
-      --     appendFile log $ show opcode ++ ", " ++ show (length variants) ++
-      --     "/" ++ show (2^numTests) ++ "\n"
+      let iset = knownISet :: InstructionSet RV32 SimExts
+      forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+        let numTests = length (getTests (semanticsFromOpcode iset opcode))
+        in
+          appendFile log $ show opcode ++ ", " ++ show (length variants) ++
+          "/" ++ show (2^numTests) ++ "\n"
     _ -> error "only 64-bit supported"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
