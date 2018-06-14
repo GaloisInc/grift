@@ -82,7 +82,35 @@ main = do
         in
           appendFile log $ show opcode ++ ", " ++ show (length variants) ++
           "/" ++ show (2^numTests) ++ "\n"
-    _ -> error "only 64-bit supported"
+    Elf64Res _err e -> do
+      let byteStrings = elfBytes e
+      m :: LogMachine RV64 SimExts <-
+        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+      runLogMachine stepsToRun m
+
+      err        <- readIORef (ioException m)
+      stepsRan   <- readIORef (ioSteps m)
+      pc         <- readIORef (ioPC m)
+      registers  <- freezeRegisters m
+      testMap   <- readIORef (ioTestMap m)
+
+      case err of
+        Nothing -> return ()
+        Just err' -> putStrLn $ "Encountered exception: " ++ show err'
+      putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
+      putStrLn $ "Final PC: " ++ show pc
+      putStrLn "Final register state:"
+      forM_ (assocs registers) $ \(r, v) ->
+        putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+
+      writeFile log "Opcode, Coverage\n"
+
+      let iset = knownISet :: InstructionSet RV64 SimExts
+      forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+        let numTests = length (getTests (semanticsFromOpcode iset opcode))
+        in
+          appendFile log $ show opcode ++ ", " ++ show (length variants) ++
+          "/" ++ show (2^numTests) ++ "\n"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
