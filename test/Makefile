@@ -5,7 +5,7 @@ BUILDDIR=build
 
 RISCVCC64=riscv64-unknown-elf-gcc -march=rv64im -mabi=lp64 -static -nostdlib -nostartfiles -mcmodel=medany
 
-all: qsort64
+all: qsort64 add64
 
 init32.o: init.S
 	$(RISCVCC32) -c init.S -o init32.o
@@ -13,11 +13,17 @@ init32.o: init.S
 init64.o: init.S
 	$(RISCVCC64) -c init.S -o init64.o
 
-qsort32: init32.o qsort/qsort_main.c
-	$(RISCVCC64) init32.o qsort/qsort_main.c -o qsort32
+qsort32: init32.o qsort/qsort_main.c mmio.ld
+	$(RISCVCC64) -Tmmio.ld init32.o qsort/qsort_main.c -o qsort32
 
-qsort64: init64.o qsort/qsort_main.c
-	$(RISCVCC64) init64.o qsort/qsort_main.c -o qsort64
+qsort64: init64.o qsort/qsort_main.c mmio.ld
+	$(RISCVCC64) -Tmmio.ld init64.o qsort/qsort_main.c -o qsort64
+
+add32: init32.o add/add.c mmio.ld
+	$(RISCVCC64) -Tmmio.ld init32.o add/add.c -o add32
+
+add64: init64.o add/add.c mmio.ld
+	$(RISCVCC64) -Tmmio.ld init64.o add/add.c -o add64
 
 # mmio32.o: mmio.c
 # 	$(RISCVCC32) -c mmio.c -o mmio32.o
@@ -41,4 +47,4 @@ qsort64: init64.o qsort/qsort_main.c
 
 
 clean:
-	rm -f init32.o init64.o qsort32 qsort64
+	rm -f init32.o init64.o qsort32 qsort64 add32 add64

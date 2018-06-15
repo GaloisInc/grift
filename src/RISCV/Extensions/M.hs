@@ -86,8 +86,9 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      let archWidth = knownNat @(ArchWidth arch)
-          mulWidth  = archWidth `addNat` archWidth
+      archWidth <- getArchWidth
+
+      let mulWidth  = archWidth `addNat` archWidth
           sext_x_rs1 = sextEWithRepr mulWidth x_rs1
           sext_x_rs2 = sextEWithRepr mulWidth x_rs2
           prod = sext_x_rs1 `mulE` sext_x_rs2
@@ -105,8 +106,9 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      let archWidth = knownNat @(ArchWidth arch)
-          mulWidth  = archWidth `addNat` archWidth
+      archWidth <- getArchWidth
+      
+      let mulWidth  = archWidth `addNat` archWidth
           sext_x_rs1 = sextEWithRepr mulWidth x_rs1
           zext_x_rs2 = zextEWithRepr mulWidth x_rs2
           prod = sext_x_rs1 `mulE` zext_x_rs2
@@ -123,8 +125,9 @@ mSemantics = Map.fromList
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
 
-      let archWidth = knownNat @(ArchWidth arch)
-          mulWidth  = archWidth `addNat` archWidth
+      archWidth <- getArchWidth
+  
+      let mulWidth  = archWidth `addNat` archWidth
           zext_x_rs1 = sextEWithRepr mulWidth x_rs1
           zext_x_rs2 = sextEWithRepr mulWidth x_rs2
           prod = zext_x_rs1 `mulE` zext_x_rs2

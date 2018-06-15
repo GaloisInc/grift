@@ -39,7 +39,8 @@ _start:
 
   call main
 1:
-  j 1b
+  ecall
+  #j 1b
 
 #.section ".tdata.begin"
 #.globl _tdata_begin

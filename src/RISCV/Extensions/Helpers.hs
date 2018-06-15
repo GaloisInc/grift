@@ -21,6 +21,7 @@ Helper functions for defining instruction semantics.
 
 module RISCV.Extensions.Helpers
   ( ArithOp, MemReadFn, MemWriteFn, ExtFn, CompOp
+  , getArchWidth
   , incrPC
   , rOp, rOp32, iOp
   , l, s, b
@@ -37,6 +38,9 @@ import GHC.TypeLits
 import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
+
+getArchWidth :: forall arch fmt . KnownArch arch => FormulaBuilder arch fmt (NatRepr (ArchWidth arch))
+getArchWidth = return (knownNat @(ArchWidth arch))
 
 -- | Increment the PC
 incrPC :: KnownArch arch => FormulaBuilder arch fmt ()

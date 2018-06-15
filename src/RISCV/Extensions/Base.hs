@@ -126,7 +126,7 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        let archWidth = knownNat @(ArchWidth arch)
+        archWidth <- getArchWidth
         return $ e1 `sllE` (e2 `andE` litBV (bitVector (fromIntegral (natValue archWidth) - 1)))
   , Pair Slt $ getFormula $ do
       comment "Compares x[rs1] and x[rs2] as two's complement numbers."
@@ -148,8 +148,8 @@ baseSemantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        let archWidth = knownNat @(ArchWidth arch)
-            mask = litBV (bitVector (natValue archWidth - 1))
+        archWidth <- getArchWidth
+        let mask = litBV (bitVector (natValue archWidth - 1))
 
         return $ e1 `srlE` (e2 `andE` mask)
   , Pair Sra $ getFormula $ do
@@ -158,7 +158,7 @@ baseSemantics = Map.fromList
       comment "The result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
-        let archWidth = knownNat @(ArchWidth arch)
+        archWidth <- getArchWidth
         let mask = litBV (bitVector (natValue archWidth - 1))
 
         return $ e1 `sraE` (e2 `andE` mask)
@@ -251,8 +251,8 @@ baseSemantics = Map.fromList
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
-      let archWidth  = knownNat @(ArchWidth arch)
-          shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      archWidth <- getArchWidth
+      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
 
       let ctrlBad  = notE (ctrl `eqE` litBV 0b00000)
           shamtBad = notE (shamt `ltuE` shiftBound)
@@ -280,8 +280,8 @@ baseSemantics = Map.fromList
           aShift = ctrl `eqE` litBV 0b01000
 
       -- Check that the shift amount is within the architecture width.
-      let archWidth = knownNat @(ArchWidth arch)
-          shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      archWidth <- getArchWidth
+      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
 
       let ctrlBad  = notE (lShift `orE` aShift)
           shamtBad = notE (shamt `ltuE` shiftBound)
