@@ -54,6 +54,7 @@ import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
 import qualified Data.Parameterized.Map as MapF
+import           Data.Traversable (for)
 
 import RISCV.Extensions
 import RISCV.InstructionSet
@@ -61,7 +62,6 @@ import RISCV.Types
 import RISCV.Simulation
 import RISCV.Semantics
 import RISCV.Semantics.Exceptions
-
 
 -- | IO-based machine state.
 data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
@@ -128,7 +128,7 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     case addr + fromIntegral (natValue bytes) < maxAddr of
       True -> do
         val <- lift $
-          traverse (readArray memArray) [addr..addr+(fromIntegral (natValue bytes-1))]
+          for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
         return (bvConcatManyWithRepr ((knownNat :: NatRepr 8) `natMultiply` bytes) val)
       False -> do
         -- TODO: We need to change this code to actually execute the semantics

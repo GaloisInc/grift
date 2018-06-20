@@ -1,5 +1,5 @@
 	.file	"start.s"
-	.option nopic
+#	.option nopic
 	.text
 	.align	2
 	.globl	_start

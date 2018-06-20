@@ -201,22 +201,46 @@ baseSemantics = Map.fromList
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      -- l readMem16 sextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMemWithRepr (knownNat @2) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (sextE mVal)
+      incrPC
   , Pair Lw $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      -- l readMem32 sextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMemWithRepr (knownNat @4) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (sextE mVal)
+      incrPC
   , Pair Lbu $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      -- l readMem zextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMemWithRepr (knownNat @1) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (zextE mVal)
+      incrPC
   , Pair Lhu $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      -- l readMem16 zextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMemWithRepr (knownNat @2) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (zextE mVal)
+      incrPC
   , Pair Addi $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -390,17 +414,35 @@ baseSemantics = Map.fromList
       comment "Computes the least-significant byte in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      -- s assignMem
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      assignMemWithRepr (knownNat @1) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      incrPC
   , Pair Sh $ getFormula $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      -- s assignMem16
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      assignMemWithRepr (knownNat @2) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      incrPC
   , Pair Sw $ getFormula $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      -- s assignMem32
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      assignMemWithRepr (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      incrPC
   -- B type
   , Pair Beq $ getFormula $ do
       comment "If register x[rs1] equals register x[rs2], add sext(offset) to the pc."
@@ -528,7 +570,13 @@ base64Semantics = Map.fromList
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      -- l readMem64 sextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMemWithRepr (knownNat @8) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (sextE mVal)
+      incrPC
   , Pair Addiw $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
       comment "Writes the result to x[rd]."
@@ -591,5 +639,11 @@ base64Semantics = Map.fromList
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      -- s assignMem64
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      assignMemWithRepr (knownNat @8) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      incrPC
   ]

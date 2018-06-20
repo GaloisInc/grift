@@ -49,8 +49,6 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
-import Debug.Trace (traceM)
-
 -- | State monad for simulating RISC-V code
 class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
   -- | Get the current PC.
@@ -164,7 +162,6 @@ execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
 -- TODO: When we do SMP, implement memory reservations.
 execAssignment (Assignment (Res _) _) = return ()
 execAssignment (Assignment (CSR csr) val) = do
-  traceM $ "CSR[" ++ show csr ++ "] := " ++ show val
   setCSR csr val
 execAssignment (Assignment Priv val) = setPriv val
 execAssignment (Branch condVal tAssignments fAssignments) =
