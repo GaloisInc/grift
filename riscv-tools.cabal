@@ -25,7 +25,6 @@ library
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
                      , RISCV.Simulation
-                     , RISCV.Simulation.IOMachine
                      , RISCV.Simulation.LogMachine
                      , RISCV.Simulation.MapMachine
                      , RISCV.Types
@@ -59,7 +58,6 @@ executable riscv-sim
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
                      , RISCV.Simulation
-                     , RISCV.Simulation.IOMachine
                      , RISCV.Simulation.LogMachine
                      , RISCV.Simulation.MapMachine
                      , RISCV.Types

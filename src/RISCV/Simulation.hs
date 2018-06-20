@@ -4,7 +4,9 @@
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE Rank2Types             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE TypeOperators          #-}
 
 {-|
 Module      : RISCV.Simulation
@@ -56,8 +58,8 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Get the value of a register. This function shouldn't ever be called with an
   -- argument of 0, so there is no need to hardwire it to 0 in an implementation.
   getReg  :: BitVector 5 -> m (BitVector (ArchWidth arch))
-  -- | Read a single byte from memory.
-  getMem  :: BitVector (ArchWidth arch) -> m (BitVector 8)
+  -- | Read some number of bytes from memory.
+  getMem  :: NatRepr bytes -> BitVector (ArchWidth arch) -> m (BitVector (8*bytes))
   -- | Get the value of a CSR.
   getCSR  :: BitVector 12 -> m (BitVector (ArchWidth arch))
   -- | Get the current privilege level.
@@ -68,7 +70,7 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Write to a register.
   setReg  :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
   -- | Write a single byte to memory.
-  setMem  :: BitVector (ArchWidth arch) -> BitVector 8 -> m ()
+  setMem  :: NatRepr bytes -> BitVector (ArchWidth arch) -> BitVector (8*bytes) -> m ()
   -- | Write to a CSR.
   setCSR  :: BitVector 12 -> BitVector (ArchWidth arch) -> m ()
   -- | Set the privilege level.
@@ -89,8 +91,8 @@ evalExpr _ ib InstBytes = return $ bitVector ib
 evalExpr _ _ (LocExpr PCExpr) = getPC
 evalExpr operands ib (LocExpr (RegExpr ridE)) =
   evalExpr operands ib ridE >>= getReg
-evalExpr operands ib (LocExpr (MemExpr addrE)) =
-  evalExpr operands ib addrE >>= getMem
+evalExpr operands ib (LocExpr (MemExpr bytes addrE)) =
+  evalExpr operands ib addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
 evalExpr _ _ (LocExpr (ResExpr _)) = return 1
 evalExpr operands ib (LocExpr (CSRExpr csrE)) =
@@ -106,7 +108,7 @@ evalExpr operands ib (AppExpr bvApp) =
 data Loc arch w where
   PC :: Loc arch (ArchWidth arch)
   Reg :: BitVector 5 -> Loc arch (ArchWidth arch)
-  Mem :: BitVector (ArchWidth arch) -> Loc arch 8
+  Mem :: NatRepr bytes -> BitVector (ArchWidth arch) -> Loc arch (8*bytes)
   Res :: BitVector (ArchWidth arch) -> Loc arch 1
   CSR :: BitVector 12 -> Loc arch (ArchWidth arch)
   Priv :: Loc arch 2
@@ -133,10 +135,10 @@ buildAssignment operands ib (AssignStmt (RegExpr ridE) e) = do
   rid  <- evalExpr operands ib ridE
   eVal <- evalExpr operands ib e
   return (Assignment (Reg rid) eVal)
-buildAssignment operands ib (AssignStmt (MemExpr addrE) e) = do
+buildAssignment operands ib (AssignStmt (MemExpr bytes addrE) e) = do
   addr <- evalExpr operands ib addrE
   eVal <- evalExpr operands ib e
-  return (Assignment (Mem addr) eVal)
+  return (Assignment (Mem bytes addr) eVal)
 buildAssignment operands ib (AssignStmt (ResExpr addrE) e) = do
   addr <- evalExpr operands ib addrE
   eVal <- evalExpr operands ib e
@@ -158,7 +160,7 @@ buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
 execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
-execAssignment (Assignment (Mem addr) val) = setMem addr val
+execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
 -- TODO: When we do SMP, implement memory reservations.
 execAssignment (Assignment (Res _) _) = return ()
 execAssignment (Assignment (CSR csr) val) = do
@@ -181,14 +183,6 @@ execFormula operands ib f = do
   assignments <- traverse (buildAssignment operands ib) (f ^. fDefs)
   traverse_ execAssignment assignments
 
-getMem32 :: (KnownArch arch, RVStateM m arch exts) => BitVector (ArchWidth arch) -> m (BitVector 32)
-getMem32 addr = do
-  b0 <- getMem addr
-  b1 <- getMem (addr+1)
-  b2 <- getMem (addr+2)
-  b3 <- getMem (addr+3)
-  return $ b3 <:> b2 <:> b1 <:> b0
-
 -- | Fetch, decode, and execute a single instruction.
 stepRV :: forall m arch exts
           . (RVStateM m arch exts, KnownArch arch, KnownExtensions exts)
@@ -197,7 +191,7 @@ stepRV :: forall m arch exts
 stepRV iset = do
   -- Fetch
   pcVal  <- getPC
-  instBV <- getMem32 pcVal
+  instBV <- getMem (knownNat @4) pcVal
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.

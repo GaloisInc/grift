@@ -47,7 +47,7 @@ import           Data.Array.IO
 import           Data.BitVector.Sized
 import           Data.BitVector.Sized.App
 import qualified Data.ByteString as BS
-import           Data.Foldable (toList)
+import           Data.Foldable (toList, for_)
 import           Data.IORef
 import           Data.List (nub, union)
 import qualified Data.Map.Strict as Map
@@ -122,16 +122,21 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     regArray <- ioRegisters <$> ask
     regVal   <- lift $ readArray regArray rid
     return regVal
-  getMem addr = LogMachineM $ do
+  getMem bytes addr = LogMachineM $ do
     memArray <- ioMemory <$> ask
-    maxAddr <- ioMaxAddr <$> ask
-    case addr < maxAddr of
-      True -> do byte <- lift $ readArray memArray addr
-                 return byte
+    maxAddr  <- ioMaxAddr <$> ask
+    case addr + fromIntegral (natValue bytes) < maxAddr of
+      True -> do
+        val <- lift $
+          traverse (readArray memArray) [addr..addr+(fromIntegral (natValue bytes-1))]
+        return (bvConcatManyWithRepr ((knownNat :: NatRepr 8) `natMultiply` bytes) val)
       False -> do
+        -- TODO: We need to change this code to actually execute the semantics
+        -- we've pre-defined in RISCV.Semantics.Exceptions, and we can get rid
+        -- of the ioException field here.
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just LoadAccessFault)
-        return 0
+        return (BV ((knownNat :: NatRepr 8) `natMultiply` bytes) 0)
   getCSR csr = LogMachineM $ do
     csrsRef <- ioCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef
@@ -155,11 +160,15 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
   setReg rid regVal = LogMachineM $ do
     regArray <- ioRegisters <$> ask
     lift $ writeArray regArray rid regVal
-  setMem addr byte = LogMachineM $ do
+  setMem bytes addr val = LogMachineM $ do
     memArray <- ioMemory <$> ask
     maxAddr <- ioMaxAddr <$> ask
     case addr < maxAddr of
-      True -> lift $ writeArray memArray addr byte
+      True -> lift $
+        for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
+        where addrValPairs = zip
+                [addr..addr+(fromIntegral (natValue bytes-1))]
+                (bvGetBytesU (fromIntegral (natValue bytes)) val)
       False -> do
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just StoreAccessFault)
@@ -216,10 +225,10 @@ getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
 getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
-getTestsLocExpr (RegExpr e) = getTestsExpr e
-getTestsLocExpr (MemExpr e) = getTestsExpr e
-getTestsLocExpr (ResExpr e) = getTestsExpr e
-getTestsLocExpr (CSRExpr e) = getTestsExpr e
+getTestsLocExpr (RegExpr   e) = getTestsExpr e
+getTestsLocExpr (MemExpr _ e) = getTestsExpr e
+getTestsLocExpr (ResExpr   e) = getTestsExpr e
+getTestsLocExpr (CSRExpr   e) = getTestsExpr e
 getTestsLocExpr _ = []
 
 getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]

@@ -190,27 +190,33 @@ baseSemantics = Map.fromList
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l readMem sextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMemWithRepr (knownNat @1) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (sextE mVal)
+      incrPC
   , Pair Lh $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l readMem16 sextE
+      -- l readMem16 sextE
   , Pair Lw $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l readMem32 sextE
+      -- l readMem32 sextE
   , Pair Lbu $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      l readMem zextE
+      -- l readMem zextE
   , Pair Lhu $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      l readMem16 zextE
+      -- l readMem16 zextE
   , Pair Addi $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -384,17 +390,17 @@ baseSemantics = Map.fromList
       comment "Computes the least-significant byte in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s assignMem
+      -- s assignMem
   , Pair Sh $ getFormula $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s assignMem16
+      -- s assignMem16
   , Pair Sw $ getFormula $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s assignMem32
+      -- s assignMem32
   -- B type
   , Pair Beq $ getFormula $ do
       comment "If register x[rs1] equals register x[rs2], add sext(offset) to the pc."
@@ -517,12 +523,12 @@ base64Semantics = Map.fromList
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      l readMem32 zextE
+      -- l readMem32 zextE
   , Pair Ld $ getFormula $ do
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
-      l readMem64 sextE
+      -- l readMem64 sextE
   , Pair Addiw $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
       comment "Writes the result to x[rd]."
@@ -585,5 +591,5 @@ base64Semantics = Map.fromList
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
-      s assignMem64
+      -- s assignMem64
   ]

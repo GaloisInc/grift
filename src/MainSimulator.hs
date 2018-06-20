@@ -38,7 +38,7 @@ import           RISCV.Types
 -- import           RISCV.Simulation.IOMachine
 import           RISCV.Simulation.LogMachine
 
-type SimExts = (Exts '(MNo, ANo, FDNo))
+type SimExts = (Exts '(MYes, AYes, FDNo))
 
 main :: IO ()
 main = do

@@ -43,6 +43,7 @@ module RISCV.Semantics
   , readPC
   , readReg
   , readMem
+  , readMemWithRepr
   , readCSR
   , readPriv
   , checkReserved
@@ -50,6 +51,7 @@ module RISCV.Semantics
   , assignPC
   , assignReg
   , assignMem
+  , assignMemWithRepr
   , assignCSR
   , assignPriv
   , reserve
@@ -80,7 +82,7 @@ import RISCV.Types
 data LocExpr arch fmt w where
   PCExpr   ::                                   LocExpr arch fmt (ArchWidth arch)
   RegExpr  :: Expr arch fmt 5                -> LocExpr arch fmt (ArchWidth arch)
-  MemExpr  :: Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt 8
+  MemExpr  :: NatRepr bytes -> Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt (8*bytes)
   ResExpr  :: Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt 1
   CSRExpr  :: Expr arch fmt 12               -> LocExpr arch fmt (ArchWidth arch)
   PrivExpr ::                                   LocExpr arch fmt 2
@@ -88,7 +90,7 @@ data LocExpr arch fmt w where
 instance Pretty (LocExpr arch fmt w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
-  pPrint (MemExpr e) = text "M[" <> pPrint e <> text "]"
+  pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
   pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
   pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
   pPrint PrivExpr    = text "current_priv"
@@ -101,16 +103,19 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
 
   -- Accessing state
   LocExpr :: LocExpr arch fmt w -> Expr arch fmt w
-
+  
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
 $(return [])
 instance TestEquality (LocExpr arch fmt) where
-  testEquality = $(structuralTypeEquality [t|LocExpr|] [])
+  testEquality = $(structuralTypeEquality [t|LocExpr|]
+                   [(ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])])
 instance TestEquality (Expr arch fmt) where
   testEquality = $(structuralTypeEquality [t|Expr|]
-                    [ (AnyType `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|]) ])
+                    [ (AnyType `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|])
+                    , (ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])
+                    ])
 instance Eq (Expr arch fmt w) where
   x == y = isJust (testEquality x y)
 
@@ -122,6 +127,8 @@ pPrintExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue o
 pPrintExpr' _ InstBytes = text "step"
 pPrintExpr' _ (LocExpr loc) = pPrint loc
 pPrintExpr' top (AppExpr app) = pPrintApp' top app
+
+
 
 pPrintApp' :: Bool -> BVApp (Expr arch fmt) w -> Doc
 pPrintApp' _ (NotApp e) = text "!" <> pPrintExpr' False e
@@ -280,9 +287,15 @@ readReg :: KnownArch arch
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
 readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (LocExpr (RegExpr ridE))
 
--- | Read a byte from memory.
-readMem :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt 8)
-readMem addr = return (LocExpr (MemExpr addr))
+-- | Read a variable number of bytes from memory, with an explicit width argument.
+readMemWithRepr :: NatRepr bytes
+                -> Expr arch fmt (ArchWidth arch)
+                -> FormulaBuilder arch fmt (Expr arch fmt (8*bytes))
+readMemWithRepr bytes addr = return (LocExpr (MemExpr bytes addr))
+
+-- | Read a variable number of bytes from memory.
+readMem :: KnownNat bytes => Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt (8*bytes))
+readMem addr = return (LocExpr (MemExpr knownNat addr))
 
 -- | Read a value from a CSR.
 readCSR :: KnownArch arch
@@ -311,11 +324,19 @@ assignReg r e = addStmt $
   $> Seq.empty
   $> Seq.singleton (AssignStmt (RegExpr r) e)
 
+-- | Add a memory location assignment to the formula, with an explicit width argument.
+assignMemWithRepr :: NatRepr bytes
+                  -> Expr arch fmt (ArchWidth arch)
+                  -> Expr arch fmt (8*bytes)
+                  -> FormulaBuilder arch fmt ()
+assignMemWithRepr bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
+
 -- | Add a memory location assignment to the formula.
-assignMem :: Expr arch fmt (ArchWidth arch)
-          -> Expr arch fmt 8
+assignMem :: KnownNat bytes
+          => Expr arch fmt (ArchWidth arch)
+          -> Expr arch fmt (8*bytes)
           -> FormulaBuilder arch fmt ()
-assignMem addr val = addStmt (AssignStmt (MemExpr addr) val)
+assignMem addr val = addStmt (AssignStmt (MemExpr knownNat addr) val)
 
 -- | Add a CSR assignment to the formula.
 assignCSR :: Expr arch fmt 12
