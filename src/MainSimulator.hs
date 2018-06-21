@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
@@ -49,68 +50,53 @@ main = do
 
   let [stepStr, fileName] = args
       stepsToRun = read stepStr :: Int
-      log = replaceExtensions fileName "log"
+      logFile = replaceExtensions fileName "log"
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
-    Elf32Res _err e -> do
-      let byteStrings = elfBytes e
-      m :: LogMachine RV32 SimExts <-
-        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-      runLogMachine stepsToRun m
+    Elf32Res _ e -> runElf stepsToRun logFile (RV32Elf e)
+    Elf64Res _ e -> runElf stepsToRun logFile (RV64Elf e)
 
-      err        <- readIORef (ioException m)
-      stepsRan   <- readIORef (ioSteps m)
-      pc         <- readIORef (ioPC m)
-      registers  <- freezeRegisters m
-      testMap   <- readIORef (ioTestMap m)
+data RISCVElf (arch :: BaseArch) where
+  RV32Elf :: Elf 32 -> RISCVElf RV32
+  RV64Elf :: Elf 64 -> RISCVElf RV64
 
-      case err of
-        Nothing -> return ()
-        Just err' -> putStrLn $ "Encountered exception: " ++ show err'
-      putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
-      putStrLn $ "Final PC: " ++ show pc
-      putStrLn "Final register state:"
-      forM_ (assocs registers) $ \(r, v) ->
-        putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+rElf :: RISCVElf arch -> Elf (ArchWidth arch)
+rElf (RV32Elf e) = e
+rElf (RV64Elf e) = e
 
-      writeFile log "Opcode, Coverage\n"
+runElf :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
+       => Int -> FilePath -> RISCVElf arch -> IO ()
+runElf stepsToRun logFile re = do
+  let e = rElf re
+      byteStrings = elfBytes e
+  m :: LogMachine arch SimExts <-
+    mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+  runLogMachine stepsToRun m
 
-      let iset = knownISet :: InstructionSet RV32 SimExts
-      forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-        let numTests = length (getTests (semanticsFromOpcode iset opcode))
-        in
-          appendFile log $ show opcode ++ ", " ++ show (length variants) ++
-          "/" ++ show (2^numTests) ++ "\n"
-    Elf64Res _err e -> do
-      let byteStrings = elfBytes e
-      m :: LogMachine RV64 SimExts <-
-        mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-      runLogMachine stepsToRun m
+  err        <- readIORef (ioException m)
+  stepsRan   <- readIORef (ioSteps m)
+  pc         <- readIORef (ioPC m)
+  registers  <- freezeRegisters m
+  testMap    <- readIORef (ioTestMap m)
 
-      err        <- readIORef (ioException m)
-      stepsRan   <- readIORef (ioSteps m)
-      pc         <- readIORef (ioPC m)
-      registers  <- freezeRegisters m
-      testMap   <- readIORef (ioTestMap m)
+  case err of
+    Nothing -> return ()
+    Just err' -> putStrLn $ "Encountered exception: " ++ show err'
+  putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
+  putStrLn $ "Final PC: " ++ show pc
+  putStrLn "Final register state:"
+  forM_ (assocs registers) $ \(r, v) ->
+    putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
-      case err of
-        Nothing -> return ()
-        Just err' -> putStrLn $ "Encountered exception: " ++ show err'
-      putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
-      putStrLn $ "Final PC: " ++ show pc
-      putStrLn "Final register state:"
-      forM_ (assocs registers) $ \(r, v) ->
-        putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+  writeFile logFile "Opcode, Coverage\n"
 
-      writeFile log "Opcode, Coverage\n"
-
-      let iset = knownISet :: InstructionSet RV64 SimExts
-      forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-        let numTests = length (getTests (semanticsFromOpcode iset opcode))
-        in
-          appendFile log $ show opcode ++ ", " ++ show (length variants) ++
-          "/" ++ show (2^numTests) ++ "\n"
+  let iset = knownISet :: InstructionSet arch SimExts
+  forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+    let numTests = length (getTests (semanticsFromOpcode iset opcode))
+    in
+      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
+      "/" ++ show (2^numTests) ++ "\n"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
