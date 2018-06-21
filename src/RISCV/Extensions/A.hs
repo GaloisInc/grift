@@ -86,7 +86,7 @@ aSemantics = Map.fromList
       let illegal = notE (rs2 `eqE` litBV 0)
 
       x_rs1 <- readReg rs1
-      mVal  <- readMemWithRepr (knownNat @4) x_rs1
+      mVal  <- readMem (knownNat @4) x_rs1
 
       branch illegal
         $> raiseException IllegalInstruction
@@ -106,7 +106,7 @@ aSemantics = Map.fromList
       reserved <- checkReserved x_rs1
 
       branch reserved
-        $> do assignMemWithRepr (knownNat @4) x_rs1 (extractE 0 x_rs2)
+        $> do assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2)
               assignReg rd (litBV 0)
         $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
   , Pair Amoswapw $ getFormula $ do
@@ -164,9 +164,9 @@ amoOp32 op = do
 
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
-      mVal  <- readMemWithRepr (knownNat @4) x_rs1
+      mVal  <- readMem (knownNat @4) x_rs1
 
-      assignMemWithRepr (knownNat @4) x_rs1 (extractE 0 x_rs2 `op` mVal)
+      assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)
 
 
@@ -183,7 +183,7 @@ a64Semantics = Map.fromList
       let illegal = notE (rs2 `eqE` litBV 0)
 
       x_rs1 <- readReg rs1
-      mVal  <- readMemWithRepr (knownNat @8) x_rs1
+      mVal  <- readMem (knownNat @8) x_rs1
 
       branch illegal
         $> raiseException IllegalInstruction
@@ -203,7 +203,7 @@ a64Semantics = Map.fromList
       reserved <- checkReserved x_rs1
 
       branch reserved
-        $> do assignMemWithRepr (knownNat @8) x_rs1 (extractE 0 x_rs2)
+        $> do assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2)
               assignReg rd (litBV 0)
         $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
   , Pair Amoswapd $ getFormula $ do
@@ -261,7 +261,7 @@ amoOp64 op = do
 
       x_rs1 <- readReg rs1
       x_rs2 <- readReg rs2
-      mVal  <- readMemWithRepr (knownNat @8) x_rs1
+      mVal  <- readMem (knownNat @8) x_rs1
 
-      assignMemWithRepr (knownNat @8) x_rs1 (extractE 0 x_rs2 `op` mVal)
+      assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)

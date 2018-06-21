@@ -43,7 +43,6 @@ module RISCV.Semantics
   , readPC
   , readReg
   , readMem
-  , readMemWithRepr
   , readCSR
   , readPriv
   , checkReserved
@@ -51,7 +50,6 @@ module RISCV.Semantics
   , assignPC
   , assignReg
   , assignMem
-  , assignMemWithRepr
   , assignCSR
   , assignPriv
   , reserve
@@ -103,7 +101,7 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
 
   -- Accessing state
   LocExpr :: LocExpr arch fmt w -> Expr arch fmt w
-  
+
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
@@ -127,8 +125,6 @@ pPrintExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue o
 pPrintExpr' _ InstBytes = text "step"
 pPrintExpr' _ (LocExpr loc) = pPrint loc
 pPrintExpr' top (AppExpr app) = pPrintApp' top app
-
-
 
 pPrintApp' :: Bool -> BVApp (Expr arch fmt) w -> Doc
 pPrintApp' _ (NotApp e) = text "!" <> pPrintExpr' False e
@@ -288,14 +284,10 @@ readReg :: KnownArch arch
 readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (LocExpr (RegExpr ridE))
 
 -- | Read a variable number of bytes from memory, with an explicit width argument.
-readMemWithRepr :: NatRepr bytes
+readMem :: NatRepr bytes
                 -> Expr arch fmt (ArchWidth arch)
                 -> FormulaBuilder arch fmt (Expr arch fmt (8*bytes))
-readMemWithRepr bytes addr = return (LocExpr (MemExpr bytes addr))
-
--- | Read a variable number of bytes from memory.
-readMem :: KnownNat bytes => Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt (8*bytes))
-readMem addr = return (LocExpr (MemExpr knownNat addr))
+readMem bytes addr = return (LocExpr (MemExpr bytes addr))
 
 -- | Read a value from a CSR.
 readCSR :: KnownArch arch
@@ -325,18 +317,11 @@ assignReg r e = addStmt $
   $> Seq.singleton (AssignStmt (RegExpr r) e)
 
 -- | Add a memory location assignment to the formula, with an explicit width argument.
-assignMemWithRepr :: NatRepr bytes
-                  -> Expr arch fmt (ArchWidth arch)
-                  -> Expr arch fmt (8*bytes)
-                  -> FormulaBuilder arch fmt ()
-assignMemWithRepr bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
-
--- | Add a memory location assignment to the formula.
-assignMem :: KnownNat bytes
-          => Expr arch fmt (ArchWidth arch)
+assignMem :: NatRepr bytes
+          -> Expr arch fmt (ArchWidth arch)
           -> Expr arch fmt (8*bytes)
           -> FormulaBuilder arch fmt ()
-assignMem addr val = addStmt (AssignStmt (MemExpr knownNat addr) val)
+assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
 
 -- | Add a CSR assignment to the formula.
 assignCSR :: Expr arch fmt 12
