@@ -107,7 +107,7 @@ mSemantics = Map.fromList
       x_rs2 <- readReg rs2
 
       archWidth <- getArchWidth
-      
+
       let mulWidth  = archWidth `addNat` archWidth
           sext_x_rs1 = sextEWithRepr mulWidth x_rs1
           zext_x_rs2 = zextEWithRepr mulWidth x_rs2
@@ -126,37 +126,72 @@ mSemantics = Map.fromList
       x_rs2 <- readReg rs2
 
       archWidth <- getArchWidth
-  
+
       let mulWidth  = archWidth `addNat` archWidth
-          zext_x_rs1 = sextEWithRepr mulWidth x_rs1
-          zext_x_rs2 = sextEWithRepr mulWidth x_rs2
+          zext_x_rs1 = zextEWithRepr mulWidth x_rs1
+          zext_x_rs2 = zextEWithRepr mulWidth x_rs2
           prod = zext_x_rs1 `mulE` zext_x_rs2
 
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  -- TODO: Handle division by 0 as specified in the manual
   , Pair Div $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp $ \x y -> return (quotsE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      let q = x_rs1 `quotsE` x_rs2
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      incrPC
 
   , Pair Divu $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
-      rOp $ \x y -> return (quotuE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      let q = x_rs1 `quotuE` x_rs2
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      incrPC
 
   , Pair Rem $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      let q = x_rs1 `quotsE` x_rs2
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      incrPC
 
       rOp $ \x y -> return (remsE x y)
 
   , Pair Remu $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      x_rs2 <- readReg rs2
+
+      let q = x_rs1 `quotuE` x_rs2
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      incrPC
 
       rOp $ \x y -> return (remuE x y)
 
