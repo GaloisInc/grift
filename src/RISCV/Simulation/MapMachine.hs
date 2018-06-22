@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -32,9 +33,9 @@ module RISCV.Simulation.MapMachine
   ) where
 
 import           Control.Monad (forM_)
-import qualified Control.Monad.Reader.Class as R
+import qualified Control.Monad.State.Class as S
 import           Control.Monad.Trans
-import           Control.Monad.Trans.Reader
+import           Control.Monad.Trans.State
 import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
@@ -43,6 +44,7 @@ import           Data.IORef
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
+import           Data.Traversable (for)
 
 import RISCV.Types
 import RISCV.Simulation
@@ -84,13 +86,22 @@ mkMachine maxAddr' entryPoint byteStrings =
 -- 'RVState' interface functions to actual transformations on the underlying mutable
 -- state.
 newtype MapMachineM (arch :: BaseArch) (exts :: Extensions) a =
-  MapMachineM { runMapMachineM :: Reader (MapMachine arch exts) a }
-  deriving (Functor, Applicative, Monad, R.MonadReader (MapMachine arch exts))
+  MapMachineM { runMapMachineM :: State (MapMachine arch exts) a }
+  deriving (Functor, Applicative, Monad, S.MonadState (MapMachine arch exts))
 
 instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
-  getPC = undefined
-  getReg rid = undefined
-  getMem addr = undefined
+  getPC = MapMachineM $ pc <$> get
+  getReg rid = MapMachineM $ Map.findWithDefault 0 rid <$> registers <$> get
+  getMem bytes addr = MapMachineM $ do
+    memory <- memory <$> get
+    maxAddr <- maxAddr <$> get
+    case addr + fromIntegral (natValue bytes) < maxAddr of
+      True -> do
+        val <- for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a ->
+          return $ Map.findWithDefault 0 a memory
+        return $ bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val
+      False -> do
+        undefined
   getCSR csr = undefined
   getPriv = undefined
 

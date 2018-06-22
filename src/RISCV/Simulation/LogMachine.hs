@@ -8,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -129,14 +130,14 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
       True -> do
         val <- lift $
           for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
-        return (bvConcatManyWithRepr ((knownNat :: NatRepr 8) `natMultiply` bytes) val)
+        return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
       False -> do
         -- TODO: We need to change this code to actually execute the semantics
         -- we've pre-defined in RISCV.Semantics.Exceptions, and we can get rid
         -- of the ioException field here.
         eRef <- ioException <$> ask
         lift $ writeIORef eRef (Just LoadAccessFault)
-        return (BV ((knownNat :: NatRepr 8) `natMultiply` bytes) 0)
+        return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = LogMachineM $ do
     csrsRef <- ioCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef
