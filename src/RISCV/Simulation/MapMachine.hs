@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -27,28 +28,28 @@ unspecified.
 
 module RISCV.Simulation.MapMachine
   ( MapMachine(..)
-  , mkMachine
+  , mkMapMachine
   , MapMachineM
   , runMapMachine
   ) where
 
-import           Control.Monad (forM_)
+import           Control.Lens ((^.))
 import qualified Control.Monad.State.Class as S
-import           Control.Monad.Trans
 import           Control.Monad.Trans.State
-import           Data.Array.IArray
-import           Data.Array.IO
 import           Data.BitVector.Sized
+import           Data.BitVector.Sized.App
 import qualified Data.ByteString as BS
-import           Data.Foldable (for_)
-import           Data.IORef
+import           Data.Foldable (for_, toList)
+import           Data.List (nub, union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
 import           Data.Traversable (for)
 
+import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
+import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 -- | IO-based machine state.
@@ -61,16 +62,17 @@ data MapMachine (arch :: BaseArch) (exts :: Extensions) = MapMachine
   , maxAddr   :: BitVector (ArchWidth arch)
   , exception :: Maybe Exception
   , steps     :: Int
+  , testMap   :: Map (Some (Opcode arch)) [[BitVector 1]]
   }
 
 -- | Construct an MapMachine with a given maximum address, entry point, and list of
 -- (addr, bytestring) pairs to load into the memory.
-mkMachine :: (KnownArch arch, KnownExtensions exts)
+mkMapMachine :: (KnownArch arch, KnownExtensions exts)
           => BitVector (ArchWidth arch)
           -> BitVector (ArchWidth arch)
           -> [(BitVector (ArchWidth arch), BS.ByteString)]
           -> MapMachine arch exts
-mkMachine maxAddr' entryPoint byteStrings =
+mkMapMachine maxAddr' entryPoint byteStrings =
   MapMachine { pc = entryPoint
              , registers = Map.fromList (zip [1..31] (repeat 0))
              , memory = Map.fromList memoryAssocs
@@ -79,6 +81,7 @@ mkMachine maxAddr' entryPoint byteStrings =
              , maxAddr = maxAddr'
              , exception = Nothing
              , steps = 0
+             , testMap = Map.empty
              }
   where memoryAssocs = concat (map zipBS byteStrings)
         zipBS (start, bs) = zip [start..] (map (bitVector . fromIntegral) (BS.unpack bs))
@@ -95,8 +98,8 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
   getReg rid = MapMachineM $ Map.findWithDefault 0 rid <$> registers <$> get
   getMem bytes addr = MapMachineM $ do
     mem <- memory <$> get
-    maxAddr <- maxAddr <$> get
-    case addr + fromIntegral (natValue bytes) < maxAddr of
+    ma <- maxAddr <$> get
+    case addr + fromIntegral (natValue bytes) < ma of
       True -> do
         val <- for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a ->
           return $ Map.findWithDefault 0 a mem
@@ -111,9 +114,8 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
   setReg rid regVal = MapMachineM $ S.modify $ \m ->
     m { registers = Map.insert rid regVal (registers m) }
   setMem bytes addr val = MapMachineM $ do
-    mem <- memory <$> get
-    maxAddr <- maxAddr <$> get
-    case addr < maxAddr of
+    ma <- maxAddr <$> get
+    case addr < ma of
       True -> do
         for_ addrValPairs $ \(a, byte) -> S.modify $ \m ->
           m { memory = Map.insert a byte (memory m) }
@@ -125,11 +127,46 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
     m { csrs = Map.insert csr csrVal (csrs m) }
   setPriv privVal = MapMachineM $ S.modify $ \m -> m { priv = privVal }
 
-  logInstruction _ _ = return ()
+  logInstruction (Some (Inst opcode operands)) iset = do
+    let formula = semanticsFromOpcode iset opcode
+        tests = getTests formula
+    testVals <- traverse (evalExpr operands 4) tests
+    MapMachineM $ S.modify $ \m ->
+      m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
 
 -- | Run the simulator for a given number of steps.
 runMapMachine :: (KnownArch arch, KnownExtensions exts)
              => Int
              -> MapMachine arch exts
              -> (Int, MapMachine arch exts)
-runMapMachine steps m = flip runState m $ runMapMachineM $ runRV steps
+runMapMachine maxSteps m = flip runState m $ runMapMachineM $ runRV maxSteps
+
+----------------------------------------
+-- Analysis
+
+-- | Given a formula, constructs a list of all the tests that affect the execution of
+-- that formula.
+getTests :: Formula arch fmt -> [Expr arch fmt 1]
+getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
+
+getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
+getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
+getTestsStmt (BranchStmt t l r) =
+  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
+
+getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
+getTestsLocExpr (RegExpr   e) = getTestsExpr e
+getTestsLocExpr (MemExpr _ e) = getTestsExpr e
+getTestsLocExpr (ResExpr   e) = getTestsExpr e
+getTestsLocExpr (CSRExpr   e) = getTestsExpr e
+getTestsLocExpr _ = []
+
+getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
+getTestsExpr (OperandExpr _) = []
+getTestsExpr InstBytes = []
+getTestsExpr (LocExpr le) = getTestsLocExpr le
+getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
+
+getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
+getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
+getTestsBVApp app = foldMapFC getTestsExpr app

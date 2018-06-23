@@ -38,6 +38,7 @@ import           RISCV.InstructionSet
 import           RISCV.Types
 -- import           RISCV.Simulation.IOMachine
 import           RISCV.Simulation.LogMachine
+import           RISCV.Simulation.MapMachine
 
 type SimExts = (Exts '(MYes, AYes, FDNo))
 
@@ -54,8 +55,8 @@ main = do
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
-    Elf32Res _ e -> runElf stepsToRun logFile (RV32Elf e)
-    Elf64Res _ e -> runElf stepsToRun logFile (RV64Elf e)
+    Elf32Res _ e -> runElfMap stepsToRun logFile (RV32Elf e)
+    Elf64Res _ e -> runElfMap stepsToRun logFile (RV64Elf e)
 
 data RISCVElf (arch :: BaseArch) where
   RV32Elf :: Elf 32 -> RISCVElf RV32
@@ -66,7 +67,10 @@ rElf (RV32Elf e) = e
 rElf (RV64Elf e) = e
 
 runElf :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
-       => Int -> FilePath -> RISCVElf arch -> IO ()
+       => Int
+       -> FilePath
+       -> RISCVElf arch
+       -> IO ()
 runElf stepsToRun logFile re = do
   let e = rElf re
       byteStrings = elfBytes e
@@ -93,6 +97,42 @@ runElf stepsToRun logFile re = do
 
   let iset = knownISet :: InstructionSet arch SimExts
   forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+    let numTests = length (getTests (semanticsFromOpcode iset opcode))
+    in
+      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
+      "/" ++ show (2^numTests) ++ "\n"
+
+runElfMap :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
+          => Int
+          -> FilePath
+          -> RISCVElf arch
+          -> IO ()
+runElfMap stepsToRun logFile re = do
+  let e = rElf re
+      byteStrings = elfBytes e
+  m :: MapMachine arch SimExts <-
+    return $ mkMapMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+  let (_, m') = runMapMachine stepsToRun m
+
+  let err        = exception m'
+      stepsRan   = steps m
+      pc'        = pc m
+      registers' = registers m
+      testMap'   = testMap m
+
+  case err of
+    Nothing -> return ()
+    Just err' -> putStrLn $ "Encountered exception: " ++ show err'
+  putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
+  putStrLn $ "Final PC: " ++ show pc'
+  putStrLn "Final register state:"
+  forM_ (Map.assocs registers') $ \(r, v) ->
+    putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+
+  writeFile logFile "Opcode, Coverage\n"
+
+  let iset = knownISet :: InstructionSet arch SimExts
+  forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
     let numTests = length (getTests (semanticsFromOpcode iset opcode))
     in
       appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
