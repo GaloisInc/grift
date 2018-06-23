@@ -129,11 +129,12 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
   setPriv privVal = MapMachineM $ S.modify $ \m -> m { priv = privVal }
 
   logInstruction (Some (Inst opcode operands)) iset = do
-    let formula = semanticsFromOpcode iset opcode
-        tests = getTests formula
-    testVals <- traverse (evalExpr operands 4) tests
-    MapMachineM $ S.modify $ \m ->
-      m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
+    return ()
+    -- let formula = semanticsFromOpcode iset opcode
+    --     tests = getTests formula
+    -- testVals <- traverse (evalExpr operands 4) tests
+    -- MapMachineM $ S.modify $ \m ->
+    --   m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
 
 -- | Run the simulator for a given number of steps.
 runMapMachine :: (KnownArch arch, KnownExtensions exts)

@@ -120,6 +120,11 @@ data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
   Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
 
+-- TODO: Create a separate data type, like Stmt, but without reference
+-- to a particular instruction, in order to enable the simulation to
+-- execute actual semantic assignments based on the current state
+-- outside the context of executing a particular instruction.
+
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                 => Operands fmt

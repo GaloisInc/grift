@@ -185,12 +185,13 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     lift $ writeIORef privRef privVal
 
   logInstruction (Some (Inst opcode operands)) iset = do
-    testMap <- LogMachineM (ioTestMap <$> ask)
-    let formula = semanticsFromOpcode iset opcode
-        tests = getTests formula
-    testVals <- traverse (evalExpr operands 4) tests
-    LogMachineM $ lift $ modifyIORef testMap $ \m ->
-      Map.insertWith union (Some opcode) [testVals] m
+    return ()
+    -- testMap <- LogMachineM (ioTestMap <$> ask)
+    -- let formula = semanticsFromOpcode iset opcode
+    --     tests = getTests formula
+    -- testVals <- traverse (evalExpr operands 4) tests
+    -- LogMachineM $ lift $ modifyIORef testMap $ \m ->
+    --   Map.insertWith union (Some opcode) [testVals] m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine arch exts
