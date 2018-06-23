@@ -40,6 +40,7 @@ import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
+import           Data.Foldable (for_)
 import           Data.IORef
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
@@ -93,23 +94,36 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
   getPC = MapMachineM $ pc <$> get
   getReg rid = MapMachineM $ Map.findWithDefault 0 rid <$> registers <$> get
   getMem bytes addr = MapMachineM $ do
-    memory <- memory <$> get
+    mem <- memory <$> get
     maxAddr <- maxAddr <$> get
     case addr + fromIntegral (natValue bytes) < maxAddr of
       True -> do
         val <- for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a ->
-          return $ Map.findWithDefault 0 a memory
+          return $ Map.findWithDefault 0 a mem
         return $ bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val
       False -> do
-        undefined
-  getCSR csr = undefined
-  getPriv = undefined
+        S.modify $ \m -> m { exception = Just LoadAccessFault }
+        return (BV ((knownNat @8) `natMultiply` bytes) 0)
+  getCSR csr = MapMachineM $ Map.findWithDefault 0 csr <$> csrs <$> get
+  getPriv = MapMachineM $ priv <$> get
 
-  setPC pcVal = undefined
-  setReg rid regVal = undefined
-  setMem addr byte = undefined
-  setCSR csr csrVal = undefined
-  setPriv privVal = undefined
+  setPC pcVal = MapMachineM $ S.modify $ \m -> m { pc = pcVal }
+  setReg rid regVal = MapMachineM $ S.modify $ \m ->
+    m { registers = Map.insert rid regVal (registers m) }
+  setMem bytes addr val = MapMachineM $ do
+    mem <- memory <$> get
+    maxAddr <- maxAddr <$> get
+    case addr < maxAddr of
+      True -> do
+        for_ addrValPairs $ \(a, byte) -> S.modify $ \m ->
+          m { memory = Map.insert a byte (memory m) }
+        where addrValPairs = zip
+                [addr..addr+(fromIntegral (natValue bytes-1))]
+                (bvGetBytesU (fromIntegral (natValue bytes)) val)
+      False -> undefined
+  setCSR csr csrVal = MapMachineM $ S.modify $ \m ->
+    m { csrs = Map.insert csr csrVal (csrs m) }
+  setPriv privVal = MapMachineM $ S.modify $ \m -> m { priv = privVal }
 
   logInstruction _ _ = return ()
 
@@ -117,5 +131,5 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
 runMapMachine :: (KnownArch arch, KnownExtensions exts)
              => Int
              -> MapMachine arch exts
-             -> Int
-runMapMachine steps m = undefined
+             -> (Int, MapMachine arch exts)
+runMapMachine steps m = flip runState m $ runMapMachineM $ runRV steps
