@@ -110,7 +110,8 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
   getCSR csr = MapMachineM $ Map.findWithDefault 0 csr <$> csrs <$> get
   getPriv = MapMachineM $ priv <$> get
 
-  setPC pcVal = MapMachineM $ S.modify $ \m -> m { pc = pcVal }
+  setPC pcVal = MapMachineM $ do
+    S.modify $ \m -> m { pc = pcVal, steps = steps m + 1 }
   setReg rid regVal = MapMachineM $ S.modify $ \m ->
     m { registers = Map.insert rid regVal (registers m) }
   setMem bytes addr val = MapMachineM $ do

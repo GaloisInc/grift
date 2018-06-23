@@ -55,8 +55,8 @@ main = do
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
-    Elf32Res _ e -> runElfMap stepsToRun logFile (RV32Elf e)
-    Elf64Res _ e -> runElfMap stepsToRun logFile (RV64Elf e)
+    Elf32Res _ e -> runElf stepsToRun logFile (RV32Elf e)
+    Elf64Res _ e -> runElf stepsToRun logFile (RV64Elf e)
 
 data RISCVElf (arch :: BaseArch) where
   RV32Elf :: Elf 32 -> RISCVElf RV32
@@ -115,10 +115,10 @@ runElfMap stepsToRun logFile re = do
   let (_, m') = runMapMachine stepsToRun m
 
   let err        = exception m'
-      stepsRan   = steps m
-      pc'        = pc m
-      registers' = registers m
-      testMap'   = testMap m
+      stepsRan   = steps m'
+      pc'        = pc m'
+      registers' = registers m'
+      testMap'   = testMap m'
 
   case err of
     Nothing -> return ()
