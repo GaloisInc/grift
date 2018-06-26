@@ -30,12 +30,14 @@ module RISCV.Simulation
   , execAssignment
   , execFormula
   , runRV
+  , getTests
   ) where
 
 import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.Foldable
+import Data.List (nub)
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
@@ -224,3 +226,33 @@ runRV = runRV' knownISet 0
             True  -> return currSteps
             False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
 
+
+----------------------------------------
+-- Analysis
+
+-- | Given a formula, constructs a list of all the tests that affect the execution of
+-- that formula.
+getTests :: Formula arch fmt -> [Expr arch fmt 1]
+getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
+
+getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
+getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
+getTestsStmt (BranchStmt t l r) =
+  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
+
+getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
+getTestsLocExpr (RegExpr   e) = getTestsExpr e
+getTestsLocExpr (MemExpr _ e) = getTestsExpr e
+getTestsLocExpr (ResExpr   e) = getTestsExpr e
+getTestsLocExpr (CSRExpr   e) = getTestsExpr e
+getTestsLocExpr _ = []
+
+getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
+getTestsExpr (OperandExpr _) = []
+getTestsExpr InstBytes = []
+getTestsExpr (LocExpr le) = getTestsLocExpr le
+getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
+
+getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
+getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
+getTestsBVApp app = foldMapFC getTestsExpr app

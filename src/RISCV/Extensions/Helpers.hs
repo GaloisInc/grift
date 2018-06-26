@@ -20,23 +20,16 @@ Helper functions for defining instruction semantics.
 -}
 
 module RISCV.Extensions.Helpers
-  ( ArithOp
-  -- , MemReadFn, MemWriteFn
-  , ExtFn, CompOp
-  , getArchWidth
+  ( getArchWidth
   , incrPC
   , rOp, rOp32, iOp
-  -- , l, s
   , b
-  -- , readMem16, readMem32, readMem64
-  -- , assignMem16, assignMem32, assignMem64
   , checkCSR
   ) where
 
 import Data.BitVector.Sized.App
 import Data.Parameterized
 import Data.Parameterized.List
-import GHC.TypeLits
 
 import RISCV.Semantics
 import RISCV.Semantics.Exceptions
@@ -95,31 +88,6 @@ iOp op = do
 
 -- | Generic type for functions that extend a value to the register width.
 type ExtFn arch w fmt = KnownArch arch => Expr arch fmt w -> Expr arch fmt (ArchWidth arch)
-
--- | Generic load.
--- l :: KnownArch arch => ExtFn arch w I -> FormulaBuilder arch I ()
--- l extFn = do
---   rd :< rs1 :< offset :< Nil <- operandEs
-
---   x_rs1 <- readReg rs1
---   mVal  <- readMem (x_rs1 `addE` sextE offset)
-
---   assignReg rd (extFn mVal)
---   incrPC
-
--- | Generic type for functions that write to memory.
-type MemWriteFn arch w fmt = KnownArch arch => Expr arch fmt (ArchWidth arch) -> Expr arch fmt w -> FormulaBuilder arch fmt ()
-
--- | Generic store.
--- s :: (KnownArch arch, KnownNat w) => MemWriteFn arch w S -> FormulaBuilder arch S ()
--- s wrFn = do
---   rs1 :< rs2 :< offset :< Nil <- operandEs
-
--- x_rs1 <- readReg rs1
--- x_rs2 <- readReg rs2
-
--- wrFn (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
--- incrPC
 
 -- | Generic comparison operator.
 type CompOp arch fmt = Expr arch fmt (ArchWidth arch)

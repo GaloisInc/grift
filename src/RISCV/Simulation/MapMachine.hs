@@ -33,14 +33,12 @@ module RISCV.Simulation.MapMachine
   , runMapMachine
   ) where
 
-import           Control.Lens ((^.))
 import qualified Control.Monad.State.Class as S
 import           Control.Monad.Trans.State
 import           Data.BitVector.Sized
-import           Data.BitVector.Sized.App
 import qualified Data.ByteString as BS
-import           Data.Foldable (for_, toList)
-import           Data.List (nub, union)
+import           Data.Foldable (for_)
+import           Data.List (union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
@@ -49,7 +47,6 @@ import           Data.Traversable (for)
 import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 -- | IO-based machine state.
@@ -130,11 +127,11 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
 
   logInstruction (Some (Inst opcode operands)) iset = do
     return ()
-    -- let formula = semanticsFromOpcode iset opcode
-    --     tests = getTests formula
-    -- testVals <- traverse (evalExpr operands 4) tests
-    -- MapMachineM $ S.modify $ \m ->
-    --   m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
+    let formula = semanticsFromOpcode iset opcode
+        tests = getTests formula
+    testVals <- traverse (evalExpr operands 4) tests
+    MapMachineM $ S.modify $ \m ->
+      m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
 
 -- | Run the simulator for a given number of steps.
 runMapMachine :: (KnownArch arch, KnownExtensions exts)
@@ -142,33 +139,3 @@ runMapMachine :: (KnownArch arch, KnownExtensions exts)
              -> MapMachine arch exts
              -> (Int, MapMachine arch exts)
 runMapMachine maxSteps m = flip runState m $ runMapMachineM $ runRV maxSteps
-
-----------------------------------------
--- Analysis
-
--- | Given a formula, constructs a list of all the tests that affect the execution of
--- that formula.
-getTests :: Formula arch fmt -> [Expr arch fmt 1]
-getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
-
-getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
-getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
-getTestsStmt (BranchStmt t l r) =
-  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
-
-getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
-getTestsLocExpr (RegExpr   e) = getTestsExpr e
-getTestsLocExpr (MemExpr _ e) = getTestsExpr e
-getTestsLocExpr (ResExpr   e) = getTestsExpr e
-getTestsLocExpr (CSRExpr   e) = getTestsExpr e
-getTestsLocExpr _ = []
-
-getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
-getTestsExpr (OperandExpr _) = []
-getTestsExpr InstBytes = []
-getTestsExpr (LocExpr le) = getTestsLocExpr le
-getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
-
-getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
-getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
-getTestsBVApp app = foldMapFC getTestsExpr app

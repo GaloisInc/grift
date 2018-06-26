@@ -36,7 +36,7 @@ import           System.FilePath.Posix
 import           RISCV.Extensions
 import           RISCV.InstructionSet
 import           RISCV.Types
--- import           RISCV.Simulation.IOMachine
+import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 import           RISCV.Simulation.MapMachine
 

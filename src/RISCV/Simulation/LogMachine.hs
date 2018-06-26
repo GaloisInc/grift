@@ -35,10 +35,8 @@ module RISCV.Simulation.LogMachine
   , freezeRegisters
   , freezeMemory
   , runLogMachine
-  , getTests
   ) where
 
-import           Control.Lens ((^.))
 import           Control.Monad (forM_)
 import qualified Control.Monad.Reader.Class as R
 import           Control.Monad.Trans
@@ -46,22 +44,18 @@ import           Control.Monad.Trans.Reader
 import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
-import           Data.BitVector.Sized.App
 import qualified Data.ByteString as BS
-import           Data.Foldable (toList, for_)
+import           Data.Foldable (for_)
 import           Data.IORef
-import           Data.List (nub, union)
+import           Data.List (union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
-import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
 
-import RISCV.Extensions
 import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 -- | IO-based machine state.
@@ -186,12 +180,12 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
 
   logInstruction (Some (Inst opcode operands)) iset = do
     return ()
-    -- testMap <- LogMachineM (ioTestMap <$> ask)
-    -- let formula = semanticsFromOpcode iset opcode
-    --     tests = getTests formula
-    -- testVals <- traverse (evalExpr operands 4) tests
-    -- LogMachineM $ lift $ modifyIORef testMap $ \m ->
-    --   Map.insertWith union (Some opcode) [testVals] m
+    testMap <- LogMachineM (ioTestMap <$> ask)
+    let formula = semanticsFromOpcode iset opcode
+        tests = getTests formula
+    testVals <- traverse (evalExpr operands 4) tests
+    LogMachineM $ lift $ modifyIORef testMap $ \m ->
+      Map.insertWith union (Some opcode) [testVals] m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine arch exts
@@ -212,33 +206,3 @@ runLogMachine :: (KnownArch arch, KnownExtensions exts)
              -> IO Int
 runLogMachine steps m =
   flip runReaderT m $ runLogMachineM $ runRV steps
-
-----------------------------------------
--- Analysis
-
--- | Given a formula, constructs a list of all the tests that affect the execution of
--- that formula.
-getTests :: Formula arch fmt -> [Expr arch fmt 1]
-getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
-
-getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
-getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
-getTestsStmt (BranchStmt t l r) =
-  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
-
-getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
-getTestsLocExpr (RegExpr   e) = getTestsExpr e
-getTestsLocExpr (MemExpr _ e) = getTestsExpr e
-getTestsLocExpr (ResExpr   e) = getTestsExpr e
-getTestsLocExpr (CSRExpr   e) = getTestsExpr e
-getTestsLocExpr _ = []
-
-getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
-getTestsExpr (OperandExpr _) = []
-getTestsExpr InstBytes = []
-getTestsExpr (LocExpr le) = getTestsLocExpr le
-getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
-
-getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
-getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
-getTestsBVApp app = foldMapFC getTestsExpr app
