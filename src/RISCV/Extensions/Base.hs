@@ -15,7 +15,7 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-RV32I base ISA, encoding and semantics.
+RV32I/RV64I base ISA; encoding and semantics.
 -}
 
 module RISCV.Extensions.Base
@@ -565,7 +565,13 @@ base64Semantics = Map.fromList
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
-      -- l readMem32 zextE
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      x_rs1 <- readReg rs1
+      mVal  <- readMem (knownNat @4) (x_rs1 `addE` sextE offset)
+
+      assignReg rd (zextE mVal)
+      incrPC
   , Pair Ld $ getFormula $ do
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."

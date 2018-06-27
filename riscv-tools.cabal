@@ -22,6 +22,7 @@ library
                      , RISCV.Extensions.A
                      , RISCV.Extensions.M
                      , RISCV.InstructionSet
+                     , RISCV.Latency
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
                      , RISCV.Simulation
@@ -54,6 +55,7 @@ executable riscv-sim
                      , RISCV.Extensions.A
                      , RISCV.Extensions.M
                      , RISCV.InstructionSet
+                     , RISCV.Latency
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
                      , RISCV.Simulation

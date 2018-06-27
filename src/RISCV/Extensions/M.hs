@@ -15,7 +15,7 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-RV32M multiply extension
+RV32M/RV64M multiply extension
 -}
 
 module RISCV.Extensions.M

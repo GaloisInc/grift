@@ -15,7 +15,7 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-A, memory atomics extension
+RV32A/RV64A, memory atomics extension
 -}
 
 module RISCV.Extensions.A
