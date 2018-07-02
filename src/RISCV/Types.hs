@@ -339,148 +339,148 @@ instance OrdF OpBits where
 -- push the distinction into the semantics. It is a shame that these instruction
 -- weren't encoded differently; if they used different OpBits, this could have been
 -- avoided. Similarly, 'Ecall' and 'Ebreak' are combined into a single instruction.
-data Opcode :: BaseArch -> Format -> * where
+data Opcode :: BaseArch -> Extensions -> Format -> * where
 
   -- RV32
-  Add  :: Opcode arch R
-  Sub  :: Opcode arch R
-  Sll  :: Opcode arch R
-  Slt  :: Opcode arch R
-  Sltu :: Opcode arch R
-  Xor  :: Opcode arch R
-  Srl  :: Opcode arch R
-  Sra  :: Opcode arch R
-  Or   :: Opcode arch R
-  And  :: Opcode arch R
+  Add  :: Opcode arch exts R
+  Sub  :: Opcode arch exts R
+  Sll  :: Opcode arch exts R
+  Slt  :: Opcode arch exts R
+  Sltu :: Opcode arch exts R
+  Xor  :: Opcode arch exts R
+  Srl  :: Opcode arch exts R
+  Sra  :: Opcode arch exts R
+  Or   :: Opcode arch exts R
+  And  :: Opcode arch exts R
 
-  Jalr    :: Opcode arch I
-  Lb      :: Opcode arch I
-  Lh      :: Opcode arch I
-  Lw      :: Opcode arch I
-  Lbu     :: Opcode arch I
-  Lhu     :: Opcode arch I
-  Addi    :: Opcode arch I
-  Slti    :: Opcode arch I
-  Sltiu   :: Opcode arch I
-  Xori    :: Opcode arch I
-  Ori     :: Opcode arch I
-  Andi    :: Opcode arch I
-  Slli    :: Opcode arch I
+  Jalr    :: Opcode arch exts I
+  Lb      :: Opcode arch exts I
+  Lh      :: Opcode arch exts I
+  Lw      :: Opcode arch exts I
+  Lbu     :: Opcode arch exts I
+  Lhu     :: Opcode arch exts I
+  Addi    :: Opcode arch exts I
+  Slti    :: Opcode arch exts I
+  Sltiu   :: Opcode arch exts I
+  Xori    :: Opcode arch exts I
+  Ori     :: Opcode arch exts I
+  Andi    :: Opcode arch exts I
+  Slli    :: Opcode arch exts I
   -- | @srai@ and @srli@ combined into a single instruction.
-  Sri     :: Opcode arch I
-  Fence   :: Opcode arch I
-  FenceI  :: Opcode arch I
-  Csrrw   :: Opcode arch I
-  Csrrs   :: Opcode arch I
-  Csrrc   :: Opcode arch I
-  Csrrwi  :: Opcode arch I
-  Csrrsi  :: Opcode arch I
-  Csrrci  :: Opcode arch I
+  Sri     :: Opcode arch exts I
+  Fence   :: Opcode arch exts I
+  FenceI  :: Opcode arch exts I
+  Csrrw   :: Opcode arch exts I
+  Csrrs   :: Opcode arch exts I
+  Csrrc   :: Opcode arch exts I
+  Csrrwi  :: Opcode arch exts I
+  Csrrsi  :: Opcode arch exts I
+  Csrrci  :: Opcode arch exts I
   -- | @ecall@ and @ebreak@ combined into a single instruction.
-  Ecb     :: Opcode arch I
+  Ecb     :: Opcode arch exts I
 
   -- S type
-  Sb :: Opcode arch S
-  Sh :: Opcode arch S
-  Sw :: Opcode arch S
+  Sb :: Opcode arch exts S
+  Sh :: Opcode arch exts S
+  Sw :: Opcode arch exts S
 
   -- B type
-  Beq  :: Opcode arch B
-  Bne  :: Opcode arch B
-  Blt  :: Opcode arch B
-  Bge  :: Opcode arch B
-  Bltu :: Opcode arch B
-  Bgeu :: Opcode arch B
+  Beq  :: Opcode arch exts B
+  Bne  :: Opcode arch exts B
+  Blt  :: Opcode arch exts B
+  Bge  :: Opcode arch exts B
+  Bltu :: Opcode arch exts B
+  Bgeu :: Opcode arch exts B
 
   -- U type
-  Lui   :: Opcode arch U
-  Auipc :: Opcode arch U
+  Lui   :: Opcode arch exts U
+  Auipc :: Opcode arch exts U
 
   -- J type
-  Jal :: Opcode arch J
+  Jal :: Opcode arch exts J
 
 
   -- X type (illegal instruction)
-  Illegal :: Opcode arch X
+  Illegal :: Opcode arch exts X
 
   -- RV64
-  Addw   :: 64 <= ArchWidth arch => Opcode arch R
-  Subw   :: 64 <= ArchWidth arch => Opcode arch R
-  Sllw   :: 64 <= ArchWidth arch => Opcode arch R
-  Srlw   :: 64 <= ArchWidth arch => Opcode arch R
-  Sraw   :: 64 <= ArchWidth arch => Opcode arch R
-  Lwu    :: 64 <= ArchWidth arch => Opcode arch I
-  Ld     :: 64 <= ArchWidth arch => Opcode arch I
-  Addiw  :: 64 <= ArchWidth arch => Opcode arch I
-  Slliw  :: 64 <= ArchWidth arch => Opcode arch I
+  Addw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Subw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Sllw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Srlw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Sraw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Lwu    :: 64 <= ArchWidth arch => Opcode arch exts I
+  Ld     :: 64 <= ArchWidth arch => Opcode arch exts I
+  Addiw  :: 64 <= ArchWidth arch => Opcode arch exts I
+  Slliw  :: 64 <= ArchWidth arch => Opcode arch exts I
   -- | @sraiw@ and @srliw@ combined into a single instruction.
-  Sriw   :: 64 <= ArchWidth arch => Opcode arch I
-  Sd     :: 64 <= ArchWidth arch => Opcode arch S
+  Sriw   :: 64 <= ArchWidth arch => Opcode arch exts I
+  Sd     :: 64 <= ArchWidth arch => Opcode arch exts S
 
   -- RV32M
-  Mul    :: Opcode arch R
-  Mulh   :: Opcode arch R
-  Mulhsu :: Opcode arch R
-  Mulhu  :: Opcode arch R
-  Div    :: Opcode arch R
-  Divu   :: Opcode arch R
-  Rem    :: Opcode arch R
-  Remu   :: Opcode arch R
+  Mul    :: MExt << exts => Opcode arch exts R
+  Mulh   :: MExt << exts => Opcode arch exts R
+  Mulhsu :: MExt << exts => Opcode arch exts R
+  Mulhu  :: MExt << exts => Opcode arch exts R
+  Div    :: MExt << exts => Opcode arch exts R
+  Divu   :: MExt << exts => Opcode arch exts R
+  Rem    :: MExt << exts => Opcode arch exts R
+  Remu   :: MExt << exts => Opcode arch exts R
 
   -- RV64M
-  Mulw   :: 64 <= ArchWidth arch => Opcode arch R
-  Divw   :: 64 <= ArchWidth arch => Opcode arch R
-  Divuw  :: 64 <= ArchWidth arch => Opcode arch R
-  Remw   :: 64 <= ArchWidth arch => Opcode arch R
-  Remuw  :: 64 <= ArchWidth arch => Opcode arch R
+  Mulw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Divw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Divuw  :: 64 <= ArchWidth arch => Opcode arch exts R
+  Remw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Remuw  :: 64 <= ArchWidth arch => Opcode arch exts R
 
   -- RV32A
-  Lrw      :: Opcode arch A
-  Scw      :: Opcode arch A
-  Amoswapw :: Opcode arch A
-  Amoaddw  :: Opcode arch A
-  Amoxorw  :: Opcode arch A
-  Amoandw  :: Opcode arch A
-  Amoorw   :: Opcode arch A
-  Amominw  :: Opcode arch A
-  Amomaxw  :: Opcode arch A
-  Amominuw :: Opcode arch A
-  Amomaxuw :: Opcode arch A
+  Lrw      :: Opcode arch exts A
+  Scw      :: Opcode arch exts A
+  Amoswapw :: Opcode arch exts A
+  Amoaddw  :: Opcode arch exts A
+  Amoxorw  :: Opcode arch exts A
+  Amoandw  :: Opcode arch exts A
+  Amoorw   :: Opcode arch exts A
+  Amominw  :: Opcode arch exts A
+  Amomaxw  :: Opcode arch exts A
+  Amominuw :: Opcode arch exts A
+  Amomaxuw :: Opcode arch exts A
 
   -- RV64A
-  Lrd      :: 64 <= ArchWidth arch => Opcode arch A
-  Scd      :: 64 <= ArchWidth arch => Opcode arch A
-  Amoswapd :: 64 <= ArchWidth arch => Opcode arch A
-  Amoaddd  :: 64 <= ArchWidth arch => Opcode arch A
-  Amoxord  :: 64 <= ArchWidth arch => Opcode arch A
-  Amoandd  :: 64 <= ArchWidth arch => Opcode arch A
-  Amoord   :: 64 <= ArchWidth arch => Opcode arch A
-  Amomind  :: 64 <= ArchWidth arch => Opcode arch A
-  Amomaxd  :: 64 <= ArchWidth arch => Opcode arch A
-  Amominud :: 64 <= ArchWidth arch => Opcode arch A
-  Amomaxud :: 64 <= ArchWidth arch => Opcode arch A
+  Lrd      :: 64 <= ArchWidth arch => Opcode arch exts A
+  Scd      :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amoswapd :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amoaddd  :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amoxord  :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amoandd  :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amoord   :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amomind  :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amomaxd  :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amominud :: 64 <= ArchWidth arch => Opcode arch exts A
+  Amomaxud :: 64 <= ArchWidth arch => Opcode arch exts A
 
 -- Instances
 $(return [])
-deriving instance Show (Opcode arch fmt)
-instance ShowF (Opcode arch)
-deriving instance Eq (Opcode arch fmt)
-instance EqF (Opcode arch) where
+deriving instance Show (Opcode arch exts fmt)
+instance ShowF (Opcode arch exts)
+deriving instance Eq (Opcode arch exts fmt)
+instance EqF (Opcode arch exts) where
   eqF = (==)
-instance TestEquality (Opcode arch) where
+instance TestEquality (Opcode arch exts) where
   testEquality = $(structuralTypeEquality [t|Opcode|] [])
-instance OrdF (Opcode arch) where
+instance OrdF (Opcode arch exts) where
   compareF = $(structuralTypeOrd [t|Opcode|] [])
 
 ----------------------------------------
 -- Instructions
 
 -- | RISC-V Instruction, parameterized by base architecture and format.
-data Instruction (arch :: BaseArch) (fmt :: Format) =
-  Inst (Opcode arch fmt) (Operands fmt)
+data Instruction (arch :: BaseArch) (exts :: Extensions) (fmt :: Format) =
+  Inst (Opcode arch exts fmt) (Operands fmt)
 
 -- Instances
 $(return [])
-instance Show (Instruction arch fmt) where
+instance Show (Instruction arch exts fmt) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
-instance ShowF (Instruction arch)
+instance ShowF (Instruction arch exts)

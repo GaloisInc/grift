@@ -191,6 +191,7 @@ execFormula operands ib f = do
 stepRV :: forall m arch exts
           . (RVStateM m arch exts, KnownArch arch, KnownExtensions exts)
        => InstructionSet arch exts
+--       -> LatencyMap arch exts
        -> m ()
 stepRV iset = do
   -- Fetch
@@ -206,6 +207,9 @@ stepRV iset = do
 
   -- Execute
   execFormula operands 4 (semanticsFromOpcode iset opcode)
+
+  -- Record cycle count
+  -- cc <- evalExpr operands 4 (Map.lookup opcode latencyMap)
 
 -- | Check whether the machine has halted.
 isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
