@@ -42,7 +42,7 @@ a32 = instructionSet aEncode aSemantics
 a64 :: (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => InstructionSet arch exts
 a64 = a32 <> instructionSet a64Encode a64Semantics
 
-aEncode :: EncodeMap arch
+aEncode :: AExt << exts => EncodeMap arch exts
 aEncode = Map.fromList
   [ Pair Lrw      (OpBits ARepr (0b0101111 :< 0b010 :< 0b00010 :< Nil))
   , Pair Scw      (OpBits ARepr (0b0101111 :< 0b010 :< 0b00011 :< Nil))
@@ -57,7 +57,7 @@ aEncode = Map.fromList
   , Pair Amomaxuw (OpBits ARepr (0b0101111 :< 0b010 :< 0b11100 :< Nil))
   ]
 
-a64Encode :: 64 <= ArchWidth arch => EncodeMap arch
+a64Encode :: (64 <= ArchWidth arch, AExt << exts) => EncodeMap arch exts
 a64Encode = Map.fromList
   [ Pair Lrd      (OpBits ARepr (0b0101111 :< 0b011 :< 0b00010 :< Nil))
   , Pair Scd      (OpBits ARepr (0b0101111 :< 0b011 :< 0b00011 :< Nil))
@@ -72,7 +72,7 @@ a64Encode = Map.fromList
   , Pair Amomaxud (OpBits ARepr (0b0101111 :< 0b011 :< 0b11100 :< Nil))
   ]
 
-aSemantics :: forall arch . KnownArch arch => SemanticsMap arch
+aSemantics :: forall arch exts . (KnownArch arch, AExt << exts) => SemanticsMap arch exts
 aSemantics = Map.fromList
   [ Pair Lrw $ getFormula $ do
       comment "Loads the four bytes from memory at address x[rs1]."
@@ -169,7 +169,7 @@ amoOp32 op = do
       assignReg rd (sextE mVal)
 
 
-a64Semantics :: forall arch . (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch
+a64Semantics :: forall arch exts . (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => SemanticsMap arch exts
 a64Semantics = Map.fromList
   [ Pair Lrd $ getFormula $ do
       comment "Loads the eight bytes from memory at address x[rs1]."

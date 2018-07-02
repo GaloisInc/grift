@@ -34,20 +34,20 @@ import RISCV.Types
 
 -- | Instruction encoding, mapping each opcode to its associated 'OpBits', the bits
 -- it fixes in an instruction word.
-type EncodeMap arch = MapF (Opcode arch) OpBits
+type EncodeMap arch exts = MapF (Opcode arch exts) OpBits
 
 -- | Reverse of 'EncodeMap'
-type DecodeMap arch = MapF OpBits (Opcode arch)
+type DecodeMap arch exts = MapF OpBits (Opcode arch exts)
 
 -- | Maps each opcode to its associated semantics 'Formula'.
-type SemanticsMap arch = MapF (Opcode arch) (Formula arch)
+type SemanticsMap arch exts = MapF (Opcode arch exts) (Formula arch)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions
 -- into categories based on extension and register width.
 data InstructionSet (arch :: BaseArch) (exts :: Extensions)
-  = InstructionSet { isEncodeMap    :: !(EncodeMap arch)
-                   , isDecodeMap    :: !(DecodeMap arch)
-                   , isSemanticsMap :: !(SemanticsMap arch)
+  = InstructionSet { isEncodeMap    :: !(EncodeMap arch exts)
+                   , isDecodeMap    :: !(DecodeMap arch exts)
+                   , isSemanticsMap :: !(SemanticsMap arch exts)
                    }
 
 instance Monoid (InstructionSet arch exts) where
@@ -59,7 +59,7 @@ instance Monoid (InstructionSet arch exts) where
     = InstructionSet (em1 `Map.union` em2) (dm1 `Map.union` dm2) (sm1 `Map.union` sm2)
 
 -- | Construct an instructionSet from an EncodeMap and a SemanticsMap
-instructionSet :: EncodeMap arch -> SemanticsMap arch -> InstructionSet arch exts
+instructionSet :: EncodeMap arch exts -> SemanticsMap arch exts -> InstructionSet arch exts
 instructionSet em = InstructionSet em (transMap em)
   where swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
         swap (Pair k v) = Pair v k
@@ -67,17 +67,17 @@ instructionSet em = InstructionSet em (transMap em)
         transMap = Map.fromList . map swap . Map.toList
 
 -- | Given an instruction set, obtain the fixed bits of an opcode (encoding)
-opBitsFromOpcode :: InstructionSet arch exts -> Opcode arch fmt -> OpBits fmt
+opBitsFromOpcode :: InstructionSet arch exts -> Opcode arch exts fmt -> OpBits fmt
 opBitsFromOpcode is opcode = fromMaybe (error msg) $ Map.lookup opcode (isEncodeMap is)
   where msg = "Opcode " ++ show opcode ++ " does not have corresponding OpBits defined."
 
 -- | Given an instruction set, obtain the opcode from its fixed bits (decoding)
-opcodeFromOpBits :: InstructionSet arch exts -> OpBits fmt -> Either (Opcode arch X) (Opcode arch fmt)
+opcodeFromOpBits :: InstructionSet arch exts -> OpBits fmt -> Either (Opcode arch exts X) (Opcode arch exts fmt)
 opcodeFromOpBits is opBits =
   maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
 
 -- | Given an instruction set, obtain the semantics of an opcode
-semanticsFromOpcode :: InstructionSet arch exts -> Opcode arch fmt -> Formula arch fmt
+semanticsFromOpcode :: InstructionSet arch exts -> Opcode arch exts fmt -> Formula arch fmt
 semanticsFromOpcode is opcode = fromMaybe (error msg) $ Map.lookup opcode (isSemanticsMap is)
   where msg = "Opcode " ++ show opcode ++ " does not have corresponding semantics defined."
 

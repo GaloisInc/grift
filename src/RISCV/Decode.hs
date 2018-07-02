@@ -115,7 +115,7 @@ getFormat bv = case bv ^. layoutLens opcode of
 -- have to hide the format parameter of the return type with 'Some'.
 decode :: InstructionSet arch exts
        -> BitVector 32
-       -> Some (Instruction arch)
+       -> Some (Instruction arch exts)
 decode iset bv = case getFormat bv of
   Some repr -> case decodeOpcode iset repr bv of
     Right op     -> Some $ Inst op (decodeOperands repr bv)
@@ -132,11 +132,11 @@ decodeOpBits repr bv = OpBits repr (bv ^. layoutsLens (opBitsLayouts repr))
 decodeOpcode :: InstructionSet arch exts
              -> FormatRepr fmt
              -> BitVector 32
-             -> Either (Opcode arch X) (Opcode arch fmt)
+             -> Either (Opcode arch exts X) (Opcode arch exts fmt)
 decodeOpcode iset repr bv = opcodeFromOpBits iset (decodeOpBits repr bv)
 
 -- | Encode an 'Instruction' as a 32-bit instruction word.
-encode :: InstructionSet arch exts -> Instruction arch fmt -> BitVector 32
+encode :: InstructionSet arch exts -> Instruction arch exts fmt -> BitVector 32
 encode iset (Inst opc (Operands repr operands)) =
   0 & (opBitsLens .~ opBits) & (operandsLens .~ operands)
   where opBitsLens   = layoutsLens (opBitsLayouts repr)

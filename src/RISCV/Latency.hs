@@ -30,7 +30,7 @@ import RISCV.Types
 
 newtype Flip t a b = Flip (t b a)
 
-type LatencyMap arch exts = Map.MapF (Opcode arch) (Flip (Expr arch) (ArchWidth arch))
+type LatencyMap arch exts = Map.MapF (Opcode arch exts) (Flip (Expr arch) (ArchWidth arch))
 
 baseLatency :: KnownArch arch => LatencyMap arch exts
 baseLatency = Map.fromList
@@ -111,7 +111,7 @@ base64Latency = Map.fromList
   , Pair Sd    (Flip $ litBV 1)
   ]
 
-mLatency :: (KnownArch arch) => LatencyMap arch exts
+mLatency :: (KnownArch arch, KnownExtensions exts, MExt << exts) => LatencyMap arch exts
 mLatency = Map.fromList
   [ Pair Mul    (Flip $ litBV 1)
   , Pair Mulh   (Flip $ litBV 1)

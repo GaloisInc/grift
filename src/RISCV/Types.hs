@@ -428,37 +428,37 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Remu   :: MExt << exts => Opcode arch exts R
 
   -- RV64M
-  Mulw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Divw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Divuw  :: 64 <= ArchWidth arch => Opcode arch exts R
-  Remw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Remuw  :: 64 <= ArchWidth arch => Opcode arch exts R
+  Mulw   :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
+  Divw   :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
+  Divuw  :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
+  Remw   :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
+  Remuw  :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
 
   -- RV32A
-  Lrw      :: Opcode arch exts A
-  Scw      :: Opcode arch exts A
-  Amoswapw :: Opcode arch exts A
-  Amoaddw  :: Opcode arch exts A
-  Amoxorw  :: Opcode arch exts A
-  Amoandw  :: Opcode arch exts A
-  Amoorw   :: Opcode arch exts A
-  Amominw  :: Opcode arch exts A
-  Amomaxw  :: Opcode arch exts A
-  Amominuw :: Opcode arch exts A
-  Amomaxuw :: Opcode arch exts A
+  Lrw      :: AExt << exts => Opcode arch exts A
+  Scw      :: AExt << exts => Opcode arch exts A
+  Amoswapw :: AExt << exts => Opcode arch exts A
+  Amoaddw  :: AExt << exts => Opcode arch exts A
+  Amoxorw  :: AExt << exts => Opcode arch exts A
+  Amoandw  :: AExt << exts => Opcode arch exts A
+  Amoorw   :: AExt << exts => Opcode arch exts A
+  Amominw  :: AExt << exts => Opcode arch exts A
+  Amomaxw  :: AExt << exts => Opcode arch exts A
+  Amominuw :: AExt << exts => Opcode arch exts A
+  Amomaxuw :: AExt << exts => Opcode arch exts A
 
   -- RV64A
-  Lrd      :: 64 <= ArchWidth arch => Opcode arch exts A
-  Scd      :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amoswapd :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amoaddd  :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amoxord  :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amoandd  :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amoord   :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amomind  :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amomaxd  :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amominud :: 64 <= ArchWidth arch => Opcode arch exts A
-  Amomaxud :: 64 <= ArchWidth arch => Opcode arch exts A
+  Lrd      :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Scd      :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amoswapd :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amoaddd  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amoxord  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amoandd  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amoord   :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amomind  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amomaxd  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amominud :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Amomaxud :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
 
 -- Instances
 $(return [])

@@ -59,7 +59,7 @@ data MapMachine (arch :: BaseArch) (exts :: Extensions) = MapMachine
   , maxAddr   :: BitVector (ArchWidth arch)
   , exception :: Maybe Exception
   , steps     :: Int
-  , testMap   :: Map (Some (Opcode arch)) [[BitVector 1]]
+  , testMap   :: Map (Some (Opcode arch exts)) [[BitVector 1]]
   }
 
 -- | Construct an MapMachine with a given maximum address, entry point, and list of

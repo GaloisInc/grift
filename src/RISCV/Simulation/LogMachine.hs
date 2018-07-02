@@ -68,7 +68,7 @@ data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   , ioMaxAddr   :: BitVector (ArchWidth arch)
   , ioException :: IORef (Maybe Exception)
   , ioSteps     :: IORef Int
-  , ioTestMap   :: IORef (Map (Some (Opcode arch)) [[BitVector 1]])
+  , ioTestMap   :: IORef (Map (Some (Opcode arch exts)) [[BitVector 1]])
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -95,7 +95,7 @@ mkLogMachine maxAddr entryPoint byteStrings = do
   priv      <- newIORef 0b00
   e         <- newIORef Nothing
   steps     <- newIORef 0
-  testMap   <- newIORef Map.empty -- $ Map.fromList (zip opcodes (repeat []))
+  testMap   <- newIORef Map.empty -- Map.fromList (zip opcodes (repeat []))
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory

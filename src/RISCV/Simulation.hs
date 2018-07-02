@@ -77,7 +77,7 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   setPriv :: BitVector 2 -> m ()
 
   -- | Log the execution of a particular instruction.
-  logInstruction :: Some (Instruction arch) -> InstructionSet arch exts -> m ()
+  logInstruction :: Some (Instruction arch exts) -> InstructionSet arch exts -> m ()
 
 -- | Evaluate a 'Expr', given an 'RVStateM' implementation.
 evalExpr :: forall m arch exts fmt w
