@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds      #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE PolyKinds #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -61,9 +62,7 @@ instance Monoid (InstructionSet arch exts) where
 -- | Construct an instructionSet from an EncodeMap and a SemanticsMap
 instructionSet :: EncodeMap arch exts -> SemanticsMap arch exts -> InstructionSet arch exts
 instructionSet em = InstructionSet em (transMap em)
-  where swap :: Pair (k :: t -> *) (v :: t -> *) -> Pair v k
-        swap (Pair k v) = Pair v k
-        transMap :: OrdF v => MapF (k :: t -> *) (v :: t -> *) -> MapF v k
+  where swap (Pair k v) = Pair v k
         transMap = Map.fromList . map swap . Map.toList
 
 -- | Given an instruction set, obtain the fixed bits of an opcode (encoding)
