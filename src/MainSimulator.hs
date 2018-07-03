@@ -78,15 +78,11 @@ runElf stepsToRun logFile re = do
     mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
   runLogMachine stepsToRun m
 
-  err        <- readIORef (ioException m)
   stepsRan   <- readIORef (ioSteps m)
   pc         <- readIORef (ioPC m)
   registers  <- freezeRegisters m
   testMap    <- readIORef (ioTestMap m)
 
-  case err of
-    Nothing -> return ()
-    Just err' -> putStrLn $ "Encountered exception: " ++ show err'
   putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"

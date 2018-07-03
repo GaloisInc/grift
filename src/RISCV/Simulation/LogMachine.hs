@@ -58,6 +58,8 @@ import RISCV.Types
 import RISCV.Simulation
 import RISCV.Semantics.Exceptions
 
+import Debug.Trace (traceM)
+
 -- | IO-based machine state.
 data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   { ioPC        :: IORef (BitVector (ArchWidth arch))
@@ -66,7 +68,6 @@ data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (ArchWidth arch)))
   , ioPriv      :: IORef (BitVector 2)
   , ioMaxAddr   :: BitVector (ArchWidth arch)
-  , ioException :: IORef (Maybe Exception)
   , ioSteps     :: IORef Int
   , ioTestMap   :: IORef (Map (Some (Opcode arch exts)) [[BitVector 1]])
   }
@@ -93,13 +94,12 @@ mkLogMachine maxAddr entryPoint byteStrings = do
   csrs      <- newIORef $ Map.fromList $
     [ ]
   priv      <- newIORef 0b00
-  e         <- newIORef Nothing
   steps     <- newIORef 0
   testMap   <- newIORef Map.empty -- Map.fromList (zip opcodes (repeat []))
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (LogMachine pc registers memory csrs priv maxAddr e steps testMap)
+  return (LogMachine pc registers memory csrs priv maxAddr steps testMap)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -127,10 +127,11 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
         return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
       False -> do
         -- TODO: We need to change this code to actually execute the semantics
-        -- we've pre-defined in RISCV.Semantics.Exceptions, and we can get rid
-        -- of the ioException field here.
-        eRef <- ioException <$> ask
-        lift $ writeIORef eRef (Just LoadAccessFault)
+        -- we've pre-defined in RISCV.Semantics.Exceptions
+        traceM $ "Tried to read from memory location " ++ show addr
+        csrsRef <- ioCSRs <$> ask
+        csrMap  <- lift $ readIORef csrsRef
+        lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
         return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = LogMachineM $ do
     csrsRef <- ioCSRs <$> ask
@@ -165,8 +166,10 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
                 [addr..addr+(fromIntegral (natValue bytes-1))]
                 (bvGetBytesU (fromIntegral (natValue bytes)) val)
       False -> do
-        eRef <- ioException <$> ask
-        lift $ writeIORef eRef (Just StoreAccessFault)
+        traceM $ "Tried to write to memory location " ++ show addr
+        csrsRef <- ioCSRs <$> ask
+        csrMap  <- lift $ readIORef csrsRef
+        lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
   setCSR csr csrVal = LogMachineM $ do
     csrsRef <- ioCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef

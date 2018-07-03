@@ -23,6 +23,7 @@ module RISCV.Semantics.Exceptions
   , resetCSRs
   , Exception(..)
   , raiseException
+  , getMCause
   ) where
 
 import Data.BitVector.Sized
