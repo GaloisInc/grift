@@ -78,7 +78,7 @@ char piOdJldLVG (const char* format, ...)
 
     //Initialization? memset?
 #ifdef STACK
-    double sDDhScGx[71688] = {0};
+    double sDDhScGx[71688];// = {0};
     /*
      * What about a stack pointer?
      * buf_type buf_[N]; buf_type* buf = buf_; Any different?
