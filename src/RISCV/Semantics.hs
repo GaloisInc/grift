@@ -77,21 +77,31 @@ import RISCV.Types
 -- | This type represents an abstract component of the global state, and should be
 -- used both for building expressions in our expression language and for interpreting
 -- those expressions.
-data LocExpr expr arch fmt w where
-  PCExpr   ::                                   LocExpr expr arch fmt (ArchWidth arch)
-  RegExpr  :: expr 5                         -> LocExpr expr arch fmt (ArchWidth arch)
-  MemExpr  :: NatRepr bytes -> Expr arch fmt (ArchWidth arch) -> LocExpr expr arch fmt (8*bytes)
-  ResExpr  :: expr (ArchWidth arch)          -> LocExpr expr arch fmt 1
-  CSRExpr  :: expr 12                        -> LocExpr expr arch fmt (ArchWidth arch)
-  PrivExpr ::                                   LocExpr expr arch fmt 2
+data LocExpr expr arch w where
+  PCExpr   ::                                   LocExpr expr arch (ArchWidth arch)
+  RegExpr  :: expr 5                         -> LocExpr expr arch (ArchWidth arch)
+  MemExpr  :: NatRepr bytes -> expr (ArchWidth arch) -> LocExpr expr arch (8*bytes)
+  ResExpr  :: expr (ArchWidth arch)          -> LocExpr expr arch 1
+  CSRExpr  :: expr 12                        -> LocExpr expr arch (ArchWidth arch)
+  PrivExpr ::                                   LocExpr expr arch 2
 
-instance Pretty (LocExpr (Expr arch fmt) arch fmt w) where
+instance Pretty (LocExpr (Expr arch fmt) arch w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
   pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
   pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
   pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
   pPrint PrivExpr    = text "current_priv"
+
+-- | Expressions for general computations over the RISC-V machine state.
+data StateExpr expr arch w where
+  -- Accessing state
+  LocExpr :: LocExpr expr arch w -> StateExpr expr arch w
+
+  -- BVApp with Expr subexpressions
+  AppExpr :: !(BVApp expr w) -> StateExpr expr arch w
+
+instance Pretty (StateExpr (Expr arch fmt) arch w) where
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- executing an instruction.
@@ -100,32 +110,59 @@ data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   OperandExpr :: !(OperandID fmt w) -> Expr arch fmt w
   InstBytes :: Expr arch fmt (ArchWidth arch)
 
-  -- Accessing state
-  LocExpr :: LocExpr (Expr arch fmt) arch fmt w -> Expr arch fmt w
+  -- Accessing the machine state
+  StateExpr :: !(StateExpr (Expr arch fmt) arch w) -> Expr arch fmt w
 
-  -- BVApp with Expr subexpressions
-  AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
+instance TestEquality expr => TestEquality (LocExpr expr arch) where
+  PCExpr `testEquality` PCExpr = Just Refl
+  RegExpr e1 `testEquality` RegExpr e2 = case e1 `testEquality` e2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  MemExpr b1 e1 `testEquality` MemExpr b2 e2 = case (b1 `testEquality` b2, e1 `testEquality` e2) of
+    (Just Refl, Just Refl) -> Just Refl
+    _ -> Nothing
+  ResExpr e1 `testEquality` ResExpr e2 = case e1 `testEquality` e2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  CSRExpr e1 `testEquality` CSRExpr e2 = case e1 `testEquality` e2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  PrivExpr `testEquality` PrivExpr = Just Refl
+  _ `testEquality` _ = Nothing
 
-$(return [])
-instance TestEquality (LocExpr (Expr arch fmt) arch fmt) where
-  testEquality = $(structuralTypeEquality [t|LocExpr|]
-                   [(ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])])
+instance TestEquality expr =>  TestEquality (StateExpr expr arch) where
+  LocExpr e1 `testEquality` LocExpr e2 = case e1 `testEquality` e2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  AppExpr e1 `testEquality` AppExpr e2 = case e1 `testEquality` e2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  _ `testEquality` _ = Nothing
+
 instance TestEquality (Expr arch fmt) where
-  testEquality = $(structuralTypeEquality [t|Expr|]
-                    [ (AnyType `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|])
-                    , (ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])
-                    ])
+  OperandExpr oid1 `testEquality` OperandExpr oid2 = case oid1 `testEquality` oid2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  InstBytes `testEquality` InstBytes = Just Refl
+  StateExpr e1 `testEquality` StateExpr e2 = case e1 `testEquality` e2 of
+    Just Refl -> Just Refl
+    Nothing -> Nothing
+  _ `testEquality` _ = Nothing
+
 instance Eq (Expr arch fmt w) where
   x == y = isJust (testEquality x y)
 
 instance Pretty (Expr arch fmt w) where
   pPrint = pPrintExpr' True
 
+pPrintStateExpr' :: Bool -> StateExpr (Expr arch fmt) arch w -> Doc
+pPrintStateExpr' _ (LocExpr loc) = pPrint loc
+pPrintStateExpr' top (AppExpr app) = pPrintApp' top app
+
 pPrintExpr' :: Bool -> Expr arch fmt w -> Doc
 pPrintExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
 pPrintExpr' _ InstBytes = text "step"
-pPrintExpr' _ (LocExpr loc) = pPrint loc
-pPrintExpr' top (AppExpr app) = pPrintApp' top app
+pPrintExpr' top (StateExpr e) = pPrintStateExpr' top e
 
 pPrintApp' :: Bool -> BVApp (Expr arch fmt) w -> Doc
 pPrintApp' _ (NotApp e) = text "!" <> pPrintExpr' False e
@@ -164,7 +201,7 @@ pPrintApp' _ (IteApp e1 e2 e3) =
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
   -- | Assign a piece of state to a value.
-  AssignStmt :: !(LocExpr (Expr arch fmt) arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
+  AssignStmt :: !(LocExpr (Expr arch fmt) arch w) -> !(Expr arch fmt w) -> Stmt arch fmt
   -- | If-then-else branch statement.
   BranchStmt :: !(Expr arch fmt 1)
              -> !(Seq (Stmt arch fmt))
@@ -232,7 +269,7 @@ newtype FormulaBuilder arch (fmt :: Format) a =
 -- Smart constructors for BVApp functions
 
 instance BVExpr (Expr arch fmt) where
-  appExpr = AppExpr
+  appExpr = StateExpr . AppExpr
 
 -- | Get the operands for a particular known format
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
@@ -276,29 +313,29 @@ instBytes = return InstBytes
 
 -- | Read the pc.
 readPC :: FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-readPC = return (LocExpr PCExpr)
+readPC = return (StateExpr (LocExpr PCExpr))
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
 readReg :: KnownArch arch
         => Expr arch fmt 5
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (LocExpr (RegExpr ridE))
+readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (StateExpr (LocExpr (RegExpr ridE)))
 
 -- | Read a variable number of bytes from memory, with an explicit width argument.
 readMem :: NatRepr bytes
                 -> Expr arch fmt (ArchWidth arch)
                 -> FormulaBuilder arch fmt (Expr arch fmt (8*bytes))
-readMem bytes addr = return (LocExpr (MemExpr bytes addr))
+readMem bytes addr = return (StateExpr (LocExpr (MemExpr bytes addr)))
 
 -- | Read a value from a CSR.
 readCSR :: KnownArch arch
         => Expr arch fmt 12
         -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
-readCSR csr = return (LocExpr (CSRExpr csr))
+readCSR csr = return (StateExpr (LocExpr (CSRExpr csr)))
 
 -- | Read the current privilege level.
 readPriv :: FormulaBuilder arch fmt (Expr arch fmt 2)
-readPriv = return (LocExpr PrivExpr)
+readPriv = return (StateExpr (LocExpr PrivExpr))
 
 -- | Add a statement to the formula.
 addStmt :: Stmt arch fmt -> FormulaBuilder arch fmt ()
@@ -340,7 +377,7 @@ reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
 checkReserved :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt 1)
-checkReserved addr = return (LocExpr (ResExpr addr))
+checkReserved addr = return (StateExpr (LocExpr (ResExpr addr)))
 
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
 -- notation)
