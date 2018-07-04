@@ -77,15 +77,15 @@ import RISCV.Types
 -- | This type represents an abstract component of the global state, and should be
 -- used both for building expressions in our expression language and for interpreting
 -- those expressions.
-data LocExpr arch fmt w where
-  PCExpr   ::                                   LocExpr arch fmt (ArchWidth arch)
-  RegExpr  :: Expr arch fmt 5                -> LocExpr arch fmt (ArchWidth arch)
-  MemExpr  :: NatRepr bytes -> Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt (8*bytes)
-  ResExpr  :: Expr arch fmt (ArchWidth arch) -> LocExpr arch fmt 1
-  CSRExpr  :: Expr arch fmt 12               -> LocExpr arch fmt (ArchWidth arch)
-  PrivExpr ::                                   LocExpr arch fmt 2
+data LocExpr expr arch fmt w where
+  PCExpr   ::                                   LocExpr expr arch fmt (ArchWidth arch)
+  RegExpr  :: expr 5                         -> LocExpr expr arch fmt (ArchWidth arch)
+  MemExpr  :: NatRepr bytes -> Expr arch fmt (ArchWidth arch) -> LocExpr expr arch fmt (8*bytes)
+  ResExpr  :: expr (ArchWidth arch)          -> LocExpr expr arch fmt 1
+  CSRExpr  :: expr 12                        -> LocExpr expr arch fmt (ArchWidth arch)
+  PrivExpr ::                                   LocExpr expr arch fmt 2
 
-instance Pretty (LocExpr arch fmt w) where
+instance Pretty (LocExpr (Expr arch fmt) arch fmt w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
   pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
@@ -93,20 +93,21 @@ instance Pretty (LocExpr arch fmt w) where
   pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
   pPrint PrivExpr    = text "current_priv"
 
--- | Expressions for computations over the RISC-V machine state.
+-- | Expressions for computations over the RISC-V machine state, in the context of
+-- executing an instruction.
 data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing the instruction
   OperandExpr :: !(OperandID fmt w) -> Expr arch fmt w
   InstBytes :: Expr arch fmt (ArchWidth arch)
 
   -- Accessing state
-  LocExpr :: LocExpr arch fmt w -> Expr arch fmt w
+  LocExpr :: LocExpr (Expr arch fmt) arch fmt w -> Expr arch fmt w
 
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp (Expr arch fmt) w) -> Expr arch fmt w
 
 $(return [])
-instance TestEquality (LocExpr arch fmt) where
+instance TestEquality (LocExpr (Expr arch fmt) arch fmt) where
   testEquality = $(structuralTypeEquality [t|LocExpr|]
                    [(ConType [t|NatRepr|] `TypeApp` AnyType, [|testEquality|])])
 instance TestEquality (Expr arch fmt) where
@@ -163,7 +164,7 @@ pPrintApp' _ (IteApp e1 e2 e3) =
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
   -- | Assign a piece of state to a value.
-  AssignStmt :: !(LocExpr arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
+  AssignStmt :: !(LocExpr (Expr arch fmt) arch fmt w) -> !(Expr arch fmt w) -> Stmt arch fmt
   -- | If-then-else branch statement.
   BranchStmt :: !(Expr arch fmt 1)
              -> !(Seq (Stmt arch fmt))

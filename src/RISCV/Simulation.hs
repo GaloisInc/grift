@@ -245,7 +245,7 @@ getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocExpr :: LocExpr arch fmt w -> [Expr arch fmt 1]
+getTestsLocExpr :: LocExpr (Expr arch fmt) arch fmt w -> [Expr arch fmt 1]
 getTestsLocExpr (RegExpr   e) = getTestsExpr e
 getTestsLocExpr (MemExpr _ e) = getTestsExpr e
 getTestsLocExpr (ResExpr   e) = getTestsExpr e
