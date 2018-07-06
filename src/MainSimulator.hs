@@ -42,6 +42,9 @@ import           RISCV.Simulation.MapMachine
 
 type SimExts = (Exts '(MYes, AYes, FDNo))
 
+{-# SPECIALIZE knownISet :: InstructionSet RV32 SimExts #-}
+{-# SPECIALIZE knownISet :: InstructionSet RV64 SimExts #-}
+
 main :: IO ()
 main = do
   args <- getArgs

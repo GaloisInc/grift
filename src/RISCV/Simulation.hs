@@ -203,13 +203,12 @@ execFormula operands ib f = do
 -- | Fetch, decode, and execute a single instruction.
 stepRV :: forall m arch exts
           . (RVStateM m arch exts, KnownArch arch, KnownExtensions exts)
-       => m ()
-stepRV = do
+       => InstructionSet arch exts
+       -> m ()
+stepRV iset = do
   -- Fetch
   pcVal  <- getPC
   instBV <- getMem (knownNat @4) pcVal
-
-  let iset = knownISet
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
@@ -236,13 +235,13 @@ runRV :: forall m arch exts
          . (RVStateM m arch exts, KnownArch arch, KnownExtensions exts)
       => Int
       -> m Int
-runRV = runRV' 0
-  where runRV' currSteps maxSteps | currSteps >= maxSteps = return currSteps
-        runRV' currSteps maxSteps = do
+runRV = runRV' knownISet 0
+  where runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
+        runRV' iset currSteps maxSteps = do
           halted <- isHalted
           case halted of
             True  -> return currSteps
-            False -> stepRV >> runRV' (currSteps+1) maxSteps
+            False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
 
 
 ----------------------------------------

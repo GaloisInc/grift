@@ -261,12 +261,6 @@ newtype FormulaBuilder arch (fmt :: Format) a =
             MonadState (Formula arch fmt))
 
 ----------------------------------------
--- FormulaBuilder functions for constructing expressions and statements. Some of
--- these are pure for the moment, but eventually we will want to have a more granular
--- representation of every single operation, so we keep them in a monadic style in
--- order to enable us to add some side effects later if we want to.
-
-----------------------------------------
 -- Smart constructors for BVApp functions
 
 instance BVExpr (InstExpr arch fmt) where

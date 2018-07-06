@@ -1,5 +1,6 @@
 {-# LANGUAGE BinaryLiterals      #-}
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -28,6 +29,7 @@ import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
 import Data.Parameterized.List
 
+import RISCV.Extensions
 import RISCV.InstructionSet
 import RISCV.Types
 
