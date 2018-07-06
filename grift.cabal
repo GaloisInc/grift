@@ -1,9 +1,8 @@
 
-name:                riscv-tools
+name:                grift
 version:             0.1.0.0
 synopsis:
 description:
-homepage:            https://github.com/benjaminselfridge/riscv-tools#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Ben Selfridge

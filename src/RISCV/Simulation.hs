@@ -103,13 +103,13 @@ evalStateExpr :: forall m expr arch exts w
 evalStateExpr eval (LocExpr e) = evalLocExpr eval e
 evalStateExpr eval (AppExpr e) = evalBVAppM eval e
 
--- | Evaluate a 'Expr', given an 'RVStateM' implementation.
+-- | Evaluate a 'Expr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m arch exts fmt w
             . (RVStateM m arch exts, KnownArch arch)
-         => Operands fmt     -- ^ Operands
-         -> Integer          -- ^ Instruction width (in bytes)
-         -> InstExpr arch fmt w  -- ^ Expression to be evaluated
-         -> m (BitVector w)
+             => Operands fmt     -- ^ Operands
+             -> Integer          -- ^ Instruction width (in bytes)
+             -> InstExpr arch fmt w  -- ^ Expression to be evaluated
+             -> m (BitVector w)
 evalInstExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalInstExpr _ ib InstBytes = return $ bitVector ib
 evalInstExpr operands ib (StateExpr e) = evalStateExpr (evalInstExpr operands ib) e
