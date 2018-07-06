@@ -46,9 +46,9 @@ incrPC = do
   assignPC $ pc `addE` (zextE ib)
 
 -- | Type of arithmetic operator in 'FormulaBuilder'.
-type ArithOp arch fmt w = Expr arch fmt (ArchWidth arch)
-                       -> Expr arch fmt (ArchWidth arch)
-                       -> FormulaBuilder arch fmt (Expr arch fmt w)
+type ArithOp arch fmt w = InstExpr arch fmt (ArchWidth arch)
+                       -> InstExpr arch fmt (ArchWidth arch)
+                       -> FormulaBuilder arch fmt (InstExpr arch fmt w)
 
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
 rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder arch R ()
@@ -87,12 +87,12 @@ iOp op = do
   incrPC
 
 -- | Generic type for functions that extend a value to the register width.
-type ExtFn arch w fmt = KnownArch arch => Expr arch fmt w -> Expr arch fmt (ArchWidth arch)
+type ExtFn arch w fmt = KnownArch arch => InstExpr arch fmt w -> InstExpr arch fmt (ArchWidth arch)
 
 -- | Generic comparison operator.
-type CompOp arch fmt = Expr arch fmt (ArchWidth arch)
-                    -> Expr arch fmt (ArchWidth arch)
-                    -> Expr arch fmt 1
+type CompOp arch fmt = InstExpr arch fmt (ArchWidth arch)
+                    -> InstExpr arch fmt (ArchWidth arch)
+                    -> InstExpr arch fmt 1
 
 -- | Generic branch.
 b :: KnownArch arch => CompOp arch B -> FormulaBuilder arch B ()
@@ -110,8 +110,8 @@ b cmp = do
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
 checkCSR :: KnownArch arch
-         => Expr arch fmt 1
-         -> Expr arch fmt 12
+         => InstExpr arch fmt 1
+         -> InstExpr arch fmt 12
          -> FormulaBuilder arch fmt ()
          -> FormulaBuilder arch fmt ()
 checkCSR write csr rst = do

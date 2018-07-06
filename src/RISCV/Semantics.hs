@@ -27,7 +27,8 @@ instructions.
 module RISCV.Semantics
   ( -- * Types for semantic formulas
     LocExpr(..)
-  , Expr(..)
+  , StateExpr(..)
+  , InstExpr(..)
   , Stmt(..)
   , Formula, fComments, fDefs
     -- * FormulaBuilder monad
@@ -85,7 +86,7 @@ data LocExpr expr arch w where
   CSRExpr  :: expr 12                        -> LocExpr expr arch (ArchWidth arch)
   PrivExpr ::                                   LocExpr expr arch 2
 
-instance Pretty (LocExpr (Expr arch fmt) arch w) where
+instance Pretty (LocExpr (InstExpr arch fmt) arch w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
   pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
@@ -94,24 +95,24 @@ instance Pretty (LocExpr (Expr arch fmt) arch w) where
   pPrint PrivExpr    = text "current_priv"
 
 -- | Expressions for general computations over the RISC-V machine state.
-data StateExpr expr arch w where
+data StateExpr (expr :: Nat -> *) arch w where
   -- Accessing state
   LocExpr :: LocExpr expr arch w -> StateExpr expr arch w
 
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp expr w) -> StateExpr expr arch w
 
-instance Pretty (StateExpr (Expr arch fmt) arch w) where
+instance Pretty (StateExpr (InstExpr arch fmt) arch w) where
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- executing an instruction.
-data Expr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
+data InstExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
   -- Accessing the instruction
-  OperandExpr :: !(OperandID fmt w) -> Expr arch fmt w
-  InstBytes :: Expr arch fmt (ArchWidth arch)
+  OperandExpr :: !(OperandID fmt w) -> InstExpr arch fmt w
+  InstBytes :: InstExpr arch fmt (ArchWidth arch)
 
   -- Accessing the machine state
-  StateExpr :: !(StateExpr (Expr arch fmt) arch w) -> Expr arch fmt w
+  StateExpr :: !(StateExpr (InstExpr arch fmt) arch w) -> InstExpr arch fmt w
 
 instance TestEquality expr => TestEquality (LocExpr expr arch) where
   PCExpr `testEquality` PCExpr = Just Refl
@@ -139,7 +140,7 @@ instance TestEquality expr =>  TestEquality (StateExpr expr arch) where
     Nothing -> Nothing
   _ `testEquality` _ = Nothing
 
-instance TestEquality (Expr arch fmt) where
+instance TestEquality (InstExpr arch fmt) where
   OperandExpr oid1 `testEquality` OperandExpr oid2 = case oid1 `testEquality` oid2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
@@ -149,61 +150,61 @@ instance TestEquality (Expr arch fmt) where
     Nothing -> Nothing
   _ `testEquality` _ = Nothing
 
-instance Eq (Expr arch fmt w) where
+instance Eq (InstExpr arch fmt w) where
   x == y = isJust (testEquality x y)
 
-instance Pretty (Expr arch fmt w) where
-  pPrint = pPrintExpr' True
+instance Pretty (InstExpr arch fmt w) where
+  pPrint = pPrintInstExpr' True
 
-pPrintStateExpr' :: Bool -> StateExpr (Expr arch fmt) arch w -> Doc
+pPrintStateExpr' :: Bool -> StateExpr (InstExpr arch fmt) arch w -> Doc
 pPrintStateExpr' _ (LocExpr loc) = pPrint loc
 pPrintStateExpr' top (AppExpr app) = pPrintApp' top app
 
-pPrintExpr' :: Bool -> Expr arch fmt w -> Doc
-pPrintExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
-pPrintExpr' _ InstBytes = text "step"
-pPrintExpr' top (StateExpr e) = pPrintStateExpr' top e
+pPrintInstExpr' :: Bool -> InstExpr arch fmt w -> Doc
+pPrintInstExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
+pPrintInstExpr' _ InstBytes = text "step"
+pPrintInstExpr' top (StateExpr e) = pPrintStateExpr' top e
 
-pPrintApp' :: Bool -> BVApp (Expr arch fmt) w -> Doc
-pPrintApp' _ (NotApp e) = text "!" <> pPrintExpr' False e
+pPrintApp' :: Bool -> BVApp (InstExpr arch fmt) w -> Doc
+pPrintApp' _ (NotApp e) = text "!" <> pPrintInstExpr' False e
 pPrintApp' _ (LitBVApp bv) = text $ show bv
-pPrintApp' _ (ZExtApp _ e) = text "zext(" <> pPrintExpr' True e <> text ")"
-pPrintApp' _ (SExtApp _ e) = text "sext(" <> pPrintExpr' True e <> text ")"
+pPrintApp' _ (ZExtApp _ e) = text "zext(" <> pPrintInstExpr' True e <> text ")"
+pPrintApp' _ (SExtApp _ e) = text "sext(" <> pPrintInstExpr' True e <> text ")"
 pPrintApp' top (ExtractApp w ix e) =
-  pPrintExpr' top e <> text "[" <> pPrint ix <> text ":" <>
+  pPrintInstExpr' top e <> text "[" <> pPrint ix <> text ":" <>
   pPrint (ix + fromIntegral (natValue w) - 1) <> text "]"
 pPrintApp' False e = parens (pPrintApp' True e)
-pPrintApp' _ (AndApp e1 e2) = pPrintExpr' False e1 <+> text "&" <+> pPrintExpr' False e2
-pPrintApp' _ (OrApp  e1 e2) = pPrintExpr' False e1 <+> text "|" <+> pPrintExpr' False e2
-pPrintApp' _ (XorApp e1 e2) = pPrintExpr' False e1 <+> text "^" <+> pPrintExpr' False e2
-pPrintApp' _ (SllApp e1 e2) = pPrintExpr' False e1 <+> text "<<" <+> pPrintExpr' False e2
-pPrintApp' _ (SrlApp e1 e2) = pPrintExpr' False e1 <+> text ">l>" <+> pPrintExpr' False e2
-pPrintApp' _ (SraApp e1 e2) = pPrintExpr' False e1 <+> text ">a>" <+> pPrintExpr' False e2
-pPrintApp' _ (AddApp e1 e2) = pPrintExpr' False e1 <+> text "+" <+> pPrintExpr' False e2
-pPrintApp' _ (SubApp e1 e2) = pPrintExpr' False e1 <+> text "-" <+> pPrintExpr' False e2
-pPrintApp' _ (MulApp e1 e2) = pPrintExpr' False e1 <+> text "*" <+> pPrintExpr' False e2
-pPrintApp' _ (QuotUApp e1 e2) = pPrintExpr' False e1 <+> text "/u" <+> pPrintExpr' False e2
-pPrintApp' _ (QuotSApp e1 e2) = pPrintExpr' False e1 <+> text "/s" <+> pPrintExpr' False e2
-pPrintApp' _ (RemUApp e1 e2) = pPrintExpr' False e1 <+> text "%u" <+> pPrintExpr' False e2
-pPrintApp' _ (RemSApp e1 e2) = pPrintExpr' False e1 <+> text "%s" <+> pPrintExpr' False e2
-pPrintApp' _ (EqApp  e1 e2) = pPrintExpr' False e1 <+> text "==" <+> pPrintExpr' False e2
-pPrintApp' _ (LtuApp e1 e2) = pPrintExpr' False e1 <+> text "<u" <+> pPrintExpr' False e2
-pPrintApp' _ (LtsApp e1 e2) = pPrintExpr' False e1 <+> text "<s" <+> pPrintExpr' False e2
+pPrintApp' _ (AndApp e1 e2) = pPrintInstExpr' False e1 <+> text "&" <+> pPrintInstExpr' False e2
+pPrintApp' _ (OrApp  e1 e2) = pPrintInstExpr' False e1 <+> text "|" <+> pPrintInstExpr' False e2
+pPrintApp' _ (XorApp e1 e2) = pPrintInstExpr' False e1 <+> text "^" <+> pPrintInstExpr' False e2
+pPrintApp' _ (SllApp e1 e2) = pPrintInstExpr' False e1 <+> text "<<" <+> pPrintInstExpr' False e2
+pPrintApp' _ (SrlApp e1 e2) = pPrintInstExpr' False e1 <+> text ">l>" <+> pPrintInstExpr' False e2
+pPrintApp' _ (SraApp e1 e2) = pPrintInstExpr' False e1 <+> text ">a>" <+> pPrintInstExpr' False e2
+pPrintApp' _ (AddApp e1 e2) = pPrintInstExpr' False e1 <+> text "+" <+> pPrintInstExpr' False e2
+pPrintApp' _ (SubApp e1 e2) = pPrintInstExpr' False e1 <+> text "-" <+> pPrintInstExpr' False e2
+pPrintApp' _ (MulApp e1 e2) = pPrintInstExpr' False e1 <+> text "*" <+> pPrintInstExpr' False e2
+pPrintApp' _ (QuotUApp e1 e2) = pPrintInstExpr' False e1 <+> text "/u" <+> pPrintInstExpr' False e2
+pPrintApp' _ (QuotSApp e1 e2) = pPrintInstExpr' False e1 <+> text "/s" <+> pPrintInstExpr' False e2
+pPrintApp' _ (RemUApp e1 e2) = pPrintInstExpr' False e1 <+> text "%u" <+> pPrintInstExpr' False e2
+pPrintApp' _ (RemSApp e1 e2) = pPrintInstExpr' False e1 <+> text "%s" <+> pPrintInstExpr' False e2
+pPrintApp' _ (EqApp  e1 e2) = pPrintInstExpr' False e1 <+> text "==" <+> pPrintInstExpr' False e2
+pPrintApp' _ (LtuApp e1 e2) = pPrintInstExpr' False e1 <+> text "<u" <+> pPrintInstExpr' False e2
+pPrintApp' _ (LtsApp e1 e2) = pPrintInstExpr' False e1 <+> text "<s" <+> pPrintInstExpr' False e2
 pPrintApp' _ (ConcatApp e1 e2) =
-  text "{" <> pPrintExpr' True e1 <> text ", " <> pPrintExpr' True e2 <> text "}"
+  text "{" <> pPrintInstExpr' True e1 <> text ", " <> pPrintInstExpr' True e2 <> text "}"
 pPrintApp' _ (IteApp e1 e2 e3) =
-  text "if" <+> pPrintExpr' True e1 <+>
-  text "then" <+> pPrintExpr' True e2 <+>
-  text "else" <+> pPrintExpr' True e3
+  text "if" <+> pPrintInstExpr' True e1 <+>
+  text "then" <+> pPrintInstExpr' True e2 <+>
+  text "else" <+> pPrintInstExpr' True e3
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
--- of a state component (register, memory location, etc.) to a 'Expr' of the
+-- of a state component (register, memory location, etc.) to a 'InstExpr' of the
 -- appropriate width.
 data Stmt (arch :: BaseArch) (fmt :: Format) where
   -- | Assign a piece of state to a value.
-  AssignStmt :: !(LocExpr (Expr arch fmt) arch w) -> !(Expr arch fmt w) -> Stmt arch fmt
+  AssignStmt :: !(LocExpr (InstExpr arch fmt) arch w) -> !(InstExpr arch fmt w) -> Stmt arch fmt
   -- | If-then-else branch statement.
-  BranchStmt :: !(Expr arch fmt 1)
+  BranchStmt :: !(InstExpr arch fmt 1)
              -> !(Seq (Stmt arch fmt))
              -> !(Seq (Stmt arch fmt))
              -> Stmt arch fmt
@@ -268,12 +269,12 @@ newtype FormulaBuilder arch (fmt :: Format) a =
 ----------------------------------------
 -- Smart constructors for BVApp functions
 
-instance BVExpr (Expr arch fmt) where
+instance BVExpr (InstExpr arch fmt) where
   appExpr = StateExpr . AppExpr
 
 -- | Get the operands for a particular known format
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
-          => FormulaBuilder arch fmt (List (Expr arch fmt) (OperandTypes fmt))
+          => FormulaBuilder arch fmt (List (InstExpr arch fmt) (OperandTypes fmt))
 operandEs = case knownRepr :: FormatRepr fmt of
   RRepr -> return (OperandExpr (OperandID index0) :<
                    OperandExpr (OperandID index1) :<
@@ -308,33 +309,33 @@ comment :: String -> FormulaBuilder arch fmt ()
 comment c = fComments %= \cs -> cs Seq.|> c
 
 -- | Get the width of the instruction word
-instBytes :: FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+instBytes :: FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
 instBytes = return InstBytes
 
 -- | Read the pc.
-readPC :: FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+readPC :: FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
 readPC = return (StateExpr (LocExpr PCExpr))
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
 readReg :: KnownArch arch
-        => Expr arch fmt 5
-        -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+        => InstExpr arch fmt 5
+        -> FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
 readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (StateExpr (LocExpr (RegExpr ridE)))
 
 -- | Read a variable number of bytes from memory, with an explicit width argument.
 readMem :: NatRepr bytes
-                -> Expr arch fmt (ArchWidth arch)
-                -> FormulaBuilder arch fmt (Expr arch fmt (8*bytes))
+                -> InstExpr arch fmt (ArchWidth arch)
+                -> FormulaBuilder arch fmt (InstExpr arch fmt (8*bytes))
 readMem bytes addr = return (StateExpr (LocExpr (MemExpr bytes addr)))
 
 -- | Read a value from a CSR.
 readCSR :: KnownArch arch
-        => Expr arch fmt 12
-        -> FormulaBuilder arch fmt (Expr arch fmt (ArchWidth arch))
+        => InstExpr arch fmt 12
+        -> FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
 readCSR csr = return (StateExpr (LocExpr (CSRExpr csr)))
 
 -- | Read the current privilege level.
-readPriv :: FormulaBuilder arch fmt (Expr arch fmt 2)
+readPriv :: FormulaBuilder arch fmt (InstExpr arch fmt 2)
 readPriv = return (StateExpr (LocExpr PrivExpr))
 
 -- | Add a statement to the formula.
@@ -342,12 +343,12 @@ addStmt :: Stmt arch fmt -> FormulaBuilder arch fmt ()
 addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
 
 -- | Add a PC assignment to the formula.
-assignPC :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
+assignPC :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
 assignPC pc = addStmt (AssignStmt PCExpr pc)
 
 -- | Add a register assignment to the formula.
-assignReg :: Expr arch fmt 5
-          -> Expr arch fmt (ArchWidth arch)
+assignReg :: InstExpr arch fmt 5
+          -> InstExpr arch fmt (ArchWidth arch)
           -> FormulaBuilder arch fmt ()
 assignReg r e = addStmt $
   BranchStmt (r `eqE` litBV 0)
@@ -356,27 +357,27 @@ assignReg r e = addStmt $
 
 -- | Add a memory location assignment to the formula, with an explicit width argument.
 assignMem :: NatRepr bytes
-          -> Expr arch fmt (ArchWidth arch)
-          -> Expr arch fmt (8*bytes)
+          -> InstExpr arch fmt (ArchWidth arch)
+          -> InstExpr arch fmt (8*bytes)
           -> FormulaBuilder arch fmt ()
 assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
 
 -- | Add a CSR assignment to the formula.
-assignCSR :: Expr arch fmt 12
-          -> Expr arch fmt (ArchWidth arch)
+assignCSR :: InstExpr arch fmt 12
+          -> InstExpr arch fmt (ArchWidth arch)
           -> FormulaBuilder arch fmt ()
 assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 
 -- | Add a privilege assignment to the formula.
-assignPriv :: Expr arch fmt 2 -> FormulaBuilder arch fmt ()
+assignPriv :: InstExpr arch fmt 2 -> FormulaBuilder arch fmt ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
 -- | Reserve a memory location.
-reserve :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
+reserve :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
 reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
-checkReserved :: Expr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (Expr arch fmt 1)
+checkReserved :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (InstExpr arch fmt 1)
 checkReserved addr = return (StateExpr (LocExpr (ResExpr addr)))
 
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
@@ -388,7 +389,7 @@ infixl 1 $>
 
 -- | Add a branch statement to the formula. Note that comments in the subformulas
 -- will be ignored.
-branch :: Expr arch fmt 1
+branch :: InstExpr arch fmt 1
        -> FormulaBuilder arch fmt ()
        -> FormulaBuilder arch fmt ()
        -> FormulaBuilder arch fmt ()

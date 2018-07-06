@@ -156,7 +156,7 @@ aSemantics = Map.fromList
   ]
 
 amoOp32 :: KnownArch arch
-        => (Expr arch A 32 -> Expr arch A 32 -> Expr arch A 32)
+        => (InstExpr arch A 32 -> InstExpr arch A 32 -> InstExpr arch A 32)
         -> FormulaBuilder arch A ()
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
@@ -253,7 +253,7 @@ a64Semantics = Map.fromList
   ]
 
 amoOp64 :: KnownArch arch
-        => (Expr arch A 64 -> Expr arch A 64 -> Expr arch A 64)
+        => (InstExpr arch A 64 -> InstExpr arch A 64 -> InstExpr arch A 64)
         -> FormulaBuilder arch A ()
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs

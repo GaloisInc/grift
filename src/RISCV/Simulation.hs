@@ -23,7 +23,7 @@ A type class for simulating RISC-V code.
 module RISCV.Simulation
   ( -- * State monad
     RVStateM(..)
-  , evalExpr
+  , evalInstExpr
   , Loc(..)
   , Assignment(..)
   , buildAssignment
@@ -79,27 +79,40 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   -- | Log the execution of a particular instruction.
   logInstruction :: Some (Instruction arch exts) -> InstructionSet arch exts -> m ()
 
+-- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
+evalLocExpr :: forall m expr arch exts w
+               . (RVStateM m arch exts, KnownArch arch)
+            => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
+            -> LocExpr expr arch w
+            -> m (BitVector w)
+evalLocExpr _ PCExpr = getPC
+evalLocExpr eval (RegExpr ridE) = eval ridE >>= getReg
+evalLocExpr eval (MemExpr bytes addrE) = eval addrE >>= getMem bytes
+-- TODO: When we do SMP, implement memory reservations.
+evalLocExpr _ (ResExpr _) = return 1
+evalLocExpr eval (CSRExpr csrE) = eval csrE >>= getCSR
+evalLocExpr _ PrivExpr = getPriv
+
+-- | Evaluate a 'StateExpr', given an 'RVStateM' implementation.
+evalStateExpr :: forall m expr arch exts w
+                 . (RVStateM m arch exts, KnownArch arch)
+              => (forall w' . expr w' -> m (BitVector w'))
+                 -- ^ evaluator for internal expressions
+              -> StateExpr expr arch w
+              -> m (BitVector w)
+evalStateExpr eval (LocExpr e) = evalLocExpr eval e
+evalStateExpr eval (AppExpr e) = evalBVAppM eval e
+
 -- | Evaluate a 'Expr', given an 'RVStateM' implementation.
-evalExpr :: forall m arch exts fmt w
+evalInstExpr :: forall m arch exts fmt w
             . (RVStateM m arch exts, KnownArch arch)
          => Operands fmt     -- ^ Operands
          -> Integer          -- ^ Instruction width (in bytes)
-         -> Expr arch fmt w  -- ^ Expression to be evaluated
+         -> InstExpr arch fmt w  -- ^ Expression to be evaluated
          -> m (BitVector w)
-evalExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
-evalExpr _ ib InstBytes = return $ bitVector ib
-evalExpr _ _ (LocExpr PCExpr) = getPC
-evalExpr operands ib (LocExpr (RegExpr ridE)) =
-  evalExpr operands ib ridE >>= getReg
-evalExpr operands ib (LocExpr (MemExpr bytes addrE)) =
-  evalExpr operands ib addrE >>= getMem bytes
--- TODO: When we do SMP, implement memory reservations.
-evalExpr _ _ (LocExpr (ResExpr _)) = return 1
-evalExpr operands ib (LocExpr (CSRExpr csrE)) =
-  evalExpr operands ib csrE >>= getCSR
-evalExpr _ _ (LocExpr PrivExpr) = getPriv
-evalExpr operands ib (AppExpr bvApp) =
-  evalBVAppM (evalExpr operands ib) bvApp
+evalInstExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
+evalInstExpr _ ib InstBytes = return $ bitVector ib
+evalInstExpr operands ib (StateExpr e) = evalStateExpr (evalInstExpr operands ib) e
 
 -- | This type represents a concrete component of the global state, after all
 -- expressions have been evaluated. It is in direct correspondence with the 'LocExpr'
@@ -134,29 +147,29 @@ buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                 -> Stmt arch fmt
                 -> m (Assignment arch)
 buildAssignment operands ib (AssignStmt PCExpr pcE) = do
-  pcVal <- evalExpr operands ib pcE
+  pcVal <- evalInstExpr operands ib pcE
   return (Assignment PC pcVal)
 buildAssignment operands ib (AssignStmt (RegExpr ridE) e) = do
-  rid  <- evalExpr operands ib ridE
-  eVal <- evalExpr operands ib e
+  rid  <- evalInstExpr operands ib ridE
+  eVal <- evalInstExpr operands ib e
   return (Assignment (Reg rid) eVal)
 buildAssignment operands ib (AssignStmt (MemExpr bytes addrE) e) = do
-  addr <- evalExpr operands ib addrE
-  eVal <- evalExpr operands ib e
+  addr <- evalInstExpr operands ib addrE
+  eVal <- evalInstExpr operands ib e
   return (Assignment (Mem bytes addr) eVal)
 buildAssignment operands ib (AssignStmt (ResExpr addrE) e) = do
-  addr <- evalExpr operands ib addrE
-  eVal <- evalExpr operands ib e
+  addr <- evalInstExpr operands ib addrE
+  eVal <- evalInstExpr operands ib e
   return (Assignment (Res addr) eVal)
 buildAssignment operands ib (AssignStmt (CSRExpr csrE) e) = do
-  csr  <- evalExpr operands ib csrE
-  eVal <- evalExpr operands ib e
+  csr  <- evalInstExpr operands ib csrE
+  eVal <- evalInstExpr operands ib e
   return (Assignment (CSR csr) eVal)
 buildAssignment operands ib (AssignStmt PrivExpr privE) = do
-  privVal <- evalExpr operands ib privE
+  privVal <- evalInstExpr operands ib privE
   return (Assignment Priv privVal)
 buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
-  condVal <- evalExpr operands ib condE
+  condVal <- evalInstExpr operands ib condE
   tAssignments <- traverse (buildAssignment operands ib) tStmts
   fAssignments <- traverse (buildAssignment operands ib) fStmts
   return (Branch condVal tAssignments fAssignments)
@@ -209,7 +222,7 @@ stepRV iset = do
   execFormula operands 4 (semanticsFromOpcode iset opcode)
 
   -- Record cycle count
-  -- cc <- evalExpr operands 4 (Map.lookup opcode latencyMap)
+  -- cc <- evalInstExpr operands 4 (Map.lookup opcode latencyMap)
 
 -- | Check whether the machine has halted.
 isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
@@ -237,27 +250,32 @@ runRV = runRV' knownISet 0
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Formula arch fmt -> [Expr arch fmt 1]
+getTests :: Formula arch fmt -> [InstExpr arch fmt 1]
 getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
 
-getTestsStmt :: Stmt arch fmt -> [Expr arch fmt 1]
-getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsExpr e
+getTestsStmt :: Stmt arch fmt -> [InstExpr arch fmt 1]
+getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocExpr :: LocExpr (Expr arch fmt) arch w -> [Expr arch fmt 1]
-getTestsLocExpr (RegExpr   e) = getTestsExpr e
-getTestsLocExpr (MemExpr _ e) = getTestsExpr e
-getTestsLocExpr (ResExpr   e) = getTestsExpr e
-getTestsLocExpr (CSRExpr   e) = getTestsExpr e
+getTestsLocExpr :: LocExpr (InstExpr arch fmt) arch w -> [InstExpr arch fmt 1]
+getTestsLocExpr (RegExpr   e) = getTestsInstExpr e
+getTestsLocExpr (MemExpr _ e) = getTestsInstExpr e
+getTestsLocExpr (ResExpr   e) = getTestsInstExpr e
+getTestsLocExpr (CSRExpr   e) = getTestsInstExpr e
 getTestsLocExpr _ = []
 
-getTestsExpr :: Expr arch fmt w -> [Expr arch fmt 1]
-getTestsExpr (OperandExpr _) = []
-getTestsExpr InstBytes = []
-getTestsExpr (LocExpr le) = getTestsLocExpr le
-getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
+getTestsStateExpr :: StateExpr (InstExpr arch fmt) arch w -> [InstExpr arch fmt 1]
+getTestsStateExpr (LocExpr e) = getTestsLocExpr e
+getTestsStateExpr (AppExpr e) = getTestsBVApp e
 
-getTestsBVApp :: BVApp (Expr arch fmt) w -> [Expr arch fmt 1]
-getTestsBVApp (IteApp t l r) = t : getTestsExpr l ++ getTestsExpr r
-getTestsBVApp app = foldMapFC getTestsExpr app
+getTestsInstExpr :: InstExpr arch fmt w -> [InstExpr arch fmt 1]
+getTestsInstExpr (OperandExpr _) = []
+getTestsInstExpr InstBytes = []
+getTestsInstExpr (StateExpr e) = getTestsStateExpr e
+-- getTestsExpr (LocExpr le) = getTestsLocExpr le
+-- getTestsExpr (AppExpr bvApp) = getTestsBVApp bvApp
+
+getTestsBVApp :: BVApp (InstExpr arch fmt) w -> [InstExpr arch fmt 1]
+getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
+getTestsBVApp app = foldMapFC getTestsInstExpr app
