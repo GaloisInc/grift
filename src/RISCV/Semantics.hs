@@ -31,6 +31,7 @@ module RISCV.Semantics
   , InstExpr(..)
   , Stmt(..)
   , Formula, fComments, fDefs
+  , InstFormula(..)
     -- * FormulaBuilder monad
   , FormulaBuilder
   , getFormula
@@ -75,9 +76,7 @@ import RISCV.Types
 ----------------------------------------
 -- Expressions, statements, and formulas
 
--- | This type represents an abstract component of the global state, and should be
--- used both for building expressions in our expression language and for interpreting
--- those expressions.
+-- | This type represents an abstract component of the global state.
 data LocExpr expr arch w where
   PCExpr   ::                                   LocExpr expr arch (ArchWidth arch)
   RegExpr  :: expr 5                         -> LocExpr expr arch (ArchWidth arch)
@@ -86,14 +85,6 @@ data LocExpr expr arch w where
   CSRExpr  :: expr 12                        -> LocExpr expr arch (ArchWidth arch)
   PrivExpr ::                                   LocExpr expr arch 2
 
-instance Pretty (LocExpr (InstExpr arch fmt) arch w) where
-  pPrint PCExpr      = text "pc"
-  pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
-  pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
-  pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
-  pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
-  pPrint PrivExpr    = text "current_priv"
-
 -- | Expressions for general computations over the RISC-V machine state.
 data StateExpr (expr :: Nat -> *) arch w where
   -- Accessing state
@@ -101,8 +92,6 @@ data StateExpr (expr :: Nat -> *) arch w where
 
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp expr w) -> StateExpr expr arch w
-
-instance Pretty (StateExpr (InstExpr arch fmt) arch w) where
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- executing an instruction.
@@ -113,6 +102,198 @@ data InstExpr (arch :: BaseArch) (fmt :: Format) (w :: Nat) where
 
   -- Accessing the machine state
   StateExpr :: !(StateExpr (InstExpr arch fmt) arch w) -> InstExpr arch fmt w
+
+-- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
+-- of a state component (register, memory location, etc.) to a 'InstExpr' of the
+-- appropriate width.
+data Stmt (expr :: Nat -> *) (arch :: BaseArch) (fmt :: Format) where
+  -- | Assign a piece of state to a value.
+  AssignStmt :: !(LocExpr expr arch w) -> !(expr w) -> Stmt expr arch fmt
+  -- | If-then-else branch statement.
+  BranchStmt :: !(expr 1)
+             -> !(Seq (Stmt expr arch fmt))
+             -> !(Seq (Stmt expr arch fmt))
+             -> Stmt expr arch fmt
+
+-- | Formula representing the semantics of an instruction. A formula has a number of
+-- operands (potentially zero), which represent the input to the formula. These are
+-- going to the be the operands of the instruction -- register ids, immediate values,
+-- and so forth.
+--
+-- Each definition here should be thought of as executing concurrently rather than
+-- sequentially. Each assignment statement in the formula has a left-hand side and a
+-- right-hand side. Everything occurring on the right-hand side should be interpreted
+-- as the "pre-state" values -- so, for instance, if one statement assigns the pc, and
+-- another statement reads the pc, then the latter should use the *original* value of
+-- the PC rather than the new one, regardless of the orders of the statements.
+data Formula expr arch fmt
+  = Formula { _fComments :: !(Seq String)
+              -- ^ multiline comment
+            , _fDefs    :: !(Seq (Stmt expr arch fmt))
+              -- ^ sequence of statements defining the formula
+            }
+
+data InstFormula arch fmt = InstFormula { getInstFormula :: Formula (InstExpr arch fmt) arch fmt }
+
+-- | Lens for 'Formula' comments.
+fComments :: Simple Lens (Formula expr arch fmt) (Seq String)
+fComments = lens _fComments (\(Formula _ d) c -> Formula c d)
+
+-- | Lens for 'Formula' statements.
+fDefs :: Simple Lens (Formula expr arch fmt) (Seq (Stmt expr arch fmt))
+fDefs = lens _fDefs (\(Formula c _) d -> Formula c d)
+
+-- | Every definition begins with the empty formula.
+emptyFormula :: Formula expr arch fmt
+emptyFormula = Formula Seq.empty Seq.empty
+
+-- | State monad for defining instruction semantics. When defining an instruction,
+-- you shouldn't need to ever read the state directly, so we only export the type.
+newtype FormulaBuilder expr arch (fmt :: Format) a =
+  FormulaBuilder { unFormulaBuilder :: State (Formula expr arch fmt) a }
+  deriving (Functor,
+            Applicative,
+            Monad,
+            MonadState (Formula expr arch fmt))
+
+----------------------------------------
+-- Smart constructors for BVApp functions
+
+instance BVExpr (InstExpr arch fmt) where
+  appExpr = StateExpr . AppExpr
+
+-- | Get the operands for a particular known format
+operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
+          => FormulaBuilder (InstExpr arch fmt) arch fmt (List (InstExpr arch fmt) (OperandTypes fmt))
+operandEs = case knownRepr :: FormatRepr fmt of
+  RRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  IRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  SRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  BRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  URepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :< Nil)
+  JRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :< Nil)
+  ARepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :<
+                   OperandExpr (OperandID index3) :<
+                   OperandExpr (OperandID index4) :< Nil)
+  XRepr -> return (OperandExpr (OperandID index0) :< Nil)
+  where index4 = IndexThere index3
+
+-- | Obtain the formula defined by a 'FormulaBuilder' action.
+getFormula :: FormulaBuilder expr arch fmt () -> Formula expr arch fmt
+getFormula = flip execState emptyFormula . unFormulaBuilder
+
+-- | Add a comment.
+comment :: String -> FormulaBuilder expr arch fmt ()
+comment c = fComments %= \cs -> cs Seq.|> c
+
+-- | Get the width of the instruction word
+instBytes :: FormulaBuilder (InstExpr arch fmt) arch fmt (InstExpr arch fmt (ArchWidth arch))
+instBytes = return InstBytes
+
+-- | Read the pc.
+-- readPC :: FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
+-- readPC = return (StateExpr (LocExpr PCExpr))
+-- TODO: fix this type
+readPC :: InstExpr arch fmt (ArchWidth arch)
+readPC = StateExpr (LocExpr PCExpr)
+
+-- | Read a value from a register. Register x0 is hardwired to 0.
+readReg :: KnownArch arch
+        => InstExpr arch fmt 5
+        -> FormulaBuilder (InstExpr arch fmt) arch fmt (InstExpr arch fmt (ArchWidth arch))
+readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (StateExpr (LocExpr (RegExpr ridE)))
+
+-- | Read a variable number of bytes from memory, with an explicit width argument.
+readMem :: NatRepr bytes
+                -> InstExpr arch fmt (ArchWidth arch)
+                -> FormulaBuilder (InstExpr arch fmt) arch fmt (InstExpr arch fmt (8*bytes))
+readMem bytes addr = return (StateExpr (LocExpr (MemExpr bytes addr)))
+
+-- | Read a value from a CSR.
+readCSR :: KnownArch arch
+        => InstExpr arch fmt 12
+        -> FormulaBuilder (InstExpr arch fmt) arch fmt (InstExpr arch fmt (ArchWidth arch))
+readCSR csr = return (StateExpr (LocExpr (CSRExpr csr)))
+
+-- | Read the current privilege level.
+-- readPriv :: FormulaBuilder arch fmt (InstExpr arch fmt 2)
+-- readPriv = return (StateExpr (LocExpr PrivExpr))
+readPriv :: InstExpr arch fmt 2
+readPriv = StateExpr (LocExpr PrivExpr)
+
+-- | Add a statement to the formula.
+addStmt :: Stmt expr arch fmt -> FormulaBuilder expr arch fmt ()
+addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
+
+-- | Add a PC assignment to the formula.
+assignPC :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+assignPC pc = addStmt (AssignStmt PCExpr pc)
+
+-- | Add a register assignment to the formula.
+assignReg :: InstExpr arch fmt 5
+          -> InstExpr arch fmt (ArchWidth arch)
+          -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+assignReg r e = addStmt $
+  BranchStmt (r `eqE` litBV 0)
+  $> Seq.empty
+  $> Seq.singleton (AssignStmt (RegExpr r) e)
+
+-- | Add a memory location assignment to the formula, with an explicit width argument.
+assignMem :: NatRepr bytes
+          -> InstExpr arch fmt (ArchWidth arch)
+          -> InstExpr arch fmt (8*bytes)
+          -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
+
+-- | Add a CSR assignment to the formula.
+assignCSR :: InstExpr arch fmt 12
+          -> InstExpr arch fmt (ArchWidth arch)
+          -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
+
+-- | Add a privilege assignment to the formula.
+assignPriv :: InstExpr arch fmt 2 -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+assignPriv priv = addStmt (AssignStmt PrivExpr priv)
+
+-- | Reserve a memory location.
+reserve :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
+
+-- | Check that a memory location is reserved.
+checkReserved :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder (InstExpr arch fmt) arch fmt (InstExpr arch fmt 1)
+checkReserved addr = return (StateExpr (LocExpr (ResExpr addr)))
+
+-- | Left-associative application (use with 'branch' to avoid parentheses around @do@
+-- notation)
+($>) :: (a -> b) -> a -> b
+($>) = ($)
+
+infixl 1 $>
+
+-- | Add a branch statement to the formula. Note that comments in the subformulas
+-- will be ignored.
+branch :: InstExpr arch fmt 1
+       -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+       -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+       -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+branch e fbTrue fbFalse = do
+  let fTrue  = getFormula fbTrue  ^. fDefs
+      fFalse = getFormula fbFalse ^. fDefs
+  addStmt (BranchStmt e fTrue fFalse)
+
+-- Class instances
 
 instance TestEquality expr => TestEquality (LocExpr expr arch) where
   PCExpr `testEquality` PCExpr = Just Refl
@@ -153,8 +334,28 @@ instance TestEquality (InstExpr arch fmt) where
 instance Eq (InstExpr arch fmt w) where
   x == y = isJust (testEquality x y)
 
+instance Pretty (LocExpr (InstExpr arch fmt) arch w) where
+  pPrint PCExpr      = text "pc"
+  pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
+  pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
+  pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
+  pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
+  pPrint PrivExpr    = text "current_priv"
+
 instance Pretty (InstExpr arch fmt w) where
   pPrint = pPrintInstExpr' True
+
+instance Pretty (Stmt (InstExpr arch fmt) arch fmt) where
+  pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
+  pPrint (BranchStmt test s1s s2s) =
+    text "IF" <+> pPrint test
+    $$ nest 2 (text "THEN")
+    $$ nest 4 (vcat (pPrint <$> toList s1s))
+    $$ nest 2 (text "ELSE")
+    $$ nest 4 (vcat (pPrint <$> toList s2s))
+
+instance Pretty (Formula (InstExpr arch fmt) arch fmt) where
+  pPrint formula = vcat (pPrint <$> toList (formula ^. fDefs))
 
 pPrintStateExpr' :: Bool -> StateExpr (InstExpr arch fmt) arch w -> Doc
 pPrintStateExpr' _ (LocExpr loc) = pPrint loc
@@ -196,198 +397,3 @@ pPrintApp' _ (IteApp e1 e2 e3) =
   text "if" <+> pPrintInstExpr' True e1 <+>
   text "then" <+> pPrintInstExpr' True e2 <+>
   text "else" <+> pPrintInstExpr' True e3
-
--- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
--- of a state component (register, memory location, etc.) to a 'InstExpr' of the
--- appropriate width.
-data Stmt (arch :: BaseArch) (fmt :: Format) where
-  -- | Assign a piece of state to a value.
-  AssignStmt :: !(LocExpr (InstExpr arch fmt) arch w) -> !(InstExpr arch fmt w) -> Stmt arch fmt
-  -- | If-then-else branch statement.
-  BranchStmt :: !(InstExpr arch fmt 1)
-             -> !(Seq (Stmt arch fmt))
-             -> !(Seq (Stmt arch fmt))
-             -> Stmt arch fmt
-
-instance Pretty (Stmt arch fmt) where
-  pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
-  pPrint (BranchStmt test s1s s2s) =
-    text "IF" <+> pPrint test
-    $$ nest 2 (text "THEN")
-    $$ nest 4 (vcat (pPrint <$> toList s1s))
-    $$ nest 2 (text "ELSE")
-    $$ nest 4 (vcat (pPrint <$> toList s2s))
-
--- | Formula representing the semantics of an instruction. A formula has a number of
--- operands (potentially zero), which represent the input to the formula. These are
--- going to the be the operands of the instruction -- register ids, immediate values,
--- and so forth.
---
--- Each definition here should be thought of as executing concurrently rather than
--- sequentially. Each assignment statement in the formula has a left-hand side and a
--- right-hand side. Everything occurring on the right-hand side should be interpreted
--- as the "pre-state" values -- so, for instance, if one statement assigns the pc, and
--- another statement reads the pc, then the latter should use the *original* value of
--- the PC rather than the new one, regardless of the orders of the statements.
-data Formula arch (fmt :: Format)
-  = Formula { _fComments :: !(Seq String)
-              -- ^ multiline comment
-            , _fDefs    :: !(Seq (Stmt arch fmt))
-              -- ^ sequence of statements defining the formula
-            }
-
-instance Pretty (Formula arch fmt) where
-  pPrint formula = vcat (pPrint <$> toList (formula ^. fDefs))
-
--- | Lens for 'Formula' comments.
-fComments :: Simple Lens (Formula arch fmt) (Seq String)
-fComments = lens _fComments (\(Formula _ d) c -> Formula c d)
-
--- | Lens for 'Formula' statements.
-fDefs :: Simple Lens (Formula arch fmt) (Seq (Stmt arch fmt))
-fDefs = lens _fDefs (\(Formula c _) d -> Formula c d)
-
--- | Every definition begins with the empty formula.
-emptyFormula :: Formula arch fmt
-emptyFormula = Formula Seq.empty Seq.empty
-
--- | State monad for defining instruction semantics. When defining an instruction,
--- you shouldn't need to ever read the state directly, so we only export the type.
-newtype FormulaBuilder arch (fmt :: Format) a =
-  FormulaBuilder { unFormulaBuilder :: State (Formula arch fmt) a }
-  deriving (Functor,
-            Applicative,
-            Monad,
-            MonadState (Formula arch fmt))
-
-----------------------------------------
--- Smart constructors for BVApp functions
-
-instance BVExpr (InstExpr arch fmt) where
-  appExpr = StateExpr . AppExpr
-
--- | Get the operands for a particular known format
-operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
-          => FormulaBuilder arch fmt (List (InstExpr arch fmt) (OperandTypes fmt))
-operandEs = case knownRepr :: FormatRepr fmt of
-  RRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  IRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  SRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  BRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  URepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :< Nil)
-  JRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :< Nil)
-  ARepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :<
-                   OperandExpr (OperandID index3) :<
-                   OperandExpr (OperandID index4) :< Nil)
-  XRepr -> return (OperandExpr (OperandID index0) :< Nil)
-  where index4 = IndexThere index3
-
--- | Obtain the formula defined by a 'FormulaBuilder' action.
-getFormula :: FormulaBuilder arch fmt () -> Formula arch fmt
-getFormula = flip execState emptyFormula . unFormulaBuilder
-
--- | Add a comment.
-comment :: String -> FormulaBuilder arch fmt ()
-comment c = fComments %= \cs -> cs Seq.|> c
-
--- | Get the width of the instruction word
-instBytes :: FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
-instBytes = return InstBytes
-
--- | Read the pc.
-readPC :: FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
-readPC = return (StateExpr (LocExpr PCExpr))
-
--- | Read a value from a register. Register x0 is hardwired to 0.
-readReg :: KnownArch arch
-        => InstExpr arch fmt 5
-        -> FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
-readReg ridE = return $ iteE (ridE `eqE` litBV 0) (litBV 0) (StateExpr (LocExpr (RegExpr ridE)))
-
--- | Read a variable number of bytes from memory, with an explicit width argument.
-readMem :: NatRepr bytes
-                -> InstExpr arch fmt (ArchWidth arch)
-                -> FormulaBuilder arch fmt (InstExpr arch fmt (8*bytes))
-readMem bytes addr = return (StateExpr (LocExpr (MemExpr bytes addr)))
-
--- | Read a value from a CSR.
-readCSR :: KnownArch arch
-        => InstExpr arch fmt 12
-        -> FormulaBuilder arch fmt (InstExpr arch fmt (ArchWidth arch))
-readCSR csr = return (StateExpr (LocExpr (CSRExpr csr)))
-
--- | Read the current privilege level.
-readPriv :: FormulaBuilder arch fmt (InstExpr arch fmt 2)
-readPriv = return (StateExpr (LocExpr PrivExpr))
-
--- | Add a statement to the formula.
-addStmt :: Stmt arch fmt -> FormulaBuilder arch fmt ()
-addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
-
--- | Add a PC assignment to the formula.
-assignPC :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
-assignPC pc = addStmt (AssignStmt PCExpr pc)
-
--- | Add a register assignment to the formula.
-assignReg :: InstExpr arch fmt 5
-          -> InstExpr arch fmt (ArchWidth arch)
-          -> FormulaBuilder arch fmt ()
-assignReg r e = addStmt $
-  BranchStmt (r `eqE` litBV 0)
-  $> Seq.empty
-  $> Seq.singleton (AssignStmt (RegExpr r) e)
-
--- | Add a memory location assignment to the formula, with an explicit width argument.
-assignMem :: NatRepr bytes
-          -> InstExpr arch fmt (ArchWidth arch)
-          -> InstExpr arch fmt (8*bytes)
-          -> FormulaBuilder arch fmt ()
-assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
-
--- | Add a CSR assignment to the formula.
-assignCSR :: InstExpr arch fmt 12
-          -> InstExpr arch fmt (ArchWidth arch)
-          -> FormulaBuilder arch fmt ()
-assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
-
--- | Add a privilege assignment to the formula.
-assignPriv :: InstExpr arch fmt 2 -> FormulaBuilder arch fmt ()
-assignPriv priv = addStmt (AssignStmt PrivExpr priv)
-
--- | Reserve a memory location.
-reserve :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt ()
-reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
-
--- | Check that a memory location is reserved.
-checkReserved :: InstExpr arch fmt (ArchWidth arch) -> FormulaBuilder arch fmt (InstExpr arch fmt 1)
-checkReserved addr = return (StateExpr (LocExpr (ResExpr addr)))
-
--- | Left-associative application (use with 'branch' to avoid parentheses around @do@
--- notation)
-($>) :: (a -> b) -> a -> b
-($>) = ($)
-
-infixl 1 $>
-
--- | Add a branch statement to the formula. Note that comments in the subformulas
--- will be ignored.
-branch :: InstExpr arch fmt 1
-       -> FormulaBuilder arch fmt ()
-       -> FormulaBuilder arch fmt ()
-       -> FormulaBuilder arch fmt ()
-branch e fbTrue fbFalse = do
-  let fTrue  = getFormula fbTrue  ^. fDefs
-      fFalse = getFormula fbFalse ^. fDefs
-  addStmt (BranchStmt e fTrue fFalse)

@@ -56,6 +56,7 @@ import           Data.Traversable (for)
 import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
+import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 import Debug.Trace (traceM)
@@ -185,7 +186,7 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     return ()
     testMap <- LogMachineM (ioTestMap <$> ask)
     let formula = semanticsFromOpcode iset opcode
-        tests = getTests formula
+        tests = getTests (getInstFormula formula)
     testVals <- traverse (evalInstExpr operands 4) tests
     LogMachineM $ lift $ modifyIORef testMap $ \m ->
       Map.insertWith union (Some opcode) [testVals] m

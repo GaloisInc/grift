@@ -65,7 +65,7 @@ m64Encode = Map.fromList
 
 mSemantics :: forall arch exts . (KnownArch arch, MExt << exts) => SemanticsMap arch exts
 mSemantics = Map.fromList
-  [ Pair Mul $ getFormula $ do
+  [ Pair Mul $ InstFormula $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
       comment "Arithmetic ovexbrflow is ignored."
 
@@ -77,7 +77,7 @@ mSemantics = Map.fromList
       assignReg rd (x_rs1 `mulE` x_rs2)
       incrPC
 
-  , Pair Mulh $ getFormula $ do
+  , Pair Mulh $ InstFormula $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
       comment "Writes the upper half of the prod in x[rd]."
 
@@ -96,7 +96,7 @@ mSemantics = Map.fromList
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  , Pair Mulhsu $ getFormula $ do
+  , Pair Mulhsu $ InstFormula $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2]."
       comment "Treats x[rs1] as a two's complement number and x[rs2] as an unsigned number."
       comment "Writes the upper half of the prod in x[rd]."
@@ -116,7 +116,7 @@ mSemantics = Map.fromList
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  , Pair Mulhu $ getFormula $ do
+  , Pair Mulhu $ InstFormula $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2], treating the values as unsigned numbers."
       comment "Writes the upper half of the prod in x[rd]."
 
@@ -135,7 +135,7 @@ mSemantics = Map.fromList
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  , Pair Div $ getFormula $ do
+  , Pair Div $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
@@ -149,7 +149,7 @@ mSemantics = Map.fromList
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
 
-  , Pair Divu $ getFormula $ do
+  , Pair Divu $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
@@ -163,7 +163,7 @@ mSemantics = Map.fromList
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
 
-  , Pair Rem $ getFormula $ do
+  , Pair Rem $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
@@ -179,7 +179,7 @@ mSemantics = Map.fromList
 
       rOp $ \x y -> return (remsE x y)
 
-  , Pair Remu $ getFormula $ do
+  , Pair Remu $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
@@ -199,27 +199,27 @@ mSemantics = Map.fromList
 
 m64Semantics :: (KnownArch arch, 64 <= ArchWidth arch, MExt << exts) => SemanticsMap arch exts
 m64Semantics = Map.fromList
-  [ Pair Mulw $ getFormula $ do
+  [ Pair Mulw $ InstFormula $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
       rOp32 $ \x y -> return (mulE x y)
-  , Pair Divw $ getFormula $ do
+  , Pair Divw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2] as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
       rOp32 $ \x y -> return (quotsE x y)
-  , Pair Divuw $ getFormula $ do
+  , Pair Divuw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2] as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
       rOp32 $ \x y -> return (quotuE x y)
-  , Pair Remw $ getFormula $ do
+  , Pair Remw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
       rOp32 $ \x y -> return (remsE x y)
-  , Pair Remuw $ getFormula $ do
+  , Pair Remuw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 

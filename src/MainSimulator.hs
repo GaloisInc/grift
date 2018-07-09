@@ -36,14 +36,12 @@ import           System.FilePath.Posix
 import           RISCV.Extensions
 import           RISCV.InstructionSet
 import           RISCV.Types
+import           RISCV.Semantics
 import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 import           RISCV.Simulation.MapMachine
 
 type SimExts = (Exts '(MYes, AYes, FDNo))
-
-{-# SPECIALIZE knownISet :: InstructionSet RV32 SimExts #-}
-{-# SPECIALIZE knownISet :: InstructionSet RV64 SimExts #-}
 
 main :: IO ()
 main = do
@@ -96,7 +94,7 @@ runElf stepsToRun logFile re = do
 
   let iset = knownISet :: InstructionSet arch SimExts
   forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-    let numTests = length (getTests (semanticsFromOpcode iset opcode))
+    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
     in
       appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
       "/" ++ show (2^numTests) ++ "\n"
@@ -132,7 +130,7 @@ runElfMap stepsToRun logFile re = do
 
   let iset = knownISet :: InstructionSet arch SimExts
   forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
-    let numTests = length (getTests (semanticsFromOpcode iset opcode))
+    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
     in
       appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
       "/" ++ show (2^numTests) ++ "\n"

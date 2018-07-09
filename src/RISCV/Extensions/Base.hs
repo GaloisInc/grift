@@ -111,39 +111,39 @@ baseEncode = Map.fromList
 
 baseSemantics :: forall arch exts . KnownArch arch => SemanticsMap arch exts
 baseSemantics = Map.fromList
-  [ Pair Add $ getFormula $ do
+  [ Pair Add $ InstFormula $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
       rOp $ \x y -> return (addE x y)
-  , Pair Sub $ getFormula $ do
+  , Pair Sub $ InstFormula $ getFormula $ do
       comment "Subtracts register x[rs2] from register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
       rOp $ \x y -> return (subE x y)
-  , Pair Sll $ getFormula $ do
+  , Pair Sll $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] left by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
       rOp $ \e1 e2 -> do
         archWidth <- getArchWidth
         return $ e1 `sllE` (e2 `andE` litBV (bitVector (fromIntegral (natValue archWidth) - 1)))
-  , Pair Slt $ getFormula $ do
+  , Pair Slt $ InstFormula $ getFormula $ do
       comment "Compares x[rs1] and x[rs2] as two's complement numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
       rOp $ \e1 e2 -> return (zextE (ltsE e1 e2))
-  , Pair Sltu $ getFormula $ do
+  , Pair Sltu $ InstFormula $ getFormula $ do
       comment "Compares x[rs1] and x[rs2] as unsigned numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
       rOp $ \e1 e2 -> return (zextE (ltuE e1 e2))
-  , Pair Xor $ getFormula $ do
+  , Pair Xor $ InstFormula $ getFormula $ do
       comment "Computes the bitwise exclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
       rOp $ \x y -> return (xorE x y)
-  , Pair Srl $ getFormula $ do
+  , Pair Srl $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -152,7 +152,7 @@ baseSemantics = Map.fromList
         let mask = litBV (bitVector (natValue archWidth - 1))
 
         return $ e1 `srlE` (e2 `andE` mask)
-  , Pair Sra $ getFormula $ do
+  , Pair Sra $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
@@ -162,31 +162,31 @@ baseSemantics = Map.fromList
         let mask = litBV (bitVector (natValue archWidth - 1))
 
         return $ e1 `sraE` (e2 `andE` mask)
-  , Pair Or $ getFormula $ do
+  , Pair Or $ InstFormula $ getFormula $ do
       comment "Computes the bitwise inclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
       rOp $ \x y -> return (orE x y)
-  , Pair And $ getFormula $ do
+  , Pair And $ InstFormula $ getFormula $ do
       comment "Computes the bitwise AND of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
       rOp $ \x y -> return (andE x y)
 
   -- I type
-  , Pair Jalr $ getFormula $ do
+  , Pair Jalr $ InstFormula $ getFormula $ do
       comment "Sets the pc to x[rs1] + sext(offset)."
       comment "Masks off the least significant bit of the computed address."
       comment "Writes the previous pc+4 to x[rd]."
 
       rd :< rs1 :< offset :< Nil <- operandEs
-      pc <- readPC
+      let pc = readPC
       ib <- instBytes
       x_rs1 <- readReg rs1
 
       assignReg rd $ pc `addE` zextE ib
       assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
-  , Pair Lb $ getFormula $ do
+  , Pair Lb $ InstFormula $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -197,7 +197,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Lh $ getFormula $ do
+  , Pair Lh $ InstFormula $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -208,7 +208,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Lw $ getFormula $ do
+  , Pair Lw $ InstFormula $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -219,7 +219,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Lbu $ getFormula $ do
+  , Pair Lbu $ InstFormula $ getFormula $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
@@ -230,7 +230,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (zextE mVal)
       incrPC
-  , Pair Lhu $ getFormula $ do
+  , Pair Lhu $ InstFormula $ getFormula $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
@@ -241,37 +241,37 @@ baseSemantics = Map.fromList
 
       assignReg rd (zextE mVal)
       incrPC
-  , Pair Addi $ getFormula $ do
+  , Pair Addi $ InstFormula $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
       iOp $ \x y -> return (addE x y)
-  , Pair Slti $ getFormula $ do
+  , Pair Slti $ InstFormula $ getFormula $ do
       comment "Compares x[rs1] and the sign-extended immediate as two's not numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
       iOp $ \e1 e2 -> return (zextE (ltsE e1 e2))
-  , Pair Sltiu $ getFormula $ do
+  , Pair Sltiu $ InstFormula $ getFormula $ do
       comment "Compares x[rs1] and the sign-extended immediate as unsigned numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
       iOp $ \e1 e2 -> return (zextE (ltuE e1 e2))
-  , Pair Xori $ getFormula $ do
+  , Pair Xori $ InstFormula $ getFormula $ do
       comment "Computes the bitwise exclusive-OR of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
       iOp $ \x y -> return (xorE x y)
-  , Pair Ori $ getFormula $ do
+  , Pair Ori $ InstFormula $ getFormula $ do
       comment "Computes the bitwise inclusive-OR of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
       iOp $ \x y -> return (orE x y)
-  , Pair Andi $ getFormula $ do
+  , Pair Andi $ InstFormula $ getFormula $ do
       comment "Computes the bitwise AND of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
       iOp $ \x y -> return (andE x y)
-  , Pair Slli $ getFormula $ do
+  , Pair Slli $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -294,7 +294,7 @@ baseSemantics = Map.fromList
         $> do assignReg rd $ x_rs1 `sllE` zextE shamt
               incrPC
 
-  , Pair Sri $ getFormula $ do
+  , Pair Sri $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] right (arithmetic or logical) by shamt bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
@@ -327,19 +327,19 @@ baseSemantics = Map.fromList
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
   -- EnvironmentBreak exception.
-  , Pair Ecb $ getFormula $ do
+  , Pair Ecb $ InstFormula $ getFormula $ do
       comment "Makes a request of the execution environment or the debugger."
 
       raiseException EnvironmentCall
 
   -- TODO: Fence instructions.
-  , Pair Fence $ getFormula $ do
+  , Pair Fence $ InstFormula $ getFormula $ do
       comment "Fence. Currently a no-op."
       return ()
-  , Pair FenceI $ getFormula $ do
+  , Pair FenceI $ InstFormula $ getFormula $ do
       comment "FenceI. Currently a no-op."
       return ()
-  , Pair Csrrw $ getFormula $ do
+  , Pair Csrrw $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Copy x[rs1] to the csr, then write t to x[rd]."
 
@@ -351,7 +351,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr x_rs1
         assignReg rd t
-  , Pair Csrrs $ getFormula $ do
+  , Pair Csrrs $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and x[rs1] to the csr, then write t to x[rd]."
 
@@ -363,7 +363,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr (x_rs1 `orE` t)
         assignReg rd t
-  , Pair Csrrc $ getFormula $ do
+  , Pair Csrrc $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of x[rs1] to the csr."
       comment "Then, write t to x[rd]."
@@ -376,7 +376,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr ((notE x_rs1) `andE` t)
         assignReg rd t
-  , Pair Csrrwi $ getFormula $ do
+  , Pair Csrrwi $ InstFormula $ getFormula $ do
       comment "Copies the control and status register csr to x[rd]."
       comment "Then, writes the five-bit zero-extended immediate zimm to the csr."
 
@@ -386,7 +386,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b1) csr $ do
         assignReg rd t
         assignCSR csr (zextE zimm)
-  , Pair Csrrsi $ getFormula $ do
+  , Pair Csrrsi $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and the five-bit zero-extended immediate zimm to the csr."
       comment "Then, write to to x[rd]."
@@ -397,7 +397,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b1) csr $ do
         assignCSR csr (zextE zimm `orE` t)
         assignReg rd t
-  , Pair Csrrci $ getFormula $ do
+  , Pair Csrrci $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of the five-bit zero-extended zimm to the csr."
       comment "Then, write t to x[rd]."
@@ -410,7 +410,7 @@ baseSemantics = Map.fromList
         assignReg rd t
 
   -- S type
-  , Pair Sb $ getFormula $ do
+  , Pair Sb $ InstFormula $ getFormula $ do
       comment "Computes the least-significant byte in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
@@ -421,7 +421,7 @@ baseSemantics = Map.fromList
 
       assignMem (knownNat @1) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
-  , Pair Sh $ getFormula $ do
+  , Pair Sh $ InstFormula $ getFormula $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
@@ -432,7 +432,7 @@ baseSemantics = Map.fromList
 
       assignMem (knownNat @2) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
-  , Pair Sw $ getFormula $ do
+  , Pair Sw $ InstFormula $ getFormula $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
@@ -444,33 +444,33 @@ baseSemantics = Map.fromList
       assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
   -- B type
-  , Pair Beq $ getFormula $ do
+  , Pair Beq $ InstFormula $ getFormula $ do
       comment "If register x[rs1] equals register x[rs2], add sext(offset) to the pc."
 
       b eqE
-  , Pair Bne $ getFormula $ do
+  , Pair Bne $ InstFormula $ getFormula $ do
       comment "If register x[rs1] does not equal register x[rs2], add sext(offset) to the pc."
 
       b $ \e1 e2 -> notE (eqE e1 e2)
-  , Pair Blt $ getFormula $ do
+  , Pair Blt $ InstFormula $ getFormula $ do
       comment "If register x[rs1] is less than register x[rs2], add sext(offset) to the pc."
 
       b ltsE
-  , Pair Bge $ getFormula $ do
+  , Pair Bge $ InstFormula $ getFormula $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2], add sext(offset) to the pc."
 
       b $ \e1 e2 -> notE (ltsE e1 e2)
-  , Pair Bltu $ getFormula $ do
+  , Pair Bltu $ InstFormula $ getFormula $ do
       comment "If register x[rs1] is less than register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
       b ltuE
-  , Pair Bgeu $ getFormula $ do
+  , Pair Bgeu $ InstFormula $ getFormula $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
       b $ \e1 e2 -> notE (ltuE e1 e2)
 
   -- U type
-  , Pair Lui $ getFormula $ do
+  , Pair Lui $ InstFormula $ getFormula $ do
       comment "Writes the sign-extended 20-bit immediate, left-shifted by 12 bits, to x[rd]."
       comment "Zeros the lower 12 bits."
 
@@ -478,30 +478,30 @@ baseSemantics = Map.fromList
 
       assignReg rd $ sextE imm20 `sllE` litBV 12
       incrPC
-  , Pair Auipc $ getFormula $ do
+  , Pair Auipc $ InstFormula $ getFormula $ do
       comment "Adds the sign-extended 20-bit immediate, left-shifted by 12 bits, to the pc."
       comment "Writes the result to x[rd]."
 
       rd :< imm20 :< Nil <- operandEs
-      pc <- readPC
+      let pc = readPC
 
       assignReg rd $ pc `addE` sextE imm20 `sllE` litBV 12
       incrPC
 
   -- J type
-  , Pair Jal $ getFormula $ do
+  , Pair Jal $ InstFormula $ getFormula $ do
       comment "Writes the address of the next instruction to x[rd]."
       comment "Then sets the pc to the current pc plus the sign-extended offset."
 
       rd :< imm20 :< Nil <- operandEs
       ib <- instBytes
-      pc <- readPC
+      let pc = readPC
 
       assignReg rd $ pc `addE` zextE ib
       assignPC $ pc `addE` sextE (imm20 `sllE` litBV 1)
 
   -- X type
-  , Pair Illegal $ getFormula $ do
+  , Pair Illegal $ InstFormula $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
 
       raiseException IllegalInstruction
@@ -524,14 +524,14 @@ base64Encode = Map.fromList
 
 base64Semantics :: (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch exts
 base64Semantics = Map.fromList
-  [ Pair Addw $ getFormula $ do
+  [ Pair Addw $ InstFormula $ getFormula $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
       rOp32 $ \e1 e2 -> return (e1 `addE` e2)
 
-  , Pair Subw $ getFormula $ do
+  , Pair Subw $ InstFormula $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -539,7 +539,7 @@ base64Semantics = Map.fromList
       rOp32 $ \e1 e2 -> return (e1 `subE` e2)
 
   -- TODO: Correct this
-  , Pair Sllw $ getFormula $ do
+  , Pair Sllw $ InstFormula $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -547,7 +547,7 @@ base64Semantics = Map.fromList
       rOp32 $ \e1 e2 -> return (e1 `sllE` e2)
 
   -- TODO: Correct this
-  , Pair Srlw $ getFormula $ do
+  , Pair Srlw $ InstFormula $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -555,13 +555,13 @@ base64Semantics = Map.fromList
       rOp32 $ \e1 e2 -> return (e1 `srlE` e2)
 
   -- TODO: Correct this
-  , Pair Sraw $ getFormula $ do
+  , Pair Sraw $ InstFormula $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
       rOp32 $ \e1 e2 -> return (e1 `sraE` e2)
-  , Pair Lwu $ getFormula $ do
+  , Pair Lwu $ InstFormula $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
@@ -572,7 +572,7 @@ base64Semantics = Map.fromList
 
       assignReg rd (zextE mVal)
       incrPC
-  , Pair Ld $ getFormula $ do
+  , Pair Ld $ InstFormula $ getFormula $ do
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -583,7 +583,7 @@ base64Semantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Addiw $ getFormula $ do
+  , Pair Addiw $ InstFormula $ getFormula $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
       comment "Writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -591,7 +591,7 @@ base64Semantics = Map.fromList
       iOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `addE` e2))
 
   -- TODO: Correct this
-  , Pair Slliw $ getFormula $ do
+  , Pair Slliw $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "Truncates the result to 32 bits."
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
@@ -613,7 +613,7 @@ base64Semantics = Map.fromList
               incrPC
 
   -- TODO: Correct this
-  , Pair Sriw $ getFormula $ do
+  , Pair Sriw $ InstFormula $ getFormula $ do
       comment "Shifts register x[rs1] right logically/arithmetically by shamt bit positions."
       comment "Truncates the result to 32 bits."
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
@@ -641,7 +641,7 @@ base64Semantics = Map.fromList
         $> do assignReg rd $ iteE lShift result_l result_r
               incrPC
 
-  , Pair Sd $ getFormula $ do
+  , Pair Sd $ InstFormula $ getFormula $ do
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 

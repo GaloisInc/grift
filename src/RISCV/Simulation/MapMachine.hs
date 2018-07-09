@@ -47,6 +47,7 @@ import           Data.Traversable (for)
 import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
+import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 -- | IO-based machine state.
@@ -128,7 +129,7 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
   logInstruction (Some (Inst opcode operands)) iset = do
     return ()
     let formula = semanticsFromOpcode iset opcode
-        tests = getTests formula
+        tests = getTests (getInstFormula formula)
     testVals <- traverse (evalInstExpr operands 4) tests
     MapMachineM $ S.modify $ \m ->
       m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }

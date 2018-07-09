@@ -41,7 +41,7 @@ type EncodeMap arch exts = MapF (Opcode arch exts) OpBits
 type DecodeMap arch exts = MapF OpBits (Opcode arch exts)
 
 -- | Maps each opcode to its associated semantics 'Formula'.
-type SemanticsMap arch exts = MapF (Opcode arch exts) (Formula arch)
+type SemanticsMap arch exts = MapF (Opcode arch exts) (InstFormula arch)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions
 -- into categories based on extension and register width.
@@ -76,7 +76,7 @@ opcodeFromOpBits is opBits =
   maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
 
 -- | Given an instruction set, obtain the semantics of an opcode
-semanticsFromOpcode :: InstructionSet arch exts -> Opcode arch exts fmt -> Formula arch fmt
+semanticsFromOpcode :: InstructionSet arch exts -> Opcode arch exts fmt -> InstFormula arch fmt
 semanticsFromOpcode is opcode = fromMaybe (error msg) $ Map.lookup opcode (isSemanticsMap is)
   where msg = "Opcode " ++ show opcode ++ " does not have corresponding semantics defined."
 
