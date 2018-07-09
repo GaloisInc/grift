@@ -144,7 +144,7 @@ data Assignment (arch :: BaseArch) where
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                 => Operands fmt
                 -> Integer
-                -> Stmt (InstExpr arch fmt) arch fmt
+                -> Stmt (InstExpr arch fmt) arch
                 -> m (Assignment arch)
 buildAssignment operands ib (AssignStmt PCExpr pcE) = do
   pcVal <- evalInstExpr operands ib pcE
@@ -194,7 +194,7 @@ execAssignment (Branch condVal tAssignments fAssignments) =
 execFormula :: forall m arch fmt exts . (RVStateM m arch exts, KnownArch arch)
             => Operands fmt
             -> Integer
-            -> Formula (InstExpr arch fmt) arch fmt
+            -> Formula (InstExpr arch fmt) arch
             -> m ()
 execFormula operands ib f = do
   assignments <- traverse (buildAssignment operands ib) (f ^. fDefs)
@@ -249,10 +249,10 @@ runRV = runRV' knownISet 0
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Formula (InstExpr arch fmt) arch fmt -> [InstExpr arch fmt 1]
+getTests :: Formula (InstExpr arch fmt) arch -> [InstExpr arch fmt 1]
 getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
 
-getTestsStmt :: Stmt (InstExpr arch fmt) arch fmt -> [InstExpr arch fmt 1]
+getTestsStmt :: Stmt (InstExpr arch fmt) arch -> [InstExpr arch fmt 1]
 getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))

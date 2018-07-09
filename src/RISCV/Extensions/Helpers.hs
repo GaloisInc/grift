@@ -35,11 +35,11 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
-getArchWidth :: forall arch fmt . KnownArch arch => FormulaBuilder (InstExpr arch fmt) arch fmt (NatRepr (ArchWidth arch))
+getArchWidth :: forall arch fmt . KnownArch arch => FormulaBuilder (InstExpr arch fmt) arch (NatRepr (ArchWidth arch))
 getArchWidth = return (knownNat @(ArchWidth arch))
 
 -- | Increment the PC
-incrPC :: KnownArch arch => FormulaBuilder (InstExpr arch fmt) arch fmt ()
+incrPC :: KnownArch arch => FormulaBuilder (InstExpr arch fmt) arch ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
@@ -48,10 +48,10 @@ incrPC = do
 -- | Type of arithmetic operator in 'FormulaBuilder'.
 type ArithOp arch fmt w = InstExpr arch fmt (ArchWidth arch)
                        -> InstExpr arch fmt (ArchWidth arch)
-                       -> FormulaBuilder (InstExpr arch fmt) arch fmt (InstExpr arch fmt w)
+                       -> FormulaBuilder (InstExpr arch fmt) arch (InstExpr arch fmt w)
 
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
-rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder (InstExpr arch R) arch R ()
+rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder (InstExpr arch R) arch ()
 rOp op = do
   rd :< rs1 :< rs2 :< Nil <- operandEs
 
@@ -64,7 +64,7 @@ rOp op = do
 
 -- | Like 'rOp', but truncate the result to 32 bits before storing the result in the
 -- destination register.
-rOp32 :: KnownArch arch => ArithOp arch R w -> FormulaBuilder (InstExpr arch R) arch R ()
+rOp32 :: KnownArch arch => ArithOp arch R w -> FormulaBuilder (InstExpr arch R) arch ()
 rOp32 op = do
   rd :< rs1 :< rs2 :< Nil  <- operandEs
 
@@ -76,7 +76,7 @@ rOp32 op = do
   incrPC
 
 -- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
-iOp :: KnownArch arch => ArithOp arch I (ArchWidth arch) -> FormulaBuilder (InstExpr arch I) arch I ()
+iOp :: KnownArch arch => ArithOp arch I (ArchWidth arch) -> FormulaBuilder (InstExpr arch I) arch ()
 iOp op = do
   rd :< rs1 :< imm12 :< Nil <- operandEs
 
@@ -92,7 +92,7 @@ type CompOp arch fmt = InstExpr arch fmt (ArchWidth arch)
                     -> InstExpr arch fmt 1
 
 -- | Generic branch.
-b :: KnownArch arch => CompOp arch B -> FormulaBuilder (InstExpr arch B) arch B ()
+b :: KnownArch arch => CompOp arch B -> FormulaBuilder (InstExpr arch B) arch ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
@@ -109,8 +109,8 @@ b cmp = do
 checkCSR :: KnownArch arch
          => InstExpr arch fmt 1
          -> InstExpr arch fmt 12
-         -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
-         -> FormulaBuilder (InstExpr arch fmt) arch fmt ()
+         -> FormulaBuilder (InstExpr arch fmt) arch ()
+         -> FormulaBuilder (InstExpr arch fmt) arch ()
 checkCSR write csr rst = do
   let priv = readPriv
   let csrPriv = extractEWithRepr (knownNat @2) 10 csr
