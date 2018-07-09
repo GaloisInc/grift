@@ -182,7 +182,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
       let pc = readPC
       ib <- instBytes
-      x_rs1 <- readReg rs1
+      let x_rs1 = readReg rs1
 
       assignReg rd $ pc `addE` zextE ib
       assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
@@ -192,8 +192,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @1) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @1) (x_rs1 `addE` sextE offset)
 
       assignReg rd (sextE mVal)
       incrPC
@@ -203,8 +203,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @2) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @2) (x_rs1 `addE` sextE offset)
 
       assignReg rd (sextE mVal)
       incrPC
@@ -214,8 +214,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @4) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @4) (x_rs1 `addE` sextE offset)
 
       assignReg rd (sextE mVal)
       incrPC
@@ -225,8 +225,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @1) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @1) (x_rs1 `addE` sextE offset)
 
       assignReg rd (zextE mVal)
       incrPC
@@ -236,8 +236,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @2) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @2) (x_rs1 `addE` sextE offset)
 
       assignReg rd (zextE mVal)
       incrPC
@@ -277,7 +277,7 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
+      let x_rs1 = readReg rs1
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
@@ -301,7 +301,7 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
+      let x_rs1 = readReg rs1
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
@@ -345,8 +345,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< csr :< Nil <- operandEs
 
-      t <- readCSR csr
-      x_rs1 <- readReg rs1
+      let t = readCSR csr
+      let x_rs1 = readReg rs1
 
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr x_rs1
@@ -357,8 +357,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< csr :< Nil <- operandEs
 
-      t <- readCSR csr
-      x_rs1 <- readReg rs1
+      let t = readCSR csr
+      let x_rs1 = readReg rs1
 
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr (x_rs1 `orE` t)
@@ -370,8 +370,8 @@ baseSemantics = Map.fromList
 
       rd :< rs1 :< csr :< Nil <- operandEs
 
-      t <- readCSR csr
-      x_rs1 <- readReg rs1
+      let t = readCSR csr
+      let x_rs1 = readReg rs1
 
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr ((notE x_rs1) `andE` t)
@@ -381,7 +381,7 @@ baseSemantics = Map.fromList
       comment "Then, writes the five-bit zero-extended immediate zimm to the csr."
 
       rd :< zimm :< csr :< Nil <- operandEs
-      t <- readCSR csr
+      let t = readCSR csr
 
       checkCSR (litBV 0b1) csr $ do
         assignReg rd t
@@ -392,7 +392,7 @@ baseSemantics = Map.fromList
       comment "Then, write to to x[rd]."
 
       rd :< zimm :< csr :< Nil <- operandEs
-      t <- readCSR csr
+      let t = readCSR csr
 
       checkCSR (litBV 0b1) csr $ do
         assignCSR csr (zextE zimm `orE` t)
@@ -403,7 +403,7 @@ baseSemantics = Map.fromList
       comment "Then, write t to x[rd]."
 
       rd :< zimm :< csr :< Nil <- operandEs
-      t <- readCSR csr
+      let t = readCSR csr
 
       checkCSR (litBV 0b1) csr $ do
         assignCSR csr (notE (zextE zimm) `andE` t)
@@ -416,8 +416,8 @@ baseSemantics = Map.fromList
 
       rs1 :< rs2 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       assignMem (knownNat @1) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
@@ -427,8 +427,8 @@ baseSemantics = Map.fromList
 
       rs1 :< rs2 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       assignMem (knownNat @2) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
@@ -438,8 +438,8 @@ baseSemantics = Map.fromList
 
       rs1 :< rs2 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
@@ -567,8 +567,8 @@ base64Semantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @4) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @4) (x_rs1 `addE` sextE offset)
 
       assignReg rd (zextE mVal)
       incrPC
@@ -578,8 +578,8 @@ base64Semantics = Map.fromList
 
       rd :< rs1 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @8) (x_rs1 `addE` sextE offset)
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @8) (x_rs1 `addE` sextE offset)
 
       assignReg rd (sextE mVal)
       incrPC
@@ -597,7 +597,7 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-      x_rs1 <- readReg rs1
+      let x_rs1 = readReg rs1
 
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
@@ -619,7 +619,7 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-      x_rs1 <- readReg rs1
+      let x_rs1 = readReg rs1
 
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
@@ -647,8 +647,8 @@ base64Semantics = Map.fromList
 
       rs1 :< rs2 :< offset :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       assignMem (knownNat @8) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC

@@ -84,8 +84,8 @@ aSemantics = Map.fromList
       -- Check that rs2 is zero
       let illegal = notE (rs2 `eqE` litBV 0)
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @4) x_rs1
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @4) x_rs1
 
       branch illegal
         $> raiseException IllegalInstruction
@@ -99,10 +99,10 @@ aSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
-      reserved <- checkReserved x_rs1
+      let reserved = checkReserved x_rs1
 
       branch reserved
         $> do assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2)
@@ -156,14 +156,14 @@ aSemantics = Map.fromList
   ]
 
 amoOp32 :: KnownArch arch
-        => (InstExpr arch A 32 -> InstExpr arch A 32 -> InstExpr arch A 32)
-        -> FormulaBuilder (InstExpr arch A) arch ()
+        => (InstExpr A arch 32 -> InstExpr A arch 32 -> InstExpr A arch 32)
+        -> FormulaBuilder (InstExpr A arch) arch ()
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
-      mVal  <- readMem (knownNat @4) x_rs1
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+      let mVal  = readMem (knownNat @4) x_rs1
 
       assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)
@@ -181,8 +181,8 @@ a64Semantics = Map.fromList
       -- Check that rs2 is zero
       let illegal = notE (rs2 `eqE` litBV 0)
 
-      x_rs1 <- readReg rs1
-      mVal  <- readMem (knownNat @8) x_rs1
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @8) x_rs1
 
       branch illegal
         $> raiseException IllegalInstruction
@@ -196,10 +196,10 @@ a64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
-      reserved <- checkReserved x_rs1
+      let reserved = checkReserved x_rs1
 
       branch reserved
         $> do assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2)
@@ -253,14 +253,14 @@ a64Semantics = Map.fromList
   ]
 
 amoOp64 :: KnownArch arch
-        => (InstExpr arch A 64 -> InstExpr arch A 64 -> InstExpr arch A 64)
-        -> FormulaBuilder (InstExpr arch A) arch ()
+        => (InstExpr A arch 64 -> InstExpr A arch 64 -> InstExpr A arch 64)
+        -> FormulaBuilder (InstExpr A arch) arch ()
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
-      mVal  <- readMem (knownNat @8) x_rs1
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+      let mVal  = readMem (knownNat @8) x_rs1
 
       assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)

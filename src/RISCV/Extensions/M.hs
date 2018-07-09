@@ -71,8 +71,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       assignReg rd (x_rs1 `mulE` x_rs2)
       incrPC
@@ -83,8 +83,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       archWidth <- getArchWidth
 
@@ -103,8 +103,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       archWidth <- getArchWidth
 
@@ -122,8 +122,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       archWidth <- getArchWidth
 
@@ -141,8 +141,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       let q = x_rs1 `quotsE` x_rs2
 
@@ -155,8 +155,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       let q = x_rs1 `quotuE` x_rs2
 
@@ -169,8 +169,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       let q = x_rs1 `quotsE` x_rs2
 
@@ -185,8 +185,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      x_rs1 <- readReg rs1
-      x_rs2 <- readReg rs2
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
 
       let q = x_rs1 `quotuE` x_rs2
 

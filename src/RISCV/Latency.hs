@@ -28,9 +28,9 @@ import Data.Parameterized
 import RISCV.Semantics
 import RISCV.Types
 
-newtype Flip t a b = Flip (t b a)
+newtype Flip t a b c = Flip (t c a b)
 
-type LatencyMap arch exts = Map.MapF (Opcode arch exts) (Flip (InstExpr arch) (ArchWidth arch))
+type LatencyMap arch exts = Map.MapF (Opcode arch exts) (Flip InstExpr arch (ArchWidth arch))
 
 baseLatency :: KnownArch arch => LatencyMap arch exts
 baseLatency = Map.fromList

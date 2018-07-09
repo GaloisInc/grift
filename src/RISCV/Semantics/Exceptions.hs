@@ -132,12 +132,12 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
 -- TODO: Get this out of FormulaBuilder; it isn't dependent on a particular
 -- instruction, so we should be able to call it from outside that context as well.
 -- | Semantics for raising an exception.
-raiseException :: KnownArch arch => Exception -> FormulaBuilder (InstExpr arch fmt) arch ()
+raiseException :: KnownArch arch => Exception -> FormulaBuilder (InstExpr fmt arch) arch ()
 raiseException e = do
-  let pc   = readPC
-  let priv = readPriv
-  mtVec   <- readCSR (litBV $ encodeCSR MTVec)
-  mstatus <- readCSR (litBV $ encodeCSR MStatus)
+  let pc      = readPC
+  let priv    = readPriv
+  let mtVec   = readCSR (litBV $ encodeCSR MTVec)
+  let mstatus = readCSR (litBV $ encodeCSR MStatus)
 
   let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
       mcause = getMCause e

@@ -35,28 +35,28 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
-getArchWidth :: forall arch fmt . KnownArch arch => FormulaBuilder (InstExpr arch fmt) arch (NatRepr (ArchWidth arch))
+getArchWidth :: forall arch fmt . KnownArch arch => FormulaBuilder (InstExpr fmt arch) arch (NatRepr (ArchWidth arch))
 getArchWidth = return (knownNat @(ArchWidth arch))
 
 -- | Increment the PC
-incrPC :: KnownArch arch => FormulaBuilder (InstExpr arch fmt) arch ()
+incrPC :: KnownArch arch => FormulaBuilder (InstExpr fmt arch) arch ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
   assignPC $ pc `addE` (zextE ib)
 
 -- | Type of arithmetic operator in 'FormulaBuilder'.
-type ArithOp arch fmt w = InstExpr arch fmt (ArchWidth arch)
-                       -> InstExpr arch fmt (ArchWidth arch)
-                       -> FormulaBuilder (InstExpr arch fmt) arch (InstExpr arch fmt w)
+type ArithOp arch fmt w = InstExpr fmt arch (ArchWidth arch)
+                       -> InstExpr fmt arch (ArchWidth arch)
+                       -> FormulaBuilder (InstExpr fmt arch) arch (InstExpr fmt arch w)
 
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
-rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder (InstExpr arch R) arch ()
+rOp :: KnownArch arch => ArithOp arch R (ArchWidth arch) -> FormulaBuilder (InstExpr R arch) arch ()
 rOp op = do
   rd :< rs1 :< rs2 :< Nil <- operandEs
 
-  x_rs1 <- readReg rs1
-  x_rs2 <- readReg rs2
+  let x_rs1 = readReg rs1
+  let x_rs2 = readReg rs2
   res   <- x_rs1 `op` x_rs2
 
   assignReg rd res
@@ -64,40 +64,40 @@ rOp op = do
 
 -- | Like 'rOp', but truncate the result to 32 bits before storing the result in the
 -- destination register.
-rOp32 :: KnownArch arch => ArithOp arch R w -> FormulaBuilder (InstExpr arch R) arch ()
+rOp32 :: KnownArch arch => ArithOp arch R w -> FormulaBuilder (InstExpr R arch) arch ()
 rOp32 op = do
   rd :< rs1 :< rs2 :< Nil  <- operandEs
 
-  x_rs1 <- readReg rs1
-  x_rs2 <- readReg rs2
+  let x_rs1 = readReg rs1
+  let x_rs2 = readReg rs2
   res   <- x_rs1 `op` x_rs2
 
   assignReg rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
   incrPC
 
 -- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
-iOp :: KnownArch arch => ArithOp arch I (ArchWidth arch) -> FormulaBuilder (InstExpr arch I) arch ()
+iOp :: KnownArch arch => ArithOp arch I (ArchWidth arch) -> FormulaBuilder (InstExpr I arch) arch ()
 iOp op = do
   rd :< rs1 :< imm12 :< Nil <- operandEs
 
-  x_rs1 <- readReg rs1
+  let x_rs1 = readReg rs1
   res   <- x_rs1 `op` (sextE imm12)
 
   assignReg rd res
   incrPC
 
 -- | Generic comparison operator.
-type CompOp arch fmt = InstExpr arch fmt (ArchWidth arch)
-                    -> InstExpr arch fmt (ArchWidth arch)
-                    -> InstExpr arch fmt 1
+type CompOp arch fmt = InstExpr fmt arch (ArchWidth arch)
+                    -> InstExpr fmt arch (ArchWidth arch)
+                    -> InstExpr fmt arch 1
 
 -- | Generic branch.
-b :: KnownArch arch => CompOp arch B -> FormulaBuilder (InstExpr arch B) arch ()
+b :: KnownArch arch => CompOp arch B -> FormulaBuilder (InstExpr B arch) arch ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
-  x_rs1 <- readReg rs1
-  x_rs2 <- readReg rs2
+  let x_rs1 = readReg rs1
+  let x_rs2 = readReg rs2
 
   let pc = readPC
   ib <- instBytes
@@ -107,10 +107,10 @@ b cmp = do
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
 checkCSR :: KnownArch arch
-         => InstExpr arch fmt 1
-         -> InstExpr arch fmt 12
-         -> FormulaBuilder (InstExpr arch fmt) arch ()
-         -> FormulaBuilder (InstExpr arch fmt) arch ()
+         => InstExpr fmt arch 1
+         -> InstExpr fmt arch 12
+         -> FormulaBuilder (InstExpr fmt arch) arch ()
+         -> FormulaBuilder (InstExpr fmt arch) arch ()
 checkCSR write csr rst = do
   let priv = readPriv
   let csrPriv = extractEWithRepr (knownNat @2) 10 csr

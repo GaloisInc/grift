@@ -108,7 +108,7 @@ evalInstExpr :: forall m arch exts fmt w
             . (RVStateM m arch exts, KnownArch arch)
              => Operands fmt     -- ^ Operands
              -> Integer          -- ^ Instruction width (in bytes)
-             -> InstExpr arch fmt w  -- ^ Expression to be evaluated
+             -> InstExpr fmt arch w  -- ^ Expression to be evaluated
              -> m (BitVector w)
 evalInstExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalInstExpr _ ib InstBytes = return $ bitVector ib
@@ -144,7 +144,7 @@ data Assignment (arch :: BaseArch) where
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                 => Operands fmt
                 -> Integer
-                -> Stmt (InstExpr arch fmt) arch
+                -> Stmt (InstExpr fmt arch) arch
                 -> m (Assignment arch)
 buildAssignment operands ib (AssignStmt PCExpr pcE) = do
   pcVal <- evalInstExpr operands ib pcE
@@ -194,7 +194,7 @@ execAssignment (Branch condVal tAssignments fAssignments) =
 execFormula :: forall m arch fmt exts . (RVStateM m arch exts, KnownArch arch)
             => Operands fmt
             -> Integer
-            -> Formula (InstExpr arch fmt) arch
+            -> Formula (InstExpr fmt arch) arch
             -> m ()
 execFormula operands ib f = do
   assignments <- traverse (buildAssignment operands ib) (f ^. fDefs)
@@ -249,30 +249,30 @@ runRV = runRV' knownISet 0
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Formula (InstExpr arch fmt) arch -> [InstExpr arch fmt 1]
+getTests :: Formula (InstExpr fmt arch) arch -> [InstExpr fmt arch 1]
 getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
 
-getTestsStmt :: Stmt (InstExpr arch fmt) arch -> [InstExpr arch fmt 1]
+getTestsStmt :: Stmt (InstExpr fmt arch) arch -> [InstExpr fmt arch 1]
 getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocExpr :: LocExpr (InstExpr arch fmt) arch w -> [InstExpr arch fmt 1]
+getTestsLocExpr :: LocExpr (InstExpr fmt arch) arch w -> [InstExpr fmt arch 1]
 getTestsLocExpr (RegExpr   e) = getTestsInstExpr e
 getTestsLocExpr (MemExpr _ e) = getTestsInstExpr e
 getTestsLocExpr (ResExpr   e) = getTestsInstExpr e
 getTestsLocExpr (CSRExpr   e) = getTestsInstExpr e
 getTestsLocExpr _ = []
 
-getTestsStateExpr :: StateExpr (InstExpr arch fmt) arch w -> [InstExpr arch fmt 1]
+getTestsStateExpr :: StateExpr (InstExpr fmt arch) arch w -> [InstExpr fmt arch 1]
 getTestsStateExpr (LocExpr e) = getTestsLocExpr e
 getTestsStateExpr (AppExpr e) = getTestsBVApp e
 
-getTestsInstExpr :: InstExpr arch fmt w -> [InstExpr arch fmt 1]
+getTestsInstExpr :: InstExpr fmt arch w -> [InstExpr fmt arch 1]
 getTestsInstExpr (OperandExpr _) = []
 getTestsInstExpr InstBytes = []
 getTestsInstExpr (StateExpr e) = getTestsStateExpr e
 
-getTestsBVApp :: BVApp (InstExpr arch fmt) w -> [InstExpr arch fmt 1]
+getTestsBVApp :: BVApp (InstExpr fmt arch) w -> [InstExpr fmt arch 1]
 getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
 getTestsBVApp app = foldMapFC getTestsInstExpr app
