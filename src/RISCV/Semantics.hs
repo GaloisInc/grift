@@ -21,17 +21,60 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-Several types and functions enabling specification of semantics for RISC-V
-instructions.
+This module defines two languages for expressing computations over the RISC-V
+machine state. These languages are respresented by two types. The first,
+'PureStateExpr', encapsulates any compound expression that can be constructed
+using components of the machine state. The second, 'InstExpr', subsumes the first
+in that it can express everything that 'PureStateExpr' can express. In addition,
+'InstExpr' assumes that the expression being defined will be evaluated in the
+context of an executing instruction, and so we can also access information about
+that instruction, such as its width and its operands.
+
+These two expression types are formed from the "open" expression type, 'StateExpr',
+which encapsulates the notion of compound expressions involving pieces of RISC-V
+machine state. The 'StateExpr' type has a type parameter @expr@, which allows us to
+build compound expressions using sub-expressions of type @expr@. 'PureStateExpr' and
+'InstExpr' both contain 'StateExpr' as a special case, where the @expr@ parameter is
+instantiated as 'PureStateExpr' and 'InstExpr', respectively, thus "tying the knot"
+and allowing us to construct arbitrary bitvector expressions involving the RISC-V
+machine state and, in the case of 'InstExpr', we can also refer to the instruction
+currently being executed.
+
+We also export a typeclass 'RVStateExpr', implemented by both 'PureStateExpr' and
+'InstExpr'. This contains a single method, 'stateExpr', which allows us to embed a
+'StateExpr' into these types. This class is useful for defining semantic formulas
+that could be executed either inside or outside the context of an executing
+instruction.
+
+Using these expressions, we can also construct assignments of pieces of state to
+expressions. This is encapsulated in the 'Stmt' type, whose constructor 'AssignStmt'
+does exactly this. We can also create 'BranchStmt's which conditionally execute one
+of two distinct sets of statements based on a test condition.
+
+Finally, we can combine 'Stmt's to create 'Formula's, which are simply sequences of
+statements. We export a monad, 'FormulaBuilder,' to facilitate straightforward
+definitions of these assignments, and a number of functions ('assignPC', 'assignReg',
+etc.) that can be used within this monad. To see examples of its use, take a look at
+RISCV.Extensions.Base, which contains the base RISC-V ISA instruction definitions,
+defined using 'FormulaBuilder'.
+
 -}
 
 module RISCV.Semantics
-  ( -- * Types for semantic formulas
+  ( -- * RISC-V semantic expressions
     LocExpr(..)
   , StateExpr(..)
-  , RVStateExpr(..)
   , PureStateExpr(..)
   , InstExpr(..)
+  , RVStateExpr(..)
+    -- ** Access to state
+  , readPC
+  , readReg
+  , readMem
+  , readCSR
+  , readPriv
+  , checkReserved
+    -- * RISC-V semantic statements and formulas
   , Stmt(..)
   , Formula, fComments, fDefs
   , InstFormula(..)
@@ -44,13 +87,6 @@ module RISCV.Semantics
   , operandEs
   , instBytes
   , litBV
-    -- ** Access to state
-  , readPC
-  , readReg
-  , readMem
-  , readCSR
-  , readPriv
-  , checkReserved
     -- ** State actions
   , assignPC
   , assignReg
@@ -79,50 +115,60 @@ import RISCV.Types
 ----------------------------------------
 -- Expressions, statements, and formulas
 
--- | This type represents an abstract component of the global state.
+-- | This type represents an abstract component of the global state. Sub-expressions
+-- come from an arbitrary expression language @expr@.
 data LocExpr expr arch w where
-  PCExpr   ::                                   LocExpr expr arch (ArchWidth arch)
-  RegExpr  :: expr 5                         -> LocExpr expr arch (ArchWidth arch)
+  PCExpr   :: LocExpr expr arch (ArchWidth arch)
+  RegExpr  :: expr 5 -> LocExpr expr arch (ArchWidth arch)
   MemExpr  :: NatRepr bytes -> expr (ArchWidth arch) -> LocExpr expr arch (8*bytes)
-  ResExpr  :: expr (ArchWidth arch)          -> LocExpr expr arch 1
-  CSRExpr  :: expr 12                        -> LocExpr expr arch (ArchWidth arch)
-  PrivExpr ::                                   LocExpr expr arch 2
+  ResExpr  :: expr (ArchWidth arch) -> LocExpr expr arch 1
+  CSRExpr  :: expr 12 -> LocExpr expr arch (ArchWidth arch)
+  PrivExpr :: LocExpr expr arch 2
 
--- | Expressions for general computations over the RISC-V machine state.
-data StateExpr (expr :: Nat -> *) arch w where
+-- | Expressions for general computations over the RISC-V machine state -- we can
+-- access specific locations, and we can also build up compound expressions using the
+-- 'BVApp' expression language. Sub-expressions come from an arbitrary expression
+-- language @expr@.
+data StateExpr expr arch w where
   -- Accessing state
   LocExpr :: !(LocExpr expr arch w) -> StateExpr expr arch w
 
   -- BVApp with Expr subexpressions
   AppExpr :: !(BVApp expr w) -> StateExpr expr arch w
 
--- TODO: When we get quantified constraints, put a forall arch. BVExpr (expr arch) here
-class RVStateExpr (expr :: BaseArch -> Nat -> *) where
-  stateExpr :: StateExpr (expr arch) arch w -> expr arch w
-
+-- | Expressions built purely from 'StateExpr's, which are executed outside the
+-- context of an executing instruction (for instance, during exception handling).
 newtype PureStateExpr arch w = PureStateExpr (StateExpr (PureStateExpr arch) arch w)
 
 instance BVExpr (PureStateExpr arch) where
   appExpr = PureStateExpr . AppExpr
 
+-- | Expressions for computations over the RISC-V machine state, in the context of
+-- an executing instruction.
+data InstExpr fmt arch w where
+  -- | Accessing the instruction operands
+  OperandExpr :: !(OperandID fmt w) -> InstExpr fmt arch w
+  -- | Accessing the instruction width, in number of bytes
+  InstBytes :: InstExpr fmt arch (ArchWidth arch)
+
+  -- | Accessing the machine state
+  InstStateExpr :: !(StateExpr (InstExpr fmt arch) arch w) -> InstExpr fmt arch w
+
+instance BVExpr (InstExpr fmt arch) where
+  appExpr = InstStateExpr . AppExpr
+
+-- TODO: When we get quantified constraints, put a forall arch. BVExpr (expr arch)
+-- here
+-- | A type class for expression languages that can refer to arbitrary pieces of
+-- RISC-V machine state.
+class RVStateExpr (expr :: BaseArch -> Nat -> *) where
+  stateExpr :: StateExpr (expr arch) arch w -> expr arch w
+
 instance RVStateExpr PureStateExpr where
   stateExpr = PureStateExpr
 
--- | Expressions for computations over the RISC-V machine state, in the context of
--- executing an instruction.
-data InstExpr (fmt :: Format) (arch :: BaseArch) (w :: Nat) where
-  -- Accessing the instruction
-  OperandExpr :: !(OperandID fmt w) -> InstExpr fmt arch w
-  InstBytes :: InstExpr fmt arch (ArchWidth arch)
-
-  -- Accessing the machine state
-  StateExpr :: !(StateExpr (InstExpr fmt arch) arch w) -> InstExpr fmt arch w
-
-instance BVExpr (InstExpr fmt arch) where
-  appExpr = StateExpr . AppExpr
-
 instance RVStateExpr (InstExpr fmt) where
-  stateExpr = StateExpr
+  stateExpr = InstStateExpr
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to an expression of the
@@ -136,6 +182,7 @@ data Stmt (expr :: Nat -> *) (arch :: BaseArch) where
              -> !(Seq (Stmt expr arch))
              -> Stmt expr arch
 
+-- | A 'Formula' is simply a set of simultaneous 'Stmt's.
 data Formula expr arch
   = Formula { _fComments :: !(Seq String)
               -- ^ multiline comment
@@ -143,7 +190,10 @@ data Formula expr arch
               -- ^ sequence of statements defining the formula
             }
 
-data InstFormula arch fmt = InstFormula { getInstFormula :: Formula (InstExpr fmt arch) arch }
+-- | A wrapper for 'Formula's over 'InstExpr's with the 'Format' type parameter
+-- appearing last, for the purposes of associating with an corresponding 'Opcode' of
+-- the same format.
+newtype InstFormula arch fmt = InstFormula { getInstFormula :: Formula (InstExpr fmt arch) arch }
 
 -- | Lens for 'Formula' comments.
 fComments :: Simple Lens (Formula expr arch) (Seq String)
@@ -311,7 +361,7 @@ instance TestEquality expr => TestEquality (LocExpr expr arch) where
   PrivExpr `testEquality` PrivExpr = Just Refl
   _ `testEquality` _ = Nothing
 
-instance TestEquality expr =>  TestEquality (StateExpr expr arch) where
+instance TestEquality expr => TestEquality (StateExpr expr arch) where
   LocExpr e1 `testEquality` LocExpr e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
@@ -325,7 +375,7 @@ instance TestEquality (InstExpr fmt arch) where
     Just Refl -> Just Refl
     Nothing -> Nothing
   InstBytes `testEquality` InstBytes = Just Refl
-  StateExpr e1 `testEquality` StateExpr e2 = case e1 `testEquality` e2 of
+  InstStateExpr e1 `testEquality` InstStateExpr e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
   _ `testEquality` _ = Nothing
@@ -363,7 +413,7 @@ pPrintStateExpr' top (AppExpr app) = pPrintApp' top app
 pPrintInstExpr' :: Bool -> InstExpr fmt arch w -> Doc
 pPrintInstExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
 pPrintInstExpr' _ InstBytes = text "step"
-pPrintInstExpr' top (StateExpr e) = pPrintStateExpr' top e
+pPrintInstExpr' top (InstStateExpr e) = pPrintStateExpr' top e
 
 pPrintApp' :: Bool -> BVApp (InstExpr fmt arch) w -> Doc
 pPrintApp' _ (NotApp e) = text "!" <> pPrintInstExpr' False e

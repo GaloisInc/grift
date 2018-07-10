@@ -112,7 +112,7 @@ evalInstExpr :: forall m arch exts fmt w
              -> m (BitVector w)
 evalInstExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalInstExpr _ ib InstBytes = return $ bitVector ib
-evalInstExpr operands ib (StateExpr e) = evalStateExpr (evalInstExpr operands ib) e
+evalInstExpr operands ib (InstStateExpr e) = evalStateExpr (evalInstExpr operands ib) e
 
 -- | This type represents a concrete component of the global state, after all
 -- expressions have been evaluated. It is in direct correspondence with the 'LocExpr'
@@ -271,7 +271,7 @@ getTestsStateExpr (AppExpr e) = getTestsBVApp e
 getTestsInstExpr :: InstExpr fmt arch w -> [InstExpr fmt arch 1]
 getTestsInstExpr (OperandExpr _) = []
 getTestsInstExpr InstBytes = []
-getTestsInstExpr (StateExpr e) = getTestsStateExpr e
+getTestsInstExpr (InstStateExpr e) = getTestsStateExpr e
 
 getTestsBVApp :: BVApp (InstExpr fmt arch) w -> [InstExpr fmt arch 1]
 getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
