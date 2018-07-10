@@ -32,6 +32,28 @@ newtype Flip t a b c = Flip (t c a b)
 
 type LatencyMap arch exts = Map.MapF (Opcode arch exts) (Flip InstExpr arch (ArchWidth arch))
 
+knownLatencyMap :: forall arch exts
+                   . (KnownArch arch, KnownExtensions exts)
+                => LatencyMap arch exts
+knownLatencyMap = base `Map.union` m `Map.union` a `Map.union` f
+  where archRepr = knownRepr :: BaseArchRepr arch
+        ecRepr = knownRepr :: ExtensionsRepr exts
+        base = case archRepr of
+          RV32Repr -> baseLatency
+          RV64Repr -> baseLatency `Map.union` base64Latency
+          RV128Repr -> error "RV128 not yet supported"
+        m = case (archRepr, ecRepr) of
+          (RV32Repr, ExtensionsRepr MYesRepr _ _) -> mLatency
+          (RV64Repr, ExtensionsRepr MYesRepr _ _) -> mLatency `Map.union` m64Latency
+          _ -> Map.empty
+        a = case (archRepr, ecRepr) of
+          (RV32Repr, ExtensionsRepr _ AYesRepr _) -> aLatency
+          (RV64Repr, ExtensionsRepr _ AYesRepr _) -> aLatency `Map.union` a64Latency
+          _ -> Map.empty
+        f = case ecRepr of
+          ExtensionsRepr _ _ FDNoRepr -> Map.empty
+          _ -> error "Floating point not yet supported"
+
 baseLatency :: KnownArch arch => LatencyMap arch exts
 baseLatency = Map.fromList
   [ -- RV32I
@@ -123,41 +145,41 @@ mLatency = Map.fromList
   , Pair Remu   (Flip $ litBV 1)
   ]
 
--- m64Latency :: (KnownArch arch, 64 <= ArchWidth arch) => LatencyMap arch exts
--- m64Latency = Map.fromList
---   [ Pair Mulw  (Flip $ litBV 1)
---   , Pair Divw  (Flip $ litBV 1)
---   , Pair Divuw (Flip $ litBV 1)
---   , Pair Remw  (Flip $ litBV 1)
---   , Pair Remuw (Flip $ litBV 1)
---   ]
+m64Latency :: (KnownArch arch, 64 <= ArchWidth arch, MExt << exts) => LatencyMap arch exts
+m64Latency = Map.fromList
+  [ Pair Mulw  (Flip $ litBV 1)
+  , Pair Divw  (Flip $ litBV 1)
+  , Pair Divuw (Flip $ litBV 1)
+  , Pair Remw  (Flip $ litBV 1)
+  , Pair Remuw (Flip $ litBV 1)
+  ]
 
--- aLatency :: KnownArch arch => LatencyMap arch exts
--- aLatency = Map.fromList
---   [ Pair Lrw      (Flip $ litBV 1)
---   , Pair Scw      (Flip $ litBV 1)
---   , Pair Amoswapw (Flip $ litBV 1)
---   , Pair Amoaddw  (Flip $ litBV 1)
---   , Pair Amoxorw  (Flip $ litBV 1)
---   , Pair Amoandw  (Flip $ litBV 1)
---   , Pair Amoorw   (Flip $ litBV 1)
---   , Pair Amominw  (Flip $ litBV 1)
---   , Pair Amomaxw  (Flip $ litBV 1)
---   , Pair Amominuw (Flip $ litBV 1)
---   , Pair Amomaxuw (Flip $ litBV 1)
---   ]
+aLatency :: (KnownArch arch, AExt << exts) => LatencyMap arch exts
+aLatency = Map.fromList
+  [ Pair Lrw      (Flip $ litBV 1)
+  , Pair Scw      (Flip $ litBV 1)
+  , Pair Amoswapw (Flip $ litBV 1)
+  , Pair Amoaddw  (Flip $ litBV 1)
+  , Pair Amoxorw  (Flip $ litBV 1)
+  , Pair Amoandw  (Flip $ litBV 1)
+  , Pair Amoorw   (Flip $ litBV 1)
+  , Pair Amominw  (Flip $ litBV 1)
+  , Pair Amomaxw  (Flip $ litBV 1)
+  , Pair Amominuw (Flip $ litBV 1)
+  , Pair Amomaxuw (Flip $ litBV 1)
+  ]
 
--- a64Latency :: (KnownArch arch, 64 <= ArchWidth arch) => LatencyMap arch exts
--- a64Latency = Map.fromList
---   [ Pair Lrd      (Flip $ litBV 1)
---   , Pair Scd      (Flip $ litBV 1)
---   , Pair Amoswapd (Flip $ litBV 1)
---   , Pair Amoaddd  (Flip $ litBV 1)
---   , Pair Amoxord  (Flip $ litBV 1)
---   , Pair Amoandd  (Flip $ litBV 1)
---   , Pair Amoord   (Flip $ litBV 1)
---   , Pair Amomind  (Flip $ litBV 1)
---   , Pair Amomaxd  (Flip $ litBV 1)
---   , Pair Amominud (Flip $ litBV 1)
---   , Pair Amomaxud (Flip $ litBV 1)
---   ]
+a64Latency :: (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => LatencyMap arch exts
+a64Latency = Map.fromList
+  [ Pair Lrd      (Flip $ litBV 1)
+  , Pair Scd      (Flip $ litBV 1)
+  , Pair Amoswapd (Flip $ litBV 1)
+  , Pair Amoaddd  (Flip $ litBV 1)
+  , Pair Amoxord  (Flip $ litBV 1)
+  , Pair Amoandd  (Flip $ litBV 1)
+  , Pair Amoord   (Flip $ litBV 1)
+  , Pair Amomind  (Flip $ litBV 1)
+  , Pair Amomaxd  (Flip $ litBV 1)
+  , Pair Amominud (Flip $ litBV 1)
+  , Pair Amomaxud (Flip $ litBV 1)
+  ]

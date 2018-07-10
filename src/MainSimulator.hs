@@ -37,6 +37,7 @@ import           RISCV.Extensions
 import           RISCV.InstructionSet
 import           RISCV.Types
 import           RISCV.Semantics
+import           RISCV.Semantics.Exceptions
 import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 import           RISCV.Simulation.MapMachine
@@ -79,12 +80,12 @@ runElf stepsToRun logFile re = do
     mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
   runLogMachine stepsToRun m
 
-  stepsRan   <- readIORef (ioSteps m)
   pc         <- readIORef (ioPC m)
   registers  <- freezeRegisters m
+  csrs       <- readIORef (ioCSRs m)
   testMap    <- readIORef (ioTestMap m)
 
-  putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
+  putStrLn $ "MInstRet = " ++ show (Map.findWithDefault 0 (encodeCSR MInstRet) csrs)
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->

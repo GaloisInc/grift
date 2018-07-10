@@ -69,7 +69,6 @@ data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (ArchWidth arch)))
   , ioPriv      :: IORef (BitVector 2)
   , ioMaxAddr   :: BitVector (ArchWidth arch)
-  , ioSteps     :: IORef Int
   , ioTestMap   :: IORef (Map (Some (Opcode arch exts)) [[BitVector 1]])
   }
 
@@ -95,12 +94,11 @@ mkLogMachine maxAddr entryPoint byteStrings = do
   csrs      <- newIORef $ Map.fromList $
     [ ]
   priv      <- newIORef 0b00
-  steps     <- newIORef 0
   testMap   <- newIORef Map.empty -- Map.fromList (zip opcodes (repeat []))
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (LogMachine pc registers memory csrs priv maxAddr steps testMap)
+  return (LogMachine pc registers memory csrs priv maxAddr testMap)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -147,13 +145,8 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     return privVal
 
   setPC pcVal = LogMachineM $ do
-    -- We assume that every time we are setting the PC, we have just finished
-    -- executing an instruction, so increment steps.
     pcRef <- ioPC <$> ask
-    stepsRef <- ioSteps <$> ask
-    stepsVal <- lift $ readIORef stepsRef
     lift $ writeIORef pcRef pcVal
-    lift $ writeIORef stepsRef (stepsVal+1)
   setReg rid regVal = LogMachineM $ do
     regArray <- ioRegisters <$> ask
     lift $ writeArray regArray rid regVal

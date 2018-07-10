@@ -23,10 +23,10 @@ A type class for simulating RISC-V code.
 module RISCV.Simulation
   ( -- * State monad
     RVStateM(..)
+  , evalPureStateExpr
   , evalInstExpr
   , Loc(..)
   , Assignment(..)
-  , buildAssignment
   , execAssignment
   , execFormula
   , runRV
@@ -51,6 +51,10 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
+-- TODO: Should getMem/setMem return a possibly exceptional value, so that we can
+-- handle the actual exception handling in this module rather than on the
+-- implementation side? How would that work? Punting on this until we need to go
+-- deeper with the exception handling stuff.
 -- | State monad for simulating RISC-V code
 class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
   -- | Get the current PC.
@@ -103,7 +107,14 @@ evalStateExpr :: forall m expr arch exts w
 evalStateExpr eval (LocExpr e) = evalLocExpr eval e
 evalStateExpr eval (AppExpr e) = evalBVAppM eval e
 
--- | Evaluate a 'Expr', given an 'RVStateM' implementation and the instruction context.
+-- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
+evalPureStateExpr :: forall m arch exts w
+                 . (RVStateM m arch exts, KnownArch arch)
+              => PureStateExpr arch w
+              -> m (BitVector w)
+evalPureStateExpr (PureStateExpr e) = evalStateExpr evalPureStateExpr e
+
+-- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m arch exts fmt w
             . (RVStateM m arch exts, KnownArch arch)
              => Operands fmt     -- ^ Operands
@@ -135,43 +146,37 @@ data Assignment (arch :: BaseArch) where
   Assignment :: Loc arch w -> BitVector w -> Assignment arch
   Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
 
--- TODO: Create a separate data type, like Stmt, but without reference
--- to a particular instruction, in order to enable the simulation to
--- execute actual semantic assignments based on the current state
--- outside the context of executing a particular instruction.
-
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
-                => Operands fmt
-                -> Integer
-                -> Stmt (InstExpr fmt arch) arch
-                -> m (Assignment arch)
-buildAssignment operands ib (AssignStmt PCExpr pcE) = do
-  pcVal <- evalInstExpr operands ib pcE
+                     => (forall w . expr w -> m (BitVector w))
+                     -> Stmt expr arch
+                     -> m (Assignment arch)
+buildAssignment eval (AssignStmt PCExpr pcE) = do
+  pcVal <- eval pcE
   return (Assignment PC pcVal)
-buildAssignment operands ib (AssignStmt (RegExpr ridE) e) = do
-  rid  <- evalInstExpr operands ib ridE
-  eVal <- evalInstExpr operands ib e
+buildAssignment eval (AssignStmt (RegExpr ridE) e) = do
+  rid  <- eval ridE
+  eVal <- eval e
   return (Assignment (Reg rid) eVal)
-buildAssignment operands ib (AssignStmt (MemExpr bytes addrE) e) = do
-  addr <- evalInstExpr operands ib addrE
-  eVal <- evalInstExpr operands ib e
+buildAssignment eval (AssignStmt (MemExpr bytes addrE) e) = do
+  addr <- eval addrE
+  eVal <- eval e
   return (Assignment (Mem bytes addr) eVal)
-buildAssignment operands ib (AssignStmt (ResExpr addrE) e) = do
-  addr <- evalInstExpr operands ib addrE
-  eVal <- evalInstExpr operands ib e
+buildAssignment eval (AssignStmt (ResExpr addrE) e) = do
+  addr <- eval addrE
+  eVal <- eval e
   return (Assignment (Res addr) eVal)
-buildAssignment operands ib (AssignStmt (CSRExpr csrE) e) = do
-  csr  <- evalInstExpr operands ib csrE
-  eVal <- evalInstExpr operands ib e
+buildAssignment eval (AssignStmt (CSRExpr csrE) e) = do
+  csr  <- eval csrE
+  eVal <- eval e
   return (Assignment (CSR csr) eVal)
-buildAssignment operands ib (AssignStmt PrivExpr privE) = do
-  privVal <- evalInstExpr operands ib privE
+buildAssignment eval (AssignStmt PrivExpr privE) = do
+  privVal <- eval privE
   return (Assignment Priv privVal)
-buildAssignment operands ib (BranchStmt condE tStmts fStmts) = do
-  condVal <- evalInstExpr operands ib condE
-  tAssignments <- traverse (buildAssignment operands ib) tStmts
-  fAssignments <- traverse (buildAssignment operands ib) fStmts
+buildAssignment eval (BranchStmt condE tStmts fStmts) = do
+  condVal <- eval condE
+  tAssignments <- traverse (buildAssignment eval) tStmts
+  fAssignments <- traverse (buildAssignment eval) fStmts
   return (Branch condVal tAssignments fAssignments)
 
 -- | Execute an assignment.
@@ -189,15 +194,13 @@ execAssignment (Branch condVal tAssignments fAssignments) =
     1 -> traverse_ execAssignment tAssignments
     _ -> traverse_ execAssignment fAssignments
 
--- | Execute a formula, given an 'RVStateM' implementation. This function represents
--- the "execute" state in a fetch\/decode\/execute sequence.
-execFormula :: forall m arch fmt exts . (RVStateM m arch exts, KnownArch arch)
-            => Operands fmt
-            -> Integer
-            -> Formula (InstExpr fmt arch) arch
-            -> m ()
-execFormula operands ib f = do
-  assignments <- traverse (buildAssignment operands ib) (f ^. fDefs)
+-- | Execute a formula, given an 'RVStateM' implementation.
+execFormula :: forall m expr arch exts . (RVStateM m arch exts, KnownArch arch)
+             => (forall w . expr w -> m (BitVector w))
+             -> Formula expr arch
+             -> m ()
+execFormula eval f = do
+  assignments <- traverse (buildAssignment eval) (f ^. fDefs)
   traverse_ execAssignment assignments
 
 -- | Fetch, decode, and execute a single instruction.
@@ -218,10 +221,12 @@ stepRV iset = do
   logInstruction inst iset
 
   -- Execute
-  execFormula operands 4 (getInstFormula $ semanticsFromOpcode iset opcode)
+  execFormula (evalInstExpr operands 4) (getInstFormula $ semanticsFromOpcode iset opcode)
 
   -- Record cycle count
-  -- cc <- evalInstExpr operands 4 (Map.lookup opcode latencyMap)
+  execFormula evalPureStateExpr $ getFormula $ do
+    let minstret = readCSR (litBV $ encodeCSR MInstRet)
+    assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
 
 -- | Check whether the machine has halted.
 isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
