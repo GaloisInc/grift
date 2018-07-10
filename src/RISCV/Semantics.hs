@@ -102,6 +102,12 @@ class RVStateExpr (expr :: BaseArch -> Nat -> *) where
 
 newtype PureStateExpr arch w = PureStateExpr (StateExpr (PureStateExpr arch) arch w)
 
+instance BVExpr (PureStateExpr arch) where
+  appExpr = PureStateExpr . AppExpr
+
+instance RVStateExpr PureStateExpr where
+  stateExpr = PureStateExpr
+
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- executing an instruction.
 data InstExpr (fmt :: Format) (arch :: BaseArch) (w :: Nat) where
@@ -111,6 +117,12 @@ data InstExpr (fmt :: Format) (arch :: BaseArch) (w :: Nat) where
 
   -- Accessing the machine state
   StateExpr :: !(StateExpr (InstExpr fmt arch) arch w) -> InstExpr fmt arch w
+
+instance BVExpr (InstExpr fmt arch) where
+  appExpr = StateExpr . AppExpr
+
+instance RVStateExpr (InstExpr fmt) where
+  stateExpr = StateExpr
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to an expression of the
@@ -155,21 +167,6 @@ newtype FormulaBuilder expr arch a =
             Applicative,
             Monad,
             MonadState (Formula expr arch))
-
-----------------------------------------
--- Smart constructors for BVApp functions
-
-instance BVExpr (PureStateExpr arch) where
-  appExpr = PureStateExpr . AppExpr
-
-instance RVStateExpr PureStateExpr where
-  stateExpr = PureStateExpr
-
-instance BVExpr (InstExpr fmt arch) where
-  appExpr = StateExpr . AppExpr
-
-instance RVStateExpr (InstExpr fmt) where
-  stateExpr = StateExpr
 
 -- | Get the operands for a particular known format
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
