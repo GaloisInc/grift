@@ -485,7 +485,7 @@ baseSemantics = Map.fromList
       rd :< imm20 :< Nil <- operandEs
       let pc = readPC
 
-      assignReg rd $ pc `addE` sextE imm20 `sllE` litBV 12
+      assignReg rd $ pc `addE` (sextE imm20 `sllE` litBV 12)
       incrPC
 
   -- J type

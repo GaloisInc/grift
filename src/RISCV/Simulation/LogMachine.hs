@@ -85,16 +85,19 @@ writeBS ix bs arr = do
 mkLogMachine :: forall arch exts .(KnownArch arch, KnownExtensions exts)
              => BitVector (ArchWidth arch)
              -> BitVector (ArchWidth arch)
+             -> BitVector (ArchWidth arch)
              -> [(BitVector (ArchWidth arch), BS.ByteString)]
              -> IO (LogMachine arch exts)
-mkLogMachine maxAddr entryPoint byteStrings = do
+mkLogMachine maxAddr entryPoint sp byteStrings = do
   pc        <- newIORef entryPoint
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
-  csrs      <- newIORef $ Map.fromList $
-    [ ]
+  csrs      <- newIORef $ Map.fromList [ ]
   priv      <- newIORef 0b00
   testMap   <- newIORef Map.empty -- Map.fromList (zip opcodes (repeat []))
+
+  -- set up stack pointer
+  writeArray registers 2 sp
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory

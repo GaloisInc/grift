@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "aes.h"
 
 int main()
@@ -19,13 +18,13 @@ int main()
 
   aes_encrypt(in_str, encrypted_str, w, 128);
 
-  printf("Input: %s\n", in_str);
-  printf("Encrypted input: %s\n", encrypted_str);
+  //  printf("Input: %s\n", in_str);
+  //  printf("Encrypted input: %s\n", encrypted_str);
 
   BYTE decrypted_str[17];
   decrypted_str[16] = '\0';
 
   aes_decrypt(encrypted_str, decrypted_str, w, 128);
 
-  printf("Decrypted input: %s\n", decrypted_str);
+  //  printf("Decrypted input: %s\n", decrypted_str);
 }

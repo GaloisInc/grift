@@ -77,7 +77,7 @@ runElf stepsToRun logFile re = do
   let e = rElf re
       byteStrings = elfBytes e
   m :: LogMachine arch SimExts <-
-    mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
+    mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) 0x10000 byteStrings
   runLogMachine stepsToRun m
 
   pc         <- readIORef (ioPC m)
@@ -85,7 +85,9 @@ runElf stepsToRun logFile re = do
   csrs       <- readIORef (ioCSRs m)
   testMap    <- readIORef (ioTestMap m)
 
-  putStrLn $ "MInstRet = " ++ show (Map.findWithDefault 0 (encodeCSR MInstRet) csrs)
+  putStrLn $ "MInstRet = " ++
+    show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
+  putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->
