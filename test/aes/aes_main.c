@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "aes.h"
 
 int main()
@@ -27,4 +28,7 @@ int main()
   aes_decrypt(encrypted_str, decrypted_str, w, 128);
 
   //  printf("Decrypted input: %s\n", decrypted_str);
+
+  return decrypted_str[5]; // should be 0x4e
 }
+

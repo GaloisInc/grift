@@ -91,7 +91,7 @@ runElf stepsToRun logFile re = do
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->
-    putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
+    putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
   writeFile logFile "Opcode, Coverage\n"
 

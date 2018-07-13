@@ -592,12 +592,12 @@ base64Semantics = Map.fromList
 
   -- TODO: Correct this
   , Pair Slliw $ InstFormula $ getFormula $ do
-      comment "Shifts register x[rs1] left by shamt bit positions."
-      comment "Truncates the result to 32 bits."
-      comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
+      comment "Shifts lower 32 bits of register x[rs1] left by shamt bit positions."
+      comment "The vacated bits are filled with zeros, and the sign-extended 32-bit result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
-      let x_rs1 = readReg rs1
+      let x_rs1  = readReg rs1
+          x_rs1' = extractEWithRepr (knownNat @32) 0 x_rs1
 
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
@@ -609,17 +609,17 @@ base64Semantics = Map.fromList
 
       branch (ctrlBad `orE` shiftBad)
         $> raiseException IllegalInstruction
-        $> do assignReg rd $ x_rs1 `sllE` zextE shamt
+        $> do assignReg rd $ zextE (x_rs1' `sllE` zextE shamt)
               incrPC
 
   -- TODO: Correct this
   , Pair Sriw $ InstFormula $ getFormula $ do
-      comment "Shifts register x[rs1] right logically/arithmetically by shamt bit positions."
-      comment "Truncates the result to 32 bits."
-      comment "The vacated bits are filled with zeros, and the sign-extended result is written to x[rd]."
+      comment "Shifts lower 32 bits of register x[rs1] right logically/arithmetically by shamt bit positions."
+      comment "The vacated bits are filled with zeros, and the sign-extended 32-bit result is written to x[rd]."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
       let x_rs1 = readReg rs1
+          x_rs1' = extractEWithRepr (knownNat @32) 0 x_rs1
 
       let shamt = extractEWithRepr (knownNat @7) 0 imm12
           ctrl  = extractEWithRepr (knownNat @5) 7 imm12
@@ -633,8 +633,8 @@ base64Semantics = Map.fromList
       let ctrlBad  = notE (lShift `orE` aShift)
           shiftBad = notE (shamt `ltuE` shiftBound)
 
-      let result_l = x_rs1 `srlE` zextE shamt
-          result_r = x_rs1 `sraE` zextE shamt
+      let result_l = zextE (x_rs1' `srlE` zextE shamt)
+          result_r = zextE (x_rs1' `sraE` zextE shamt)
 
       branch (ctrlBad `orE` shiftBad)
         $> raiseException IllegalInstruction
