@@ -1,0 +1,1662 @@
+Archive member included to satisfy reference by file (symbol)
+
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+                              ./lib/syscalls.o (__divdi3)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+                              ./lib/syscalls.o (__moddi3)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o) (__clz_tab)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o (atexit)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o (exit)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o (__libc_fini_array)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o) (_global_impure_ptr)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o (__libc_init_array)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o (memset)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+                              /tmp/cckGRKBX.o (printf)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+                              /tmp/cckGRKBX.o (puts)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o) (strlen)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o) (_vfprintf_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (__swsetup_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o) (__register_exitproc)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o) (__call_exitprocs)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (_dtoa_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (_fflush_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o) (__sinit)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o) (_free_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o) (__sfvwrite_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o) (_fwalk)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (_localeconv_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o) (__smakebuf_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o) (_malloc_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (memchr)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (memcpy)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o) (memmove)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o) (__malloc_lock)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (_Balloc)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o) (_realloc_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o) (_sbrk_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o) (__sread)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o) (strcmp)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (__sprint_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o) (_write_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o) (_calloc_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o) (_close_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o) (_fclose_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o) (_fputwc_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o) (_fstat_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o) (_isatty_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o) (_lseek_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o) (_read_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o) (errno)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o) (__swbuf_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o) (_wcrtomb_r)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o) (__wctomb)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o) (close)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o) (fstat)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o) (isatty)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o) (lseek)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o) (sbrk)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o) (_exit)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__adddf3)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__divdf3)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (__eqdf2)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__gedf2)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (__ledf2)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__muldf3)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__subdf3)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (__unorddf2)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__fixdfsi)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__floatsidf)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o) (__floatunsidf)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o) (__trunctfdf2)
+/raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+                              /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o) (__clzsi2)
+
+Allocating common symbols
+Common symbol       size              file
+
+errno               0x4               /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+
+Discarded input sections
+
+ .gnu.warning.close
+                0x0000000000000000        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .gnu.warning.fstat
+                0x0000000000000000        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .gnu.warning.isatty
+                0x0000000000000000        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .gnu.warning.lseek
+                0x0000000000000000        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD ./lib/syscalls.o
+LOAD ./lib/riscv_counters.o
+LOAD ./lib/ns16550.o
+LOAD /tmp/cckGRKBX.o
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libm.a
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a
+START GROUP
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a
+END GROUP
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+                [!provide]                        PROVIDE (__executable_start, SEGMENT_START ("text-segment", 0x10000))
+                0x0000000000010094                . = (SEGMENT_START ("text-segment", 0x10000) + SIZEOF_HEADERS)
+
+.interp
+ *(.interp)
+
+.note.gnu.build-id
+ *(.note.gnu.build-id)
+
+.hash
+ *(.hash)
+
+.gnu.hash
+ *(.gnu.hash)
+
+.dynsym
+ *(.dynsym)
+
+.dynstr
+ *(.dynstr)
+
+.gnu.version
+ *(.gnu.version)
+
+.gnu.version_d
+ *(.gnu.version_d)
+
+.gnu.version_r
+ *(.gnu.version_r)
+
+.rela.dyn       0x0000000000010094        0x0
+ *(.rela.init)
+ *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
+ .rela.text     0x0000000000010094        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ *(.rela.fini)
+ *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
+ *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*)
+ *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*)
+ *(.rela.tbss .rela.tbss.* .rela.gnu.linkonce.tb.*)
+ *(.rela.ctors)
+ *(.rela.dtors)
+ *(.rela.got)
+ *(.rela.sdata .rela.sdata.* .rela.gnu.linkonce.s.*)
+ *(.rela.sbss .rela.sbss.* .rela.gnu.linkonce.sb.*)
+ *(.rela.sdata2 .rela.sdata2.* .rela.gnu.linkonce.s2.*)
+ *(.rela.sbss2 .rela.sbss2.* .rela.gnu.linkonce.sb2.*)
+ *(.rela.bss .rela.bss.* .rela.gnu.linkonce.b.*)
+                [!provide]                        PROVIDE (__rela_iplt_start, .)
+ *(.rela.iplt)
+                [!provide]                        PROVIDE (__rela_iplt_end, .)
+
+.rela.plt
+ *(.rela.plt)
+
+.init
+ *(SORT(.init))
+
+.plt
+ *(.plt)
+
+.iplt
+ *(.iplt)
+
+.text           0x0000000000010094     0xca50
+ *(.text.unlikely .text.*_unlikely .text.unlikely.*)
+ *(.text.exit .text.exit.*)
+ *(.text.startup .text.startup.*)
+ *(.text.hot .text.hot.*)
+ *(.text .stub .text.* .gnu.linkonce.t.*)
+ .text          0x0000000000010094       0x4c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+                0x0000000000010094                _start
+                0x00000000000100dc                _init
+                0x00000000000100dc                _fini
+ .text          0x00000000000100e0      0x118 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .text          0x00000000000101f8      0x290 ./lib/syscalls.o
+                0x00000000000101f8                read
+                0x00000000000102b4                write
+                0x0000000000010320                gettimeofday
+                0x0000000000010414                sleep
+ .text          0x0000000000010488       0x9c ./lib/riscv_counters.o
+                0x0000000000010488                read_cycle
+                0x00000000000104bc                read_time
+                0x00000000000104f0                read_instret
+ .text          0x0000000000010524      0x1a4 ./lib/ns16550.o
+                0x00000000000105d4                ns16550_rxready
+                0x0000000000010608                ns16550_rxchar
+                0x0000000000010648                ns16550_txchar
+                0x0000000000010694                ns16550_flush
+ .text          0x00000000000106c8      0x27c /tmp/cckGRKBX.o
+                0x00000000000106e8                main
+ .text          0x0000000000010944      0x4c0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+                0x0000000000010944                __divdi3
+ .text          0x0000000000010e04      0x474 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+                0x0000000000010e04                __moddi3
+ .text          0x0000000000011278        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .text          0x0000000000011278       0x14 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+                0x0000000000011278                atexit
+ .text          0x000000000001128c       0x30 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+                0x000000000001128c                exit
+ .text          0x00000000000112bc       0x60 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+                0x00000000000112bc                __libc_fini_array
+ .text          0x000000000001131c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .text          0x000000000001131c       0xa0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+                0x000000000001131c                __libc_init_array
+ .text          0x00000000000113bc       0xdc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+                0x00000000000113bc                memset
+ .text          0x0000000000011498       0x94 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+                0x0000000000011498                _printf_r
+                0x00000000000114dc                printf
+ .text          0x000000000001152c       0xd4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+                0x000000000001152c                _puts_r
+                0x00000000000115f4                puts
+ .text          0x0000000000011600       0x98 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+                0x0000000000011600                strlen
+ .text          0x0000000000011698     0x1c60 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+                0x0000000000011698                _vfprintf_r
+                0x0000000000013224                vfprintf
+ .text          0x00000000000132f8      0x154 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+                0x00000000000132f8                __swsetup_r
+ .text          0x000000000001344c       0x98 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+                0x000000000001344c                __register_exitproc
+ .text          0x00000000000134e4      0x128 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+                0x00000000000134e4                __call_exitprocs
+ .text          0x000000000001360c     0x16ac /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+                0x00000000000137f4                _dtoa_r
+ .text          0x0000000000014cb8      0x310 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+                0x0000000000014cb8                __sflush_r
+                0x0000000000014f4c                _fflush_r
+                0x0000000000014fa8                fflush
+ .text          0x0000000000014fc8      0x378 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+                0x0000000000014fd0                _cleanup_r
+                0x0000000000015174                __sfmoreglue
+                0x00000000000151e0                __sfp
+                0x00000000000152f0                _cleanup
+                0x0000000000015300                __sinit
+                0x0000000000015310                __sfp_lock_acquire
+                0x0000000000015314                __sfp_lock_release
+                0x0000000000015318                __sinit_lock_acquire
+                0x000000000001531c                __sinit_lock_release
+                0x0000000000015320                __fp_lock_all
+                0x0000000000015330                __fp_unlock_all
+ .text          0x0000000000015340      0x424 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+                0x0000000000015340                _malloc_trim_r
+                0x0000000000015470                _free_r
+ .text          0x0000000000015764      0x4a4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+                0x0000000000015764                __sfvwrite_r
+ .text          0x0000000000015c08      0x170 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+                0x0000000000015c08                _fwalk
+                0x0000000000015cb8                _fwalk_reent
+ .text          0x0000000000015d78       0xc8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+                0x0000000000015d78                _setlocale_r
+                0x0000000000015df0                __locale_charset
+                0x0000000000015dfc                __locale_mb_cur_max
+                0x0000000000015e04                __locale_msgcharset
+                0x0000000000015e10                __locale_cjk_lang
+                0x0000000000015e18                _localeconv_r
+                0x0000000000015e24                setlocale
+                0x0000000000015e34                localeconv
+ .text          0x0000000000015e40      0x1d8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+                0x0000000000015e40                __swhatbuf_r
+                0x0000000000015f10                __smakebuf_r
+ .text          0x0000000000016018      0x734 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                0x0000000000016018                _malloc_r
+ .text          0x000000000001674c       0xdc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+                0x000000000001674c                memchr
+ .text          0x0000000000016828      0x11c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+                0x0000000000016828                memcpy
+ .text          0x0000000000016944      0x11c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+                0x0000000000016944                memmove
+ .text          0x0000000000016a60        0x8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+                0x0000000000016a60                __malloc_lock
+                0x0000000000016a64                __malloc_unlock
+ .text          0x0000000000016a68     0x1044 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+                0x0000000000016a68                _Balloc
+                0x0000000000016b0c                _Bfree
+                0x0000000000016b30                __multadd
+                0x0000000000016c40                __s2b
+                0x0000000000016d54                __hi0bits
+                0x0000000000016dc8                __lo0bits
+                0x0000000000016e84                __i2b
+                0x0000000000016eb8                __multiply
+                0x0000000000017098                __pow5mult
+                0x00000000000171e0                __lshift
+                0x0000000000017328                __mcmp
+                0x0000000000017380                __mdiff
+                0x0000000000017594                __ulp
+                0x0000000000017610                __b2d
+                0x0000000000017740                __d2b
+                0x0000000000017880                __ratio
+                0x000000000001792c                _mprec_log10
+                0x00000000000179c0                __copybits
+                0x0000000000017a28                __any_on
+ .text          0x0000000000017aac      0x540 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+                0x0000000000017aac                _realloc_r
+ .text          0x0000000000017fec       0x5c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+                0x0000000000017fec                _sbrk_r
+ .text          0x0000000000018048      0x164 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+                0x0000000000018048                __sread
+                0x00000000000180a4                __seofread
+                0x00000000000180ac                __swrite
+                0x0000000000018130                __sseek
+                0x00000000000181a4                __sclose
+ .text          0x00000000000181ac      0x17c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+                0x00000000000181ac                strcmp
+ .text          0x0000000000018328     0x10d4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+                0x0000000000018418                __sprint_r
+                0x0000000000018430                _vfiprintf_r
+                0x0000000000019328                vfiprintf
+ .text          0x00000000000193fc       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+                0x00000000000193fc                _write_r
+ .text          0x0000000000019464       0xac /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+                0x0000000000019464                _calloc_r
+ .text          0x0000000000019510       0x5c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+                0x0000000000019510                _close_r
+ .text          0x000000000001956c      0x10c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+                0x000000000001956c                _fclose_r
+                0x000000000001966c                fclose
+ .text          0x0000000000019678      0x1dc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+                0x0000000000019678                __fputwc
+                0x00000000000197ac                _fputwc_r
+                0x00000000000197d4                fputwc
+ .text          0x0000000000019854       0x64 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+                0x0000000000019854                _fstat_r
+ .text          0x00000000000198b8       0x5c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+                0x00000000000198b8                _isatty_r
+ .text          0x0000000000019914       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+                0x0000000000019914                _lseek_r
+ .text          0x000000000001997c       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+                0x000000000001997c                _read_r
+ .text          0x00000000000199e4      0x148 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+                0x00000000000199e4                cleanup_glue
+                0x0000000000019a24                _reclaim_reent
+ .text          0x0000000000019b2c      0x188 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+                0x0000000000019b2c                __swbuf_r
+                0x0000000000019ca4                __swbuf
+ .text          0x0000000000019cb4      0x150 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+                0x0000000000019cb4                _wcrtomb_r
+                0x0000000000019d5c                wcrtomb
+ .text          0x0000000000019e04       0x9c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+                0x0000000000019e04                __ascii_wctomb
+                0x0000000000019e34                _wctomb_r
+ .text          0x0000000000019ea0       0x10 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+                0x0000000000019ea0                close
+ .text          0x0000000000019eb0       0x10 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+                0x0000000000019eb0                fstat
+ .text          0x0000000000019ec0       0x10 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+                0x0000000000019ec0                isatty
+ .text          0x0000000000019ed0       0x10 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+                0x0000000000019ed0                lseek
+ .text          0x0000000000019ee0       0x2c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+                0x0000000000019ee0                sbrk
+ .text          0x0000000000019f0c        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+                0x0000000000019f0c                _exit
+ .text          0x0000000000019f10      0x974 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+                0x0000000000019f10                __adddf3
+ .text          0x000000000001a884      0x844 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+                0x000000000001a884                __divdf3
+ .text          0x000000000001b0c8       0x84 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+                0x000000000001b0c8                __eqdf2
+                0x000000000001b0c8                __nedf2
+ .text          0x000000000001b14c       0xfc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+                0x000000000001b14c                __gtdf2
+                0x000000000001b14c                __gedf2
+ .text          0x000000000001b248       0xfc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+                0x000000000001b248                __ltdf2
+                0x000000000001b248                __ledf2
+ .text          0x000000000001b344      0x6e0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+                0x000000000001b344                __muldf3
+ .text          0x000000000001ba24      0x998 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+                0x000000000001ba24                __subdf3
+ .text          0x000000000001c3bc       0x54 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+                0x000000000001c3bc                __unorddf2
+ .text          0x000000000001c410       0x84 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+                0x000000000001c410                __fixdfsi
+ .text          0x000000000001c494      0x104 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+                0x000000000001c494                __floatsidf
+ .text          0x000000000001c598       0xd4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+                0x000000000001c598                __floatunsidf
+ .text          0x000000000001c66c      0x408 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+                0x000000000001c66c                __trunctfdf2
+ .text          0x000000000001ca74       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+                0x000000000001ca74                __clzsi2
+ .text          0x000000000001cae4        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+ *(.gnu.warning)
+
+.fini
+ *(SORT(.fini))
+                [!provide]                        PROVIDE (__etext, .)
+                [!provide]                        PROVIDE (_etext, .)
+                [!provide]                        PROVIDE (etext, .)
+
+.rodata         0x000000000001cae8      0x704
+ *(.rodata .rodata.* .gnu.linkonce.r.*)
+ .rodata        0x000000000001cae8       0xeb /tmp/cckGRKBX.o
+ *fill*         0x000000000001cbd3        0x1 
+ .rodata        0x000000000001cbd4      0x100 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+                0x000000000001cbd4                __clz_tab
+ .rodata.str1.4
+                0x000000000001ccd4        0x2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ *fill*         0x000000000001ccd6        0x2 
+ .rodata.str1.4
+                0x000000000001ccd8        0x2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ *fill*         0x000000000001ccda        0x2 
+ .rodata        0x000000000001ccdc      0x184 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .rodata.str1.4
+                0x000000000001ce60       0x42 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ *fill*         0x000000000001cea2        0x2 
+ .rodata.str1.4
+                0x000000000001cea4       0x10 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+                                         0x12 (size before relaxing)
+ .rodata.str1.4
+                0x000000000001ceb4        0xc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+                                         0x12 (size before relaxing)
+ .rodata        0x000000000001cec0      0x128 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+                0x000000000001ced0                __mprec_tens
+                0x000000000001cf98                __mprec_tinytens
+                0x000000000001cfc0                __mprec_bigtens
+ .rodata        0x000000000001cfe8      0x184 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .rodata.str1.4
+                0x000000000001d16c       0x2f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .rodata        0x000000000001d16c       0x40 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .rodata        0x000000000001d1ac       0x40 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+
+.rodata1
+ *(.rodata1)
+
+.sdata2
+ *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
+
+.sbss2
+ *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
+
+.eh_frame_hdr
+ *(.eh_frame_hdr)
+ *(.eh_frame_entry .eh_frame_entry.*)
+
+.eh_frame       0x000000000001d1ec       0x40
+ *(.eh_frame)
+ .eh_frame      0x000000000001d1ec        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .eh_frame      0x000000000001d1ec       0x28 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .eh_frame      0x000000000001d214       0x14 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+                                         0x28 (size before relaxing)
+ .eh_frame      0x000000000001d228        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+ *(.eh_frame.*)
+
+.gcc_except_table
+ *(.gcc_except_table .gcc_except_table.*)
+
+.gnu_extab
+ *(.gnu_extab*)
+
+.exception_ranges
+ *(.exception_ranges .exception_ranges*)
+                0x000000000001e000                . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE))
+
+.eh_frame
+ *(.eh_frame)
+ *(.eh_frame.*)
+
+.gnu_extab
+ *(.gnu_extab)
+
+.gcc_except_table
+ *(.gcc_except_table .gcc_except_table.*)
+
+.exception_ranges
+ *(.exception_ranges .exception_ranges*)
+
+.tdata
+ *(.tdata .tdata.* .gnu.linkonce.td.*)
+
+.tbss
+ *(.tbss .tbss.* .gnu.linkonce.tb.*)
+ *(.tcommon)
+
+.preinit_array  0x000000000001e000        0x0
+                0x000000000001e000                PROVIDE (__preinit_array_start, .)
+ *(.preinit_array)
+                0x000000000001e000                PROVIDE (__preinit_array_end, .)
+
+.init_array     0x000000000001e000        0x8
+                0x000000000001e000                PROVIDE (__init_array_start, .)
+ *(SORT(.init_array.*) SORT(.ctors.*))
+ *(.init_array EXCLUDE_FILE(*crtend?.o *crtend.o *crtbegin?.o *crtbegin.o) .ctors)
+ .init_array    0x000000000001e000        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .init_array    0x000000000001e004        0x4 ./lib/ns16550.o
+                0x000000000001e008                PROVIDE (__init_array_end, .)
+
+.fini_array     0x000000000001e008        0x4
+                0x000000000001e008                PROVIDE (__fini_array_start, .)
+ *(SORT(.fini_array.*) SORT(.dtors.*))
+ *(.fini_array EXCLUDE_FILE(*crtend?.o *crtend.o *crtbegin?.o *crtbegin.o) .dtors)
+ .fini_array    0x000000000001e008        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+                0x000000000001e00c                PROVIDE (__fini_array_end, .)
+
+.ctors
+ *crtbegin.o(.ctors)
+ *crtbegin?.o(.ctors)
+ *(EXCLUDE_FILE(*crtend?.o *crtend.o) .ctors)
+ *(SORT(.ctors.*))
+ *(.ctors)
+
+.dtors
+ *crtbegin.o(.dtors)
+ *crtbegin?.o(.dtors)
+ *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
+ *(SORT(.dtors.*))
+ *(.dtors)
+
+.jcr            0x000000000001e00c        0x4
+ *(.jcr)
+ .jcr           0x000000000001e00c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .jcr           0x000000000001e00c        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+
+.data.rel.ro
+ *(.data.rel.ro.local* .gnu.linkonce.d.rel.ro.local.*)
+ *(.data.rel.ro .data.rel.ro.* .gnu.linkonce.d.rel.ro.*)
+
+.dynamic
+ *(.dynamic)
+                0x000000000001e010                . = DATA_SEGMENT_RELRO_END (., 0x0)
+
+.data           0x000000000001e010      0x8a8
+ *(.data .data.* .gnu.linkonce.d.*)
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .data          0x000000000001e010        0x0 ./lib/startup.o
+ .data          0x000000000001e010        0x0 ./lib/syscalls.o
+ .data          0x000000000001e010        0x0 ./lib/riscv_counters.o
+ .data          0x000000000001e010        0x0 ./lib/ns16550.o
+ .data          0x000000000001e010        0x0 /tmp/cckGRKBX.o
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .data          0x000000000001e010        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .data          0x000000000001e010      0x428 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .data          0x000000000001e438        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .data          0x000000000001e438       0x78 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .data          0x000000000001e4b0        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .data          0x000000000001e4b0      0x408 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                0x000000000001e4b0                __malloc_av_
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+ .data          0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+
+.tm_clone_table
+                0x000000000001e8b8        0x0
+ .tm_clone_table
+                0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .tm_clone_table
+                0x000000000001e8b8        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+
+.data1
+ *(.data1)
+
+.got
+ *(.got.plt)
+ *(.igot.plt)
+ *(.got)
+ *(.igot)
+
+.sdata          0x000000000001e8b8       0x74
+                0x000000000001f0b8                _gp = (. + 0x800)
+ *(.srodata.cst16)
+ *(.srodata.cst8)
+ .srodata.cst8  0x000000000001e8b8        0x8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .srodata.cst8  0x000000000001e8c0       0x48 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .srodata.cst8  0x000000000001e908       0x10 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ *(.srodata.cst4)
+ *(.srodata.cst2)
+ *(.srodata .srodata.*)
+ *(.sdata .sdata.* .gnu.linkonce.s.*)
+ .sdata         0x000000000001e908        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+                0x000000000001e908                __dso_handle
+ .sdata         0x000000000001e90c        0x4 ./lib/ns16550.o
+ .sdata         0x000000000001e910        0x4 /tmp/cckGRKBX.o
+                0x000000000001e910                base_addr
+ .sdata         0x000000000001e914        0x8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+                0x000000000001e914                _global_impure_ptr
+                0x000000000001e918                _impure_ptr
+ .sdata         0x000000000001e91c        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+                0x000000000001e91c                __mb_cur_max
+ .sdata         0x000000000001e920        0x8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                0x000000000001e920                __malloc_sbrk_base
+                0x000000000001e924                __malloc_trim_threshold
+ .sdata         0x000000000001e928        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+                0x000000000001e928                __wctomb
+                0x000000000001e92c                _edata = .
+                [!provide]                        PROVIDE (edata, .)
+                0x000000000001e92c                . = .
+                0x000000000001e92c                __bss_start = .
+
+.sbss           0x000000000001e92c       0x1c
+ *(.dynsbss)
+ *(.sbss .sbss.* .gnu.linkonce.sb.*)
+ .sbss          0x000000000001e92c        0xc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+                0x000000000001e92c                _PathLocale
+                0x000000000001e930                __mlocale_changed
+                0x000000000001e934                __nlocale_changed
+ .sbss          0x000000000001e938        0xc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                0x000000000001e938                __malloc_max_total_mem
+                0x000000000001e93c                __malloc_max_sbrked_mem
+                0x000000000001e940                __malloc_top_pad
+ .sbss          0x000000000001e944        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ *(.scommon)
+
+.bss            0x000000000001e948       0x48
+ *(.dynbss)
+ *(.bss .bss.* .gnu.linkonce.b.*)
+ .bss           0x000000000001e948        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ .bss           0x000000000001e948       0x1c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+ .bss           0x000000000001e964        0x0 ./lib/startup.o
+ .bss           0x000000000001e964        0x0 ./lib/syscalls.o
+ .bss           0x000000000001e964        0x0 ./lib/riscv_counters.o
+ .bss           0x000000000001e964        0x0 ./lib/ns16550.o
+ .bss           0x000000000001e964        0x0 /tmp/cckGRKBX.o
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .bss           0x000000000001e964        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .bss           0x000000000001e964       0x28 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                0x000000000001e964                __malloc_current_mallinfo
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+ .bss           0x000000000001e98c        0x0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+ *(COMMON)
+ COMMON         0x000000000001e98c        0x4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+                0x000000000001e98c                errno
+                0x000000000001e990                . = ALIGN ((. != 0x0)?0x4:0x1)
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+LOAD /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+
+.startup        0x0000000000000000      0x22c
+ startup.o(.text)
+ .text          0x0000000000000000      0x22c ./lib/startup.o
+                0x0000000000000200                _reset
+                0x000000000000022c                . = ALIGN (0x4)
+                0x000000000000022c                . = SEGMENT_START ("ldata-segment", .)
+                0x000000000000022c                . = ALIGN (0x4)
+                0x000000000000022c                _end = .
+                0x000000000000022c                PROVIDE (end, .)
+                0x000000000000022c                . = DATA_SEGMENT_END (.)
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment        0x0000000000000000       0x11
+ *(.comment)
+ .comment       0x0000000000000000       0x11 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtbegin.o
+                                         0x12 (size before relaxing)
+ .comment       0x0000000000000011       0x12 ./lib/syscalls.o
+ .comment       0x0000000000000011       0x12 ./lib/riscv_counters.o
+ .comment       0x0000000000000011       0x12 ./lib/ns16550.o
+ .comment       0x0000000000000011       0x12 /tmp/cckGRKBX.o
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+ .comment       0x0000000000000011       0x12 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/crtend.o
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x0000000000000000      0x910
+ *(.debug_aranges)
+ .debug_aranges
+                0x0000000000000000       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ .debug_aranges
+                0x0000000000000020       0x20 ./lib/startup.o
+ .debug_aranges
+                0x0000000000000040       0x20 ./lib/syscalls.o
+ .debug_aranges
+                0x0000000000000060       0x20 ./lib/riscv_counters.o
+ .debug_aranges
+                0x0000000000000080       0x20 ./lib/ns16550.o
+ .debug_aranges
+                0x00000000000000a0       0x20 /tmp/cckGRKBX.o
+ .debug_aranges
+                0x00000000000000c0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_aranges
+                0x00000000000000e0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_aranges
+                0x0000000000000100       0x18 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .debug_aranges
+                0x0000000000000118       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .debug_aranges
+                0x0000000000000138       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .debug_aranges
+                0x0000000000000158       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .debug_aranges
+                0x0000000000000178       0x18 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .debug_aranges
+                0x0000000000000190       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .debug_aranges
+                0x00000000000001b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+ .debug_aranges
+                0x00000000000001d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .debug_aranges
+                0x00000000000001f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_aranges
+                0x0000000000000210       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_aranges
+                0x0000000000000230       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_aranges
+                0x0000000000000250       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_aranges
+                0x0000000000000270       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .debug_aranges
+                0x0000000000000290       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_aranges
+                0x00000000000002b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .debug_aranges
+                0x00000000000002d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_aranges
+                0x00000000000002f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_aranges
+                0x0000000000000310       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .debug_aranges
+                0x0000000000000330       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_aranges
+                0x0000000000000350       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .debug_aranges
+                0x0000000000000370       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_aranges
+                0x0000000000000390       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_aranges
+                0x00000000000003b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_aranges
+                0x00000000000003d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .debug_aranges
+                0x00000000000003f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_aranges
+                0x0000000000000410       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .debug_aranges
+                0x0000000000000430       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .debug_aranges
+                0x0000000000000450       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_aranges
+                0x0000000000000470       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_aranges
+                0x0000000000000490       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .debug_aranges
+                0x00000000000004b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .debug_aranges
+                0x00000000000004d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+ .debug_aranges
+                0x00000000000004f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_aranges
+                0x0000000000000510       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .debug_aranges
+                0x0000000000000530       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_aranges
+                0x0000000000000550       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .debug_aranges
+                0x0000000000000570       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_aranges
+                0x0000000000000590       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_aranges
+                0x00000000000005b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .debug_aranges
+                0x00000000000005d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .debug_aranges
+                0x00000000000005f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .debug_aranges
+                0x0000000000000610       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .debug_aranges
+                0x0000000000000630       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .debug_aranges
+                0x0000000000000650       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_aranges
+                0x0000000000000670       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .debug_aranges
+                0x0000000000000690       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .debug_aranges
+                0x00000000000006b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .debug_aranges
+                0x00000000000006d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .debug_aranges
+                0x00000000000006f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .debug_aranges
+                0x0000000000000710       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .debug_aranges
+                0x0000000000000730       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .debug_aranges
+                0x0000000000000750       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .debug_aranges
+                0x0000000000000770       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_aranges
+                0x0000000000000790       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_aranges
+                0x00000000000007b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_aranges
+                0x00000000000007d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_aranges
+                0x00000000000007f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_aranges
+                0x0000000000000810       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_aranges
+                0x0000000000000830       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_aranges
+                0x0000000000000850       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_aranges
+                0x0000000000000870       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_aranges
+                0x0000000000000890       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_aranges
+                0x00000000000008b0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_aranges
+                0x00000000000008d0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_aranges
+                0x00000000000008f0       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_pubnames
+ *(.debug_pubnames)
+
+.debug_info     0x0000000000000000    0x28958
+ *(.debug_info .gnu.linkonce.wi.*)
+ .debug_info    0x0000000000000000      0x12e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ .debug_info    0x000000000000012e       0x83 ./lib/startup.o
+ .debug_info    0x00000000000001b1      0xa78 ./lib/syscalls.o
+ .debug_info    0x0000000000000c29      0x91b ./lib/riscv_counters.o
+ .debug_info    0x0000000000001544      0x3b6 ./lib/ns16550.o
+ .debug_info    0x00000000000018fa      0x9aa /tmp/cckGRKBX.o
+ .debug_info    0x00000000000022a4      0x86a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_info    0x0000000000002b0e      0x899 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_info    0x00000000000033a7      0x1df /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .debug_info    0x0000000000003586      0x90e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .debug_info    0x0000000000003e94      0x944 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .debug_info    0x00000000000047d8       0xf6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .debug_info    0x00000000000048ce      0x8ac /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .debug_info    0x000000000000517a      0x10c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .debug_info    0x0000000000005286      0x146 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+ .debug_info    0x00000000000053cc      0xb77 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .debug_info    0x0000000000005f43      0xc26 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_info    0x0000000000006b69      0x9a8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_info    0x0000000000007511     0x1969 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_info    0x0000000000008e7a      0xb4d /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_info    0x00000000000099c7      0x939 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .debug_info    0x000000000000a300      0x951 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_info    0x000000000000ac51     0x12f0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .debug_info    0x000000000000bf41      0xc97 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_info    0x000000000000cbd8      0xf99 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_info    0x000000000000db71      0xcb0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .debug_info    0x000000000000e821      0xde2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_info    0x000000000000f603      0xbd3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .debug_info    0x00000000000101d6      0xd3c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_info    0x0000000000010f12      0xe56 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_info    0x0000000000011d68      0xdcf /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_info    0x0000000000012b37      0x93a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .debug_info    0x0000000000013471      0xa46 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_info    0x0000000000013eb7      0x931 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .debug_info    0x00000000000147e8      0x8df /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .debug_info    0x00000000000150c7     0x174c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_info    0x0000000000016813      0xdcb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_info    0x00000000000175de      0x961 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .debug_info    0x0000000000017f3f      0xd4b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .debug_info    0x0000000000018c8a      0x146 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+ .debug_info    0x0000000000018dd0     0x17d2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_info    0x000000000001a5a2      0x97e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .debug_info    0x000000000001af20      0xb60 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_info    0x000000000001ba80      0x940 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .debug_info    0x000000000001c3c0      0xc0f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_info    0x000000000001cfcf      0xd35 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_info    0x000000000001dd04      0xb58 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .debug_info    0x000000000001e85c      0x940 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .debug_info    0x000000000001f19c      0x96c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .debug_info    0x000000000001fb08      0x977 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .debug_info    0x000000000002047f      0xa1f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .debug_info    0x0000000000020e9e      0xbd5 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_info    0x0000000000021a73      0xb4c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .debug_info    0x00000000000225bf      0xa96 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .debug_info    0x0000000000023055      0x90e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .debug_info    0x0000000000023963      0xb20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .debug_info    0x0000000000024483      0x90e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .debug_info    0x0000000000024d91      0x928 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .debug_info    0x00000000000256b9       0x8c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .debug_info    0x0000000000025745       0x54 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .debug_info    0x0000000000025799      0x592 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_info    0x0000000000025d2b      0x6fc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_info    0x0000000000026427      0x277 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_info    0x000000000002669e      0x280 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_info    0x000000000002691e      0x280 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_info    0x0000000000026b9e      0x71b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_info    0x00000000000272b9      0x596 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_info    0x000000000002784f      0x273 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_info    0x0000000000027ac2      0x207 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_info    0x0000000000027cc9      0x2aa /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_info    0x0000000000027f73      0x29e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_info    0x0000000000028211      0x4fd /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_info    0x000000000002870e      0x24a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_abbrev   0x0000000000000000     0x8930
+ *(.debug_abbrev)
+ .debug_abbrev  0x0000000000000000       0x14 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ .debug_abbrev  0x0000000000000014       0x14 ./lib/startup.o
+ .debug_abbrev  0x0000000000000028      0x222 ./lib/syscalls.o
+ .debug_abbrev  0x000000000000024a      0x1ba ./lib/riscv_counters.o
+ .debug_abbrev  0x0000000000000404      0x13c ./lib/ns16550.o
+ .debug_abbrev  0x0000000000000540      0x1f2 /tmp/cckGRKBX.o
+ .debug_abbrev  0x0000000000000732      0x1c4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_abbrev  0x00000000000008f6      0x1e1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_abbrev  0x0000000000000ad7       0xba /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .debug_abbrev  0x0000000000000b91      0x1f4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .debug_abbrev  0x0000000000000d85      0x1e5 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .debug_abbrev  0x0000000000000f6a       0xbb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .debug_abbrev  0x0000000000001025      0x187 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .debug_abbrev  0x00000000000011ac       0xb8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .debug_abbrev  0x0000000000001264       0x14 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+ .debug_abbrev  0x0000000000001278      0x247 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .debug_abbrev  0x00000000000014bf      0x277 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_abbrev  0x0000000000001736      0x207 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_abbrev  0x000000000000193d      0x3dc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_abbrev  0x0000000000001d19      0x23e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_abbrev  0x0000000000001f57      0x205 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .debug_abbrev  0x000000000000215c      0x21b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_abbrev  0x0000000000002377      0x2d0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .debug_abbrev  0x0000000000002647      0x2c6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_abbrev  0x000000000000290d      0x3a5 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_abbrev  0x0000000000002cb2      0x278 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .debug_abbrev  0x0000000000002f2a      0x25f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_abbrev  0x0000000000003189      0x208 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .debug_abbrev  0x0000000000003391      0x2c3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_abbrev  0x0000000000003654      0x2d7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_abbrev  0x000000000000392b      0x2c2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_abbrev  0x0000000000003bed      0x1df /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .debug_abbrev  0x0000000000003dcc      0x218 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_abbrev  0x0000000000003fe4      0x1d0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .debug_abbrev  0x00000000000041b4      0x1c8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .debug_abbrev  0x000000000000437c      0x3dd /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_abbrev  0x0000000000004759      0x24e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_abbrev  0x00000000000049a7      0x20a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .debug_abbrev  0x0000000000004bb1      0x26b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .debug_abbrev  0x0000000000004e1c       0x14 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+ .debug_abbrev  0x0000000000004e30      0x3c9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_abbrev  0x00000000000051f9      0x1eb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .debug_abbrev  0x00000000000053e4      0x22a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_abbrev  0x000000000000560e      0x1e6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .debug_abbrev  0x00000000000057f4      0x2c3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_abbrev  0x0000000000005ab7      0x310 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_abbrev  0x0000000000005dc7      0x1f5 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .debug_abbrev  0x0000000000005fbc      0x1e6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .debug_abbrev  0x00000000000061a2      0x1f5 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .debug_abbrev  0x0000000000006397      0x1e6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .debug_abbrev  0x000000000000657d      0x26b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .debug_abbrev  0x00000000000067e8      0x277 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_abbrev  0x0000000000006a5f      0x21b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .debug_abbrev  0x0000000000006c7a      0x231 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .debug_abbrev  0x0000000000006eab      0x1c1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .debug_abbrev  0x000000000000706c      0x1d2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .debug_abbrev  0x000000000000723e      0x1c1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .debug_abbrev  0x00000000000073ff      0x1d0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .debug_abbrev  0x00000000000075cf       0x90 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .debug_abbrev  0x000000000000765f       0x56 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .debug_abbrev  0x00000000000076b5      0x17d /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_abbrev  0x0000000000007832      0x167 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_abbrev  0x0000000000007999      0x173 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_abbrev  0x0000000000007b0c      0x184 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_abbrev  0x0000000000007c90      0x184 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_abbrev  0x0000000000007e14      0x16e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_abbrev  0x0000000000007f82      0x17d /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_abbrev  0x00000000000080ff      0x173 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_abbrev  0x0000000000008272      0x166 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_abbrev  0x00000000000083d8      0x163 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_abbrev  0x000000000000853b      0x163 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_abbrev  0x000000000000869e      0x193 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_abbrev  0x0000000000008831       0xff /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_line     0x0000000000000000     0xd724
+ *(.debug_line .debug_line.* .debug_line_end)
+ .debug_line    0x0000000000000000       0xb7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/crt0.o
+ .debug_line    0x00000000000000b7       0x44 ./lib/startup.o
+ .debug_line    0x00000000000000fb      0x24c ./lib/syscalls.o
+ .debug_line    0x0000000000000347      0x1ac ./lib/riscv_counters.o
+ .debug_line    0x00000000000004f3      0x14b ./lib/ns16550.o
+ .debug_line    0x000000000000063e      0x218 /tmp/cckGRKBX.o
+ .debug_line    0x0000000000000856      0x285 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_line    0x0000000000000adb      0x272 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_line    0x0000000000000d4d      0x1d7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+ .debug_line    0x0000000000000f24      0x2b2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .debug_line    0x00000000000011d6      0x2c4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .debug_line    0x000000000000149a      0x13b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .debug_line    0x00000000000015d5      0x238 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+ .debug_line    0x000000000000180d      0x15e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .debug_line    0x000000000000196b       0xeb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memset.o)
+ .debug_line    0x0000000000001a56      0x2eb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .debug_line    0x0000000000001d41      0x314 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_line    0x0000000000002055      0x3e7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_line    0x000000000000243c      0xb9b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_line    0x0000000000002fd7      0x33c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_line    0x0000000000003313      0x2d9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .debug_line    0x00000000000035ec      0x2f0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_line    0x00000000000038dc      0x889 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .debug_line    0x0000000000004165      0x3af /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_line    0x0000000000004514      0x3e7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_line    0x00000000000048fb      0x3e7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .debug_line    0x0000000000004ce2      0x42f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_line    0x0000000000005111      0x332 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .debug_line    0x0000000000005443      0x392 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_line    0x00000000000057d5      0x37c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_line    0x0000000000005b51      0x4e0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_line    0x0000000000006031      0x2da /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .debug_line    0x000000000000630b      0x353 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_line    0x000000000000665e      0x2e1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .debug_line    0x000000000000693f      0x247 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .debug_line    0x0000000000006b86      0x810 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_line    0x0000000000007396      0x3d7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_line    0x000000000000776d      0x2be /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .debug_line    0x0000000000007a2b      0x32c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .debug_line    0x0000000000007d57       0xec /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strcmp.o)
+ .debug_line    0x0000000000007e43      0x915 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_line    0x0000000000008758      0x2bf /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .debug_line    0x0000000000008a17      0x2a0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_line    0x0000000000008cb7      0x2bf /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .debug_line    0x0000000000008f76      0x300 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_line    0x0000000000009276      0x353 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_line    0x00000000000095c9      0x2ed /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .debug_line    0x00000000000098b6      0x2c0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .debug_line    0x0000000000009b76      0x2bf /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .debug_line    0x0000000000009e35      0x2be /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .debug_line    0x000000000000a0f3      0x2e3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .debug_line    0x000000000000a3d6      0x358 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_line    0x000000000000a72e      0x2ee /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .debug_line    0x000000000000aa1c      0x2e4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .debug_line    0x000000000000ad00      0x253 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .debug_line    0x000000000000af53      0x2d2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .debug_line    0x000000000000b225      0x254 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .debug_line    0x000000000000b479      0x253 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .debug_line    0x000000000000b6cc       0xb0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .debug_line    0x000000000000b77c       0xae /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .debug_line    0x000000000000b82a      0x4a6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_line    0x000000000000bcd0      0x392 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_line    0x000000000000c062      0x191 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_line    0x000000000000c1f3      0x1bd /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_line    0x000000000000c3b0      0x1be /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_line    0x000000000000c56e      0x2cb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_line    0x000000000000c839      0x4b9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_line    0x000000000000ccf2      0x17f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_line    0x000000000000ce71      0x185 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_line    0x000000000000cff6      0x178 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_line    0x000000000000d16e      0x16d /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_line    0x000000000000d2db      0x244 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_line    0x000000000000d51f      0x205 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_frame    0x0000000000000000     0x2588
+ *(.debug_frame)
+ .debug_frame   0x0000000000000000      0x108 ./lib/syscalls.o
+ .debug_frame   0x0000000000000108       0xac ./lib/riscv_counters.o
+ .debug_frame   0x00000000000001b4      0x114 ./lib/ns16550.o
+ .debug_frame   0x00000000000002c8       0x80 /tmp/cckGRKBX.o
+ .debug_frame   0x0000000000000348       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_frame   0x0000000000000368       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_frame   0x0000000000000388       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .debug_frame   0x00000000000003a8       0x30 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .debug_frame   0x00000000000003d8       0x50 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .debug_frame   0x0000000000000428       0x58 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .debug_frame   0x0000000000000480       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .debug_frame   0x00000000000004e8       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_frame   0x0000000000000550       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_frame   0x0000000000000570      0x108 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_frame   0x0000000000000678       0x54 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_frame   0x00000000000006cc       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .debug_frame   0x00000000000006ec       0x94 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_frame   0x0000000000000780      0x10c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .debug_frame   0x000000000000088c       0xf4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_frame   0x0000000000000980      0x1d8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_frame   0x0000000000000b58      0x114 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .debug_frame   0x0000000000000c6c       0xd8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_frame   0x0000000000000d44       0xf0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .debug_frame   0x0000000000000e34       0xc4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_frame   0x0000000000000ef8      0x118 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_frame   0x0000000000001010       0x94 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_frame   0x00000000000010a4       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .debug_frame   0x00000000000010c4       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_frame   0x00000000000010e4       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .debug_frame   0x0000000000001104       0x30 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+ .debug_frame   0x0000000000001134      0x520 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_frame   0x0000000000001654       0xbc /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_frame   0x0000000000001710       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .debug_frame   0x0000000000001780      0x124 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .debug_frame   0x00000000000018a4      0x190 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_frame   0x0000000000001a34       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .debug_frame   0x0000000000001aa4       0x64 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_frame   0x0000000000001b08       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .debug_frame   0x0000000000001b78       0x90 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_frame   0x0000000000001c08       0xe4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_frame   0x0000000000001cec       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .debug_frame   0x0000000000001d5c       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .debug_frame   0x0000000000001dcc       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .debug_frame   0x0000000000001e3c       0x70 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .debug_frame   0x0000000000001eac       0xd4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .debug_frame   0x0000000000001f80       0x74 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_frame   0x0000000000001ff4       0xc8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .debug_frame   0x00000000000020bc       0x78 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .debug_frame   0x0000000000002134       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .debug_frame   0x0000000000002154       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .debug_frame   0x0000000000002174       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .debug_frame   0x0000000000002194       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .debug_frame   0x00000000000021b4       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .debug_frame   0x00000000000021d4       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+ .debug_frame   0x00000000000021f4       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_frame   0x000000000000225c       0x9c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_frame   0x00000000000022f8       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_frame   0x0000000000002318       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_frame   0x0000000000002338       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_frame   0x0000000000002358       0x90 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_frame   0x00000000000023e8       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_frame   0x0000000000002450       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_frame   0x0000000000002470       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_frame   0x0000000000002490       0x54 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_frame   0x00000000000024e4       0x4c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_frame   0x0000000000002530       0x38 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_frame   0x0000000000002568       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_str      0x0000000000000000     0x3e82
+ *(.debug_str)
+ .debug_str     0x0000000000000000      0x4e5 ./lib/syscalls.o
+                                        0x5b0 (size before relaxing)
+ .debug_str     0x00000000000004e5       0x42 ./lib/riscv_counters.o
+                                        0x545 (size before relaxing)
+ .debug_str     0x0000000000000527      0x24b ./lib/ns16550.o
+                                        0x357 (size before relaxing)
+ .debug_str     0x0000000000000772       0xa2 /tmp/cckGRKBX.o
+                                        0x574 (size before relaxing)
+ .debug_str     0x0000000000000814      0x348 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+                                        0x3e6 (size before relaxing)
+ .debug_str     0x0000000000000b5c        0x9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+                                        0x3e6 (size before relaxing)
+ .debug_str     0x0000000000000b65       0x78 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clz.o)
+                                        0x32e (size before relaxing)
+ .debug_str     0x0000000000000bdd      0x10b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+                                        0x58e (size before relaxing)
+ .debug_str     0x0000000000000ce8       0xc1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+                                        0x58f (size before relaxing)
+ .debug_str     0x0000000000000da9       0xb9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+                                        0x1a0 (size before relaxing)
+ .debug_str     0x0000000000000e62       0x8c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-impure.o)
+                                        0x544 (size before relaxing)
+ .debug_str     0x0000000000000eee       0xdd /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+                                        0x1ca (size before relaxing)
+ .debug_str     0x0000000000000fcb      0x1b1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+                                        0x6b9 (size before relaxing)
+ .debug_str     0x000000000000117c       0xf3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+                                        0x6f9 (size before relaxing)
+ .debug_str     0x000000000000126f       0xac /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+                                        0x582 (size before relaxing)
+ .debug_str     0x000000000000131b      0x2be /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+                                        0x9ab (size before relaxing)
+ .debug_str     0x00000000000015d9       0x95 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+                                        0x6c8 (size before relaxing)
+ .debug_str     0x000000000000166e       0x91 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+                                        0x5a1 (size before relaxing)
+ .debug_str     0x00000000000016ff       0x96 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+                                        0x581 (size before relaxing)
+ .debug_str     0x0000000000001795      0x1be /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+                                        0x737 (size before relaxing)
+ .debug_str     0x0000000000001953       0xb0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+                                        0x6f6 (size before relaxing)
+ .debug_str     0x0000000000001a03      0x174 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+                                        0x7d2 (size before relaxing)
+ .debug_str     0x0000000000001b77      0x1ee /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+                                        0x724 (size before relaxing)
+ .debug_str     0x0000000000001d65       0xb2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+                                        0x747 (size before relaxing)
+ .debug_str     0x0000000000001e17       0x8e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+                                        0x6ba (size before relaxing)
+ .debug_str     0x0000000000001ea5      0x255 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+                                        0x819 (size before relaxing)
+ .debug_str     0x00000000000020fa      0x1c2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+                                        0x838 (size before relaxing)
+ .debug_str     0x00000000000022bc       0xb6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+                                        0x7ab (size before relaxing)
+ .debug_str     0x0000000000002372       0x8f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+                                        0x561 (size before relaxing)
+ .debug_str     0x0000000000002401       0x93 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+                                        0x56f (size before relaxing)
+ .debug_str     0x0000000000002494       0xa3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+                                        0x57a (size before relaxing)
+ .debug_str     0x0000000000002537       0x95 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mlock.o)
+                                        0x56b (size before relaxing)
+ .debug_str     0x00000000000025cc       0xda /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+                                        0x6e0 (size before relaxing)
+ .debug_str     0x00000000000026a6       0x4e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+                                        0x762 (size before relaxing)
+ .debug_str     0x00000000000026f4       0x93 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+                                        0x586 (size before relaxing)
+ .debug_str     0x0000000000002787       0xd6 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+                                        0x705 (size before relaxing)
+ .debug_str     0x000000000000285d       0x21 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+                                        0x905 (size before relaxing)
+ .debug_str     0x000000000000287e       0x80 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+                                        0x581 (size before relaxing)
+ .debug_str     0x00000000000028fe        0xf /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+                                        0x6cf (size before relaxing)
+ .debug_str     0x000000000000290d       0x80 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+                                        0x57a (size before relaxing)
+ .debug_str     0x000000000000298d       0x91 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+                                        0x6df (size before relaxing)
+ .debug_str     0x0000000000002a1e       0xa8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+                                        0x70e (size before relaxing)
+ .debug_str     0x0000000000002ac6       0x86 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+                                        0x6de (size before relaxing)
+ .debug_str     0x0000000000002b4c       0x81 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+                                        0x57d (size before relaxing)
+ .debug_str     0x0000000000002bcd       0x80 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+                                        0x581 (size before relaxing)
+ .debug_str     0x0000000000002c4d       0x7f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+                                        0x57e (size before relaxing)
+ .debug_str     0x0000000000002ccc       0xab /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+                                        0x580 (size before relaxing)
+ .debug_str     0x0000000000002d77       0x86 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+                                        0x6cd (size before relaxing)
+ .debug_str     0x0000000000002dfd       0x91 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+                                        0x5d1 (size before relaxing)
+ .debug_str     0x0000000000002e8e       0xa3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+                                        0x5e6 (size before relaxing)
+ .debug_str     0x0000000000002f31       0xdb /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+                                        0x571 (size before relaxing)
+ .debug_str     0x000000000000300c       0x9a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+                                        0x6d5 (size before relaxing)
+ .debug_str     0x00000000000030a6       0x9c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+                                        0x578 (size before relaxing)
+ .debug_str     0x0000000000003142       0x9a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+                                        0x575 (size before relaxing)
+ .debug_str     0x00000000000031dc       0x8c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+                                         0xde (size before relaxing)
+ .debug_str     0x0000000000003268       0x7f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(_exit.o)
+                                         0xbf (size before relaxing)
+ .debug_str     0x00000000000032e7      0x1e4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+                                        0x389 (size before relaxing)
+ .debug_str     0x00000000000034cb      0x1e8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+                                        0x44b (size before relaxing)
+ .debug_str     0x00000000000036b3       0xa3 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+                                        0x2a3 (size before relaxing)
+ .debug_str     0x0000000000003756       0xa8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+                                        0x2c7 (size before relaxing)
+ .debug_str     0x00000000000037fe       0x84 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+                                        0x2c7 (size before relaxing)
+ .debug_str     0x0000000000003882      0x1ab /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+                                        0x4a3 (size before relaxing)
+ .debug_str     0x0000000000003a2d       0x86 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+                                        0x389 (size before relaxing)
+ .debug_str     0x0000000000003ab3       0x8a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+                                        0x2a9 (size before relaxing)
+ .debug_str     0x0000000000003b3d       0x9b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+                                        0x2a0 (size before relaxing)
+ .debug_str     0x0000000000003bd8       0xb9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+                                        0x328 (size before relaxing)
+ .debug_str     0x0000000000003c91       0x90 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+                                        0x325 (size before relaxing)
+ .debug_str     0x0000000000003d21      0x158 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+                                        0x453 (size before relaxing)
+ .debug_str     0x0000000000003e79        0x9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+                                        0x34b (size before relaxing)
+
+.debug_loc      0x0000000000000000    0x15b1d
+ *(.debug_loc)
+ .debug_loc     0x0000000000000000      0xd20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_loc     0x0000000000000d20      0xa56 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_loc     0x0000000000001776       0x2c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-atexit.o)
+ .debug_loc     0x00000000000017a2       0x1e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-exit.o)
+ .debug_loc     0x00000000000017c0       0x3e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fini.o)
+ .debug_loc     0x00000000000017fe       0x84 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-init.o)
+ .debug_loc     0x0000000000001882       0x8c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-printf.o)
+ .debug_loc     0x000000000000190e      0x12b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_loc     0x0000000000001a39      0x1a2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_loc     0x0000000000001bdb     0x2608 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_loc     0x00000000000041e3       0x8c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_loc     0x000000000000426f      0x103 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__atexit.o)
+ .debug_loc     0x0000000000004372      0x108 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_loc     0x000000000000447a     0x21f4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-dtoa.o)
+ .debug_loc     0x000000000000666e      0x346 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_loc     0x00000000000069b4      0x318 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_loc     0x0000000000006ccc      0x5a1 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-freer.o)
+ .debug_loc     0x000000000000726d      0x5b4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_loc     0x0000000000007821      0x1f5 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fwalk.o)
+ .debug_loc     0x0000000000007a16       0xf2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_loc     0x0000000000007b08      0x2e7 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_loc     0x0000000000007def      0xad2 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_loc     0x00000000000088c1      0x13b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memchr.o)
+ .debug_loc     0x00000000000089fc      0x2ac /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_loc     0x0000000000008ca8      0x2ed /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memmove.o)
+ .debug_loc     0x0000000000008f95     0x1bae /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_loc     0x000000000000ab43      0xd56 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_loc     0x000000000000b899       0x66 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-sbrkr.o)
+ .debug_loc     0x000000000000b8ff      0x362 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-stdio.o)
+ .debug_loc     0x000000000000bc61     0x1d4f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_loc     0x000000000000d9b0       0xbe /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-writer.o)
+ .debug_loc     0x000000000000da6e      0x218 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_loc     0x000000000000dc86       0x66 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-closer.o)
+ .debug_loc     0x000000000000dcec      0x17e /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_loc     0x000000000000de6a      0x331 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_loc     0x000000000000e19b       0x92 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fstatr.o)
+ .debug_loc     0x000000000000e22d       0x66 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-isattyr.o)
+ .debug_loc     0x000000000000e293       0xbe /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-lseekr.o)
+ .debug_loc     0x000000000000e351       0xbe /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-readr.o)
+ .debug_loc     0x000000000000e40f      0x12b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reent.o)
+ .debug_loc     0x000000000000e53a      0x17b /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_loc     0x000000000000e6b5      0x259 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wcrtomb.o)
+ .debug_loc     0x000000000000e90e      0x12f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wctomb_r.o)
+ .debug_loc     0x000000000000ea3d       0x21 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(close.o)
+ .debug_loc     0x000000000000ea5e       0x21 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(fstat.o)
+ .debug_loc     0x000000000000ea7f       0x21 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(isatty.o)
+ .debug_loc     0x000000000000eaa0       0x21 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(lseek.o)
+ .debug_loc     0x000000000000eac1       0x5c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libnosys.a(sbrk.o)
+ .debug_loc     0x000000000000eb1d     0x17cf /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_loc     0x00000000000102ec     0x1ef0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_loc     0x00000000000121dc       0x66 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_loc     0x0000000000012242      0x137 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_loc     0x0000000000012379      0x15a /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_loc     0x00000000000124d3      0xfef /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_loc     0x00000000000134c2     0x19c9 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_loc     0x0000000000014e8b       0x9c /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_loc     0x0000000000014f27      0x135 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_loc     0x000000000001505c      0x1f0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_loc     0x000000000001524c      0x1de /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_loc     0x000000000001542a      0x62f /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_loc     0x0000000000015a59       0xc4 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_macinfo
+ *(.debug_macinfo)
+
+.debug_weaknames
+ *(.debug_weaknames)
+
+.debug_funcnames
+ *(.debug_funcnames)
+
+.debug_typenames
+ *(.debug_typenames)
+
+.debug_varnames
+ *(.debug_varnames)
+
+.debug_pubtypes
+ *(.debug_pubtypes)
+
+.debug_ranges   0x0000000000000000     0x14e8
+ *(.debug_ranges)
+ .debug_ranges  0x0000000000000000      0x160 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_divdi3.o)
+ .debug_ranges  0x0000000000000160      0x128 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_moddi3.o)
+ .debug_ranges  0x0000000000000288       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-puts.o)
+ .debug_ranges  0x00000000000002a8       0x38 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-strlen.o)
+ .debug_ranges  0x00000000000002e0      0x150 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfprintf.o)
+ .debug_ranges  0x0000000000000430       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wsetup.o)
+ .debug_ranges  0x0000000000000450       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-__call_atexit.o)
+ .debug_ranges  0x0000000000000470       0x38 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fflush.o)
+ .debug_ranges  0x00000000000004a8       0x58 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-findfp.o)
+ .debug_ranges  0x0000000000000500       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fvwrite.o)
+ .debug_ranges  0x0000000000000520       0x18 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-locale.o)
+ .debug_ranges  0x0000000000000538       0x20 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-makebuf.o)
+ .debug_ranges  0x0000000000000558       0x30 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mallocr.o)
+ .debug_ranges  0x0000000000000588       0x28 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_ranges  0x00000000000005b0       0x98 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-mprec.o)
+ .debug_ranges  0x0000000000000648      0x128 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-reallocr.o)
+ .debug_ranges  0x0000000000000770      0x1c0 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-vfiprintf.o)
+ .debug_ranges  0x0000000000000930       0x40 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-callocr.o)
+ .debug_ranges  0x0000000000000970       0x30 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fclose.o)
+ .debug_ranges  0x00000000000009a0       0x48 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-fputwc.o)
+ .debug_ranges  0x00000000000009e8       0x18 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/../../../../riscv32-unknown-elf/lib/libc.a(lib_a-wbuf.o)
+ .debug_ranges  0x0000000000000a00      0x200 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(adddf3.o)
+ .debug_ranges  0x0000000000000c00      0x190 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(divdf3.o)
+ .debug_ranges  0x0000000000000d90       0x40 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(eqdf2.o)
+ .debug_ranges  0x0000000000000dd0       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(gedf2.o)
+ .debug_ranges  0x0000000000000e38       0x68 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(ledf2.o)
+ .debug_ranges  0x0000000000000ea0      0x228 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(muldf3.o)
+ .debug_ranges  0x00000000000010c8      0x1f8 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(subdf3.o)
+ .debug_ranges  0x00000000000012c0       0x38 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(unorddf2.o)
+ .debug_ranges  0x00000000000012f8       0x30 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(fixdfsi.o)
+ .debug_ranges  0x0000000000001328       0x50 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatsidf.o)
+ .debug_ranges  0x0000000000001378       0x48 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(floatunsidf.o)
+ .debug_ranges  0x00000000000013c0      0x110 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(trunctfdf2.o)
+ .debug_ranges  0x00000000000014d0       0x18 /raid/tools/cross-compilers/riscv-rv32im-priv1.9/lib/gcc/riscv32-unknown-elf/6.1.0/libgcc.a(_clzsi2.o)
+
+.debug_macro
+ *(.debug_macro)
+
+.debug_addr
+ *(.debug_addr)
+
+.gnu.attributes
+ *(.gnu.attributes)
+
+/DISCARD/
+ *(.note.GNU-stack)
+ *(.gnu_debuglink)
+ *(.gnu.lto_*)
+OUTPUT(accel_aes_zero/accel_aes_zero elf32-littleriscv)
