@@ -26,4 +26,6 @@ for i in range(0,100):
         first_line = out.readline()
         # print first_line
 
-        if (first_line != 'MInstRet = 35469\n') break
+        if (first_line != 'MInstRet = 35460\n'):
+            print "found aberration"
+            break
