@@ -22,7 +22,7 @@
 //   => 1/2/3: key expansion/encryption/decryption still running
 
 
-// #include <stdio.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -71,7 +71,7 @@ int main (int argc, char *argv[])
 
     // Set the key
     addr = (uint32_t) (& (key [0]));
-    //    printf ("key addr: 0x%08x\n", addr);
+    printf ("key addr: 0x%08x\n", addr);
     aes_ip[1] = addr;
     fence ();
     aes_ip[0] = 1; while (aes_ip[0] != 0);
@@ -79,10 +79,10 @@ int main (int argc, char *argv[])
 
     // Do encrypt pt -> ct_out;
     addr = (uint32_t) (& (pt [0]));
-    //    printf ("pt addr: 0x%08x\n", addr);
+    printf ("pt addr: 0x%08x\n", addr);
     aes_ip[2] = addr;
     addr = (uint32_t) (& (ct_out [0]));
-    //    printf ("ct_out addr: 0x%08x\n", addr);
+    printf ("ct_out addr: 0x%08x\n", addr);
     aes_ip[3] = addr;
     aes_ip[4] = 1;
     fence ();
@@ -95,19 +95,20 @@ int main (int argc, char *argv[])
     ok = true;
     for (j = 0; j < 16; j++) {
 	if (ct_out [j] != ct_expected [j]) {
-          //	    printf ("Encryption: error. Byte [%0d] is 0x%02x, expected 0x%02x\n", j, ct_out[j], ct_expected [j]);
+          printf ("Encryption: error. Byte [%0d] is 0x%02x, expected 0x%02x\n", j, ct_out[j], ct_expected [j]);
 	    ok = false;
 	}
     }
-    if (ok) {}
-      //	printf ("Encryption: ok\n");
+    if (ok) {
+      printf ("Encryption: ok\n");
+    }
 
     // Do decrypt ct_expected -> pt_out
     addr = (uint32_t) (& (ct_expected [0]));
-    //    printf ("ct_expected addr: 0x%08x\n", addr);
+    printf ("ct_expected addr: 0x%08x\n", addr);
     aes_ip[2] = addr;
     addr = (uint32_t) (& (pt_out [0]));
-    //    printf ("pt_out addr: 0x%08x\n", addr);
+    printf ("pt_out addr: 0x%08x\n", addr);
     aes_ip[3] = addr;
     aes_ip[4] = 1;
     fence ();
@@ -120,12 +121,13 @@ int main (int argc, char *argv[])
     ok = true;
     for (j = 0; j < 16; j++) {
 	if (pt_out [j] != pt [j]) {
-          //	    printf ("Decryption: error. Byte [%0d] is 0x%02x, expected 0x%02x\n", j, pt_out[j], pt [j]);
-	    ok = false;
+          printf ("Decryption: error. Byte [%0d] is 0x%02x, expected 0x%02x\n", j, pt_out[j], pt [j]);
+          ok = false;
 	}
     }
-    if (ok) {}
-      //	printf ("Decryption: ok\n");
+    if (ok) {
+      printf ("Decryption: ok\n");
+    }
 
     return 0;
 }
