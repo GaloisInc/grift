@@ -33,6 +33,8 @@ import RISCV.Extensions
 import RISCV.InstructionSet
 import RISCV.Types
 
+import Debug.Trace (trace)
+
 type OpBitsLayout fmt = List (BitLayout 32) (OpBitsTypes fmt)
 type OperandsLayout fmt = List (BitLayout 32) (OperandTypes fmt)
 

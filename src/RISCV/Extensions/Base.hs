@@ -37,6 +37,8 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
+import Debug.Trace (traceM)
+
 -- | RV32I/E base instruction set.
 base32 :: (KnownArch arch) => InstructionSet arch exts
 base32 = instructionSet baseEncode baseSemantics
@@ -351,6 +353,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr x_rs1
         assignReg rd t
+        incrPC
   , Pair Csrrs $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and x[rs1] to the csr, then write t to x[rd]."
@@ -363,6 +366,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr (x_rs1 `orE` t)
         assignReg rd t
+        incrPC
   , Pair Csrrc $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of x[rs1] to the csr."
@@ -376,6 +380,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
         assignCSR csr ((notE x_rs1) `andE` t)
         assignReg rd t
+        incrPC
   , Pair Csrrwi $ InstFormula $ getFormula $ do
       comment "Copies the control and status register csr to x[rd]."
       comment "Then, writes the five-bit zero-extended immediate zimm to the csr."
@@ -386,6 +391,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b1) csr $ do
         assignReg rd t
         assignCSR csr (zextE zimm)
+        incrPC
   , Pair Csrrsi $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and the five-bit zero-extended immediate zimm to the csr."
@@ -397,6 +403,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b1) csr $ do
         assignCSR csr (zextE zimm `orE` t)
         assignReg rd t
+        incrPC
   , Pair Csrrci $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of the five-bit zero-extended zimm to the csr."
@@ -408,6 +415,7 @@ baseSemantics = Map.fromList
       checkCSR (litBV 0b1) csr $ do
         assignCSR csr (notE (zextE zimm) `andE` t)
         assignReg rd t
+        incrPC
 
   -- S type
   , Pair Sb $ InstFormula $ getFormula $ do

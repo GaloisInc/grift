@@ -93,7 +93,7 @@ mkLogMachine maxAddr entryPoint sp byteStrings = do
   registers <- newArray (1, 31) 0
   memory    <- newArray (0, maxAddr) 0
   csrs      <- newIORef $ Map.fromList [ ]
-  priv      <- newIORef 0b00
+  priv      <- newIORef 0b11 -- M mode by default.
   testMap   <- newIORef Map.empty -- Map.fromList (zip opcodes (repeat []))
 
   -- set up stack pointer

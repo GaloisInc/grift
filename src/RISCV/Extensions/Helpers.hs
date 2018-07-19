@@ -113,9 +113,9 @@ checkCSR :: KnownArch arch
          -> FormulaBuilder (InstExpr fmt arch) arch ()
 checkCSR write csr rst = do
   let priv = readPriv
-  let csrPriv = extractEWithRepr (knownNat @2) 10 csr
-  let csrRW   = extractEWithRepr (knownNat @2) 8 csr
-  let csrOK = (csrPriv `ltuE` priv) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
+  let csrRW = extractEWithRepr (knownNat @2) 10 csr
+  let csrPriv = extractEWithRepr (knownNat @2) 8 csr
+  let csrOK = (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
 
   branch (notE csrOK)
     $> raiseException IllegalInstruction

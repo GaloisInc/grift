@@ -13,9 +13,7 @@ data collection and analysis during simulation.
 ## Running
 
 This library comes with a simulation environment, riscv-sim. It is built along
-with the rest of the library via `stack build`. We use minimal custom startup
-code when compiling with GCC; see the examples and build scripts in test/ for
-the commands used to build the various executables.
+with the rest of the library via `stack build`.
 
 The simulator is invoked thusly:
 
