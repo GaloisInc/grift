@@ -134,6 +134,14 @@ raiseException :: (BVExpr (expr arch), RVStateExpr expr, KnownArch arch)
                => Exception
                -> FormulaBuilder (expr arch) arch ()
 raiseException e = do
+  -- Exception handling TODO:
+  -- * For interrupts, PC should be incremented.
+  -- * mtval should be an argument to this function based on the exception
+  -- * MIE and MPIE need to be set appropriately, but we are not worrying about this
+  --   for now
+  -- * MPP (don't need this until we have other privilege modes)
+  -- * We are assuming we do not have supervisor mode
+
   let pc      = readPC
   let priv    = readPriv
   let mtVec   = readCSR (litBV $ encodeCSR MTVec)

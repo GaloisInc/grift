@@ -42,7 +42,7 @@ import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 import           RISCV.Simulation.MapMachine
 
-type SimExts = (Exts '(MYes, AYes, FDNo))
+type SimExts = (Exts '(PrivM, MYes, AYes, FDNo))
 
 main :: IO ()
 main = do

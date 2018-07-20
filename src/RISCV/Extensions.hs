@@ -33,21 +33,22 @@ import RISCV.Types
 knownISet :: forall arch exts
              .  (KnownArch arch, KnownExtensions exts)
           => InstructionSet arch exts
-knownISet = baseset <> mset <> aset <> fset
+knownISet = baseset <> privset <> mset <> aset <> fset
   where  archRepr = knownRepr :: BaseArchRepr arch
          ecRepr = knownRepr :: ExtensionsRepr exts
          baseset = case archRepr of
            RV32Repr -> base32
            RV64Repr -> base64
            RV128Repr -> error "RV128 not yet supported"
+         privset = mempty -- TODO
          mset = case (archRepr, ecRepr) of
-           (RV32Repr, ExtensionsRepr MYesRepr _ _) -> m32
-           (RV64Repr, ExtensionsRepr MYesRepr _ _) -> m64
+           (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> m32
+           (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> m64
            _ -> mempty
          aset = case (archRepr, ecRepr) of
-           (RV32Repr, ExtensionsRepr _ AYesRepr _) -> a32
-           (RV64Repr, ExtensionsRepr _ AYesRepr _) -> a64
+           (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> a32
+           (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> a64
            _ -> mempty
          fset = case ecRepr of
-           ExtensionsRepr _ _ FDNoRepr -> mempty
+           ExtensionsRepr _ _ _ FDNoRepr -> mempty
            _ -> error "Floating point not yet supported"

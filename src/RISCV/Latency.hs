@@ -43,15 +43,15 @@ knownLatencyMap = base `Map.union` m `Map.union` a `Map.union` f
           RV64Repr -> baseLatency `Map.union` base64Latency
           RV128Repr -> error "RV128 not yet supported"
         m = case (archRepr, ecRepr) of
-          (RV32Repr, ExtensionsRepr MYesRepr _ _) -> mLatency
-          (RV64Repr, ExtensionsRepr MYesRepr _ _) -> mLatency `Map.union` m64Latency
+          (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> mLatency
+          (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> mLatency `Map.union` m64Latency
           _ -> Map.empty
         a = case (archRepr, ecRepr) of
-          (RV32Repr, ExtensionsRepr _ AYesRepr _) -> aLatency
-          (RV64Repr, ExtensionsRepr _ AYesRepr _) -> aLatency `Map.union` a64Latency
+          (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> aLatency
+          (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> aLatency `Map.union` a64Latency
           _ -> Map.empty
         f = case ecRepr of
-          ExtensionsRepr _ _ FDNoRepr -> Map.empty
+          ExtensionsRepr _ _ _ FDNoRepr -> Map.empty
           _ -> error "Floating point not yet supported"
 
 baseLatency :: KnownArch arch => LatencyMap arch exts

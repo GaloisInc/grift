@@ -50,15 +50,17 @@ module RISCV.Types
   , KnownArch
     -- * Extensions
   , Extensions(..), type Exts
+  , PrivConfig(..), type PrivM, PrivMU, PrivMSU
   , MConfig(..), type MYes, type MNo
   , AConfig(..), type AYes, type ANo
   , FDConfig(..), type FDYes, type FYesDNo, type FDNo
   , ExtensionsRepr(..)
+  , PrivConfigRepr(..)
   , MConfigRepr(..)
   , AConfigRepr(..)
   , FDConfigRepr(..)
   , KnownExtensions
-  , Extension(..), type MExt, type AExt, type FExt, type DExt
+  , Extension(..), type AExt, type DExt, type FExt, type MExt, type SExt, type UExt
   , ExtensionsContains, type (<<)
   -- * Instructions
   , Format(..), type R, type I, type S, type B, type U, type J, type A, type X
@@ -128,9 +130,16 @@ instance KnownRepr BaseArchRepr RV128 where knownRepr = RV128Repr
 
 -- | This data structure describes the RISC-V extensions that are enabled in a
 -- particular type context.
-data Extensions = Exts (MConfig, AConfig, FDConfig)
+data Extensions = Exts (PrivConfig, MConfig, AConfig, FDConfig)
 
 type Exts = 'Exts
+
+-- | The implemented privilege modes are either M, MU, or MSU.
+data PrivConfig = PrivM | PrivMU | PrivMSU
+
+type PrivM = 'PrivM
+type PrivMU = 'PrivMU
+type PrivMSU = 'PrivMSU
 
 -- | The M extension is either enabled or disabled.
 data MConfig = MYes | MNo
@@ -138,7 +147,7 @@ data MConfig = MYes | MNo
 type MYes = 'MYes
 type MNo = 'MNo
 
--- | The A extension is either enabled or disabled.a
+-- | The A extension is either enabled or disabled.
 data AConfig = AYes | ANo
 type AYes = 'AYes
 type ANo = 'ANo
@@ -153,13 +162,28 @@ type FDNo = 'FDNo
 
 -- | A runtime representative for 'Extensions' for dependent typing.
 data ExtensionsRepr :: Extensions -> * where
-  ExtensionsRepr :: MConfigRepr m -> AConfigRepr a -> FDConfigRepr fd -> ExtensionsRepr (Exts '(m, a, fd))
+  ExtensionsRepr :: PrivConfigRepr priv
+                 -> MConfigRepr m
+                 -> AConfigRepr a
+                 -> FDConfigRepr fd
+                 -> ExtensionsRepr (Exts '(priv, m, a, fd))
 
-instance ( KnownRepr MConfigRepr m
+instance ( KnownRepr PrivConfigRepr priv
+         , KnownRepr MConfigRepr m
          , KnownRepr AConfigRepr a
          , KnownRepr FDConfigRepr fd
-         ) => KnownRepr ExtensionsRepr (Exts '(m, a, fd)) where
-  knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr
+         ) => KnownRepr ExtensionsRepr (Exts '(priv, m, a, fd)) where
+  knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr knownRepr
+
+-- | A runtime representative for 'PrivConfig' for dependent typing.
+data PrivConfigRepr :: PrivConfig -> * where
+  PrivMRepr   :: PrivConfigRepr PrivM
+  PrivMURepr  :: PrivConfigRepr PrivMU
+  PrivMSURepr :: PrivConfigRepr PrivMSU
+
+instance KnownRepr PrivConfigRepr PrivM   where knownRepr = PrivMRepr
+instance KnownRepr PrivConfigRepr PrivMU  where knownRepr = PrivMURepr
+instance KnownRepr PrivConfigRepr PrivMSU where knownRepr = PrivMSURepr
 
 -- | A runtime representative for 'MConfig' for dependent typing.
 data MConfigRepr :: MConfig -> * where
@@ -191,21 +215,26 @@ instance KnownRepr FDConfigRepr FDNo    where knownRepr = FDNoRepr
 type KnownExtensions exts = KnownRepr ExtensionsRepr exts
 
 -- | Type-level representation of a RISC-V extension.
-data Extension = MExt | AExt | FExt | DExt
+data Extension = AExt | DExt | FExt | MExt | SExt | UExt
 
-type MExt = 'MExt
 type AExt = 'MExt
-type FExt = 'FExt
 type DExt = 'DExt
+type FExt = 'FExt
+type MExt = 'MExt
+type SExt = 'SExt
+type UExt = 'UExt
 
 -- | Type operator that determines whether the 'Extensions' contains a particular
 -- 'Extension'.
 type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool where
-  ExtensionsContains (Exts '( MYes, _, _))       MExt = 'True
-  ExtensionsContains (Exts '(    _, AYes, _))    AExt = 'True
-  ExtensionsContains (Exts '(    _, _, FDYes))   FExt = 'True
-  ExtensionsContains (Exts '(    _, _, FYesDNo)) FExt = 'True
-  ExtensionsContains (Exts '(    _, _, FDYes))   DExt = 'True
+  ExtensionsContains (Exts '(_, MYes, _, _))       MExt = 'True
+  ExtensionsContains (Exts '(_,    _, AYes, _))    AExt = 'True
+  ExtensionsContains (Exts '(_,    _, _, FDYes))   FExt = 'True
+  ExtensionsContains (Exts '(_,    _, _, FYesDNo)) FExt = 'True
+  ExtensionsContains (Exts '(_,    _, _, FDYes))   DExt = 'True
+  ExtensionsContains (Exts '(PrivMU,  _, _, _))    UExt = 'True
+  ExtensionsContains (Exts '(PrivMSU, _, _, _))    UExt = 'True
+  ExtensionsContains (Exts '(PrivMSU, _, _, _))    SExt = 'True
   ExtensionsContains _ _ = 'False
 
 -- | 'ExtensionsContains' in constraint form.
