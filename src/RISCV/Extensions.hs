@@ -26,6 +26,7 @@ import RISCV.InstructionSet
 import RISCV.Extensions.Base
 import RISCV.Extensions.A
 import RISCV.Extensions.M
+import RISCV.Extensions.Priv
 import RISCV.Types
 
 -- | Infer the current instruction set from a context in which the 'BaseArch' and
@@ -40,7 +41,7 @@ knownISet = baseset <> privset <> mset <> aset <> fset
            RV32Repr -> base32
            RV64Repr -> base64
            RV128Repr -> error "RV128 not yet supported"
-         privset = mempty -- TODO
+         privset = privm -- TODO
          mset = case (archRepr, ecRepr) of
            (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> m32
            (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> m64

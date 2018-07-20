@@ -452,6 +452,10 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Sriw   :: 64 <= ArchWidth arch => Opcode arch exts I
   Sd     :: 64 <= ArchWidth arch => Opcode arch exts S
 
+  -- M privileged instructions
+  Mret :: Opcode arch exts P
+  Wfi  :: Opcode arch exts P
+
   -- RV32M
   Mul    :: MExt << exts => Opcode arch exts R
   Mulh   :: MExt << exts => Opcode arch exts R

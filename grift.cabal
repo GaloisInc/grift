@@ -20,6 +20,7 @@ library
                      , RISCV.Extensions.Helpers
                      , RISCV.Extensions.A
                      , RISCV.Extensions.M
+                     , RISCV.Extensions.Priv
                      , RISCV.InstructionSet
                      , RISCV.Latency
                      , RISCV.Semantics
@@ -53,6 +54,7 @@ executable riscv-sim
                      , RISCV.Extensions.Helpers
                      , RISCV.Extensions.A
                      , RISCV.Extensions.M
+                     , RISCV.Extensions.Priv
                      , RISCV.InstructionSet
                      , RISCV.Latency
                      , RISCV.Semantics
