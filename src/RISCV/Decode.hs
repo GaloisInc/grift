@@ -47,6 +47,7 @@ opBitsLayouts repr = case repr of
   BRepr -> opcode :< funct3 :< Nil
   URepr -> opcode :< Nil
   JRepr -> opcode :< Nil
+  PRepr -> funct32 :< Nil
   ARepr -> opcode :< funct3 :< funct5 :< Nil
   XRepr -> Nil
   where funct3 :: BitLayout 32 3
@@ -55,6 +56,8 @@ opBitsLayouts repr = case repr of
         funct7 = singleChunk 25
         funct5 :: BitLayout 32 5
         funct5 = singleChunk 27
+        funct32 :: BitLayout 32 32
+        funct32 = singleChunk 0
 
 -- | Given a format, get the 'BitLayout's for the 'Operands' of that format.
 operandsLayouts :: FormatRepr fmt -> OperandsLayout fmt
@@ -65,6 +68,7 @@ operandsLayouts repr = case repr of
   BRepr -> rs1Layout :< rs2Layout :< imm12BLayout :< Nil
   URepr -> rdLayout  :< imm20ULayout :< Nil
   JRepr -> rdLayout  :< imm20JLayout :< Nil
+  PRepr -> Nil
   ARepr -> rdLayout  :< rs1Layout :< rs2Layout :< rlLayout :< aqLayout :< Nil
   XRepr -> illegalLayout :< Nil
 
@@ -99,7 +103,6 @@ getFormat bv = case bv ^. layoutLens opcode of
   0b0000011 -> Some IRepr
   0b0010011 -> Some IRepr
   0b0001111 -> Some IRepr
-  0b1110011 -> Some IRepr
   0b0011011 -> Some IRepr
 
   0b0100011 -> Some SRepr
@@ -110,6 +113,8 @@ getFormat bv = case bv ^. layoutLens opcode of
   0b0010111 -> Some URepr
 
   0b1101111 -> Some JRepr
+
+  0b1110011 -> Some PRepr
 
   0b0101111 -> Some ARepr
 

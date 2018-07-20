@@ -103,7 +103,6 @@ import Control.Monad.State
 import Data.Foldable (toList)
 import Data.Parameterized
 import Data.Parameterized.List
-import Data.Parameterized.TH.GADT
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
@@ -238,6 +237,7 @@ operandEs = case knownRepr :: FormatRepr fmt of
                    OperandExpr (OperandID index1) :< Nil)
   JRepr -> return (OperandExpr (OperandID index0) :<
                    OperandExpr (OperandID index1) :< Nil)
+  PRepr -> return Nil
   ARepr -> return (OperandExpr (OperandID index0) :<
                    OperandExpr (OperandID index1) :<
                    OperandExpr (OperandID index2) :<

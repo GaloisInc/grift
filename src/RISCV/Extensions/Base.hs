@@ -79,7 +79,6 @@ baseEncode = Map.fromList
   , Pair Sri    (OpBits IRepr (0b0010011 :< 0b101 :< Nil))
   , Pair Fence  (OpBits IRepr (0b0001111 :< 0b000 :< Nil))
   , Pair FenceI (OpBits IRepr (0b0001111 :< 0b001 :< Nil))
-  , Pair Ecb    (OpBits IRepr (0b1110011 :< 0b000 :< Nil))
   , Pair Csrrw  (OpBits IRepr (0b1110011 :< 0b001 :< Nil))
   , Pair Csrrs  (OpBits IRepr (0b1110011 :< 0b010 :< Nil))
   , Pair Csrrc  (OpBits IRepr (0b1110011 :< 0b011 :< Nil))
@@ -106,6 +105,10 @@ baseEncode = Map.fromList
 
   -- J type
   , Pair Jal (OpBits JRepr (0b1101111 :< Nil))
+
+  -- P type
+  , Pair Ecall  (OpBits PRepr (0b00000000000000000000000001110011 :< Nil))
+  , Pair Ebreak (OpBits PRepr (0b00000000000000010000000001110011 :< Nil))
 
   -- X type
   , Pair Illegal (OpBits XRepr Nil)
@@ -329,10 +332,15 @@ baseSemantics = Map.fromList
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
   -- EnvironmentBreak exception.
-  , Pair Ecb $ InstFormula $ getFormula $ do
-      comment "Makes a request of the execution environment or the debugger."
+  , Pair Ecall $ InstFormula $ getFormula $ do
+      comment "Makes a request of the execution environment."
 
       raiseException EnvironmentCall
+
+  , Pair Ecall $ InstFormula $ getFormula $ do
+      comment "Makes a request to the debugger."
+
+      raiseException EnvironmentCall -- TODO: change this
 
   -- TODO: Fence instructions.
   , Pair Fence $ InstFormula $ getFormula $ do

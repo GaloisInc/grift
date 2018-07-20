@@ -220,7 +220,7 @@ type (<<) (e :: Extension) (exts :: Extensions)
 -- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 
-data Format = R | I | S | B | U | J | A | X
+data Format = R | I | S | B | U | J | P | A | X
 
 type R = 'R
 type I = 'I
@@ -228,6 +228,7 @@ type S = 'S
 type B = 'B
 type U = 'U
 type J = 'J
+type P = 'P
 type A = 'A
 type X = 'X
 
@@ -239,6 +240,7 @@ data FormatRepr :: Format -> * where
   BRepr :: FormatRepr B
   URepr :: FormatRepr U
   JRepr :: FormatRepr J
+  PRepr :: FormatRepr P
   ARepr :: FormatRepr A
   XRepr :: FormatRepr X
 
@@ -260,6 +262,7 @@ instance KnownRepr FormatRepr S where knownRepr = SRepr
 instance KnownRepr FormatRepr B where knownRepr = BRepr
 instance KnownRepr FormatRepr U where knownRepr = URepr
 instance KnownRepr FormatRepr J where knownRepr = JRepr
+instance KnownRepr FormatRepr P where knownRepr = PRepr
 instance KnownRepr FormatRepr A where knownRepr = ARepr
 instance KnownRepr FormatRepr X where knownRepr = XRepr
 
@@ -274,6 +277,7 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes B = '[5, 5, 12]
   OperandTypes U = '[5, 20]
   OperandTypes J = '[5, 20]
+  OperandTypes P = '[]
   OperandTypes A = '[5, 5, 5, 1, 1]
   OperandTypes X = '[32]
 
@@ -306,6 +310,7 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
   OpBitsTypes B = '[7, 3]
   OpBitsTypes U = '[7]
   OpBitsTypes J = '[7]
+  OpBitsTypes P = '[32]
   OpBitsTypes A = '[7, 3, 5]
   OpBitsTypes X = '[]
 
@@ -376,8 +381,9 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Csrrwi  :: Opcode arch exts I
   Csrrsi  :: Opcode arch exts I
   Csrrci  :: Opcode arch exts I
-  -- | @ecall@ and @ebreak@ combined into a single instruction.
-  Ecb     :: Opcode arch exts I
+
+  Ecall   :: Opcode arch exts P
+  Ebreak  :: Opcode arch exts P
 
   -- S type
   Sb :: Opcode arch exts S

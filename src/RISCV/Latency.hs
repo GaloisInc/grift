@@ -86,7 +86,6 @@ baseLatency = Map.fromList
   , Pair Sri    (Flip $ litBV 1)
   , Pair Fence  (Flip $ litBV 1)
   , Pair FenceI (Flip $ litBV 1)
-  , Pair Ecb    (Flip $ litBV 1)
   , Pair Csrrw  (Flip $ litBV 1)
   , Pair Csrrs  (Flip $ litBV 1)
   , Pair Csrrc  (Flip $ litBV 1)
@@ -113,6 +112,10 @@ baseLatency = Map.fromList
 
   -- J type
   , Pair Jal (Flip $ litBV 1)
+
+  -- P type
+  , Pair Ecall  (Flip $ litBV 1)
+  , Pair Ebreak (Flip $ litBV 1)
 
   -- X type
   , Pair Illegal (Flip $ litBV 1)
