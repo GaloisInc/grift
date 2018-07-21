@@ -93,7 +93,7 @@ runElf stepsToRun logFile re = do
   forM_ (assocs registers) $ \(r, v) ->
     putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  writeFile logFile "Opcode, Coverage\n"
+  -- writeFile logFile "Opcode, Coverage\n"
 
   let iset = knownISet :: InstructionSet arch SimExts
   forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
@@ -129,7 +129,7 @@ runElfMap stepsToRun logFile re = do
   forM_ (Map.assocs registers') $ \(r, v) ->
     putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
-  writeFile logFile "Opcode, Coverage\n"
+  -- writeFile logFile "Opcode, Coverage\n"
 
   let iset = knownISet :: InstructionSet arch SimExts
   forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
