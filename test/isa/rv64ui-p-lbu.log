@@ -1,0 +1,15 @@
+Opcode, Coverage
+Lbu, 1/4
+Addi, 3/4
+Slli, 1/8
+Fence, 1/1
+Csrrw, 1/8
+Csrrs, 1/8
+Csrrwi, 1/4
+Ecall, 1/1
+Beq, 1/2
+Bne, 2/2
+Bge, 1/2
+Auipc, 1/2
+Jal, 1/2
+Mret, 1/1
