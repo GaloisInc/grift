@@ -45,7 +45,7 @@ library
   default-language:    Haskell2010
   ghc-options:         -Wall
 
-executable riscv-sim
+executable grift
   hs-source-dirs:      src
   main-is:             MainSimulator.hs
   other-modules:       RISCV.Decode
