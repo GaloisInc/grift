@@ -233,7 +233,7 @@ isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
 isHalted = do
   mcause <- getCSR (encodeCSR MCause)
   return (mcause == 2 || mcause == 3 || mcause == 5 ||
-          mcause == 7 || mcause == 8 )
+          mcause == 7 || mcause == 8 || mcause == 11)
 
 -- | Run for a given number of steps.
 runRV :: forall m arch exts

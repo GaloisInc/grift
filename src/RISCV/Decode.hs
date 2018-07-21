@@ -50,9 +50,7 @@ opBitsLayouts repr = case repr of
   PRepr -> funct32 :< Nil
   ARepr -> opcode :< funct3 :< funct5 :< Nil
   XRepr -> Nil
-  where funct3 :: BitLayout 32 3
-        funct3 = singleChunk 12
-        funct7 :: BitLayout 32 7
+  where funct7 :: BitLayout 32 7
         funct7 = singleChunk 25
         funct5 :: BitLayout 32 5
         funct5 = singleChunk 27
@@ -93,6 +91,9 @@ operandsLayouts repr = case repr of
 opcode :: BitLayout 32 7
 opcode = chunk 0 <: empty
 
+funct3 :: BitLayout 32 3
+funct3 = singleChunk 12
+        
 -- | Get the format of an instruction word.
 getFormat :: BitVector 32 -> Some FormatRepr
 getFormat bv = case bv ^. layoutLens opcode of
@@ -114,7 +115,9 @@ getFormat bv = case bv ^. layoutLens opcode of
 
   0b1101111 -> Some JRepr
 
-  0b1110011 -> Some PRepr
+  0b1110011 -> case bv ^. layoutLens funct3 of
+    0b000 -> Some PRepr
+    _ -> Some IRepr
 
   0b0101111 -> Some ARepr
 

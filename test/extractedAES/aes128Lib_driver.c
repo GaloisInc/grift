@@ -7,22 +7,22 @@
 void aes128KeySchedule_driver(void)
 {
   const SWord32 key[4] = {
-      0x50b9ca4fUL, 0xd3619c69UL, 0x2bf68859UL, 0xce897221UL
+    0x50b9ca4fUL, 0xd3619c69UL, 0x2bf68859UL, 0xce897221UL
   };
 
-  printf("Contents of input array key:\n");
+  // printf("Contents of input array key:\n");
   int key_ctr;
   for(key_ctr = 0; key_ctr < 4 ; ++key_ctr)
-    printf("  key[%d] = 0x%08"PRIx32"UL\n", key_ctr, key[key_ctr]);
+    ; // printf("  key[%d] = 0x%08"PRIx32"UL\n", key_ctr, key[key_ctr]);
 
   SWord32 encKS[44];
 
   aes128KeySchedule(key, encKS);
 
-  printf("aes128KeySchedule(key, encKS) ->\n");
+  // printf("aes128KeySchedule(key, encKS) ->\n");
   int encKS_ctr;
   for(encKS_ctr = 0; encKS_ctr < 44 ; ++encKS_ctr)
-    printf("  encKS[%d] = 0x%08"PRIx32"UL\n", encKS_ctr, encKS[encKS_ctr]);
+    ; // printf("  encKS[%d] = 0x%08"PRIx32"UL\n", encKS_ctr, encKS[encKS_ctr]);
 }
 
 void aes128BlockEncrypt_driver(void)
@@ -31,10 +31,10 @@ void aes128BlockEncrypt_driver(void)
       0xdce36f9cUL, 0xab3b5d5dUL, 0xe5c62926UL, 0x90544bbbUL
   };
 
-  printf("Contents of input array pt:\n");
+  ; // printf("Contents of input array pt:\n");
   int pt_ctr;
   for(pt_ctr = 0; pt_ctr < 4 ; ++pt_ctr)
-    printf("  pt[%d] = 0x%08"PRIx32"UL\n", pt_ctr, pt[pt_ctr]);
+    ; // printf("  pt[%d] = 0x%08"PRIx32"UL\n", pt_ctr, pt[pt_ctr]);
 
   const SWord32 xkey[44] = {
       0xe2479a36UL, 0x910f3e76UL, 0xa618be3dUL, 0x76f05bd3UL,
@@ -52,19 +52,19 @@ void aes128BlockEncrypt_driver(void)
       0x01a0327aUL, 0x7d5d4381UL, 0xeb06ff97UL, 0x1f067368UL
   };
 
-  printf("Contents of input array xkey:\n");
+  ; // printf("Contents of input array xkey:\n");
   int xkey_ctr;
   for(xkey_ctr = 0; xkey_ctr < 44 ; ++xkey_ctr)
-    printf("  xkey[%d] = 0x%08"PRIx32"UL\n", xkey_ctr, xkey[xkey_ctr]);
+    ; // printf("  xkey[%d] = 0x%08"PRIx32"UL\n", xkey_ctr, xkey[xkey_ctr]);
 
   SWord32 ct[4];
 
   aes128BlockEncrypt(pt, xkey, ct);
 
-  printf("aes128BlockEncrypt(pt, xkey, ct) ->\n");
+  ; // printf("aes128BlockEncrypt(pt, xkey, ct) ->\n");
   int ct_ctr;
   for(ct_ctr = 0; ct_ctr < 4 ; ++ct_ctr)
-    printf("  ct[%d] = 0x%08"PRIx32"UL\n", ct_ctr, ct[ct_ctr]);
+    ; // printf("  ct[%d] = 0x%08"PRIx32"UL\n", ct_ctr, ct[ct_ctr]);
 }
 
 void aes128BlockDecrypt_driver(void)
@@ -73,10 +73,10 @@ void aes128BlockDecrypt_driver(void)
       0x4c87e0c0UL, 0x5db304c1UL, 0x1b8527cfUL, 0xa66dee25UL
   };
 
-  printf("Contents of input array ct:\n");
+  ; // printf("Contents of input array ct:\n");
   int ct_ctr;
   for(ct_ctr = 0; ct_ctr < 4 ; ++ct_ctr)
-    printf("  ct[%d] = 0x%08"PRIx32"UL\n", ct_ctr, ct[ct_ctr]);
+    ; // printf("  ct[%d] = 0x%08"PRIx32"UL\n", ct_ctr, ct[ct_ctr]);
 
   const SWord32 xkey[44] = {
       0x4c939536UL, 0x16e2c3fcUL, 0x46e678a1UL, 0x6d309451UL,
@@ -92,36 +92,36 @@ void aes128BlockDecrypt_driver(void)
       0x2a3d154eUL, 0x9ec8a434UL, 0x2a431099UL, 0xe1ff43e1UL
   };
 
-  printf("Contents of input array xkey:\n");
+  ; // printf("Contents of input array xkey:\n");
   int xkey_ctr;
   for(xkey_ctr = 0; xkey_ctr < 44 ; ++xkey_ctr)
-    printf("  xkey[%d] = 0x%08"PRIx32"UL\n", xkey_ctr, xkey[xkey_ctr]);
+    ; // printf("  xkey[%d] = 0x%08"PRIx32"UL\n", xkey_ctr, xkey[xkey_ctr]);
 
   SWord32 pt[4];
 
   aes128BlockDecrypt(ct, xkey, pt);
 
-  printf("aes128BlockDecrypt(ct, xkey, pt) ->\n");
+  ; // printf("aes128BlockDecrypt(ct, xkey, pt) ->\n");
   int pt_ctr;
   for(pt_ctr = 0; pt_ctr < 4 ; ++pt_ctr)
-    printf("  pt[%d] = 0x%08"PRIx32"UL\n", pt_ctr, pt[pt_ctr]);
+    ; // printf("  pt[%d] = 0x%08"PRIx32"UL\n", pt_ctr, pt[pt_ctr]);
 }
 
 int main(void)
 {
-  printf("====================================\n");
-  printf("** Driver run for aes128KeySchedule:\n");
-  printf("====================================\n");
+  ; // printf("====================================\n");
+  ; // printf("** Driver run for aes128KeySchedule:\n");
+  ; // printf("====================================\n");
   aes128KeySchedule_driver();
 
-  printf("=====================================\n");
-  printf("** Driver run for aes128BlockEncrypt:\n");
-  printf("=====================================\n");
+  ; // printf("=====================================\n");
+  ; // printf("** Driver run for aes128BlockEncrypt:\n");
+  ; // printf("=====================================\n");
   aes128BlockEncrypt_driver();
 
-  printf("=====================================\n");
-  printf("** Driver run for aes128BlockDecrypt:\n");
-  printf("=====================================\n");
+  ; // printf("=====================================\n");
+  ; // printf("** Driver run for aes128BlockDecrypt:\n");
+  ; // printf("=====================================\n");
   aes128BlockDecrypt_driver();
 
   return 0;

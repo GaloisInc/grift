@@ -345,10 +345,12 @@ baseSemantics = Map.fromList
   -- TODO: Fence instructions.
   , Pair Fence $ InstFormula $ getFormula $ do
       comment "Fence. Currently a no-op."
-      return ()
+
+      incrPC
   , Pair FenceI $ InstFormula $ getFormula $ do
       comment "FenceI. Currently a no-op."
-      return ()
+
+      incrPC
   , Pair Csrrw $ InstFormula $ getFormula $ do
       comment "Let t be the value of control and status register csr."
       comment "Copy x[rs1] to the csr, then write t to x[rd]."
