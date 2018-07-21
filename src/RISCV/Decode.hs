@@ -93,7 +93,7 @@ opcode = chunk 0 <: empty
 
 funct3 :: BitLayout 32 3
 funct3 = singleChunk 12
-        
+
 -- | Get the format of an instruction word.
 getFormat :: BitVector 32 -> Some FormatRepr
 getFormat bv = case bv ^. layoutLens opcode of
