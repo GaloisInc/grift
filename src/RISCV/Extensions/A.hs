@@ -29,6 +29,7 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
+import RISCV.Extensions.Helpers
 import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Semantics.Exceptions
@@ -91,6 +92,7 @@ aSemantics = Map.fromList
         $> raiseException IllegalInstruction
         $> do assignReg rd (sextE mVal)
               reserve x_rs1
+              incrPC
 
   , Pair Scw $ InstFormula $ getFormula $ do
       comment "Checks that there exists a load reservation on address x[rs1]."
@@ -107,7 +109,9 @@ aSemantics = Map.fromList
       branch reserved
         $> do assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2)
               assignReg rd (litBV 0)
-        $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
+              incrPC
+        $> do assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
+              incrPC
   , Pair Amoswapw $ InstFormula $ getFormula $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
@@ -167,6 +171,8 @@ amoOp32 op = do
 
       assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)
+
+      incrPC
 
 
 a64Semantics :: forall arch exts . (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => SemanticsMap arch exts
@@ -264,3 +270,5 @@ amoOp64 op = do
 
       assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2 `op` mVal)
       assignReg rd (sextE mVal)
+
+      incrPC
