@@ -172,12 +172,10 @@ mSemantics = Map.fromList
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
 
-      let q = x_rs1 `quotsE` x_rs2
+      let q = x_rs1 `remsE` x_rs2
 
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
       incrPC
-
-      rOp $ \x y -> return (remsE x y)
 
   , Pair Remu $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
@@ -188,12 +186,10 @@ mSemantics = Map.fromList
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
 
-      let q = x_rs1 `quotuE` x_rs2
+      let q = x_rs1 `remuE` x_rs2
 
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
       incrPC
-
-      rOp $ \x y -> return (remuE x y)
 
   ]
 
@@ -203,25 +199,63 @@ m64Semantics = Map.fromList
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (mulE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `mulE` x_rs2)))
+      incrPC
   , Pair Divw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2] as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (quotsE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `quotsE` x_rs2))
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      incrPC
   , Pair Divuw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2] as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (quotuE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `quotuE` x_rs2))
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      incrPC
   , Pair Remw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (remsE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `remsE` x_rs2))
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      incrPC
   , Pair Remuw $ InstFormula $ getFormula $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
-      rOp32 $ \x y -> return (remuE x y)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `remuE` x_rs2))
+
+      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      incrPC
   ]
