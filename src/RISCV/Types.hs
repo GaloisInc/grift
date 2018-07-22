@@ -249,7 +249,7 @@ type (<<) (e :: Extension) (exts :: Extensions)
 -- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 
-data Format = R | I | S | B | U | J | P | A | X
+data Format = R | I | S | B | U | J | H | P | A | X
 
 type R = 'R
 type I = 'I
@@ -257,6 +257,7 @@ type S = 'S
 type B = 'B
 type U = 'U
 type J = 'J
+type H = 'H
 type P = 'P
 type A = 'A
 type X = 'X
@@ -269,6 +270,7 @@ data FormatRepr :: Format -> * where
   BRepr :: FormatRepr B
   URepr :: FormatRepr U
   JRepr :: FormatRepr J
+  HRepr :: FormatRepr H
   PRepr :: FormatRepr P
   ARepr :: FormatRepr A
   XRepr :: FormatRepr X
@@ -291,6 +293,7 @@ instance KnownRepr FormatRepr S where knownRepr = SRepr
 instance KnownRepr FormatRepr B where knownRepr = BRepr
 instance KnownRepr FormatRepr U where knownRepr = URepr
 instance KnownRepr FormatRepr J where knownRepr = JRepr
+instance KnownRepr FormatRepr H where knownRepr = HRepr
 instance KnownRepr FormatRepr P where knownRepr = PRepr
 instance KnownRepr FormatRepr A where knownRepr = ARepr
 instance KnownRepr FormatRepr X where knownRepr = XRepr
@@ -306,6 +309,7 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes B = '[5, 5, 12]
   OperandTypes U = '[5, 20]
   OperandTypes J = '[5, 20]
+  OperandTypes H = '[5, 5, 7]
   OperandTypes P = '[]
   OperandTypes A = '[5, 5, 5, 1, 1]
   OperandTypes X = '[32]
@@ -339,6 +343,7 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
   OpBitsTypes B = '[7, 3]
   OpBitsTypes U = '[7]
   OpBitsTypes J = '[7]
+  OpBitsTypes H = '[7, 3, 5]
   OpBitsTypes P = '[32]
   OpBitsTypes A = '[7, 3, 5]
   OpBitsTypes X = '[]
@@ -399,9 +404,6 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Xori    :: Opcode arch exts I
   Ori     :: Opcode arch exts I
   Andi    :: Opcode arch exts I
-  Slli    :: Opcode arch exts I
-  -- | @srai@ and @srli@ combined into a single instruction.
-  Sri     :: Opcode arch exts I
   Fence   :: Opcode arch exts I
   FenceI  :: Opcode arch exts I
   Csrrw   :: Opcode arch exts I
@@ -411,15 +413,17 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Csrrsi  :: Opcode arch exts I
   Csrrci  :: Opcode arch exts I
 
+  Slli    :: Opcode arch exts H
+  Srli    :: Opcode arch exts H
+  Srai    :: Opcode arch exts H
+
   Ecall   :: Opcode arch exts P
   Ebreak  :: Opcode arch exts P
 
-  -- S type
   Sb :: Opcode arch exts S
   Sh :: Opcode arch exts S
   Sw :: Opcode arch exts S
 
-  -- B type
   Beq  :: Opcode arch exts B
   Bne  :: Opcode arch exts B
   Blt  :: Opcode arch exts B
@@ -427,15 +431,11 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Bltu :: Opcode arch exts B
   Bgeu :: Opcode arch exts B
 
-  -- U type
   Lui   :: Opcode arch exts U
   Auipc :: Opcode arch exts U
 
-  -- J type
   Jal :: Opcode arch exts J
 
-
-  -- X type (illegal instruction)
   Illegal :: Opcode arch exts X
 
   -- RV64
@@ -444,12 +444,12 @@ data Opcode :: BaseArch -> Extensions -> Format -> * where
   Sllw   :: 64 <= ArchWidth arch => Opcode arch exts R
   Srlw   :: 64 <= ArchWidth arch => Opcode arch exts R
   Sraw   :: 64 <= ArchWidth arch => Opcode arch exts R
+  Slliw  :: 64 <= ArchWidth arch => Opcode arch exts R
+  Srliw  :: 64 <= ArchWidth arch => Opcode arch exts R
+  Sraiw  :: 64 <= ArchWidth arch => Opcode arch exts R
   Lwu    :: 64 <= ArchWidth arch => Opcode arch exts I
   Ld     :: 64 <= ArchWidth arch => Opcode arch exts I
   Addiw  :: 64 <= ArchWidth arch => Opcode arch exts I
-  Slliw  :: 64 <= ArchWidth arch => Opcode arch exts I
-  -- | @sraiw@ and @srliw@ combined into a single instruction.
-  Sriw   :: 64 <= ArchWidth arch => Opcode arch exts I
   Sd     :: 64 <= ArchWidth arch => Opcode arch exts S
 
   -- M privileged instructions

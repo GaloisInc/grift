@@ -75,8 +75,6 @@ baseEncode = Map.fromList
   , Pair Xori   (OpBits IRepr (0b0010011 :< 0b100 :< Nil))
   , Pair Ori    (OpBits IRepr (0b0010011 :< 0b110 :< Nil))
   , Pair Andi   (OpBits IRepr (0b0010011 :< 0b111 :< Nil))
-  , Pair Slli   (OpBits IRepr (0b0010011 :< 0b001 :< Nil))
-  , Pair Sri    (OpBits IRepr (0b0010011 :< 0b101 :< Nil))
   , Pair Fence  (OpBits IRepr (0b0001111 :< 0b000 :< Nil))
   , Pair FenceI (OpBits IRepr (0b0001111 :< 0b001 :< Nil))
   , Pair Csrrw  (OpBits IRepr (0b1110011 :< 0b001 :< Nil))
@@ -98,6 +96,11 @@ baseEncode = Map.fromList
   , Pair Bge  (OpBits BRepr (0b1100011 :< 0b101 :< Nil))
   , Pair Bltu (OpBits BRepr (0b1100011 :< 0b110 :< Nil))
   , Pair Bgeu (OpBits BRepr (0b1100011 :< 0b111 :< Nil))
+
+  -- H type
+  , Pair Slli   (OpBits HRepr (0b0010011 :< 0b001 :< 0b00000 :< Nil))
+  , Pair Srli   (OpBits HRepr (0b0010011 :< 0b101 :< 0b00000 :< Nil))
+  , Pair Srai   (OpBits HRepr (0b0010011 :< 0b101 :< 0b01000 :< Nil))
 
   -- U type
   , Pair Lui   (OpBits URepr (0b0110111 :< Nil))
@@ -280,54 +283,55 @@ baseSemantics = Map.fromList
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
-      rd :< rs1 :< imm12 :< Nil <- operandEs
+      rd :< rs1 :< shamt :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let shamt = extractEWithRepr (knownNat @7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
       archWidth <- getArchWidth
       let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
-
-      let ctrlBad  = notE (ctrl `eqE` litBV 0b00000)
-          shamtBad = notE (shamt `ltuE` shiftBound)
+      let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
 
-      branch (ctrlBad `orE` shamtBad)
+      branch shamtBad
         $> raiseException IllegalInstruction
         $> do assignReg rd $ x_rs1 `sllE` zextE shamt
               incrPC
+  , Pair Srli $ InstFormula $ getFormula $ do
+      comment "Shifts register x[rs1] left by shamt bit positions."
+      comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
-  , Pair Sri $ InstFormula $ getFormula $ do
-      comment "Shifts register x[rs1] right (arithmetic or logical) by shamt bit positions."
-      comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
-      comment "The result is written to x[rd]."
-
-      rd :< rs1 :< imm12 :< Nil <- operandEs
+      rd :< rs1 :< shamt :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let shamt = extractEWithRepr (knownNat @7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
 
-      -- The control bits determine if the shift is arithmetic or logical.
-      let lShift = ctrl `eqE` litBV 0b00000
-          aShift = ctrl `eqE` litBV 0b01000
-
-      -- Check that the shift amount is within the architecture width.
       archWidth <- getArchWidth
       let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      let shamtBad = notE (shamt `ltuE` shiftBound)
 
-      let ctrlBad  = notE (lShift `orE` aShift)
-          shamtBad = notE (shamt `ltuE` shiftBound)
+      -- Check that the control bits are all zero.
 
-      let zext_shamt = zextE shamt
-          result_l   = x_rs1 `srlE` zext_shamt
-          result_r   = x_rs1 `sraE` zext_shamt
-
-      branch (ctrlBad `orE` shamtBad)
+      branch shamtBad
         $> raiseException IllegalInstruction
-        $> do assignReg rd $ iteE lShift result_l result_r
+        $> do assignReg rd $ x_rs1 `srlE` zextE shamt
+              incrPC
+  , Pair Srai $ InstFormula $ getFormula $ do
+      comment "Shifts register x[rs1] left by shamt bit positions."
+      comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
+
+      rd :< rs1 :< shamt :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+
+      archWidth <- getArchWidth
+      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      let shamtBad = notE (shamt `ltuE` shiftBound)
+
+      -- Check that the control bits are all zero.
+
+      branch shamtBad
+        $> raiseException IllegalInstruction
+        $> do assignReg rd $ x_rs1 `sraE` zextE shamt
               incrPC
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
@@ -532,11 +536,12 @@ base64Encode = Map.fromList
   , Pair Sllw  (OpBits RRepr (0b0111011 :< 0b001 :< 0b0000000 :< Nil))
   , Pair Srlw  (OpBits RRepr (0b0111011 :< 0b101 :< 0b0000000 :< Nil))
   , Pair Sraw  (OpBits RRepr (0b0111011 :< 0b101 :< 0b0100000 :< Nil))
+  , Pair Slliw (OpBits RRepr (0b0011011 :< 0b001 :< 0b0000000 :< Nil))
+  , Pair Srliw (OpBits RRepr (0b0011011 :< 0b101 :< 0b0000000 :< Nil))
+  , Pair Sraiw (OpBits RRepr (0b0011011 :< 0b101 :< 0b0100000 :< Nil))
   , Pair Lwu   (OpBits IRepr (0b0000011 :< 0b110 :< Nil))
   , Pair Ld    (OpBits IRepr (0b0000011 :< 0b011 :< Nil))
   , Pair Addiw (OpBits IRepr (0b0011011 :< 0b000 :< Nil))
-  , Pair Slliw (OpBits IRepr (0b0011011 :< 0b001 :< Nil))
-  , Pair Sriw  (OpBits IRepr (0b0011011 :< 0b101 :< Nil))
   , Pair Sd    (OpBits SRepr (0b0100011 :< 0b011 :< Nil))
   ]
 
@@ -562,23 +567,44 @@ base64Semantics = Map.fromList
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp32 $ \e1 e2 -> return (e1 `sllE` e2)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
 
-  -- TODO: Correct this
+      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
+      let x_rs2 = readReg rs2
+      let shamt = extractEWithRepr (knownNat @5) 0 x_rs2
+
+      assignReg rd $ sextE (x_rs1' `sllE` zextE shamt)
+      incrPC
+
+
   , Pair Srlw $ InstFormula $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp32 $ \e1 e2 -> return (e1 `srlE` e2)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
 
-  -- TODO: Correct this
+      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
+      let x_rs2 = readReg rs2
+      let shamt = extractEWithRepr (knownNat @5) 0 x_rs2
+
+      assignReg rd $ sextE (x_rs1' `srlE` zextE shamt)
+      incrPC
+
   , Pair Sraw $ InstFormula $ getFormula $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
-      rOp32 $ \e1 e2 -> return (e1 `sraE` e2)
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
+      let x_rs2 = readReg rs2
+      let shamt = extractEWithRepr (knownNat @5) 0 x_rs2
+
+      assignReg rd $ sextE (x_rs1' `sraE` zextE shamt)
+      incrPC
+
   , Pair Lwu $ InstFormula $ getFormula $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
@@ -608,56 +634,30 @@ base64Semantics = Map.fromList
 
       iOp $ \e1 e2 -> return $ sextE (extractEWithRepr (knownNat @32) 0 (e1 `addE` e2))
 
-  -- TODO: Correct this
   , Pair Slliw $ InstFormula $ getFormula $ do
       comment "Shifts lower 32 bits of register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the sign-extended 32-bit result is written to x[rd]."
 
-      rd :< rs1 :< imm12 :< Nil <- operandEs
-      let x_rs1  = readReg rs1
-          x_rs1' = extractEWithRepr (knownNat @32) 0 x_rs1
+      rd :< rs1 :< shamt :< Nil <- operandEs
+      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
 
-      let shamt = extractEWithRepr (knownNat @7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
+      assignReg rd $ sextE (x_rs1' `sllE` zextE shamt)
+      incrPC
 
-      let shiftBound = litBV (bitVector 32 :: BitVector 7)
+  , Pair Srliw $ InstFormula $ getFormula $ do
+      rd :< rs1 :< shamt :< Nil <- operandEs
+      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
 
-      let ctrlBad  = notE (ctrl `eqE` litBV 0b00000)
-          shiftBad = notE (shamt `ltuE` shiftBound)
+      assignReg rd $ sextE (x_rs1' `srlE` zextE shamt)
+      incrPC
 
-      branch (ctrlBad `orE` shiftBad)
-        $> raiseException IllegalInstruction
-        $> do assignReg rd $ zextE (x_rs1' `sllE` zextE shamt)
-              incrPC
+  , Pair Sraiw $ InstFormula $ getFormula $ do
 
-  -- TODO: Correct this
-  , Pair Sriw $ InstFormula $ getFormula $ do
-      comment "Shifts lower 32 bits of register x[rs1] right logically/arithmetically by shamt bit positions."
-      comment "The vacated bits are filled with zeros, and the sign-extended 32-bit result is written to x[rd]."
+      rd :< rs1 :< shamt :< Nil <- operandEs
+      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
 
-      rd :< rs1 :< imm12 :< Nil <- operandEs
-      let x_rs1 = readReg rs1
-          x_rs1' = extractEWithRepr (knownNat @32) 0 x_rs1
-
-      let shamt = extractEWithRepr (knownNat @7) 0 imm12
-          ctrl  = extractEWithRepr (knownNat @5) 7 imm12
-
-      -- The control bits determine if the shift is arithmetic or logical.
-      let lShift = ctrl `eqE` litBV 0b00000
-          aShift = ctrl `eqE` litBV 0b01000
-
-      let shiftBound = litBV (bitVector 32 :: BitVector 7)
-
-      let ctrlBad  = notE (lShift `orE` aShift)
-          shiftBad = notE (shamt `ltuE` shiftBound)
-
-      let result_l = zextE (x_rs1' `srlE` zextE shamt)
-          result_r = zextE (x_rs1' `sraE` zextE shamt)
-
-      branch (ctrlBad `orE` shiftBad)
-        $> raiseException IllegalInstruction
-        $> do assignReg rd $ iteE lShift result_l result_r
-              incrPC
+      assignReg rd $ sextE (x_rs1' `sraE` zextE shamt)
+      incrPC
 
   , Pair Sd $ InstFormula $ getFormula $ do
       comment "Computes the least-significant double-word in register x[rs2]."

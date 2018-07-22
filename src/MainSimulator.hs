@@ -95,12 +95,12 @@ runElf stepsToRun logFile re = do
 
   -- writeFile logFile "Opcode, Coverage\n"
 
-  let iset = knownISet :: InstructionSet arch SimExts
-  forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
-    in
-      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
-      "/" ++ show (2^numTests) ++ "\n"
+  -- let iset = knownISet :: InstructionSet arch SimExts
+  -- forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+  --   let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
+  --   in
+  --     appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
+  --     "/" ++ show (2^numTests) ++ "\n"
 
 runElfMap :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
           => Int
@@ -131,12 +131,12 @@ runElfMap stepsToRun logFile re = do
 
   -- writeFile logFile "Opcode, Coverage\n"
 
-  let iset = knownISet :: InstructionSet arch SimExts
-  forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
-    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
-    in
-      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
-      "/" ++ show (2^numTests) ++ "\n"
+  -- let iset = knownISet :: InstructionSet arch SimExts
+  -- forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
+  --   let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
+  --   in
+  --     appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
+  --     "/" ++ show (2^numTests) ++ "\n"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

@@ -47,6 +47,7 @@ opBitsLayouts repr = case repr of
   BRepr -> opcode :< funct3 :< Nil
   URepr -> opcode :< Nil
   JRepr -> opcode :< Nil
+  HRepr -> opcode :< funct3 :< funct5 :< Nil
   PRepr -> funct32 :< Nil
   ARepr -> opcode :< funct3 :< funct5 :< Nil
   XRepr -> Nil
@@ -66,6 +67,7 @@ operandsLayouts repr = case repr of
   BRepr -> rs1Layout :< rs2Layout :< imm12BLayout :< Nil
   URepr -> rdLayout  :< imm20ULayout :< Nil
   JRepr -> rdLayout  :< imm20JLayout :< Nil
+  HRepr -> rdLayout  :< rs1Layout :< shamtLayout :< Nil
   PRepr -> Nil
   ARepr -> rdLayout  :< rs1Layout :< rs2Layout :< rlLayout :< aqLayout :< Nil
   XRepr -> illegalLayout :< Nil
@@ -73,6 +75,7 @@ operandsLayouts repr = case repr of
   where rdLayout     :: BitLayout 32 5  = singleChunk 7
         rs1Layout    :: BitLayout 32 5 = singleChunk 15
         rs2Layout    :: BitLayout 32 5 = singleChunk 20
+        shamtLayout  :: BitLayout 32 7 = singleChunk 20
         rlLayout     :: BitLayout 32 1 = singleChunk 25
         aqLayout     :: BitLayout 32 1 = singleChunk 26
         imm12ILayout :: BitLayout 32 12 = singleChunk 20
@@ -102,9 +105,15 @@ getFormat bv = case bv ^. layoutLens opcode of
 
   0b1100111 -> Some IRepr
   0b0000011 -> Some IRepr
-  0b0010011 -> Some IRepr
+  0b0010011 -> case bv ^. layoutLens funct3 of
+    0b001 -> Some HRepr
+    0b101 -> Some HRepr
+    _ -> Some IRepr
   0b0001111 -> Some IRepr
-  0b0011011 -> Some IRepr
+  0b0011011 -> case bv ^. layoutLens funct3 of
+    0b001 -> Some RRepr
+    0b101 -> Some RRepr
+    _ -> Some IRepr
 
   0b0100011 -> Some SRepr
 

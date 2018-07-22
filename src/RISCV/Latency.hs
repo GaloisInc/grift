@@ -83,7 +83,8 @@ baseLatency = Map.fromList
   , Pair Ori    (Flip $ litBV 1)
   , Pair Andi   (Flip $ litBV 1)
   , Pair Slli   (Flip $ litBV 1)
-  , Pair Sri    (Flip $ litBV 1)
+  , Pair Srli   (Flip $ litBV 1)
+  , Pair Srai   (Flip $ litBV 1)
   , Pair Fence  (Flip $ litBV 1)
   , Pair FenceI (Flip $ litBV 1)
   , Pair Csrrw  (Flip $ litBV 1)
@@ -132,7 +133,8 @@ base64Latency = Map.fromList
   , Pair Ld    (Flip $ litBV 1)
   , Pair Addiw (Flip $ litBV 1)
   , Pair Slliw (Flip $ litBV 1)
-  , Pair Sriw  (Flip $ litBV 1)
+  , Pair Srliw (Flip $ litBV 1)
+  , Pair Sraiw (Flip $ litBV 1)
   , Pair Sd    (Flip $ litBV 1)
   ]
 

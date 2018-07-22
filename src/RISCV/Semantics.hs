@@ -237,6 +237,9 @@ operandEs = case knownRepr :: FormatRepr fmt of
                    OperandExpr (OperandID index1) :< Nil)
   JRepr -> return (OperandExpr (OperandID index0) :<
                    OperandExpr (OperandID index1) :< Nil)
+  HRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
   PRepr -> return Nil
   ARepr -> return (OperandExpr (OperandID index0) :<
                    OperandExpr (OperandID index1) :<
