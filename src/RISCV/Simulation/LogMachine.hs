@@ -47,7 +47,6 @@ import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.Foldable (for_)
 import           Data.IORef
-import           Data.List (union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
@@ -55,11 +54,8 @@ import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
 
 import RISCV.Coverage
-import RISCV.Extensions
-import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 import Debug.Trace (traceM)
@@ -99,7 +95,7 @@ mkLogMachine maxAddr entryPoint sp byteStrings = do
   csrs      <- newIORef $ Map.fromList [ ]
   priv      <- newIORef 0b11 -- M mode by default.
   let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
-  testMap   <- newIORef $ Map.fromList $ f <$> MapF.toList baseCoverage
+  testMap   <- newIORef $ Map.fromList $ f <$> MapF.toList knownCoverageMap
 
   -- set up stack pointer
   writeArray registers 2 sp
@@ -115,7 +111,7 @@ newtype LogMachineM (arch :: BaseArch) (exts :: Extensions) a =
   LogMachineM { runLogMachineM :: ReaderT (LogMachine arch exts) IO a }
   deriving (Functor, Applicative, Monad, R.MonadReader (LogMachine arch exts))
 
-instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
+instance (KnownArch arch, KnownExtensions exts) => RVStateM (LogMachineM arch exts) arch exts where
   getPC = LogMachineM $ do
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef
@@ -185,7 +181,7 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
 
   logInstruction inst@(Inst opcode _) iset = do
     testMap <- LogMachineM (ioTestMap <$> ask)
-    case MapF.lookup opcode baseCoverage of
+    case MapF.lookup opcode knownCoverageMap of
       Nothing -> return ()
       Just (InstExprList exprs) -> do
         exprVals <- traverse (evalInstExpr iset inst 4) exprs
