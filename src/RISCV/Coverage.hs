@@ -23,8 +23,10 @@ and the current machine state.
 
 module RISCV.Coverage where
 
+import Data.BitVector.Sized.App
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
+import Data.Parameterized.List
 
 import RISCV.Semantics
 import RISCV.Types
@@ -33,11 +35,18 @@ newtype InstExprList arch fmt = InstExprList [InstExpr fmt arch 1]
 
 type CoverageMap arch exts = Map.MapF (Opcode arch exts) (InstExprList arch)
 
+registerCoverage :: InstExpr fmt arch 5 -> [InstExpr fmt arch 1]
+registerCoverage rid = regCovExpr <$> [0..31]
+  where regCovExpr bv = rid `eqE` litBV bv
+
 baseCoverage :: KnownArch arch => CoverageMap arch exts
 baseCoverage = Map.fromList
   [ -- RV32I
     -- R type
-    Pair Add  (InstExprList [litBV 1])
+    Pair Add  (let rd :< rs1 :< rs2 :< Nil = operandEs' :: List (InstExpr R arch) (OperandTypes R)
+               in InstExprList (registerCoverage rd ++
+                                registerCoverage rs1 ++
+                                registerCoverage rs2))
   , Pair Sub  (InstExprList [litBV 1])
   , Pair Sll  (InstExprList [litBV 1])
   , Pair Slt  (InstExprList [litBV 1])

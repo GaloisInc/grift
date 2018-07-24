@@ -84,7 +84,7 @@ module RISCV.Semantics
     -- * FormulaBuilder operations
     -- ** Auxiliary
   , comment
-  , operandEs
+  , operandEs, operandEs'
   , instBytes
   , instWord
   , litBV
@@ -223,64 +223,37 @@ newtype FormulaBuilder expr arch a =
 -- | Get the operands for a particular known format
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
           => FormulaBuilder (InstExpr fmt arch) arch (List (InstExpr fmt arch) (OperandTypes fmt))
-operandEs = case knownRepr :: FormatRepr fmt of
-  RRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  IRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  SRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  BRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  URepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :< Nil)
-  JRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :< Nil)
-  HRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  PRepr -> return Nil
-  ARepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :<
-                   OperandExpr (OperandID index3) :<
-                   OperandExpr (OperandID index4) :< Nil)
-  XRepr -> return (OperandExpr (OperandID index0) :< Nil)
-  where index4 = IndexThere index3
+operandEs = return operandEs'
 
 operandEs' :: forall arch fmt . (KnownRepr FormatRepr fmt)
-          => FormulaBuilder (InstExpr fmt arch) arch (List (InstExpr fmt arch) (OperandTypes fmt))
+           => (List (InstExpr fmt arch) (OperandTypes fmt))
 operandEs' = case knownRepr :: FormatRepr fmt of
-  RRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  IRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  SRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  BRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  URepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :< Nil)
-  JRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :< Nil)
-  HRepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :< Nil)
-  PRepr -> return Nil
-  ARepr -> return (OperandExpr (OperandID index0) :<
-                   OperandExpr (OperandID index1) :<
-                   OperandExpr (OperandID index2) :<
-                   OperandExpr (OperandID index3) :<
-                   OperandExpr (OperandID index4) :< Nil)
-  XRepr -> return (OperandExpr (OperandID index0) :< Nil)
+  RRepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :<
+            OperandExpr (OperandID index2) :< Nil)
+  IRepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :<
+            OperandExpr (OperandID index2) :< Nil)
+  SRepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :<
+            OperandExpr (OperandID index2) :< Nil)
+  BRepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :<
+            OperandExpr (OperandID index2) :< Nil)
+  URepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :< Nil)
+  JRepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :< Nil)
+  HRepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :<
+            OperandExpr (OperandID index2) :< Nil)
+  PRepr -> Nil
+  ARepr -> (OperandExpr (OperandID index0) :<
+            OperandExpr (OperandID index1) :<
+            OperandExpr (OperandID index2) :<
+            OperandExpr (OperandID index3) :<
+            OperandExpr (OperandID index4) :< Nil)
+  XRepr -> (OperandExpr (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
