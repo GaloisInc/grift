@@ -27,12 +27,15 @@ import qualified Data.ByteString as BS
 import           Data.IORef
 import qualified Data.Map as Map
 import           Data.Parameterized
+import qualified Data.Parameterized.Map as MapF
 import           System.Environment
 import           System.Exit
 import           Data.ElfEdit
 import           GHC.TypeLits
 import           System.FilePath.Posix
+import           Text.PrettyPrint.HughesPJClass
 
+import           RISCV.Coverage
 import           RISCV.Extensions
 import           RISCV.InstructionSet
 import           RISCV.Types
@@ -95,8 +98,16 @@ runElf stepsToRun logFile re = do
   forM_ (assocs registers) $ \(r, v) ->
     putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  putStrLn "\nAdd coverage: "
-  print (Map.lookup (Some Add) testMap)
+  putStrLn "\n--------Coverage report--------\n"
+  -- forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
+  let (opcode, Just vals) = (Add, Map.lookup (Some Add) testMap)
+  case MapF.lookup opcode baseCoverage of
+    Just (InstExprList exprs) -> do
+      let ones = length (filter (==1) vals)
+      putStrLn $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
+      forM_ (zip exprs vals) $ \(expr, val) ->
+        putStrLn $ "  " ++ prettyShow expr ++ " ---> " ++ show val
+    _ -> return ()
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

@@ -64,6 +64,7 @@ import RISCV.Semantics.Exceptions
 
 import Debug.Trace (traceM)
 
+-- TODO: get rid of unused IORefs
 -- | IO-based machine state.
 data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   { ioPC        :: IORef (BitVector (ArchWidth arch))
