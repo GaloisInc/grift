@@ -35,77 +35,103 @@ newtype InstExprList arch fmt = InstExprList [InstExpr fmt arch 1]
 
 type CoverageMap arch exts = Map.MapF (Opcode arch exts) (InstExprList arch)
 
-registerCoverage :: InstExpr fmt arch 5 -> [InstExpr fmt arch 1]
-registerCoverage rid = regCovExpr <$> [0..31]
+singleRegisterCoverage :: InstExpr fmt arch 5 -> [InstExpr fmt arch 1]
+singleRegisterCoverage rid = regCovExpr <$> [0..31]
   where regCovExpr bv = rid `eqE` litBV bv
 
-baseCoverage :: KnownArch arch => CoverageMap arch exts
+registerCoverage :: forall fmt arch . KnownRepr FormatRepr fmt => [InstExpr fmt arch 1]
+registerCoverage = case knownRepr :: FormatRepr fmt of
+  RRepr -> let ra :< rb :< rc :< Nil = operandEsWithRepr RRepr
+           in singleRegisterCoverage ra ++
+              singleRegisterCoverage rb ++
+              singleRegisterCoverage rc
+  IRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr IRepr
+           in singleRegisterCoverage ra ++
+              singleRegisterCoverage rb
+  SRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr SRepr
+           in singleRegisterCoverage ra ++
+              singleRegisterCoverage rb
+  BRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr BRepr
+           in singleRegisterCoverage ra ++
+              singleRegisterCoverage rb
+  URepr -> let ra :< _ :< Nil = operandEsWithRepr URepr
+           in singleRegisterCoverage ra
+  JRepr -> let ra :< _ :< Nil = operandEsWithRepr JRepr
+           in singleRegisterCoverage ra
+  HRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr HRepr
+           in singleRegisterCoverage ra ++
+              singleRegisterCoverage rb
+  PRepr -> []
+  ARepr -> let ra :< rb :< rc :< _ :< _ :< Nil = operandEsWithRepr ARepr
+           in singleRegisterCoverage ra ++
+              singleRegisterCoverage rb ++
+              singleRegisterCoverage rc
+  _ -> []
+
+baseCoverage :: CoverageMap arch exts
 baseCoverage = Map.fromList
   [ -- RV32I
     -- R type
-    Pair Add  (let rd :< rs1 :< rs2 :< Nil = operandEs' :: List (InstExpr R arch) (OperandTypes R)
-               in InstExprList (registerCoverage rd ++
-                                registerCoverage rs1 ++
-                                registerCoverage rs2))
-  , Pair Sub  (InstExprList [litBV 1])
-  , Pair Sll  (InstExprList [litBV 1])
-  , Pair Slt  (InstExprList [litBV 1])
-  , Pair Sltu (InstExprList [litBV 1])
-  , Pair Xor  (InstExprList [litBV 1])
-  , Pair Srl  (InstExprList [litBV 1])
-  , Pair Sra  (InstExprList [litBV 1])
-  , Pair Or   (InstExprList [litBV 1])
-  , Pair And  (InstExprList [litBV 1])
+    Pair Add  (InstExprList registerCoverage)
+  , Pair Sub  (InstExprList registerCoverage)
+  , Pair Sll  (InstExprList registerCoverage)
+  , Pair Slt  (InstExprList registerCoverage)
+  , Pair Sltu (InstExprList registerCoverage)
+  , Pair Xor  (InstExprList registerCoverage)
+  , Pair Srl  (InstExprList registerCoverage)
+  , Pair Sra  (InstExprList registerCoverage)
+  , Pair Or   (InstExprList registerCoverage)
+  , Pair And  (InstExprList registerCoverage)
 
   -- I type
-  , Pair Jalr   (InstExprList [litBV 1])
-  , Pair Lb     (InstExprList [litBV 1])
-  , Pair Lh     (InstExprList [litBV 1])
-  , Pair Lw     (InstExprList [litBV 1])
-  , Pair Lbu    (InstExprList [litBV 1])
-  , Pair Lhu    (InstExprList [litBV 1])
-  , Pair Addi   (InstExprList [litBV 1])
-  , Pair Slti   (InstExprList [litBV 1])
-  , Pair Sltiu  (InstExprList [litBV 1])
-  , Pair Xori   (InstExprList [litBV 1])
-  , Pair Ori    (InstExprList [litBV 1])
-  , Pair Andi   (InstExprList [litBV 1])
-  , Pair Slli   (InstExprList [litBV 1])
-  , Pair Srli   (InstExprList [litBV 1])
-  , Pair Srai   (InstExprList [litBV 1])
-  , Pair Fence  (InstExprList [litBV 1])
-  , Pair FenceI (InstExprList [litBV 1])
-  , Pair Csrrw  (InstExprList [litBV 1])
-  , Pair Csrrs  (InstExprList [litBV 1])
-  , Pair Csrrc  (InstExprList [litBV 1])
-  , Pair Csrrwi (InstExprList [litBV 1])
-  , Pair Csrrsi (InstExprList [litBV 1])
-  , Pair Csrrci (InstExprList [litBV 1])
+  , Pair Jalr   (InstExprList registerCoverage)
+  , Pair Lb     (InstExprList registerCoverage)
+  , Pair Lh     (InstExprList registerCoverage)
+  , Pair Lw     (InstExprList registerCoverage)
+  , Pair Lbu    (InstExprList registerCoverage)
+  , Pair Lhu    (InstExprList registerCoverage)
+  , Pair Addi   (InstExprList registerCoverage)
+  , Pair Slti   (InstExprList registerCoverage)
+  , Pair Sltiu  (InstExprList registerCoverage)
+  , Pair Xori   (InstExprList registerCoverage)
+  , Pair Ori    (InstExprList registerCoverage)
+  , Pair Andi   (InstExprList registerCoverage)
+  , Pair Slli   (InstExprList registerCoverage)
+  , Pair Srli   (InstExprList registerCoverage)
+  , Pair Srai   (InstExprList registerCoverage)
+  , Pair Fence  (InstExprList registerCoverage)
+  , Pair FenceI (InstExprList registerCoverage)
+  , Pair Csrrw  (InstExprList registerCoverage)
+  , Pair Csrrs  (InstExprList registerCoverage)
+  , Pair Csrrc  (InstExprList registerCoverage)
+  , Pair Csrrwi (InstExprList registerCoverage)
+  , Pair Csrrsi (InstExprList registerCoverage)
+  , Pair Csrrci (InstExprList registerCoverage)
 
   -- S type
-  , Pair Sb (InstExprList [litBV 1])
-  , Pair Sh (InstExprList [litBV 1])
-  , Pair Sw (InstExprList [litBV 1])
+  , Pair Sb (InstExprList registerCoverage)
+  , Pair Sh (InstExprList registerCoverage)
+  , Pair Sw (InstExprList registerCoverage)
 
   -- B type
-  , Pair Beq  (InstExprList [litBV 1])
-  , Pair Bne  (InstExprList [litBV 1])
-  , Pair Blt  (InstExprList [litBV 1])
-  , Pair Bge  (InstExprList [litBV 1])
-  , Pair Bltu (InstExprList [litBV 1])
-  , Pair Bgeu (InstExprList [litBV 1])
+  , Pair Beq  (InstExprList registerCoverage)
+  , Pair Bne  (InstExprList registerCoverage)
+  , Pair Blt  (InstExprList registerCoverage)
+  , Pair Bge  (InstExprList registerCoverage)
+  , Pair Bltu (InstExprList registerCoverage)
+  , Pair Bgeu (InstExprList registerCoverage)
 
   -- U type
-  , Pair Lui   (InstExprList [litBV 1])
-  , Pair Auipc (InstExprList [litBV 1])
+  , Pair Lui   (InstExprList registerCoverage)
+  , Pair Auipc (InstExprList registerCoverage)
 
   -- J type
-  , Pair Jal (InstExprList [litBV 1])
+  , Pair Jal (InstExprList registerCoverage)
 
   -- P type
-  , Pair Ecall  (InstExprList [litBV 1])
-  , Pair Ebreak (InstExprList [litBV 1])
+  , Pair Ecall  (InstExprList registerCoverage)
+  , Pair Ebreak (InstExprList registerCoverage)
 
   -- X type
-  , Pair Illegal (InstExprList [litBV 1])
+  , Pair Illegal (InstExprList registerCoverage)
   ]

@@ -84,7 +84,7 @@ module RISCV.Semantics
     -- * FormulaBuilder operations
     -- ** Auxiliary
   , comment
-  , operandEs, operandEs'
+  , operandEs, operandEsWithRepr
   , instBytes
   , instWord
   , litBV
@@ -223,11 +223,11 @@ newtype FormulaBuilder expr arch a =
 -- | Get the operands for a particular known format
 operandEs :: forall arch fmt . (KnownRepr FormatRepr fmt)
           => FormulaBuilder (InstExpr fmt arch) arch (List (InstExpr fmt arch) (OperandTypes fmt))
-operandEs = return operandEs'
+operandEs = return (operandEsWithRepr knownRepr)
 
-operandEs' :: forall arch fmt . (KnownRepr FormatRepr fmt)
-           => (List (InstExpr fmt arch) (OperandTypes fmt))
-operandEs' = case knownRepr :: FormatRepr fmt of
+operandEsWithRepr :: FormatRepr fmt
+                  -> (List (InstExpr fmt arch) (OperandTypes fmt))
+operandEsWithRepr repr = case repr of
   RRepr -> (OperandExpr (OperandID index0) :<
             OperandExpr (OperandID index1) :<
             OperandExpr (OperandID index2) :< Nil)

@@ -95,50 +95,8 @@ runElf stepsToRun logFile re = do
   forM_ (assocs registers) $ \(r, v) ->
     putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  writeFile logFile "Opcode, Coverage\n"
-
-  let iset = knownISet :: InstructionSet arch SimExts
-  forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
-    in
-      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
-      "/" ++ show (2^numTests) ++ "\n"
-
-runElfMap :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
-          => Int
-          -> FilePath
-          -> RISCVElf arch
-          -> IO ()
-runElfMap stepsToRun logFile re = do
-  let e = rElf re
-      byteStrings = elfBytes e
-  m :: MapMachine arch SimExts <-
-    return $ mkMapMachine 0x1000000 (fromIntegral $ elfEntry e) byteStrings
-  let (_, m') = runMapMachine stepsToRun m
-
-  let err        = exception m'
-      stepsRan   = steps m'
-      pc'        = pc m'
-      registers' = registers m'
-      testMap'   = testMap m'
-
-  case err of
-    Nothing -> return ()
-    Just err' -> putStrLn $ "Encountered exception: " ++ show err'
-  putStrLn $ "Executed " ++ show stepsRan ++ " instructions."
-  putStrLn $ "Final PC: " ++ show pc'
-  putStrLn "Final register state:"
-  forM_ (Map.assocs registers') $ \(r, v) ->
-    putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
-
-  writeFile logFile "Opcode, Coverage\n"
-
-  let iset = knownISet :: InstructionSet arch SimExts
-  forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
-    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
-    in
-      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
-      "/" ++ show (2^numTests) ++ "\n"
+  putStrLn "\nAdd coverage: "
+  print (Map.lookup (Some Add) testMap)
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

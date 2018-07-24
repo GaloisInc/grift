@@ -51,8 +51,11 @@ import           Data.List (union)
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
+import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
 
+import RISCV.Coverage
+import RISCV.Extensions
 import RISCV.InstructionSet
 import RISCV.Types
 import RISCV.Simulation
@@ -69,7 +72,7 @@ data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
   , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (ArchWidth arch)))
   , ioPriv      :: IORef (BitVector 2)
   , ioMaxAddr   :: BitVector (ArchWidth arch)
-  , ioTestMap   :: IORef (Map (Some (Opcode arch exts)) [[BitVector 1]])
+  , ioTestMap   :: IORef (Map (Some (Opcode arch exts)) [BitVector 1])
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -94,7 +97,8 @@ mkLogMachine maxAddr entryPoint sp byteStrings = do
   memory    <- newArray (0, maxAddr) 0
   csrs      <- newIORef $ Map.fromList [ ]
   priv      <- newIORef 0b11 -- M mode by default.
-  testMap   <- newIORef Map.empty -- Map.fromList (zip opcodes (repeat []))
+  let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
+  testMap   <- newIORef $ Map.fromList $ f <$> MapF.toList baseCoverage
 
   -- set up stack pointer
   writeArray registers 2 sp
@@ -179,13 +183,13 @@ instance KnownArch arch => RVStateM (LogMachineM arch exts) arch exts where
     lift $ writeIORef privRef privVal
 
   logInstruction inst@(Inst opcode _) iset = do
-    return ()
     testMap <- LogMachineM (ioTestMap <$> ask)
-    let formula = semanticsFromOpcode iset opcode
-        tests = getTests (getInstFormula formula)
-    testVals <- traverse (evalInstExpr iset inst 4) tests
-    LogMachineM $ lift $ modifyIORef testMap $ \m ->
-      Map.insertWith union (Some opcode) [testVals] m
+    case MapF.lookup opcode baseCoverage of
+      Nothing -> return ()
+      Just (InstExprList exprs) -> do
+        exprVals <- traverse (evalInstExpr iset inst 4) exprs
+        LogMachineM $ lift $ modifyIORef testMap $ \m ->
+          Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine arch exts
