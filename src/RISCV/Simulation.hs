@@ -81,7 +81,7 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   setPriv :: BitVector 2 -> m ()
 
   -- | Log the execution of a particular instruction.
-  logInstruction :: Instruction arch exts fmt -> InstructionSet arch exts -> m ()
+  logInstruction :: InstructionSet arch exts -> Instruction arch exts fmt -> m ()
 
 -- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
 evalLocExpr :: forall m expr arch exts w
@@ -219,9 +219,9 @@ stepRV iset = do
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
   Some inst@(Inst opcode _) <- return $ decode iset instBV
 
-  -- Log instruction
+  -- Log instruction BEFORE execution
   -- TODO: switch argument order here
-  logInstruction inst iset
+  logInstruction iset inst
 
   -- Execute
   execFormula (evalInstExpr iset inst 4) (getInstFormula $ semanticsFromOpcode iset opcode)

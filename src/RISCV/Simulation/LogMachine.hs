@@ -179,7 +179,7 @@ instance (KnownArch arch, KnownExtensions exts) => RVStateM (LogMachineM arch ex
     privRef <- ioPriv <$> ask
     lift $ writeIORef privRef privVal
 
-  logInstruction inst@(Inst opcode _) iset = do
+  logInstruction iset inst@(Inst opcode _) = do
     testMap <- LogMachineM (ioTestMap <$> ask)
     case MapF.lookup opcode knownCoverageMap of
       Nothing -> return ()
