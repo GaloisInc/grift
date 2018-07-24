@@ -86,6 +86,7 @@ module RISCV.Semantics
   , comment
   , operandEs
   , instBytes
+  , instWord
   , litBV
     -- ** State actions
   , assignPC
@@ -149,6 +150,8 @@ data InstExpr fmt arch w where
   OperandExpr :: !(OperandID fmt w) -> InstExpr fmt arch w
   -- | Accessing the instruction width, in number of bytes
   InstBytes :: InstExpr fmt arch (ArchWidth arch)
+  -- | Accessing the entire instruction word itself
+  InstWord :: InstExpr fmt arch (ArchWidth arch)
 
   -- | Accessing the machine state
   InstStateExpr :: !(StateExpr (InstExpr fmt arch) arch w) -> InstExpr fmt arch w
@@ -249,6 +252,37 @@ operandEs = case knownRepr :: FormatRepr fmt of
   XRepr -> return (OperandExpr (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 
+operandEs' :: forall arch fmt . (KnownRepr FormatRepr fmt)
+          => FormulaBuilder (InstExpr fmt arch) arch (List (InstExpr fmt arch) (OperandTypes fmt))
+operandEs' = case knownRepr :: FormatRepr fmt of
+  RRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  IRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  SRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  BRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  URepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :< Nil)
+  JRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :< Nil)
+  HRepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :< Nil)
+  PRepr -> return Nil
+  ARepr -> return (OperandExpr (OperandID index0) :<
+                   OperandExpr (OperandID index1) :<
+                   OperandExpr (OperandID index2) :<
+                   OperandExpr (OperandID index3) :<
+                   OperandExpr (OperandID index4) :< Nil)
+  XRepr -> return (OperandExpr (OperandID index0) :< Nil)
+  where index4 = IndexThere index3
+
 -- | Obtain the formula defined by a 'FormulaBuilder' action.
 getFormula :: FormulaBuilder expr arch () -> Formula expr arch
 getFormula = flip execState emptyFormula . unFormulaBuilder
@@ -260,6 +294,10 @@ comment c = fComments %= \cs -> cs Seq.|> c
 -- | Get the width of the instruction word
 instBytes :: FormulaBuilder (InstExpr fmt arch) arch (InstExpr fmt arch (ArchWidth arch))
 instBytes = return InstBytes
+
+-- | Get the entire instruction word (useful for exceptions)
+instWord :: FormulaBuilder (InstExpr fmt arch) arch (InstExpr fmt arch (ArchWidth arch))
+instWord = return InstWord
 
 -- | Read the pc.
 readPC :: RVStateExpr expr => expr arch (ArchWidth arch)
@@ -378,6 +416,7 @@ instance TestEquality (InstExpr fmt arch) where
     Just Refl -> Just Refl
     Nothing -> Nothing
   InstBytes `testEquality` InstBytes = Just Refl
+  InstWord `testEquality` InstWord = Just Refl
   InstStateExpr e1 `testEquality` InstStateExpr e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
@@ -416,6 +455,7 @@ pPrintStateExpr' top (AppExpr app) = pPrintApp' top app
 pPrintInstExpr' :: Bool -> InstExpr fmt arch w -> Doc
 pPrintInstExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
 pPrintInstExpr' _ InstBytes = text "step"
+pPrintInstExpr' _ InstWord = text "inst"
 pPrintInstExpr' top (InstStateExpr e) = pPrintStateExpr' top e
 
 pPrintApp' :: Bool -> BVApp (InstExpr fmt arch) w -> Doc

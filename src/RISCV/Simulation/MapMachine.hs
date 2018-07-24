@@ -126,11 +126,11 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
     m { csrs = Map.insert csr csrVal (csrs m) }
   setPriv privVal = MapMachineM $ S.modify $ \m -> m { priv = privVal }
 
-  logInstruction (Some (Inst opcode operands)) iset = do
+  logInstruction inst@(Inst opcode operands) iset = do
     return ()
     let formula = semanticsFromOpcode iset opcode
         tests = getTests (getInstFormula formula)
-    testVals <- traverse (evalInstExpr operands 4) tests
+    testVals <- traverse (evalInstExpr iset inst 4) tests
     MapMachineM $ S.modify $ \m ->
       m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
 

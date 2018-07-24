@@ -117,7 +117,9 @@ checkCSR write csr rst = do
   let csrPriv = extractEWithRepr (knownNat @2) 8 csr
   let csrOK = (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
 
+  iw <- instWord
+
   branch (notE csrOK)
-    $> raiseException IllegalInstruction
+    $> raiseException IllegalInstruction iw
     $> rst
 

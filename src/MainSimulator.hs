@@ -87,20 +87,22 @@ runElf stepsToRun logFile re = do
 
   putStrLn $ "MInstRet = " ++
     show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
+  putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
+  putStrLn $ "MTVal = " ++ show (Map.findWithDefault 0 (encodeCSR MTVal) csrs)
   putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->
     putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  -- writeFile logFile "Opcode, Coverage\n"
+  writeFile logFile "Opcode, Coverage\n"
 
-  -- let iset = knownISet :: InstructionSet arch SimExts
-  -- forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
-  --   let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
-  --   in
-  --     appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
-  --     "/" ++ show (2^numTests) ++ "\n"
+  let iset = knownISet :: InstructionSet arch SimExts
+  forM_ (Map.assocs testMap) $ \(Some opcode, variants) ->
+    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
+    in
+      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
+      "/" ++ show (2^numTests) ++ "\n"
 
 runElfMap :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
           => Int
@@ -129,14 +131,14 @@ runElfMap stepsToRun logFile re = do
   forM_ (Map.assocs registers') $ \(r, v) ->
     putStrLn $ "  R[" ++ show r ++ "] = " ++ show v
 
-  -- writeFile logFile "Opcode, Coverage\n"
+  writeFile logFile "Opcode, Coverage\n"
 
-  -- let iset = knownISet :: InstructionSet arch SimExts
-  -- forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
-  --   let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
-  --   in
-  --     appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
-  --     "/" ++ show (2^numTests) ++ "\n"
+  let iset = knownISet :: InstructionSet arch SimExts
+  forM_ (Map.assocs testMap') $ \(Some opcode, variants) ->
+    let numTests = length (getTests (getInstFormula $ semanticsFromOpcode iset opcode))
+    in
+      appendFile logFile $ show opcode ++ ", " ++ show (length variants) ++
+      "/" ++ show (2^numTests) ++ "\n"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

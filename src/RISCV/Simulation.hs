@@ -81,7 +81,7 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
   setPriv :: BitVector 2 -> m ()
 
   -- | Log the execution of a particular instruction.
-  logInstruction :: Some (Instruction arch exts) -> InstructionSet arch exts -> m ()
+  logInstruction :: Instruction arch exts fmt -> InstructionSet arch exts -> m ()
 
 -- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
 evalLocExpr :: forall m expr arch exts w
@@ -117,13 +117,15 @@ evalPureStateExpr (PureStateExpr e) = evalStateExpr evalPureStateExpr e
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m arch exts fmt w
             . (RVStateM m arch exts, KnownArch arch)
-             => Operands fmt     -- ^ Operands
+             => InstructionSet arch exts
+             -> Instruction arch exts fmt -- ^ instruction
              -> Integer          -- ^ Instruction width (in bytes)
              -> InstExpr fmt arch w  -- ^ Expression to be evaluated
              -> m (BitVector w)
-evalInstExpr (Operands _ operands) _ (OperandExpr (OperandID p)) = return (operands !! p)
-evalInstExpr _ ib InstBytes = return $ bitVector ib
-evalInstExpr operands ib (InstStateExpr e) = evalStateExpr (evalInstExpr operands ib) e
+evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
+evalInstExpr _ _ ib InstBytes = return $ bitVector ib
+evalInstExpr iset inst _ InstWord = return $ (bvZext $ encode iset inst)
+evalInstExpr iset inst ib (InstStateExpr e) = evalStateExpr (evalInstExpr iset inst ib) e
 
 -- | This type represents a concrete component of the global state, after all
 -- expressions have been evaluated. It is in direct correspondence with the 'LocExpr'
@@ -215,13 +217,14 @@ stepRV iset = do
 
   -- Decode
   -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-  inst@(Some (Inst opcode operands)) <- return $ decode iset instBV
+  Some inst@(Inst opcode _) <- return $ decode iset instBV
 
   -- Log instruction
+  -- TODO: switch argument order here
   logInstruction inst iset
 
   -- Execute
-  execFormula (evalInstExpr operands 4) (getInstFormula $ semanticsFromOpcode iset opcode)
+  execFormula (evalInstExpr iset inst 4) (getInstFormula $ semanticsFromOpcode iset opcode)
 
   -- Record cycle count
   execFormula evalPureStateExpr $ getFormula $ do
@@ -276,6 +279,7 @@ getTestsStateExpr (AppExpr e) = getTestsBVApp e
 getTestsInstExpr :: InstExpr fmt arch w -> [InstExpr fmt arch 1]
 getTestsInstExpr (OperandExpr _) = []
 getTestsInstExpr InstBytes = []
+getTestsInstExpr InstWord = []
 getTestsInstExpr (InstStateExpr e) = getTestsStateExpr e
 
 getTestsBVApp :: BVApp (InstExpr fmt arch) w -> [InstExpr fmt arch 1]

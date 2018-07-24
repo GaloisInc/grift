@@ -14,7 +14,8 @@ cabal-version:       >=1.10
 extra-source-files:  README.md
 
 library
-  exposed-modules:     RISCV.Decode
+  exposed-modules:     RISCV.Coverage
+                     , RISCV.Decode
                      , RISCV.Extensions
                      , RISCV.Extensions.Base
                      , RISCV.Extensions.Helpers
@@ -48,7 +49,8 @@ library
 executable grift
   hs-source-dirs:      src
   main-is:             MainSimulator.hs
-  other-modules:       RISCV.Decode
+  other-modules:       RISCV.Coverage
+                     , RISCV.Decode
                      , RISCV.Extensions
                      , RISCV.Extensions.Base
                      , RISCV.Extensions.Helpers

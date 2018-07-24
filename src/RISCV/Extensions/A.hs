@@ -89,7 +89,8 @@ aSemantics = Map.fromList
       let mVal  = readMem (knownNat @4) x_rs1
 
       branch illegal
-        $> raiseException IllegalInstruction
+        $> do iw <- instWord
+              raiseException IllegalInstruction iw
         $> do assignReg rd (sextE mVal)
               reserve x_rs1
               incrPC
@@ -191,7 +192,8 @@ a64Semantics = Map.fromList
       let mVal  = readMem (knownNat @8) x_rs1
 
       branch illegal
-        $> raiseException IllegalInstruction
+        $> do iw <- instWord
+              raiseException IllegalInstruction iw
         $> do assignReg rd (sextE mVal)
               reserve x_rs1
 

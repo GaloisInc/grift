@@ -129,11 +129,15 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
   -- TODO: Finish this.
   ]
 
+-- TODO: It is actually an optional architectural feature to propagate certain values
+-- through to mtval, so this should be a configurable option at the type level.
+
 -- | Semantics for raising an exception.
 raiseException :: (BVExpr (expr arch), RVStateExpr expr, KnownArch arch)
                => Exception
+               -> expr arch (ArchWidth arch)
                -> FormulaBuilder (expr arch) arch ()
-raiseException e = do
+raiseException e info = do
   -- Exception handling TODO:
   -- * For interrupts, PC should be incremented.
   -- * mtval should be an argument to this function based on the exception
@@ -151,7 +155,7 @@ raiseException e = do
       mcause = getMCause e
 
   assignPriv (litBV $ getPrivCode MPriv)
-  assignCSR (litBV $ encodeCSR MTVal)   (litBV 0) -- TODO: actually thread info in here
+  assignCSR (litBV $ encodeCSR MTVal)   info -- TODO: actually thread info in here
   assignCSR (litBV $ encodeCSR MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
   assignCSR (litBV $ encodeCSR MEPC)    pc
   assignCSR (litBV $ encodeCSR MCause)  (litBV mcause)

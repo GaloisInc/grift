@@ -294,7 +294,8 @@ baseSemantics = Map.fromList
       -- Check that the control bits are all zero.
 
       branch shamtBad
-        $> raiseException IllegalInstruction
+        $> do iw <- instWord
+              raiseException IllegalInstruction iw
         $> do assignReg rd $ x_rs1 `sllE` zextE shamt
               incrPC
   , Pair Srli $ InstFormula $ getFormula $ do
@@ -312,7 +313,8 @@ baseSemantics = Map.fromList
       -- Check that the control bits are all zero.
 
       branch shamtBad
-        $> raiseException IllegalInstruction
+        $> do iw <- instWord
+              raiseException IllegalInstruction iw
         $> do assignReg rd $ x_rs1 `srlE` zextE shamt
               incrPC
   , Pair Srai $ InstFormula $ getFormula $ do
@@ -330,7 +332,8 @@ baseSemantics = Map.fromList
       -- Check that the control bits are all zero.
 
       branch shamtBad
-        $> raiseException IllegalInstruction
+        $> do iw <- instWord
+              raiseException IllegalInstruction iw
         $> do assignReg rd $ x_rs1 `sraE` zextE shamt
               incrPC
 
@@ -339,12 +342,12 @@ baseSemantics = Map.fromList
   , Pair Ecall $ InstFormula $ getFormula $ do
       comment "Makes a request of the execution environment."
 
-      raiseException EnvironmentCall
+      raiseException EnvironmentCall (litBV 0x0)
 
-  , Pair Ecall $ InstFormula $ getFormula $ do
+  , Pair Ebreak $ InstFormula $ getFormula $ do
       comment "Makes a request to the debugger."
 
-      raiseException EnvironmentCall -- TODO: change this
+      raiseException EnvironmentCall (litBV 0x0) -- TODO: change this
 
   -- TODO: Fence instructions.
   , Pair Fence $ InstFormula $ getFormula $ do
@@ -526,7 +529,8 @@ baseSemantics = Map.fromList
   , Pair Illegal $ InstFormula $ getFormula $ do
       comment "Raise an IllegalInstruction exception"
 
-      raiseException IllegalInstruction
+      iw <- instWord
+      raiseException IllegalInstruction iw
   ]
 
 base64Encode :: 64 <= ArchWidth arch => EncodeMap arch exts
