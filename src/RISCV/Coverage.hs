@@ -58,12 +58,8 @@ knownCoverageMap = base `Map.union` m `Map.union` a `Map.union` f
           ExtensionsRepr _ _ _ FDNoRepr -> Map.empty
           _ -> error "Floating point not yet supported"
 
-singleRegisterCoverage :: InstExpr fmt arch 5 -> [InstExpr fmt arch 1]
-singleRegisterCoverage rid = regCovExpr <$> [0..31]
-  where regCovExpr bv = rid `eqE` litBV bv
-
 exprBitCoverage :: forall fmt arch w . KnownNat w => InstExpr fmt arch w -> [InstExpr fmt arch 1]
-exprBitCoverage expr = concat $ bitTests <$> [0..width]
+exprBitCoverage expr = concat $ bitTests <$> [0..width-1]
   where bitTests i = [extractEWithRepr (knownNat @1) i expr,
                       notE $ extractEWithRepr (knownNat @1) i expr]
         width = fromIntegral (natValue (knownNat @w))
@@ -81,45 +77,78 @@ immBitCoverage = case knownRepr :: FormatRepr fmt of
            in exprBitCoverage imm20
   JRepr -> let _ :< imm20 :< Nil = operandEsWithRepr JRepr
            in exprBitCoverage imm20
-  HRepr -> let ra :< rb :< imm7 :< Nil = operandEsWithRepr HRepr
+  HRepr -> let _ :< _ :< imm7 :< Nil = operandEsWithRepr HRepr
            in exprBitCoverage imm7
   ARepr -> let _ :< _ :< _ :< a :< b :< Nil = operandEsWithRepr ARepr
            in exprBitCoverage a ++ exprBitCoverage b
   _ -> []
 
-registerCoverage :: forall fmt arch . KnownRepr FormatRepr fmt => [InstExpr fmt arch 1]
-registerCoverage = case knownRepr :: FormatRepr fmt of
+regBitCoverage :: forall fmt arch . (KnownArch arch, KnownRepr FormatRepr fmt) => [InstExpr fmt arch 1]
+regBitCoverage = case knownRepr :: FormatRepr fmt of
   RRepr -> let ra :< rb :< rc :< Nil = operandEsWithRepr RRepr
-           in singleRegisterCoverage ra ++
-              singleRegisterCoverage rb ++
-              singleRegisterCoverage rc
+           in exprBitCoverage (readReg ra) ++
+              exprBitCoverage (readReg rb) ++
+              exprBitCoverage (readReg rc)
   IRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr IRepr
-           in singleRegisterCoverage ra ++
-              singleRegisterCoverage rb
+           in exprBitCoverage (readReg ra) ++
+              exprBitCoverage (readReg rb)
   SRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr SRepr
-           in singleRegisterCoverage ra ++
-              singleRegisterCoverage rb
+           in exprBitCoverage (readReg ra) ++
+              exprBitCoverage (readReg rb)
   BRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr BRepr
-           in singleRegisterCoverage ra ++
-              singleRegisterCoverage rb
+           in exprBitCoverage (readReg ra) ++
+              exprBitCoverage (readReg rb)
   URepr -> let ra :< _ :< Nil = operandEsWithRepr URepr
-           in singleRegisterCoverage ra
+           in exprBitCoverage (readReg ra)
   JRepr -> let ra :< _ :< Nil = operandEsWithRepr JRepr
-           in singleRegisterCoverage ra
+           in exprBitCoverage (readReg ra)
   HRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr HRepr
-           in singleRegisterCoverage ra ++
-              singleRegisterCoverage rb
+           in exprBitCoverage (readReg ra) ++
+              exprBitCoverage (readReg rb)
   PRepr -> []
   ARepr -> let ra :< rb :< rc :< _ :< _ :< Nil = operandEsWithRepr ARepr
-           in singleRegisterCoverage ra ++
-              singleRegisterCoverage rb ++
-              singleRegisterCoverage rc
+           in exprBitCoverage (readReg ra) ++
+              exprBitCoverage (readReg rb) ++
+              exprBitCoverage (readReg rc)
   _ -> []
 
-generalCoverage :: forall fmt arch . KnownRepr FormatRepr fmt => [InstExpr fmt arch 1]
-generalCoverage = immBitCoverage
+singleRidCoverage :: InstExpr fmt arch 5 -> [InstExpr fmt arch 1]
+singleRidCoverage rid = ridCovExpr <$> [0..31]
+  where ridCovExpr bv = rid `eqE` litBV bv
 
-baseCoverage :: CoverageMap arch exts
+ridCoverage :: forall fmt arch . KnownRepr FormatRepr fmt => [InstExpr fmt arch 1]
+ridCoverage = case knownRepr :: FormatRepr fmt of
+  RRepr -> let ra :< rb :< rc :< Nil = operandEsWithRepr RRepr
+           in singleRidCoverage ra ++
+              singleRidCoverage rb ++
+              singleRidCoverage rc
+  IRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr IRepr
+           in singleRidCoverage ra ++
+              singleRidCoverage rb
+  SRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr SRepr
+           in singleRidCoverage ra ++
+              singleRidCoverage rb
+  BRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr BRepr
+           in singleRidCoverage ra ++
+              singleRidCoverage rb
+  URepr -> let ra :< _ :< Nil = operandEsWithRepr URepr
+           in singleRidCoverage ra
+  JRepr -> let ra :< _ :< Nil = operandEsWithRepr JRepr
+           in singleRidCoverage ra
+  HRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr HRepr
+           in singleRidCoverage ra ++
+              singleRidCoverage rb
+  PRepr -> []
+  ARepr -> let ra :< rb :< rc :< _ :< _ :< Nil = operandEsWithRepr ARepr
+           in singleRidCoverage ra ++
+              singleRidCoverage rb ++
+              singleRidCoverage rc
+  _ -> []
+
+generalCoverage :: forall fmt arch . (KnownArch arch, KnownRepr FormatRepr fmt) => [InstExpr fmt arch 1]
+generalCoverage = regBitCoverage ++ immBitCoverage
+
+baseCoverage :: KnownArch arch => CoverageMap arch exts
 baseCoverage = Map.fromList
   [ -- RV32I
     -- R type

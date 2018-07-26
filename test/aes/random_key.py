@@ -1,7 +1,8 @@
 import random
 import os
 
-for i in range(0,100):
+# grift takes forever with the coverage analysis it's doing now, so we only do this once
+for i in range(0,1):
     f = open("randomkey.h", "w")
 
     f.write("  BYTE key[] = { \n")
@@ -20,12 +21,12 @@ for i in range(0,100):
     f.close()
 
     os.system("riscv64-unknown-elf-gcc -o a aes.c aes_main.c")
-    os.system("riscv-sim 1000000 a >a.out")
+    os.system("grift 1000000 a >a.out")
 
     with open('a.out') as out:
         first_line = out.readline()
         # print first_line
 
-        if (first_line != 'MInstRet = 35460\n'):
+        if (first_line != 'MInstRet = 35459\n'):
             print "found aberration"
             break

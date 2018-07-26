@@ -25,4 +25,3 @@ int main()
 
   return decrypted_str[5]; // should be 0x4e
 }
-
