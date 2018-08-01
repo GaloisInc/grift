@@ -85,30 +85,23 @@ immBitCoverage = case knownRepr :: FormatRepr fmt of
 
 regBitCoverage :: forall fmt arch . (KnownArch arch, KnownRepr FormatRepr fmt) => [InstExpr fmt arch 1]
 regBitCoverage = case knownRepr :: FormatRepr fmt of
-  RRepr -> let ra :< rb :< rc :< Nil = operandEsWithRepr RRepr
-           in exprBitCoverage (readReg ra) ++
-              exprBitCoverage (readReg rb) ++
+  RRepr -> let _ :< rb :< rc :< Nil = operandEsWithRepr RRepr
+           in exprBitCoverage (readReg rb) ++
               exprBitCoverage (readReg rc)
-  IRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr IRepr
-           in exprBitCoverage (readReg ra) ++
-              exprBitCoverage (readReg rb)
-  SRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr SRepr
-           in exprBitCoverage (readReg ra) ++
-              exprBitCoverage (readReg rb)
-  BRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr BRepr
-           in exprBitCoverage (readReg ra) ++
-              exprBitCoverage (readReg rb)
-  URepr -> let ra :< _ :< Nil = operandEsWithRepr URepr
-           in exprBitCoverage (readReg ra)
-  JRepr -> let ra :< _ :< Nil = operandEsWithRepr JRepr
-           in exprBitCoverage (readReg ra)
-  HRepr -> let ra :< rb :< _ :< Nil = operandEsWithRepr HRepr
-           in exprBitCoverage (readReg ra) ++
-              exprBitCoverage (readReg rb)
+  IRepr -> let _ :< rb :< _ :< Nil = operandEsWithRepr IRepr
+           in exprBitCoverage (readReg rb)
+  SRepr -> let rs1 :< rs2 :< _ :< Nil = operandEsWithRepr SRepr
+           in exprBitCoverage (readReg rs1) ++
+              exprBitCoverage (readReg rs2)
+  BRepr -> let _ :< rb :< _ :< Nil = operandEsWithRepr BRepr
+           in exprBitCoverage (readReg rb)
+  URepr -> []
+  JRepr -> []
+  HRepr -> let _ :< rb :< _ :< Nil = operandEsWithRepr HRepr
+           in exprBitCoverage (readReg rb)
   PRepr -> []
-  ARepr -> let ra :< rb :< rc :< _ :< _ :< Nil = operandEsWithRepr ARepr
-           in exprBitCoverage (readReg ra) ++
-              exprBitCoverage (readReg rb) ++
+  ARepr -> let _ :< rb :< rc :< _ :< _ :< Nil = operandEsWithRepr ARepr
+           in exprBitCoverage (readReg rb) ++
               exprBitCoverage (readReg rc)
   _ -> []
 
