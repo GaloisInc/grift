@@ -57,38 +57,38 @@ import RISCV.Types
 -- implementation side? How would that work? Punting on this until we need to go
 -- deeper with the exception handling stuff.
 -- | State monad for simulating RISC-V code
-class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arch, m -> exts where
+class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
   -- | Get the current PC.
-  getPC   :: m (BitVector (ArchWidth arch))
+  getPC   :: m (BitVector (RVWidth rv))
   -- | Get the value of a register. This function shouldn't ever be called with an
   -- argument of 0, so there is no need to hardwire it to 0 in an implementation.
-  getReg  :: BitVector 5 -> m (BitVector (ArchWidth arch))
+  getReg  :: BitVector 5 -> m (BitVector (RVWidth rv))
   -- | Read some number of bytes from memory.
-  getMem  :: NatRepr bytes -> BitVector (ArchWidth arch) -> m (BitVector (8*bytes))
+  getMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> m (BitVector (8*bytes))
   -- | Get the value of a CSR.
-  getCSR  :: BitVector 12 -> m (BitVector (ArchWidth arch))
+  getCSR  :: BitVector 12 -> m (BitVector (RVWidth rv))
   -- | Get the current privilege level.
   getPriv :: m (BitVector 2)
 
   -- | Set the PC.
-  setPC   :: BitVector (ArchWidth arch) -> m ()
+  setPC   :: BitVector (RVWidth rv) -> m ()
   -- | Write to a register.
-  setReg  :: BitVector 5 -> BitVector (ArchWidth arch) -> m ()
+  setReg  :: BitVector 5 -> BitVector (RVWidth rv) -> m ()
   -- | Write a single byte to memory.
-  setMem  :: NatRepr bytes -> BitVector (ArchWidth arch) -> BitVector (8*bytes) -> m ()
+  setMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> BitVector (8*bytes) -> m ()
   -- | Write to a CSR.
-  setCSR  :: BitVector 12 -> BitVector (ArchWidth arch) -> m ()
+  setCSR  :: BitVector 12 -> BitVector (RVWidth rv) -> m ()
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
 
   -- | Log the execution of a particular instruction.
-  logInstruction :: InstructionSet arch exts -> Instruction arch exts fmt -> m ()
+  logInstruction :: InstructionSet rv -> Instruction rv fmt -> m ()
 
 -- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
-evalLocExpr :: forall m expr arch exts w
-               . (RVStateM m arch exts, KnownArch arch)
+evalLocExpr :: forall m expr rv w
+               . (RVStateM m rv, KnownRV rv)
             => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
-            -> LocExpr expr arch exts w
+            -> LocExpr expr rv w
             -> m (BitVector w)
 evalLocExpr _ PCExpr = getPC
 evalLocExpr eval (RegExpr ridE) = eval ridE >>= getReg
@@ -99,29 +99,29 @@ evalLocExpr eval (CSRExpr csrE) = eval csrE >>= getCSR
 evalLocExpr _ PrivExpr = getPriv
 
 -- | Evaluate a 'StateExpr', given an 'RVStateM' implementation.
-evalStateExpr :: forall m expr arch exts w
-                 . (RVStateM m arch exts, KnownArch arch)
+evalStateExpr :: forall m expr rv w
+                 . (RVStateM m rv, KnownRV rv)
               => (forall w' . expr w' -> m (BitVector w'))
                  -- ^ evaluator for internal expressions
-              -> StateExpr expr arch exts w
+              -> StateExpr expr rv w
               -> m (BitVector w)
 evalStateExpr eval (LocExpr e) = evalLocExpr eval e
 evalStateExpr eval (AppExpr e) = evalBVAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
-evalPureStateExpr :: forall m arch exts w
-                 . (RVStateM m arch exts, KnownArch arch)
-              => PureStateExpr arch exts w
+evalPureStateExpr :: forall m rv w
+                 . (RVStateM m rv, KnownRV rv)
+              => PureStateExpr rv w
               -> m (BitVector w)
 evalPureStateExpr (PureStateExpr e) = evalStateExpr evalPureStateExpr e
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
-evalInstExpr :: forall m arch exts fmt w
-            . (RVStateM m arch exts, KnownArch arch)
-             => InstructionSet arch exts
-             -> Instruction arch exts fmt -- ^ instruction
+evalInstExpr :: forall m rv fmt w
+            . (RVStateM m rv, KnownRV rv)
+             => InstructionSet rv
+             -> Instruction rv fmt -- ^ instruction
              -> Integer          -- ^ Instruction width (in bytes)
-             -> InstExpr fmt arch exts w  -- ^ Expression to be evaluated
+             -> InstExpr fmt rv w  -- ^ Expression to be evaluated
              -> m (BitVector w)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalInstExpr _ _ ib InstBytes = return $ bitVector ib
@@ -132,28 +132,28 @@ evalInstExpr iset inst ib (InstStateExpr e) = evalStateExpr (evalInstExpr iset i
 -- expressions have been evaluated. It is in direct correspondence with the 'LocExpr'
 -- type from RISCV.Semantics. Unlike that type, however, this will never appear on
 -- the right-hand side of an assignment, only the left-hand side.
-data Loc arch exts w where
-  PC :: Loc arch exts (ArchWidth arch)
-  Reg :: BitVector 5 -> Loc arch exts (ArchWidth arch)
-  Mem :: NatRepr bytes -> BitVector (ArchWidth arch) -> Loc arch exts (8*bytes)
-  Res :: BitVector (ArchWidth arch) -> Loc arch exts 1
-  CSR :: BitVector 12 -> Loc arch exts (ArchWidth arch)
-  Priv :: Loc arch exts 2
+data Loc rv w where
+  PC :: Loc rv (RVWidth rv)
+  Reg :: BitVector 5 -> Loc rv (RVWidth rv)
+  Mem :: NatRepr bytes -> BitVector (RVWidth rv) -> Loc rv (8*bytes)
+  Res :: BitVector (RVWidth rv) -> Loc rv 1
+  CSR :: BitVector 12 -> Loc rv (RVWidth rv)
+  Priv :: Loc rv 2
 
 -- | This type represents a concrete assignment statement, where the left-hand side
 -- is a known location and the right-hand side is a known BitVector value. Because we
 -- are still abstracting out the notion of throwing an exception, we also have a
 -- constructor for that; however, this will be removed once we wire exception
 -- handling into the semantics themselves.
-data Assignment (arch :: BaseArch) (exts :: Extensions) where
-  Assignment :: Loc arch exts w -> BitVector w -> Assignment arch exts
-  Branch :: BitVector 1 -> Seq (Assignment arch exts) -> Seq (Assignment arch exts) -> Assignment arch exts
+data Assignment (rv :: RV) where
+  Assignment :: Loc rv w -> BitVector w -> Assignment rv
+  Branch :: BitVector 1 -> Seq (Assignment rv) -> Seq (Assignment rv) -> Assignment rv
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
-buildAssignment :: (RVStateM m arch exts, KnownArch arch)
+buildAssignment :: (RVStateM m rv, KnownRV rv)
                      => (forall w . expr w -> m (BitVector w))
-                     -> Stmt expr arch exts
-                     -> m (Assignment arch exts)
+                     -> Stmt expr rv
+                     -> m (Assignment rv)
 buildAssignment eval (AssignStmt PCExpr pcE) = do
   pcVal <- eval pcE
   return (Assignment PC pcVal)
@@ -183,7 +183,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
   return (Branch condVal tAssignments fAssignments)
 
 -- | Execute an assignment.
-execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch exts -> m ()
+execAssignment :: (RVStateM m rv, KnownRV rv) => Assignment rv -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
@@ -198,18 +198,17 @@ execAssignment (Branch condVal tAssignments fAssignments) =
     _ -> traverse_ execAssignment fAssignments
 
 -- | Execute a formula, given an 'RVStateM' implementation.
-execFormula :: forall m expr arch exts . (RVStateM m arch exts, KnownArch arch)
+execFormula :: forall m expr rv . (RVStateM m rv, KnownRV rv)
              => (forall w . expr w -> m (BitVector w))
-             -> Formula expr arch exts
+             -> Formula expr rv
              -> m ()
 execFormula eval f = do
   assignments <- traverse (buildAssignment eval) (f ^. fDefs)
   traverse_ execAssignment assignments
 
 -- | Fetch, decode, and execute a single instruction.
-stepRV :: forall m arch exts
-          . (RVStateM m arch exts, KnownArch arch, KnownExtensions exts)
-       => InstructionSet arch exts
+stepRV :: forall m rv . (RVStateM m rv, KnownRV rv)
+       => InstructionSet rv
        -> m ()
 stepRV iset = do
   -- Fetch
@@ -233,17 +232,15 @@ stepRV iset = do
     assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
 
 -- | Check whether the machine has halted.
-isHalted :: (RVStateM m arch exts, KnownArch arch) => m Bool
+isHalted :: (RVStateM m rv, KnownRV rv) => m Bool
 isHalted = do
   mcause <- getCSR (encodeCSR MCause)
   return (mcause == 2 || mcause == 3 || mcause == 5 ||
           mcause == 7 || mcause == 8 || mcause == 11)
 
 -- | Run for a given number of steps.
-runRV :: forall m arch exts
-         . (RVStateM m arch exts, KnownArch arch, KnownExtensions exts)
-      => Int
-      -> m Int
+runRV :: forall m rv . (RVStateM m rv, KnownRV rv)
+      => Int -> m Int
 runRV = runRV' knownISet 0
   where runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
         runRV' iset currSteps maxSteps = do
@@ -258,31 +255,31 @@ runRV = runRV' knownISet 0
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Formula (InstExpr fmt arch exts) arch exts -> [InstExpr fmt arch exts 1]
+getTests :: Formula (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
 getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
 
-getTestsStmt :: Stmt (InstExpr fmt arch exts) arch exts -> [InstExpr fmt arch exts 1]
+getTestsStmt :: Stmt (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
 getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocExpr :: LocExpr (InstExpr fmt arch exts) arch exts w -> [InstExpr fmt arch exts 1]
+getTestsLocExpr :: LocExpr (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
 getTestsLocExpr (RegExpr   e) = getTestsInstExpr e
 getTestsLocExpr (MemExpr _ e) = getTestsInstExpr e
 getTestsLocExpr (ResExpr   e) = getTestsInstExpr e
 getTestsLocExpr (CSRExpr   e) = getTestsInstExpr e
 getTestsLocExpr _ = []
 
-getTestsStateExpr :: StateExpr (InstExpr fmt arch exts) arch exts w -> [InstExpr fmt arch exts 1]
+getTestsStateExpr :: StateExpr (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
 getTestsStateExpr (LocExpr e) = getTestsLocExpr e
 getTestsStateExpr (AppExpr e) = getTestsBVApp e
 
-getTestsInstExpr :: InstExpr fmt arch exts w -> [InstExpr fmt arch exts 1]
+getTestsInstExpr :: InstExpr fmt rv w -> [InstExpr fmt rv 1]
 getTestsInstExpr (OperandExpr _) = []
 getTestsInstExpr InstBytes = []
 getTestsInstExpr InstWord = []
 getTestsInstExpr (InstStateExpr e) = getTestsStateExpr e
 
-getTestsBVApp :: BVApp (InstExpr fmt arch exts) w -> [InstExpr fmt arch exts 1]
+getTestsBVApp :: BVApp (InstExpr fmt rv) w -> [InstExpr fmt rv 1]
 getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
 getTestsBVApp app = foldMapFC getTestsInstExpr app

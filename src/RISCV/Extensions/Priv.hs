@@ -35,16 +35,16 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
-privm :: KnownArch arch => InstructionSet arch exts
+privm :: KnownRV rv => InstructionSet rv
 privm = instructionSet privmEncode privmSemantics
 
-privmEncode :: EncodeMap arch exts
+privmEncode :: EncodeMap rv
 privmEncode = Map.fromList
   [ Pair Mret (OpBits PRepr (0b00110000001000000000000001110011 :< Nil))
   , Pair Wfi  (OpBits PRepr (0b00010000010100000000000001110011 :< Nil))
   ]
 
-privmSemantics :: KnownArch arch => SemanticsMap arch exts
+privmSemantics :: KnownRV rv => SemanticsMap rv
 privmSemantics = Map.fromList
   [ Pair Mret $ InstFormula $ getFormula $ do
       comment "Returns from a machine-mode exception handler."

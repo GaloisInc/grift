@@ -40,14 +40,14 @@ import RISCV.Types
 import Debug.Trace (traceM)
 
 -- | RV32I/E base instruction set.
-base32 :: (KnownArch arch) => InstructionSet arch exts
+base32 :: KnownRV rv => InstructionSet rv
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 :: (KnownArch arch, 64 <= ArchWidth arch) => InstructionSet arch exts
+base64 :: (KnownRV rv, 64 <= RVWidth rv) => InstructionSet rv
 base64 = base32 <> instructionSet base64Encode base64Semantics
 
-baseEncode :: EncodeMap arch exts
+baseEncode :: EncodeMap rv
 baseEncode = Map.fromList
   [ -- RV32I
     -- R type
@@ -117,7 +117,7 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: forall arch exts . KnownArch arch => SemanticsMap arch exts
+baseSemantics :: forall rv . KnownRV rv => SemanticsMap rv
 baseSemantics = Map.fromList
   [ Pair Add $ InstFormula $ getFormula $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -533,7 +533,7 @@ baseSemantics = Map.fromList
       raiseException IllegalInstruction iw
   ]
 
-base64Encode :: 64 <= ArchWidth arch => EncodeMap arch exts
+base64Encode :: 64 <= RVWidth rv => EncodeMap rv
 base64Encode = Map.fromList
   [ Pair Addw  (OpBits RRepr (0b0111011 :< 0b000 :< 0b0000000 :< Nil))
   , Pair Subw  (OpBits RRepr (0b0111011 :< 0b000 :< 0b0100000 :< Nil))
@@ -549,7 +549,7 @@ base64Encode = Map.fromList
   , Pair Sd    (OpBits SRepr (0b0100011 :< 0b011 :< Nil))
   ]
 
-base64Semantics :: (KnownArch arch, 64 <= ArchWidth arch) => SemanticsMap arch exts
+base64Semantics :: (KnownRV rv, 64 <= RVWidth rv) => SemanticsMap rv
 base64Semantics = Map.fromList
   [ Pair Addw $ InstFormula $ getFormula $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."

@@ -62,14 +62,14 @@ import Debug.Trace (traceM)
 
 -- TODO: get rid of unused IORefs
 -- | IO-based machine state.
-data LogMachine (arch :: BaseArch) (exts :: Extensions) = LogMachine
-  { ioPC        :: IORef (BitVector (ArchWidth arch))
-  , ioRegisters :: IOArray (BitVector 5) (BitVector (ArchWidth arch))
-  , ioMemory    :: IOArray (BitVector (ArchWidth arch)) (BitVector 8)
-  , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (ArchWidth arch)))
+data LogMachine (rv :: RV) = LogMachine
+  { ioPC        :: IORef (BitVector (RVWidth rv))
+  , ioRegisters :: IOArray (BitVector 5) (BitVector (RVWidth rv))
+  , ioMemory    :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
+  , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
   , ioPriv      :: IORef (BitVector 2)
-  , ioMaxAddr   :: BitVector (ArchWidth arch)
-  , ioTestMap   :: IORef (Map (Some (Opcode arch exts)) [BitVector 1])
+  , ioMaxAddr   :: BitVector (RVWidth rv)
+  , ioTestMap   :: IORef (Map (Some (Opcode rv)) [BitVector 1])
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -82,12 +82,12 @@ writeBS ix bs arr = do
 
 -- | Construct an LogMachine with a given maximum address, entry point, and list of
 -- (addr, bytestring) pairs to load into the memory.
-mkLogMachine :: forall arch exts .(KnownArch arch, KnownExtensions exts)
-             => BitVector (ArchWidth arch)
-             -> BitVector (ArchWidth arch)
-             -> BitVector (ArchWidth arch)
-             -> [(BitVector (ArchWidth arch), BS.ByteString)]
-             -> IO (LogMachine arch exts)
+mkLogMachine :: forall rv . KnownRV rv
+             => BitVector (RVWidth rv)
+             -> BitVector (RVWidth rv)
+             -> BitVector (RVWidth rv)
+             -> [(BitVector (RVWidth rv), BS.ByteString)]
+             -> IO (LogMachine rv)
 mkLogMachine maxAddr entryPoint sp byteStrings = do
   pc        <- newIORef entryPoint
   registers <- newArray (1, 31) 0
@@ -107,11 +107,11 @@ mkLogMachine maxAddr entryPoint sp byteStrings = do
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
 -- state.
-newtype LogMachineM (arch :: BaseArch) (exts :: Extensions) a =
-  LogMachineM { runLogMachineM :: ReaderT (LogMachine arch exts) IO a }
-  deriving (Functor, Applicative, Monad, R.MonadReader (LogMachine arch exts))
+newtype LogMachineM (rv :: RV) a =
+  LogMachineM { runLogMachineM :: ReaderT (LogMachine rv) IO a }
+  deriving (Functor, Applicative, Monad, R.MonadReader (LogMachine rv))
 
-instance (KnownArch arch, KnownExtensions exts) => RVStateM (LogMachineM arch exts) arch exts where
+instance KnownRV rv => RVStateM (LogMachineM rv) rv where
   getPC = LogMachineM $ do
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef
@@ -189,21 +189,18 @@ instance (KnownArch arch, KnownExtensions exts) => RVStateM (LogMachineM arch ex
           Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
 
 -- | Create an immutable copy of the register file.
-freezeRegisters :: LogMachine arch exts
-                -> IO (Array (BitVector 5) (BitVector (ArchWidth arch)))
+freezeRegisters :: LogMachine rv
+                -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
 freezeRegisters = freeze . ioRegisters
 
--- TODO: Why does this need KnownNat (ArchWidth arch) but freezeRegisters does not?
+-- TODO: Why does this need KnownNat (RVWidth rv) but freezeRegisters does not?
 -- | Create an immutable copy of the memory.
-freezeMemory :: KnownArch arch
-             => LogMachine arch exts
-             -> IO (Array (BitVector (ArchWidth arch)) (BitVector 8))
+freezeMemory :: KnownRV rv
+             => LogMachine rv
+             -> IO (Array (BitVector (RVWidth rv)) (BitVector 8))
 freezeMemory = freeze . ioMemory
 
 -- | Run the simulator for a given number of steps.
-runLogMachine :: (KnownArch arch, KnownExtensions exts)
-             => Int
-             -> LogMachine arch exts
-             -> IO Int
+runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachine steps m =
   flip runReaderT m $ runLogMachineM $ runRV steps

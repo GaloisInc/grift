@@ -72,14 +72,11 @@ rElf (RV32Elf e) = e
 rElf (RV64Elf e) = e
 
 runElf :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
-       => Int
-       -> FilePath
-       -> RISCVElf arch
-       -> IO ()
+       => Int -> FilePath -> RISCVElf arch -> IO ()
 runElf stepsToRun logFile re = do
   let e = rElf re
       byteStrings = elfBytes e
-  m :: LogMachine arch SimExts <-
+  m :: LogMachine (RVConfig '(arch, SimExts)) <-
     mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) 0x10000 byteStrings
   runLogMachine stepsToRun m
 

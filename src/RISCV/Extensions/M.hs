@@ -35,14 +35,14 @@ import RISCV.Semantics
 import RISCV.Types
 
 -- | M extension (RV32)
-m32 :: (KnownArch arch, MExt << exts) => InstructionSet arch exts
+m32 :: (KnownRV rv, MExt << rv) => InstructionSet rv
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownArch arch, 64 <= ArchWidth arch, MExt << exts) => InstructionSet arch exts
+m64 :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => InstructionSet rv
 m64 = m32 <> instructionSet m64Encode m64Semantics
 
-mEncode :: MExt << exts => EncodeMap arch exts
+mEncode :: MExt << rv => EncodeMap rv
 mEncode = Map.fromList
   [ Pair Mul    (OpBits RRepr (0b0110011 :< 0b000 :< 0b0000001 :< Nil))
   , Pair Mulh   (OpBits RRepr (0b0110011 :< 0b001 :< 0b0000001 :< Nil))
@@ -54,7 +54,7 @@ mEncode = Map.fromList
   , Pair Remu   (OpBits RRepr (0b0110011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
-m64Encode :: (64 <= ArchWidth arch, MExt << exts) => EncodeMap arch exts
+m64Encode :: (64 <= RVWidth rv, MExt << rv) => EncodeMap rv
 m64Encode = Map.fromList
   [ Pair Mulw  (OpBits RRepr (0b0111011 :< 0b000 :< 0b0000001 :< Nil))
   , Pair Divw  (OpBits RRepr (0b0111011 :< 0b100 :< 0b0000001 :< Nil))
@@ -63,7 +63,7 @@ m64Encode = Map.fromList
   , Pair Remuw (OpBits RRepr (0b0111011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
-mSemantics :: forall arch exts . (KnownArch arch, MExt << exts) => SemanticsMap arch exts
+mSemantics :: forall rv . (KnownRV rv, MExt << rv) => SemanticsMap rv
 mSemantics = Map.fromList
   [ Pair Mul $ InstFormula $ getFormula $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
@@ -193,7 +193,7 @@ mSemantics = Map.fromList
 
   ]
 
-m64Semantics :: (KnownArch arch, 64 <= ArchWidth arch, MExt << exts) => SemanticsMap arch exts
+m64Semantics :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => SemanticsMap rv
 m64Semantics = Map.fromList
   [ Pair Mulw $ InstFormula $ getFormula $ do
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."

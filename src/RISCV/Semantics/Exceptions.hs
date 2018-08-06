@@ -133,10 +133,10 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
 -- through to mtval, so this should be a configurable option at the type level.
 
 -- | Semantics for raising an exception.
-raiseException :: (BVExpr (expr arch exts), RVStateExpr expr, KnownArch arch)
+raiseException :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
                => Exception
-               -> expr arch exts (ArchWidth arch)
-               -> FormulaBuilder (expr arch exts) arch exts ()
+               -> expr rv (RVWidth rv)
+               -> FormulaBuilder (expr rv) rv ()
 raiseException e info = do
   -- Exception handling TODO:
   -- * For interrupts, PC should be incremented.

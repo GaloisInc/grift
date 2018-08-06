@@ -36,24 +36,24 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
-getArchWidth :: forall arch exts fmt . KnownArch arch => FormulaBuilder (InstExpr fmt arch exts) arch exts (NatRepr (ArchWidth arch))
-getArchWidth = return (knownNat @(ArchWidth arch))
+getArchWidth :: forall rv fmt . KnownRV rv => FormulaBuilder (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
+getArchWidth = return (knownNat @(RVWidth rv))
 
 -- | Increment the PC
-incrPC :: KnownArch arch => FormulaBuilder (InstExpr fmt arch exts) arch exts ()
+incrPC :: KnownRV rv => FormulaBuilder (InstExpr fmt rv) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
   assignPC $ pc `addE` (zextE ib)
 
 -- | Type of arithmetic operator in 'FormulaBuilder'.
-type ArithOp arch exts fmt w
-  =  InstExpr fmt arch exts (ArchWidth arch)
-  -> InstExpr fmt arch exts (ArchWidth arch)
-  -> FormulaBuilder (InstExpr fmt arch exts) arch exts (InstExpr fmt arch exts w)
+type ArithOp rv fmt w
+  =  InstExpr fmt rv (RVWidth rv)
+  -> InstExpr fmt rv (RVWidth rv)
+  -> FormulaBuilder (InstExpr fmt rv) rv (InstExpr fmt rv w)
 
 -- | Define an R-type operation in 'FormulaBuilder' from an 'ArithOp'.
-rOp :: KnownArch arch => ArithOp arch exts  R (ArchWidth arch) -> FormulaBuilder (InstExpr R arch exts) arch exts ()
+rOp :: KnownRV rv => ArithOp rv  R (RVWidth rv) -> FormulaBuilder (InstExpr R rv) rv ()
 rOp op = do
   rd :< rs1 :< rs2 :< Nil <- operandEs
 
@@ -66,7 +66,7 @@ rOp op = do
 
 -- | Like 'rOp', but truncate the result to 32 bits before storing the result in the
 -- destination register.
-rOp32 :: KnownArch arch => ArithOp arch exts R w -> FormulaBuilder (InstExpr R arch exts) arch exts ()
+rOp32 :: KnownRV rv => ArithOp rv R w -> FormulaBuilder (InstExpr R rv) rv ()
 rOp32 op = do
   rd :< rs1 :< rs2 :< Nil  <- operandEs
 
@@ -78,7 +78,7 @@ rOp32 op = do
   incrPC
 
 -- | Define an I-type arithmetic operation in 'FormulaBuilder' from an 'ArithOp'.
-iOp :: KnownArch arch => ArithOp arch exts I (ArchWidth arch) -> FormulaBuilder (InstExpr I arch exts) arch exts ()
+iOp :: KnownRV rv => ArithOp rv I (RVWidth rv) -> FormulaBuilder (InstExpr I rv) rv ()
 iOp op = do
   rd :< rs1 :< imm12 :< Nil <- operandEs
 
@@ -89,12 +89,12 @@ iOp op = do
   incrPC
 
 -- | Generic comparison operator.
-type CompOp arch exts fmt = InstExpr fmt arch exts (ArchWidth arch)
-                    -> InstExpr fmt arch exts (ArchWidth arch)
-                    -> InstExpr fmt arch exts 1
+type CompOp rv fmt = InstExpr fmt rv (RVWidth rv)
+                    -> InstExpr fmt rv (RVWidth rv)
+                    -> InstExpr fmt rv 1
 
 -- | Generic branch.
-b :: KnownArch arch => CompOp arch exts B -> FormulaBuilder (InstExpr B arch exts) arch exts ()
+b :: KnownRV rv => CompOp rv B -> FormulaBuilder (InstExpr B rv) rv ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
@@ -108,11 +108,11 @@ b cmp = do
 
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
-checkCSR :: KnownArch arch
-         => InstExpr fmt arch exts 1
-         -> InstExpr fmt arch exts 12
-         -> FormulaBuilder (InstExpr fmt arch exts) arch exts ()
-         -> FormulaBuilder (InstExpr fmt arch exts) arch exts ()
+checkCSR :: KnownRV rv
+         => InstExpr fmt rv 1
+         -> InstExpr fmt rv 12
+         -> FormulaBuilder (InstExpr fmt rv) rv ()
+         -> FormulaBuilder (InstExpr fmt rv) rv ()
 checkCSR write csr rst = do
   let priv = readPriv
   let csrRW = extractEWithRepr (knownNat @2) 10 csr

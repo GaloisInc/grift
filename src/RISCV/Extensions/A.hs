@@ -1,4 +1,4 @@
-{-# LANGUAGE BinaryLiterals   #-}
+{-# Language BinaryLiterals   #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -36,14 +36,14 @@ import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | A extension (RV32)
-a32 :: (KnownArch arch, AExt << exts) => InstructionSet arch exts
+a32 :: (KnownRV rv, AExt << rv) => InstructionSet rv
 a32 = instructionSet aEncode aSemantics
 
 -- | A extension (RV64)
-a64 :: (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => InstructionSet arch exts
+a64 :: (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => InstructionSet rv
 a64 = a32 <> instructionSet a64Encode a64Semantics
 
-aEncode :: AExt << exts => EncodeMap arch exts
+aEncode :: AExt << rv => EncodeMap rv
 aEncode = Map.fromList
   [ Pair Lrw      (OpBits ARepr (0b0101111 :< 0b010 :< 0b00010 :< Nil))
   , Pair Scw      (OpBits ARepr (0b0101111 :< 0b010 :< 0b00011 :< Nil))
@@ -58,7 +58,7 @@ aEncode = Map.fromList
   , Pair Amomaxuw (OpBits ARepr (0b0101111 :< 0b010 :< 0b11100 :< Nil))
   ]
 
-a64Encode :: (64 <= ArchWidth arch, AExt << exts) => EncodeMap arch exts
+a64Encode :: (64 <= RVWidth rv, AExt << rv) => EncodeMap rv
 a64Encode = Map.fromList
   [ Pair Lrd      (OpBits ARepr (0b0101111 :< 0b011 :< 0b00010 :< Nil))
   , Pair Scd      (OpBits ARepr (0b0101111 :< 0b011 :< 0b00011 :< Nil))
@@ -73,7 +73,7 @@ a64Encode = Map.fromList
   , Pair Amomaxud (OpBits ARepr (0b0101111 :< 0b011 :< 0b11100 :< Nil))
   ]
 
-aSemantics :: forall arch exts . (KnownArch arch, AExt << exts) => SemanticsMap arch exts
+aSemantics :: forall rv . (KnownRV rv, AExt << rv) => SemanticsMap rv
 aSemantics = Map.fromList
   [ Pair Lrw $ InstFormula $ getFormula $ do
       comment "Loads the four bytes from memory at address x[rs1]."
@@ -160,9 +160,9 @@ aSemantics = Map.fromList
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp32 :: KnownArch arch
-        => (InstExpr A arch exts 32 -> InstExpr A arch exts 32 -> InstExpr A arch exts 32)
-        -> FormulaBuilder (InstExpr A arch exts) arch exts ()
+amoOp32 :: KnownRV rv
+        => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
+        -> FormulaBuilder (InstExpr A rv) rv ()
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
@@ -176,7 +176,7 @@ amoOp32 op = do
       incrPC
 
 
-a64Semantics :: forall arch exts . (KnownArch arch, 64 <= ArchWidth arch, AExt << exts) => SemanticsMap arch exts
+a64Semantics :: forall rv . (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
 a64Semantics = Map.fromList
   [ Pair Lrd $ InstFormula $ getFormula $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
@@ -260,9 +260,9 @@ a64Semantics = Map.fromList
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp64 :: KnownArch arch
-        => (InstExpr A arch exts 64 -> InstExpr A arch exts 64 -> InstExpr A arch exts 64)
-        -> FormulaBuilder (InstExpr A arch exts) arch exts ()
+amoOp64 :: KnownRV rv
+        => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
+        -> FormulaBuilder (InstExpr A rv) rv ()
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 

@@ -13,6 +13,7 @@
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 {-|
 Module      : RISCV.Types
@@ -43,10 +44,15 @@ representation of a RISC-V instruction.
 -}
 
 module RISCV.Types
-  ( -- * Base architecture
-    BaseArch(..), type RV32, type RV64, type RV128
-  , BaseArchRepr(..)
+  ( -- * RISC-V Configuration
+    RV(..), type RVConfig
+  , RVRepr(..)
+  , RVWidth, type (<<)
+  , KnownRV
+    -- * Base architecture
+  , BaseArch(..), type RV32, type RV64, type RV128
   , ArchWidth
+  , BaseArchRepr(..)
   , KnownArch
     -- * Extensions
   , Extensions(..), type Exts
@@ -61,7 +67,7 @@ module RISCV.Types
   , FDConfigRepr(..)
   , KnownExtensions
   , Extension(..), type AExt, type DExt, type FExt, type MExt, type SExt, type UExt
-  , ExtensionsContains, type (<<)
+  , ExtensionsContains
   -- * Instructions
   , Format(..), type R, type I, type S, type B, type U, type J, type A, type X
   , FormatRepr(..)
@@ -78,6 +84,7 @@ import Data.BitVector.Sized
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
+import GHC.Exts (Constraint)
 import GHC.TypeLits
 
 ----------------------------------------
@@ -97,15 +104,13 @@ data BaseArchRepr :: BaseArch -> * where
   RV64Repr  :: BaseArchRepr RV64
   RV128Repr :: BaseArchRepr RV128
 
--- | Maps an architecture to its register width.
 type family ArchWidth (arch :: BaseArch) :: Nat where
-  ArchWidth RV32  = 32
-  ArchWidth RV64  = 64
+  ArchWidth RV32 = 32
+  ArchWidth RV64 = 64
   ArchWidth RV128 = 128
 
 -- | Everything we might need to know about a 'BaseArch' at compile time.
-type KnownArch arch = ( KnownNat (ArchWidth arch)
-                      , KnownRepr BaseArchRepr arch)
+type KnownArch arch = (KnownRepr BaseArchRepr arch, KnownNat (ArchWidth arch))
 
 -- Instances
 $(return [])
@@ -237,9 +242,31 @@ type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool whe
   ExtensionsContains (Exts '(PrivMSU, _, _, _))    SExt = 'True
   ExtensionsContains _ _ = 'False
 
+----------------------------------------
+-- | RISC-V Configuration data kind. This is mainly provided as a wrapper for the
+-- arch and exts type variables, to keep them in one place.
+data RV = RVConfig (BaseArch, Extensions)
+
+type RVConfig = 'RVConfig
+
+data RVRepr :: RV -> * where
+  RVRepr :: BaseArchRepr arch -> ExtensionsRepr exts -> RVRepr (RVConfig '(arch, exts))
+
+instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(arch, exts)) where
+  knownRepr = RVRepr knownRepr knownRepr
+
+type family KnownRV (rv :: RV) :: Constraint where
+  KnownRV rv = (KnownRepr RVRepr rv, KnownNat (RVWidth rv))
+
+type family RVWidth (rv :: RV) :: Nat where
+  RVWidth (RVConfig '(arch, _)) = ArchWidth arch
+  -- RVWidth (RVConfig '(RV32, _)) = 32
+  -- RVWidth (RVConfig '(RV64, _)) = 64
+  -- RVWidth (RVConfig '(RV128, _)) = 128
+
 -- | 'ExtensionsContains' in constraint form.
-type (<<) (e :: Extension) (exts :: Extensions)
-  = ExtensionsContains exts e ~ 'True
+type family (<<) (e :: Extension) (rv :: RV) where
+  e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
 
 ----------------------------------------
 -- Formats
@@ -378,148 +405,148 @@ instance OrdF OpBits where
 -- push the distinction into the semantics. It is a shame that these instruction
 -- weren't encoded differently; if they used different OpBits, this could have been
 -- avoided. Similarly, 'Ecall' and 'Ebreak' are combined into a single instruction.
-data Opcode :: BaseArch -> Extensions -> Format -> * where
+data Opcode :: RV -> Format -> * where
 
   -- RV32
-  Add  :: Opcode arch exts R
-  Sub  :: Opcode arch exts R
-  Sll  :: Opcode arch exts R
-  Slt  :: Opcode arch exts R
-  Sltu :: Opcode arch exts R
-  Xor  :: Opcode arch exts R
-  Srl  :: Opcode arch exts R
-  Sra  :: Opcode arch exts R
-  Or   :: Opcode arch exts R
-  And  :: Opcode arch exts R
+  Add  :: Opcode rv R
+  Sub  :: Opcode rv R
+  Sll  :: Opcode rv R
+  Slt  :: Opcode rv R
+  Sltu :: Opcode rv R
+  Xor  :: Opcode rv R
+  Srl  :: Opcode rv R
+  Sra  :: Opcode rv R
+  Or   :: Opcode rv R
+  And  :: Opcode rv R
 
-  Jalr    :: Opcode arch exts I
-  Lb      :: Opcode arch exts I
-  Lh      :: Opcode arch exts I
-  Lw      :: Opcode arch exts I
-  Lbu     :: Opcode arch exts I
-  Lhu     :: Opcode arch exts I
-  Addi    :: Opcode arch exts I
-  Slti    :: Opcode arch exts I
-  Sltiu   :: Opcode arch exts I
-  Xori    :: Opcode arch exts I
-  Ori     :: Opcode arch exts I
-  Andi    :: Opcode arch exts I
-  Fence   :: Opcode arch exts I
-  FenceI  :: Opcode arch exts I
-  Csrrw   :: Opcode arch exts I
-  Csrrs   :: Opcode arch exts I
-  Csrrc   :: Opcode arch exts I
-  Csrrwi  :: Opcode arch exts I
-  Csrrsi  :: Opcode arch exts I
-  Csrrci  :: Opcode arch exts I
+  Jalr    :: Opcode rv I
+  Lb      :: Opcode rv I
+  Lh      :: Opcode rv I
+  Lw      :: Opcode rv I
+  Lbu     :: Opcode rv I
+  Lhu     :: Opcode rv I
+  Addi    :: Opcode rv I
+  Slti    :: Opcode rv I
+  Sltiu   :: Opcode rv I
+  Xori    :: Opcode rv I
+  Ori     :: Opcode rv I
+  Andi    :: Opcode rv I
+  Fence   :: Opcode rv I
+  FenceI  :: Opcode rv I
+  Csrrw   :: Opcode rv I
+  Csrrs   :: Opcode rv I
+  Csrrc   :: Opcode rv I
+  Csrrwi  :: Opcode rv I
+  Csrrsi  :: Opcode rv I
+  Csrrci  :: Opcode rv I
 
-  Slli    :: Opcode arch exts H
-  Srli    :: Opcode arch exts H
-  Srai    :: Opcode arch exts H
+  Slli    :: Opcode rv H
+  Srli    :: Opcode rv H
+  Srai    :: Opcode rv H
 
-  Ecall   :: Opcode arch exts P
-  Ebreak  :: Opcode arch exts P
+  Ecall   :: Opcode rv P
+  Ebreak  :: Opcode rv P
 
-  Sb :: Opcode arch exts S
-  Sh :: Opcode arch exts S
-  Sw :: Opcode arch exts S
+  Sb :: Opcode rv S
+  Sh :: Opcode rv S
+  Sw :: Opcode rv S
 
-  Beq  :: Opcode arch exts B
-  Bne  :: Opcode arch exts B
-  Blt  :: Opcode arch exts B
-  Bge  :: Opcode arch exts B
-  Bltu :: Opcode arch exts B
-  Bgeu :: Opcode arch exts B
+  Beq  :: Opcode rv B
+  Bne  :: Opcode rv B
+  Blt  :: Opcode rv B
+  Bge  :: Opcode rv B
+  Bltu :: Opcode rv B
+  Bgeu :: Opcode rv B
 
-  Lui   :: Opcode arch exts U
-  Auipc :: Opcode arch exts U
+  Lui   :: Opcode rv U
+  Auipc :: Opcode rv U
 
-  Jal :: Opcode arch exts J
+  Jal :: Opcode rv J
 
-  Illegal :: Opcode arch exts X
+  Illegal :: Opcode rv X
 
   -- RV64
-  Addw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Subw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Sllw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Srlw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Sraw   :: 64 <= ArchWidth arch => Opcode arch exts R
-  Slliw  :: 64 <= ArchWidth arch => Opcode arch exts R
-  Srliw  :: 64 <= ArchWidth arch => Opcode arch exts R
-  Sraiw  :: 64 <= ArchWidth arch => Opcode arch exts R
-  Lwu    :: 64 <= ArchWidth arch => Opcode arch exts I
-  Ld     :: 64 <= ArchWidth arch => Opcode arch exts I
-  Addiw  :: 64 <= ArchWidth arch => Opcode arch exts I
-  Sd     :: 64 <= ArchWidth arch => Opcode arch exts S
+  Addw   :: 64 <= RVWidth rv => Opcode rv R
+  Subw   :: 64 <= RVWidth rv => Opcode rv R
+  Sllw   :: 64 <= RVWidth rv => Opcode rv R
+  Srlw   :: 64 <= RVWidth rv => Opcode rv R
+  Sraw   :: 64 <= RVWidth rv => Opcode rv R
+  Slliw  :: 64 <= RVWidth rv => Opcode rv R
+  Srliw  :: 64 <= RVWidth rv => Opcode rv R
+  Sraiw  :: 64 <= RVWidth rv => Opcode rv R
+  Lwu    :: 64 <= RVWidth rv => Opcode rv I
+  Ld     :: 64 <= RVWidth rv => Opcode rv I
+  Addiw  :: 64 <= RVWidth rv => Opcode rv I
+  Sd     :: 64 <= RVWidth rv => Opcode rv S
 
   -- M privileged instructions
-  Mret :: Opcode arch exts P
-  Wfi  :: Opcode arch exts P
+  Mret :: Opcode rv P
+  Wfi  :: Opcode rv P
 
   -- RV32M
-  Mul    :: MExt << exts => Opcode arch exts R
-  Mulh   :: MExt << exts => Opcode arch exts R
-  Mulhsu :: MExt << exts => Opcode arch exts R
-  Mulhu  :: MExt << exts => Opcode arch exts R
-  Div    :: MExt << exts => Opcode arch exts R
-  Divu   :: MExt << exts => Opcode arch exts R
-  Rem    :: MExt << exts => Opcode arch exts R
-  Remu   :: MExt << exts => Opcode arch exts R
+  Mul    :: MExt << rv => Opcode rv R
+  Mulh   :: MExt << rv => Opcode rv R
+  Mulhsu :: MExt << rv => Opcode rv R
+  Mulhu  :: MExt << rv => Opcode rv R
+  Div    :: MExt << rv => Opcode rv R
+  Divu   :: MExt << rv => Opcode rv R
+  Rem    :: MExt << rv => Opcode rv R
+  Remu   :: MExt << rv => Opcode rv R
 
   -- RV64M
-  Mulw   :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
-  Divw   :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
-  Divuw  :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
-  Remw   :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
-  Remuw  :: (64 <= ArchWidth arch, MExt << exts) => Opcode arch exts R
+  Mulw   :: (64 <= RVWidth rv, MExt << rv) => Opcode rv R
+  Divw   :: (64 <= RVWidth rv, MExt << rv) => Opcode rv R
+  Divuw  :: (64 <= RVWidth rv, MExt << rv) => Opcode rv R
+  Remw   :: (64 <= RVWidth rv, MExt << rv) => Opcode rv R
+  Remuw  :: (64 <= RVWidth rv, MExt << rv) => Opcode rv R
 
   -- RV32A
-  Lrw      :: AExt << exts => Opcode arch exts A
-  Scw      :: AExt << exts => Opcode arch exts A
-  Amoswapw :: AExt << exts => Opcode arch exts A
-  Amoaddw  :: AExt << exts => Opcode arch exts A
-  Amoxorw  :: AExt << exts => Opcode arch exts A
-  Amoandw  :: AExt << exts => Opcode arch exts A
-  Amoorw   :: AExt << exts => Opcode arch exts A
-  Amominw  :: AExt << exts => Opcode arch exts A
-  Amomaxw  :: AExt << exts => Opcode arch exts A
-  Amominuw :: AExt << exts => Opcode arch exts A
-  Amomaxuw :: AExt << exts => Opcode arch exts A
+  Lrw      :: AExt << rv => Opcode rv A
+  Scw      :: AExt << rv => Opcode rv A
+  Amoswapw :: AExt << rv => Opcode rv A
+  Amoaddw  :: AExt << rv => Opcode rv A
+  Amoxorw  :: AExt << rv => Opcode rv A
+  Amoandw  :: AExt << rv => Opcode rv A
+  Amoorw   :: AExt << rv => Opcode rv A
+  Amominw  :: AExt << rv => Opcode rv A
+  Amomaxw  :: AExt << rv => Opcode rv A
+  Amominuw :: AExt << rv => Opcode rv A
+  Amomaxuw :: AExt << rv => Opcode rv A
 
   -- RV64A
-  Lrd      :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Scd      :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amoswapd :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amoaddd  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amoxord  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amoandd  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amoord   :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amomind  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amomaxd  :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amominud :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
-  Amomaxud :: (64 <= ArchWidth arch, AExt << exts) => Opcode arch exts A
+  Lrd      :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Scd      :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amoswapd :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amoaddd  :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amoxord  :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amoandd  :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amoord   :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amomind  :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amomaxd  :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amominud :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+  Amomaxud :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
 
 -- Instances
 $(return [])
-deriving instance Show (Opcode arch exts fmt)
-instance ShowF (Opcode arch exts)
-deriving instance Eq (Opcode arch exts fmt)
-instance EqF (Opcode arch exts) where
+deriving instance Show (Opcode rv fmt)
+instance ShowF (Opcode rv)
+deriving instance Eq (Opcode rv fmt)
+instance EqF (Opcode rv) where
   eqF = (==)
-instance TestEquality (Opcode arch exts) where
+instance TestEquality (Opcode rv) where
   testEquality = $(structuralTypeEquality [t|Opcode|] [])
-instance OrdF (Opcode arch exts) where
+instance OrdF (Opcode rv) where
   compareF = $(structuralTypeOrd [t|Opcode|] [])
 
 ----------------------------------------
 -- Instructions
 
 -- | RISC-V Instruction, parameterized by base architecture and format.
-data Instruction (arch :: BaseArch) (exts :: Extensions) (fmt :: Format) =
-  Inst (Opcode arch exts fmt) (Operands fmt)
+data Instruction (rv :: RV) (fmt :: Format) =
+  Inst (Opcode rv fmt) (Operands fmt)
 
 -- Instances
 $(return [])
-instance Show (Instruction arch exts fmt) where
+instance Show (Instruction rv fmt) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
-instance ShowF (Instruction arch exts)
+instance ShowF (Instruction rv)

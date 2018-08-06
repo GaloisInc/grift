@@ -51,25 +51,25 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 
 -- | IO-based machine state.
-data MapMachine (arch :: BaseArch) (exts :: Extensions) = MapMachine
-  { pc        :: BitVector (ArchWidth arch)
-  , registers :: Map (BitVector 5) (BitVector (ArchWidth arch))
-  , memory    :: Map (BitVector (ArchWidth arch)) (BitVector 8)
-  , csrs      :: Map (BitVector 12) (BitVector (ArchWidth arch))
+data MapMachine (rv :: RV) = MapMachine
+  { pc        :: BitVector (RVWidth rv)
+  , registers :: Map (BitVector 5) (BitVector (RVWidth rv))
+  , memory    :: Map (BitVector (RVWidth rv)) (BitVector 8)
+  , csrs      :: Map (BitVector 12) (BitVector (RVWidth rv))
   , priv      :: BitVector 2
-  , maxAddr   :: BitVector (ArchWidth arch)
+  , maxAddr   :: BitVector (RVWidth rv)
   , exception :: Maybe Exception
   , steps     :: Int
-  , testMap   :: Map (Some (Opcode arch exts)) [[BitVector 1]]
+  , testMap   :: Map (Some (Opcode rv)) [[BitVector 1]]
   }
 
 -- | Construct an MapMachine with a given maximum address, entry point, and list of
 -- (addr, bytestring) pairs to load into the memory.
-mkMapMachine :: (KnownArch arch, KnownExtensions exts)
-          => BitVector (ArchWidth arch)
-          -> BitVector (ArchWidth arch)
-          -> [(BitVector (ArchWidth arch), BS.ByteString)]
-          -> MapMachine arch exts
+mkMapMachine :: KnownRV rv
+             => BitVector (RVWidth rv)
+             -> BitVector (RVWidth rv)
+             -> [(BitVector (RVWidth rv), BS.ByteString)]
+             -> MapMachine rv
 mkMapMachine maxAddr' entryPoint byteStrings =
   MapMachine { pc = entryPoint
              , registers = Map.fromList (zip [1..31] (repeat 0))
@@ -87,11 +87,11 @@ mkMapMachine maxAddr' entryPoint byteStrings =
 -- | The 'MapMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
 -- state.
-newtype MapMachineM (arch :: BaseArch) (exts :: Extensions) a =
-  MapMachineM { runMapMachineM :: State (MapMachine arch exts) a }
-  deriving (Functor, Applicative, Monad, S.MonadState (MapMachine arch exts))
+newtype MapMachineM (rv :: RV) a =
+  MapMachineM { runMapMachineM :: State (MapMachine rv) a }
+  deriving (Functor, Applicative, Monad, S.MonadState (MapMachine rv))
 
-instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
+instance KnownRV rv => RVStateM (MapMachineM rv) rv where
   getPC = MapMachineM $ pc <$> get
   getReg rid = MapMachineM $ Map.findWithDefault 0 rid <$> registers <$> get
   getMem bytes addr = MapMachineM $ do
@@ -135,8 +135,5 @@ instance KnownArch arch => RVStateM (MapMachineM arch exts) arch exts where
       m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }
 
 -- | Run the simulator for a given number of steps.
-runMapMachine :: (KnownArch arch, KnownExtensions exts)
-             => Int
-             -> MapMachine arch exts
-             -> (Int, MapMachine arch exts)
+runMapMachine :: KnownRV rv=> Int -> MapMachine rv -> (Int, MapMachine rv)
 runMapMachine maxSteps m = flip runState m $ runMapMachineM $ runRV maxSteps
