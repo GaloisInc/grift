@@ -23,7 +23,7 @@ library
                      , RISCV.Extensions.M
                      , RISCV.Extensions.Priv
                      , RISCV.InstructionSet
-                     , RISCV.Latency
+--                     , RISCV.Latency
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
                      , RISCV.Simulation
@@ -58,7 +58,7 @@ executable grift
                      , RISCV.Extensions.M
                      , RISCV.Extensions.Priv
                      , RISCV.InstructionSet
-                     , RISCV.Latency
+--                     , RISCV.Latency
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
                      , RISCV.Simulation

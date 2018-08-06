@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs                  #-}
+{-# LANGUAGE PolyKinds              #-}
 {-# LANGUAGE Rank2Types             #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
 {-# LANGUAGE TypeApplications       #-}
@@ -87,7 +88,7 @@ class (Monad m) => RVStateM m (arch :: BaseArch) (exts :: Extensions) | m -> arc
 evalLocExpr :: forall m expr arch exts w
                . (RVStateM m arch exts, KnownArch arch)
             => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
-            -> LocExpr expr arch w
+            -> LocExpr expr arch exts w
             -> m (BitVector w)
 evalLocExpr _ PCExpr = getPC
 evalLocExpr eval (RegExpr ridE) = eval ridE >>= getReg
@@ -102,7 +103,7 @@ evalStateExpr :: forall m expr arch exts w
                  . (RVStateM m arch exts, KnownArch arch)
               => (forall w' . expr w' -> m (BitVector w'))
                  -- ^ evaluator for internal expressions
-              -> StateExpr expr arch w
+              -> StateExpr expr arch exts w
               -> m (BitVector w)
 evalStateExpr eval (LocExpr e) = evalLocExpr eval e
 evalStateExpr eval (AppExpr e) = evalBVAppM eval e
@@ -110,7 +111,7 @@ evalStateExpr eval (AppExpr e) = evalBVAppM eval e
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
 evalPureStateExpr :: forall m arch exts w
                  . (RVStateM m arch exts, KnownArch arch)
-              => PureStateExpr arch w
+              => PureStateExpr arch exts w
               -> m (BitVector w)
 evalPureStateExpr (PureStateExpr e) = evalStateExpr evalPureStateExpr e
 
@@ -120,7 +121,7 @@ evalInstExpr :: forall m arch exts fmt w
              => InstructionSet arch exts
              -> Instruction arch exts fmt -- ^ instruction
              -> Integer          -- ^ Instruction width (in bytes)
-             -> InstExpr fmt arch w  -- ^ Expression to be evaluated
+             -> InstExpr fmt arch exts w  -- ^ Expression to be evaluated
              -> m (BitVector w)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalInstExpr _ _ ib InstBytes = return $ bitVector ib
@@ -131,28 +132,28 @@ evalInstExpr iset inst ib (InstStateExpr e) = evalStateExpr (evalInstExpr iset i
 -- expressions have been evaluated. It is in direct correspondence with the 'LocExpr'
 -- type from RISCV.Semantics. Unlike that type, however, this will never appear on
 -- the right-hand side of an assignment, only the left-hand side.
-data Loc arch w where
-  PC :: Loc arch (ArchWidth arch)
-  Reg :: BitVector 5 -> Loc arch (ArchWidth arch)
-  Mem :: NatRepr bytes -> BitVector (ArchWidth arch) -> Loc arch (8*bytes)
-  Res :: BitVector (ArchWidth arch) -> Loc arch 1
-  CSR :: BitVector 12 -> Loc arch (ArchWidth arch)
-  Priv :: Loc arch 2
+data Loc arch exts w where
+  PC :: Loc arch exts (ArchWidth arch)
+  Reg :: BitVector 5 -> Loc arch exts (ArchWidth arch)
+  Mem :: NatRepr bytes -> BitVector (ArchWidth arch) -> Loc arch exts (8*bytes)
+  Res :: BitVector (ArchWidth arch) -> Loc arch exts 1
+  CSR :: BitVector 12 -> Loc arch exts (ArchWidth arch)
+  Priv :: Loc arch exts 2
 
 -- | This type represents a concrete assignment statement, where the left-hand side
 -- is a known location and the right-hand side is a known BitVector value. Because we
 -- are still abstracting out the notion of throwing an exception, we also have a
 -- constructor for that; however, this will be removed once we wire exception
 -- handling into the semantics themselves.
-data Assignment (arch :: BaseArch) where
-  Assignment :: Loc arch w -> BitVector w -> Assignment arch
-  Branch :: BitVector 1 -> Seq (Assignment arch) -> Seq (Assignment arch) -> Assignment arch
+data Assignment (arch :: BaseArch) (exts :: Extensions) where
+  Assignment :: Loc arch exts w -> BitVector w -> Assignment arch exts
+  Branch :: BitVector 1 -> Seq (Assignment arch exts) -> Seq (Assignment arch exts) -> Assignment arch exts
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m arch exts, KnownArch arch)
                      => (forall w . expr w -> m (BitVector w))
-                     -> Stmt expr arch
-                     -> m (Assignment arch)
+                     -> Stmt expr arch exts
+                     -> m (Assignment arch exts)
 buildAssignment eval (AssignStmt PCExpr pcE) = do
   pcVal <- eval pcE
   return (Assignment PC pcVal)
@@ -182,7 +183,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
   return (Branch condVal tAssignments fAssignments)
 
 -- | Execute an assignment.
-execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch -> m ()
+execAssignment :: (RVStateM m arch exts, KnownArch arch) => Assignment arch exts -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
@@ -199,7 +200,7 @@ execAssignment (Branch condVal tAssignments fAssignments) =
 -- | Execute a formula, given an 'RVStateM' implementation.
 execFormula :: forall m expr arch exts . (RVStateM m arch exts, KnownArch arch)
              => (forall w . expr w -> m (BitVector w))
-             -> Formula expr arch
+             -> Formula expr arch exts
              -> m ()
 execFormula eval f = do
   assignments <- traverse (buildAssignment eval) (f ^. fDefs)
@@ -257,31 +258,31 @@ runRV = runRV' knownISet 0
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Formula (InstExpr fmt arch) arch -> [InstExpr fmt arch 1]
+getTests :: Formula (InstExpr fmt arch exts) arch exts -> [InstExpr fmt arch exts 1]
 getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
 
-getTestsStmt :: Stmt (InstExpr fmt arch) arch -> [InstExpr fmt arch 1]
+getTestsStmt :: Stmt (InstExpr fmt arch exts) arch exts -> [InstExpr fmt arch exts 1]
 getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocExpr :: LocExpr (InstExpr fmt arch) arch w -> [InstExpr fmt arch 1]
+getTestsLocExpr :: LocExpr (InstExpr fmt arch exts) arch exts w -> [InstExpr fmt arch exts 1]
 getTestsLocExpr (RegExpr   e) = getTestsInstExpr e
 getTestsLocExpr (MemExpr _ e) = getTestsInstExpr e
 getTestsLocExpr (ResExpr   e) = getTestsInstExpr e
 getTestsLocExpr (CSRExpr   e) = getTestsInstExpr e
 getTestsLocExpr _ = []
 
-getTestsStateExpr :: StateExpr (InstExpr fmt arch) arch w -> [InstExpr fmt arch 1]
+getTestsStateExpr :: StateExpr (InstExpr fmt arch exts) arch exts w -> [InstExpr fmt arch exts 1]
 getTestsStateExpr (LocExpr e) = getTestsLocExpr e
 getTestsStateExpr (AppExpr e) = getTestsBVApp e
 
-getTestsInstExpr :: InstExpr fmt arch w -> [InstExpr fmt arch 1]
+getTestsInstExpr :: InstExpr fmt arch exts w -> [InstExpr fmt arch exts 1]
 getTestsInstExpr (OperandExpr _) = []
 getTestsInstExpr InstBytes = []
 getTestsInstExpr InstWord = []
 getTestsInstExpr (InstStateExpr e) = getTestsStateExpr e
 
-getTestsBVApp :: BVApp (InstExpr fmt arch) w -> [InstExpr fmt arch 1]
+getTestsBVApp :: BVApp (InstExpr fmt arch exts) w -> [InstExpr fmt arch exts 1]
 getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
 getTestsBVApp app = foldMapFC getTestsInstExpr app
