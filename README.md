@@ -1,33 +1,41 @@
-# grift: Galois RISC-V ISA Formal Tools
+GRIFT - Galois RISC-V ISA Formal Tools
+===
 
-A general-purpose RISC-V library for Haskell (for use in SSITH)
+*Galois RISC-V Formal Tools* (hereafter, *GRIFT*) is part of the BESSPIN
+software suite, developed by Galois, Inc. It contains a concrete representation
+of the semantics of the RISC-V instruction set, along with an elegant
+encoding/decoding mechanism, and simulation and analysis front-ends. It is
+intended for broad use in the RISC-V community - simulation, binary analysis,
+and software & hardware verification/validation are all current and/or
+potential future uses for *GRIFT*, and we have designed it specifically with
+these broad application domains in mind.
 
-## Overview
+*GRIFT* differs from other Haskell-based RISC-V formalizations in its coding
+style (using highly dependently-typed GHC Haskell) and some of its foundational
+design decisions. Its primary use is as a library, providing mechanisms for the
+encoding/decoding of instructions, as well as running RISC-V programs in
+simulation. However, the semantics of the instructions themselves are
+represented, not as Haskell functions on a RISC-V machine state (registers, PC,
+memory, etc.), but as symbolic expressions in a general-purpose bitvector
+expression language. This extra layer of representation, while sub-optimal for
+fast simulation, facilitates the library's use as a general-purpose encoding of
+the semantics, and makes *GRIFT* a general-purpose, "golden reference" model
+that can be easily translated into the syntax of other tools by providing
+minimal pretty printers, written in Haskell, for the underlying bitvector
+expression language. Having explicit semantic data for each instruction also
+facilitates the library's incorporation with other Haskell-based tooling, such
+as coverage analysis (where a notion of coverage is encoded in the same
+bitvector language as the semantics), binary analysis, and verification, both
+within and without the Haskell programming environment.
 
-The RISC-V ISA (instruction set architecture) is an open-source ISA developed at
-UC Berkeley. grift is a Haskell library that encodes the core of the ISA: the
-encoding and decoding of instructions, as well as their semantics. It also
-includes a set of tools enabling simuilation of RISC-V software, along with some
-data collection and analysis during simulation.
+Requirements
+===
 
-## Running
+Mandatory Requirements
+===
 
-This library comes with a simulation environment, riscv-sim. It is built along
-with the rest of the library via `stack build`.
+Secondary Requirements
+===
 
-The simulator is invoked thusly:
-
-riscv-sim 1000000 test/fib/fib64
-
-The numeric argument is the number of instructions to execute before
-halting. The second argument is the path the executable you wish to run. This
-executable must be in the ELF file format. The simulator supports buth RV32IM
-and RV64IM.
-
-## Current ISA support status
-
-We have semantics for the base ISA and M and A extensions, both 32- and
-64-bit. We are currently developing support for exception handling and the
-privileged ISA. Since supervisor and user mode are extensions, we will be adding
-support for those in the type system as we progress.
-
+Current Status
+===

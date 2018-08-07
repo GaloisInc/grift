@@ -120,6 +120,7 @@ import RISCV.Types
 data LocExpr expr rv w where
   PCExpr   :: LocExpr expr rv (RVWidth rv)
   RegExpr  :: expr 5 -> LocExpr expr rv (RVWidth rv)
+  FRegExpr :: FExt << rv => expr 5 -> LocExpr expr rv (RVFloatWidth rv)
   MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocExpr expr rv (8*bytes)
   ResExpr  :: expr (RVWidth rv) -> LocExpr expr rv 1
   CSRExpr  :: expr 12 -> LocExpr expr rv (RVWidth rv)

@@ -47,7 +47,7 @@ module RISCV.Types
   ( -- * RISC-V Configuration
     RV(..), type RVConfig
   , RVRepr(..)
-  , RVWidth, type (<<)
+  , RVWidth, RVFloatWidth, type (<<)
   , KnownRV
     -- * Base architecture
   , BaseArch(..), type RV32, type RV64, type RV128
@@ -260,9 +260,11 @@ type family KnownRV (rv :: RV) :: Constraint where
 
 type family RVWidth (rv :: RV) :: Nat where
   RVWidth (RVConfig '(arch, _)) = ArchWidth arch
-  -- RVWidth (RVConfig '(RV32, _)) = 32
-  -- RVWidth (RVConfig '(RV64, _)) = 64
-  -- RVWidth (RVConfig '(RV128, _)) = 128
+
+-- | This should only be used in a context where FExt << rv.
+type family RVFloatWidth (rv :: RV) :: Nat where
+  RVFloatWidth (RVConfig '(_, Exts '(_, _, _, FDYes))) = 64
+  RVFloatWidth _ = 32
 
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where
