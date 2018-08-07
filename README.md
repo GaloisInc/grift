@@ -38,11 +38,9 @@ Mandatory Requirements
 
 ## General
 
-- Must represent semantics of all RISC-V behavior in a manipulatable and
-  inspectable embedded bitvector expression language.
-- Must be open source.
-- Must have straightforward integration with other languages, tools, and
-  frameworks (Coq, Verilog, ...)
+- Must represent semantics of all RISC-V behavior (instructions and exceptional
+  behavior) in a manipulatable and inspectable embedded bitvector expression
+  language.
 
 ## RISC-V support
 
@@ -55,12 +53,24 @@ Mandatory Requirements
 ## Simulation
 
 - Must be able to run all code compiled by the RISC-V GCC toolchain (including,
-  but not limited to, booting the Linux kernel)
+  but not limited to, booting the Linux kernel). However, performance in
+  simulation is explicitly *not* a concern.
+- Must pass all relevant tests from riscv-tests and riscv-compliance test
+  suites.
 
-## Analysis
+## Documentation
+
+- Core Haskell code must be cleanly Haddock-documented.
+- Instruction semantics should pretty-print to pseudocode in a readable form, in
+  the style of the RISC-V Reader (Appendix A) pseudocode.
 
 Secondary Requirements
 ===
+
+- Coverage analysis and test generation tooling for RISC-V Compliance Task
+  Group.
+- Straightforward integration with other languages, tools, and frameworks (Coq,
+  Verilog, ...)
 
 Current Status
 ===
