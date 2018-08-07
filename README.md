@@ -36,7 +36,7 @@ The following are a list of mandatory and secondary requirements for GRIFT.
 Mandatory Requirements
 ===
 
-# General
+## General
 
 - Must represent semantics of all RISC-V behavior in a manipulatable and
   inspectable embedded bitvector expression language.
@@ -44,7 +44,7 @@ Mandatory Requirements
 - Must have straightforward integration with other languages, tools, and
   frameworks (Coq, Verilog, ...)
 
-# RISC-V support
+## RISC-V support
 
 - Must support RV32G/RV64G.
 - Must support all privilege modes (M, S, U), modeling exceptional behavior
@@ -52,9 +52,9 @@ Mandatory Requirements
 - Must capture all other "customizable" aspects of the ISA (e.g. misaligned
   accesses in hardware).
 
-# Simulation
+## Simulation
 
-# Analysis
+## Analysis
 
 Secondary Requirements
 ===
