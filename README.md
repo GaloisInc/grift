@@ -54,6 +54,9 @@ Mandatory Requirements
 
 ## Simulation
 
+- Must be able to run all code compiled by the RISC-V GCC toolchain (including,
+  but not limited to, booting the Linux kernel)
+
 ## Analysis
 
 Secondary Requirements
@@ -61,3 +64,18 @@ Secondary Requirements
 
 Current Status
 ===
+
+We currently support RV{32|64}IMA, with M-mode privileged
+instructions. Exceptions are modeled incompletely; the bare minimum to run
+user-level code with traps is supported.
+
+Coming soon: support for floating point F/D extensions. I have created Haskell
+bindings to John Hauser's SoftFloat library, which we will use for simulation
+backends, and I am working on the subtleties of how to elegantly use Haskell's
+type system to conditionally support the floating point registers (this is the
+only extension for which there is additional state that we are supporting).
+
+Other information
+===
+
+* contact: benselfridge@galois.com

@@ -30,7 +30,7 @@ Still need to do some more research here.
 
 ## Extensions
 
-SoftFloat -- talk to Flemming when I get to this
+Working on floating point extensions currently.
 
 ## Exporting to other formats
 
