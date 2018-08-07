@@ -41,6 +41,10 @@ Mandatory Requirements
 - Must represent semantics of all RISC-V behavior (instructions and exceptional
   behavior) in a manipulatable and inspectable embedded bitvector expression
   language.
+- Must have a type-level representation of the major aspects of the RISC-V
+  feature model: register width and implemented extensions. To run in
+  simulation, it should be enough to specify this information at the *type
+  level*, and have the appropriate instance of RISC-V automatically.
 
 ## RISC-V support
 
