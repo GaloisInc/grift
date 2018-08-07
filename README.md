@@ -31,8 +31,30 @@ within and without the Haskell programming environment.
 Requirements
 ===
 
+The following are a list of mandatory and secondary requirements for GRIFT.
+
 Mandatory Requirements
 ===
+
+# General
+
+- Must represent semantics of all RISC-V behavior in a manipulatable and
+  inspectable embedded bitvector expression language.
+- Must be open source.
+- Must have straightforward integration with other languages, tools, and
+  frameworks (Coq, Verilog, ...)
+
+# RISC-V support
+
+- Must support RV32G/RV64G.
+- Must support all privilege modes (M, S, U), modeling exceptional behavior
+  accurately and completely.
+- Must capture all other "customizable" aspects of the ISA (e.g. misaligned
+  accesses in hardware).
+
+# Simulation
+
+# Analysis
 
 Secondary Requirements
 ===
