@@ -41,6 +41,8 @@ A type class for simulating RISC-V code.
 module RISCV.Simulation
   ( -- * State monad
     RVStateM(..)
+  , evalLocExpr
+  , evalStateExpr
   , evalPureStateExpr
   , evalInstExpr
   , Loc(..)
@@ -78,7 +80,8 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
   -- | Get the current PC.
   getPC   :: m (BitVector (RVWidth rv))
   -- | Get the value of a register. This function shouldn't ever be called with an
-  -- argument of 0, so there is no need to hardwire it to 0 in an implementation.
+  -- argument of 0, so there is no need to hardwire it to 0 in an instance of this
+  -- class.
   getReg  :: BitVector 5 -> m (BitVector (RVWidth rv))
   -- | Read some number of bytes from memory.
   getMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> m (BitVector (8*bytes))
@@ -86,6 +89,8 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
   getCSR  :: BitVector 12 -> m (BitVector (RVWidth rv))
   -- | Get the current privilege level.
   getPriv :: m (BitVector 2)
+  -- | Get the value of a floating point register.
+  getFReg :: FExt << rv => BitVector 5 -> m (BitVector (RVFloatWidth rv))
 
   -- | Set the PC.
   setPC   :: BitVector (RVWidth rv) -> m ()
@@ -97,6 +102,8 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
   setCSR  :: BitVector 12 -> BitVector (RVWidth rv) -> m ()
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
+  -- | Set the value of a floating point register.
+  setFReg :: FExt << rv => BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
 
   -- | Log the execution of a particular instruction.
   logInstruction :: InstructionSet rv -> Instruction rv fmt -> m ()
