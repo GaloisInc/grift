@@ -1,3 +1,20 @@
+{-
+This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
+
+GRIFT is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GRIFT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero Public License for more details.
+
+You should have received a copy of the GNU Affero Public License
+along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
 {-# LANGUAGE BinaryLiterals      #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
@@ -12,7 +29,7 @@
 Module      : RISCV.Extensions.Helpers
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
-License     : None (yet)
+License     : AGPLv3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
@@ -23,6 +40,7 @@ Helper functions for defining instruction semantics.
 module RISCV.Extensions.Helpers
   ( getArchWidth
   , incrPC
+  , ArithOp, CompOp
   , rOp, rOp32, iOp
   , b
   , checkCSR
@@ -36,6 +54,8 @@ import RISCV.Semantics
 import RISCV.Semantics.Exceptions
 import RISCV.Types
 
+-- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
+-- should probably be generalized when we fully implement the privileged architecture.
 getArchWidth :: forall rv fmt . KnownRV rv => FormulaBuilder (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
 getArchWidth = return (knownNat @(RVWidth rv))
 
@@ -45,6 +65,10 @@ incrPC = do
   ib <- instBytes
   let pc = readPC
   assignPC $ pc `addE` (zextE ib)
+
+-- TODO: Deprecate a lot of these helpers. I actually think it's better to be more
+-- explicit in the instruction semantics themselves than to hide everything with
+-- abbreviations.
 
 -- | Type of arithmetic operator in 'FormulaBuilder'.
 type ArithOp rv fmt w

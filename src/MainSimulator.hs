@@ -1,3 +1,20 @@
+{-
+This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
+
+GRIFT is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GRIFT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero Public License for more details.
+
+You should have received a copy of the GNU Affero Public License
+along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -9,7 +26,7 @@
 Module      : MainSimulator
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
-License     : None (yet)
+License     : AGPLv3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
@@ -45,6 +62,7 @@ import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 import           RISCV.Simulation.MapMachine
 
+-- | The Extensions we enable in simulation.
 type SimExts = (Exts '(PrivM, MYes, AYes, FDNo))
 
 main :: IO ()
@@ -63,14 +81,17 @@ main = do
     Elf32Res _ e -> runElf stepsToRun logFile (RV32Elf e)
     Elf64Res _ e -> runElf stepsToRun logFile (RV64Elf e)
 
+-- | Wrapper for 'Elf' datatype
 data RISCVElf (arch :: BaseArch) where
   RV32Elf :: Elf 32 -> RISCVElf RV32
   RV64Elf :: Elf 64 -> RISCVElf RV64
 
+-- | Unpacking 'RISCVElf' into 'Elf'
 rElf :: RISCVElf arch -> Elf (ArchWidth arch)
 rElf (RV32Elf e) = e
 rElf (RV64Elf e) = e
 
+-- | Run a RISC-V ELF executable in simulation for a pre-specified number of steps.
 runElf :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
        => Int -> FilePath -> RISCVElf arch -> IO ()
 runElf stepsToRun logFile re = do

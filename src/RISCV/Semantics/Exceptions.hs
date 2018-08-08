@@ -1,3 +1,20 @@
+{-
+This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
+
+GRIFT is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GRIFT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero Public License for more details.
+
+You should have received a copy of the GNU Affero Public License
+along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -7,13 +24,15 @@
 Module      : RISCV.Semantics.Exceptions
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
-License     : None (yet)
+License     : AGPLv3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
 This module provides types and functions for the semantics of exception handling in
-RISC-V.
+RISC-V. It is currently being developed, so it is not as clean as it will be. This is
+mainly hacked together to get something working quickly, and it does not represent
+the full functionality.
 -}
 
 module RISCV.Semantics.Exceptions
@@ -48,6 +67,7 @@ data Exception = EnvironmentCall
 interruptBV :: forall w . KnownNat w => BitVector w
 interruptBV = 1 `bvShiftL` fromIntegral (natValue (knownNat @w) - 1)
 
+-- | Map an 'Exception' to its 'BitVector' representation.
 getMCause :: KnownNat w => Exception -> BitVector w
 getMCause IllegalInstruction = 2
 getMCause Breakpoint         = 3
@@ -139,12 +159,12 @@ raiseException :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
                -> FormulaBuilder (expr rv) rv ()
 raiseException e info = do
   -- Exception handling TODO:
-  -- * For interrupts, PC should be incremented.
-  -- * mtval should be an argument to this function based on the exception
-  -- * MIE and MPIE need to be set appropriately, but we are not worrying about this
+  -- - For interrupts, PC should be incremented.
+  -- - mtval should be an argument to this function based on the exception
+  -- - MIE and MPIE need to be set appropriately, but we are not worrying about this
   --   for now
-  -- * MPP (don't need this until we have other privilege modes)
-  -- * We are assuming we do not have supervisor mode
+  -- - MPP (don't need this until we have other privilege modes)
+  -- - We are assuming we do not have supervisor mode
 
   let pc      = readPC
   let priv    = readPriv

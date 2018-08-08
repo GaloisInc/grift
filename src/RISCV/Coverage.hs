@@ -1,3 +1,20 @@
+{-
+This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
+
+GRIFT is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GRIFT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero Public License for more details.
+
+You should have received a copy of the GNU Affero Public License
+along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
 {-# LANGUAGE BinaryLiterals   #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -11,7 +28,7 @@
 Module      : RISCV.Coverage
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
-License     : None (yet)
+License     : AGPLv3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
@@ -19,6 +36,8 @@ Portability : portable
 Experimental -- With each opcode, we associate a collection of "test expressions,"
 which capture an arbitrary notion of coverage in terms of the instruction operands
 and the current machine state.
+
+This module is being actively developed, and has not been adequately documented.
 -}
 
 module RISCV.Coverage where

@@ -1,3 +1,20 @@
+{-
+This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
+
+GRIFT is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GRIFT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero Public License for more details.
+
+You should have received a copy of the GNU Affero Public License
+along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
@@ -16,7 +33,7 @@
 Module      : RISCV.Semantics
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
-License     : None (yet)
+License     : AGPLv3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
@@ -222,13 +239,14 @@ newtype FormulaBuilder expr rv a =
             Monad,
             MonadState (Formula expr rv))
 
--- | Get the operands for a particular known format
+-- | Get the operands for a particular known format.
 operandEs :: forall rv fmt . (KnownRepr FormatRepr fmt)
           => FormulaBuilder (InstExpr fmt rv) rv (List (InstExpr fmt rv) (OperandTypes fmt))
 operandEs = return (operandEsWithRepr knownRepr)
 
-operandEsWithRepr :: FormatRepr fmt
-                  -> (List (InstExpr fmt rv) (OperandTypes fmt))
+-- | Get the operands for a particular format, where the format is supplied as an
+-- explicit argument.
+operandEsWithRepr :: FormatRepr fmt -> (List (InstExpr fmt rv) (OperandTypes fmt))
 operandEsWithRepr repr = case repr of
   RRepr -> (OperandExpr (OperandID index0) :<
             OperandExpr (OperandID index1) :<

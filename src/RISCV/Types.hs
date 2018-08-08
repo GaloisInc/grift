@@ -1,3 +1,20 @@
+{-
+This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
+
+GRIFT is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+GRIFT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero Public License for more details.
+
+You should have received a copy of the GNU Affero Public License
+along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
+-}
+
 {-# LANGUAGE BinaryLiterals         #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DataKinds              #-}
@@ -19,7 +36,7 @@
 Module      : RISCV.Types
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
-License     : None (yet)
+License     : AGPLv3
 Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
@@ -69,7 +86,7 @@ module RISCV.Types
   , Extension(..), type AExt, type DExt, type FExt, type MExt, type SExt, type UExt
   , ExtensionsContains
   -- * Instructions
-  , Format(..), type R, type I, type S, type B, type U, type J, type A, type X
+  , Format(..), type R, type I, type S, type B, type U, type J, type H, type P, type A, type X
   , FormatRepr(..)
   , OperandTypes
   , OperandID(..)
@@ -249,15 +266,18 @@ data RV = RVConfig (BaseArch, Extensions)
 
 type RVConfig = 'RVConfig
 
+-- | Type-level representation of 'RV'.
 data RVRepr :: RV -> * where
   RVRepr :: BaseArchRepr arch -> ExtensionsRepr exts -> RVRepr (RVConfig '(arch, exts))
 
 instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(arch, exts)) where
   knownRepr = RVRepr knownRepr knownRepr
 
+-- | Everything we need to know about an 'RV' at compile time.
 type family KnownRV (rv :: RV) :: Constraint where
   KnownRV rv = (KnownRepr RVRepr rv, KnownNat (RVWidth rv))
 
+-- | Maps a RISC-V configuration to its register width, as a 'Nat'.
 type family RVWidth (rv :: RV) :: Nat where
   RVWidth (RVConfig '(arch, _)) = ArchWidth arch
 

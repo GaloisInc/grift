@@ -31,7 +31,7 @@ within and without the Haskell programming environment.
 Requirements
 ===
 
-The following are a list of mandatory and secondary requirements for GRIFT.
+The following are a list of mandatory and secondary requirements for *GRIFT*.
 
 Mandatory Requirements
 ===
