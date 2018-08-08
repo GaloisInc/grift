@@ -116,6 +116,7 @@ evalLocExpr :: forall m expr rv w
             -> m (BitVector w)
 evalLocExpr _ PCExpr = getPC
 evalLocExpr eval (RegExpr ridE) = eval ridE >>= getReg
+evalLocExpr eval (FRegExpr ridE) = eval ridE >>= getFReg
 evalLocExpr eval (MemExpr bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
 evalLocExpr _ (ResExpr _) = return 1
@@ -159,6 +160,7 @@ evalInstExpr iset inst ib (InstStateExpr e) = evalStateExpr (evalInstExpr iset i
 data Loc rv w where
   PC :: Loc rv (RVWidth rv)
   Reg :: BitVector 5 -> Loc rv (RVWidth rv)
+  FReg :: FExt << rv => BitVector 5 -> Loc rv (RVFloatWidth rv)
   Mem :: NatRepr bytes -> BitVector (RVWidth rv) -> Loc rv (8*bytes)
   Res :: BitVector (RVWidth rv) -> Loc rv 1
   CSR :: BitVector 12 -> Loc rv (RVWidth rv)
@@ -185,6 +187,10 @@ buildAssignment eval (AssignStmt (RegExpr ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
   return (Assignment (Reg rid) eVal)
+buildAssignment eval (AssignStmt (FRegExpr ridE) e) = do
+  rid  <- eval ridE
+  eVal <- eval e
+  return (Assignment (FReg rid) eVal)
 buildAssignment eval (AssignStmt (MemExpr bytes addrE) e) = do
   addr <- eval addrE
   eVal <- eval e
@@ -210,6 +216,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
 execAssignment :: (RVStateM m rv, KnownRV rv) => Assignment rv -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
+execAssignment (Assignment (FReg rid) val) = setFReg rid val
 execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
 -- TODO: When we do SMP, implement memory reservations.
 execAssignment (Assignment (Res _) _) = return ()
@@ -289,6 +296,7 @@ getTestsStmt (BranchStmt t l r) =
 
 getTestsLocExpr :: LocExpr (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
 getTestsLocExpr (RegExpr   e) = getTestsInstExpr e
+getTestsLocExpr (FRegExpr  e) = getTestsInstExpr e
 getTestsLocExpr (MemExpr _ e) = getTestsInstExpr e
 getTestsLocExpr (ResExpr   e) = getTestsInstExpr e
 getTestsLocExpr (CSRExpr   e) = getTestsInstExpr e
