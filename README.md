@@ -35,8 +35,7 @@ Requirements
 
 The following are a list of mandatory and secondary requirements for *GRIFT*.
 
-Mandatory Requirements
-===
+# Mandatory Requirements
 
 ## General
 
@@ -71,8 +70,7 @@ Mandatory Requirements
 - Instruction semantics should pretty-print to pseudocode in a readable form, in
   the style of the RISC-V Reader (Appendix A) pseudocode.
 
-Secondary Requirements
-===
+# Secondary Requirements
 
 - Coverage analysis and test generation tooling for RISC-V Compliance Task
   Group.
