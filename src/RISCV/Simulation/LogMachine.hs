@@ -82,6 +82,7 @@ import Debug.Trace (traceM)
 data LogMachine (rv :: RV) = LogMachine
   { ioPC        :: IORef (BitVector (RVWidth rv))
   , ioRegisters :: IOArray (BitVector 5) (BitVector (RVWidth rv))
+  , ioFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
   , ioMemory    :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
   , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
   , ioPriv      :: IORef (BitVector 2)
@@ -108,6 +109,7 @@ mkLogMachine :: forall rv . KnownRV rv
 mkLogMachine maxAddr entryPoint sp byteStrings = do
   pc        <- newIORef entryPoint
   registers <- newArray (1, 31) 0
+  fregisters <- newArray (0, 31) 0
   memory    <- newArray (0, maxAddr) 0
   csrs      <- newIORef $ Map.fromList [ ]
   priv      <- newIORef 0b11 -- M mode by default.
@@ -119,7 +121,7 @@ mkLogMachine maxAddr entryPoint sp byteStrings = do
 
   forM_ byteStrings $ \(addr, bs) -> do
     writeBS addr bs memory
-  return (LogMachine pc registers memory csrs priv maxAddr testMap)
+  return (LogMachine pc registers fregisters memory csrs priv maxAddr testMap)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -135,6 +137,10 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
     return pcVal
   getReg rid = LogMachineM $ do
     regArray <- ioRegisters <$> ask
+    regVal   <- lift $ readArray regArray rid
+    return regVal
+  getFReg rid = LogMachineM $ do
+    regArray <- ioFRegisters <$> ask
     regVal   <- lift $ readArray regArray rid
     return regVal
   getMem bytes addr = LogMachineM $ do
@@ -170,6 +176,9 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
     lift $ writeIORef pcRef pcVal
   setReg rid regVal = LogMachineM $ do
     regArray <- ioRegisters <$> ask
+    lift $ writeArray regArray rid regVal
+  setFReg rid regVal = LogMachineM $ do
+    regArray <- ioFRegisters <$> ask
     lift $ writeArray regArray rid regVal
   setMem bytes addr val = LogMachineM $ do
     memArray <- ioMemory <$> ask

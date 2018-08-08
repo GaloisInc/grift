@@ -60,7 +60,6 @@ import           RISCV.Semantics
 import           RISCV.Semantics.Exceptions
 import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
-import           RISCV.Simulation.MapMachine
 
 -- | The Extensions we enable in simulation.
 type SimExts = (Exts '(PrivM, MYes, AYes, FDNo))
