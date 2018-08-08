@@ -62,14 +62,14 @@ privmEncode = Map.fromList
 
 privmSemantics :: KnownRV rv => SemanticsMap rv
 privmSemantics = Map.fromList
-  [ Pair Mret $ InstFormula $ getFormula $ do
+  [ Pair Mret $ InstSemantics $ getSemantics $ do
       comment "Returns from a machine-mode exception handler."
 
       -- TODO: Need to add the rest of the behavior here.
       let mepc = readCSR (litBV $ encodeCSR MEPC)
 
       assignPC mepc
-  , Pair Wfi $ InstFormula $ getFormula $ do
+  , Pair Wfi $ InstSemantics $ getSemantics $ do
       comment ""
 
       -- Doesn't do anything yet.

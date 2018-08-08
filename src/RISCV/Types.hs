@@ -44,12 +44,9 @@ Portability : portable
 This module provides several data kinds and types that are used by many other
 modules.
 
-It defines the notion of a 'BaseArch', encoding which "base" RISC-V ISA a
-machine uses, as well as that of 'Extensions', encoding which extensions are
-present in that machine. Together, these two data kinds comprise the feature
-model of the RISC-V architecture. There are more dimensions to be added,
-including (but probably not limited to) which privilege levels are
-supported.
+It defines the 'RV' data kind, which comprises the type-level feature model of the
+RISC-V architecture. 'RV' is a wrapper for 'BaseArch' (32- vs. 64-bit) and
+'Extensions' (list of enabled extensions).
 
 We also define a data kind called 'Format', which denotes the format of an
 instruction. An instruction's format specifies exactly which bits correspond to
@@ -274,8 +271,7 @@ instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(
   knownRepr = RVRepr knownRepr knownRepr
 
 -- | Everything we need to know about an 'RV' at compile time.
-type family KnownRV (rv :: RV) :: Constraint where
-  KnownRV rv = (KnownRepr RVRepr rv, KnownNat (RVWidth rv))
+type KnownRV rv = (KnownRepr RVRepr rv, KnownNat (RVWidth rv))
 
 -- | Maps a RISC-V configuration to its register width, as a 'Nat'.
 type family RVWidth (rv :: RV) :: Nat where
@@ -418,15 +414,7 @@ instance OrdF OpBits where
 ----------------------------------------
 -- Opcodes
 
--- | RISC-V Opcodes, parameterized by base architecture and format.
---
--- We note here that the 'Srai' and 'Srli' instructions are combined into the same
--- instruction. The reason for this is that they are actually encoded as format I
--- rather than R, which means that the bit that distinguishes them is classified as
--- an operand. Therefore, for our representation, we use the same constructor and
--- push the distinction into the semantics. It is a shame that these instruction
--- weren't encoded differently; if they used different OpBits, this could have been
--- avoided. Similarly, 'Ecall' and 'Ebreak' are combined into a single instruction.
+-- | RISC-V Opcodes, parameterized by 'RV' and format.
 data Opcode :: RV -> Format -> * where
 
   -- RV32

@@ -156,7 +156,7 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
 raiseException :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
                => Exception
                -> expr rv (RVWidth rv)
-               -> FormulaBuilder (expr rv) rv ()
+               -> SemanticsBuilder (expr rv) rv ()
 raiseException e info = do
   -- Exception handling TODO:
   -- - For interrupts, PC should be incremented.

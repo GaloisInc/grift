@@ -68,12 +68,12 @@ expressions. This is encapsulated in the 'Stmt' type, whose constructor 'AssignS
 does exactly this. We can also create 'BranchStmt's which conditionally execute one
 of two distinct sets of statements based on a test condition.
 
-Finally, we can combine 'Stmt's to create 'Formula's, which are simply sequences of
-statements. We export a monad, 'FormulaBuilder,' to facilitate straightforward
+Finally, we can combine 'Stmt's to create 'Semantics's, which are simply sequences of
+statements. We export a monad, 'SemanticsBuilder,' to facilitate straightforward
 definitions of these assignments, and a number of functions ('assignPC', 'assignReg',
 etc.) that can be used within this monad. To see examples of its use, take a look at
 RISCV.Extensions.Base, which contains the base RISC-V ISA instruction definitions,
-defined using 'FormulaBuilder'.
+defined using 'SemanticsBuilder'.
 
 -}
 
@@ -93,12 +93,12 @@ module RISCV.Semantics
   , checkReserved
     -- * RISC-V semantic statements and formulas
   , Stmt(..)
-  , Formula, fComments, fDefs
-  , InstFormula(..)
-    -- * FormulaBuilder monad
-  , FormulaBuilder
-  , getFormula
-    -- * FormulaBuilder operations
+  , Semantics, semComments, semStmts
+  , InstSemantics(..)
+    -- * SemanticsBuilder monad
+  , SemanticsBuilder
+  , getSemantics
+    -- * SemanticsBuilder operations
     -- ** Auxiliary
   , comment
   , operandEs, operandEsWithRepr
@@ -130,11 +130,11 @@ import Data.BitVector.Sized.App
 import RISCV.Types
 
 ----------------------------------------
--- Expressions, statements, and formulas
+-- Expressions, statements, and semantics
 
 -- | This type represents an abstract component of the global state. Sub-expressions
 -- come from an arbitrary expression language @expr@.
-data LocExpr expr rv w where
+data LocExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   PCExpr   :: LocExpr expr rv (RVWidth rv)
   RegExpr  :: expr 5 -> LocExpr expr rv (RVWidth rv)
   FRegExpr :: FExt << rv => expr 5 -> LocExpr expr rv (RVFloatWidth rv)
@@ -147,7 +147,7 @@ data LocExpr expr rv w where
 -- access specific locations, and we can also build up compound expressions using the
 -- 'BVApp' expression language. Sub-expressions come from an arbitrary expression
 -- language @expr@.
-data StateExpr expr rv w where
+data StateExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   -- Accessing state
   LocExpr :: !(LocExpr expr rv w) -> StateExpr expr rv w
 
@@ -156,14 +156,14 @@ data StateExpr expr rv w where
 
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
-newtype PureStateExpr rv w = PureStateExpr (StateExpr (PureStateExpr rv) rv w)
+newtype PureStateExpr (rv :: RV) (w :: Nat) = PureStateExpr (StateExpr (PureStateExpr rv) rv w)
 
 instance BVExpr (PureStateExpr rv) where
   appExpr = PureStateExpr . AppExpr
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- an executing instruction.
-data InstExpr fmt rv w where
+data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
   -- | Accessing the instruction operands
   OperandExpr :: !(OperandID fmt w) -> InstExpr fmt rv w
   -- | Accessing the instruction width, in number of bytes
@@ -202,46 +202,46 @@ data Stmt (expr :: Nat -> *) (rv :: RV) where
              -> !(Seq (Stmt expr rv))
              -> Stmt expr rv
 
--- | A 'Formula' is simply a set of simultaneous 'Stmt's.
-data Formula expr rv
-  = Formula { _fComments :: !(Seq String)
+-- | A 'Semantics' is simply a set of simultaneous 'Stmt's.
+data Semantics (expr :: Nat -> *) (rv :: RV)
+  = Semantics { _semComments :: !(Seq String)
               -- ^ multiline comment
-            , _fDefs    :: !(Seq (Stmt expr rv))
-              -- ^ sequence of statements defining the formula
+            , _semStmts    :: !(Seq (Stmt expr rv))
+              -- ^ sequence of statements defining the semantics
             }
 
--- | A wrapper for 'Formula's over 'InstExpr's with the 'Format' type parameter
+-- | A wrapper for 'Semantics's over 'InstExpr's with the 'Format' type parameter
 -- appearing last, for the purposes of associating with an corresponding 'Opcode' of
 -- the same format.
-newtype InstFormula rv fmt
-  = InstFormula { getInstFormula :: Formula (InstExpr fmt rv) rv }
+newtype InstSemantics (rv :: RV) (fmt :: Format)
+  = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv }
 
--- | Lens for 'Formula' comments.
-fComments :: Simple Lens (Formula expr rv) (Seq String)
-fComments = lens _fComments (\(Formula _ d) c -> Formula c d)
+-- | Lens for 'Semantics' comments.
+semComments :: Simple Lens (Semantics expr rv) (Seq String)
+semComments = lens _semComments (\(Semantics _ d) c -> Semantics c d)
 
--- | Lens for 'Formula' statements.
-fDefs :: Simple Lens (Formula expr rv) (Seq (Stmt expr rv))
-fDefs = lens _fDefs (\(Formula c _) d -> Formula c d)
+-- | Lens for 'Semantics' statements.
+semStmts :: Simple Lens (Semantics expr rv) (Seq (Stmt expr rv))
+semStmts = lens _semStmts (\(Semantics c _) d -> Semantics c d)
 
--- | Every definition begins with the empty formula.
-emptyFormula :: Formula expr rv
-emptyFormula = Formula Seq.empty Seq.empty
+-- | Every definition begins with the empty semantics.
+emptySemantics :: Semantics expr rv
+emptySemantics = Semantics Seq.empty Seq.empty
 
 -- | State monad for defining semantics over the RISC-V machine state. We allow the
 -- expression language to vary, because sometimes we are in the context of an
 -- executing instruction, and sometimes we are not (for instance, when we are
 -- handling an exception).
-newtype FormulaBuilder expr rv a =
-  FormulaBuilder { unFormulaBuilder :: State (Formula expr rv) a }
+newtype SemanticsBuilder (expr :: Nat -> *) (rv :: RV) a =
+  SemanticsBuilder { unSemanticsBuilder :: State (Semantics expr rv) a }
   deriving (Functor,
             Applicative,
             Monad,
-            MonadState (Formula expr rv))
+            MonadState (Semantics expr rv))
 
 -- | Get the operands for a particular known format.
 operandEs :: forall rv fmt . (KnownRepr FormatRepr fmt)
-          => FormulaBuilder (InstExpr fmt rv) rv (List (InstExpr fmt rv) (OperandTypes fmt))
+          => SemanticsBuilder (InstExpr fmt rv) rv (List (InstExpr fmt rv) (OperandTypes fmt))
 operandEs = return (operandEsWithRepr knownRepr)
 
 -- | Get the operands for a particular format, where the format is supplied as an
@@ -276,20 +276,20 @@ operandEsWithRepr repr = case repr of
   XRepr -> (OperandExpr (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 
--- | Obtain the formula defined by a 'FormulaBuilder' action.
-getFormula :: FormulaBuilder expr rv () -> Formula expr rv
-getFormula = flip execState emptyFormula . unFormulaBuilder
+-- | Obtain the semantics defined by a 'SemanticsBuilder' action.
+getSemantics :: SemanticsBuilder expr rv () -> Semantics expr rv
+getSemantics = flip execState emptySemantics . unSemanticsBuilder
 
 -- | Add a comment.
-comment :: String -> FormulaBuilder expr rv ()
-comment c = fComments %= \cs -> cs Seq.|> c
+comment :: String -> SemanticsBuilder expr rv ()
+comment c = semComments %= \cs -> cs Seq.|> c
 
 -- | Get the width of the instruction word
-instBytes :: FormulaBuilder (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
+instBytes :: SemanticsBuilder (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
 instBytes = return InstBytes
 
 -- | Get the entire instruction word (useful for exceptions)
-instWord :: FormulaBuilder (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
+instWord :: SemanticsBuilder (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
 instWord = return InstWord
 
 -- | Read the pc.
@@ -315,43 +315,43 @@ readCSR csr = stateExpr (LocExpr (CSRExpr csr))
 readPriv :: RVStateExpr expr => expr rv 2
 readPriv = stateExpr (LocExpr PrivExpr)
 
--- | Add a statement to the formula.
-addStmt :: Stmt expr rv -> FormulaBuilder expr rv ()
-addStmt stmt = fDefs %= \stmts -> stmts Seq.|> stmt
+-- | Add a statement to the semantics.
+addStmt :: Stmt expr rv -> SemanticsBuilder expr rv ()
+addStmt stmt = semStmts %= \stmts -> stmts Seq.|> stmt
 
--- | Add a PC assignment to the formula.
-assignPC :: expr rv (RVWidth rv) -> FormulaBuilder (expr rv) rv ()
+-- | Add a PC assignment to the semantics.
+assignPC :: expr rv (RVWidth rv) -> SemanticsBuilder (expr rv) rv ()
 assignPC pc = addStmt (AssignStmt PCExpr pc)
 
--- | Add a register assignment to the formula.
+-- | Add a register assignment to the semantics.
 assignReg :: BVExpr (expr rv)
           => expr rv 5
           -> expr rv (RVWidth rv)
-          -> FormulaBuilder (expr rv) rv ()
+          -> SemanticsBuilder (expr rv) rv ()
 assignReg r e = addStmt $
   BranchStmt (r `eqE` litBV 0)
   $> Seq.empty
   $> Seq.singleton (AssignStmt (RegExpr r) e)
 
--- | Add a memory location assignment to the formula, with an explicit width argument.
+-- | Add a memory location assignment to the semantics, with an explicit width argument.
 assignMem :: NatRepr bytes
           -> expr rv (RVWidth rv)
           -> expr rv (8*bytes)
-          -> FormulaBuilder (expr rv) rv ()
+          -> SemanticsBuilder (expr rv) rv ()
 assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
 
--- | Add a CSR assignment to the formula.
+-- | Add a CSR assignment to the semantics.
 assignCSR :: expr rv 12
           -> expr rv (RVWidth rv)
-          -> FormulaBuilder (expr rv) rv ()
+          -> SemanticsBuilder (expr rv) rv ()
 assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 
--- | Add a privilege assignment to the formula.
-assignPriv :: expr rv 2 -> FormulaBuilder (expr rv) rv ()
+-- | Add a privilege assignment to the semantics.
+assignPriv :: expr rv 2 -> SemanticsBuilder (expr rv) rv ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
 -- | Reserve a memory location.
-reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> FormulaBuilder (expr rv) rv ()
+reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> SemanticsBuilder (expr rv) rv ()
 reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
@@ -365,15 +365,15 @@ checkReserved addr = stateExpr (LocExpr (ResExpr addr))
 
 infixl 1 $>
 
--- | Add a branch statement to the formula. Note that comments in the subformulas
+-- | Add a branch statement to the semantics. Note that comments in the subsemanticss
 -- will be ignored.
 branch :: expr rv 1
-       -> FormulaBuilder (expr rv) rv ()
-       -> FormulaBuilder (expr rv) rv ()
-       -> FormulaBuilder (expr rv) rv ()
+       -> SemanticsBuilder (expr rv) rv ()
+       -> SemanticsBuilder (expr rv) rv ()
+       -> SemanticsBuilder (expr rv) rv ()
 branch e fbTrue fbFalse = do
-  let fTrue  = getFormula fbTrue  ^. fDefs
-      fFalse = getFormula fbFalse ^. fDefs
+  let fTrue  = getSemantics fbTrue  ^. semStmts
+      fFalse = getSemantics fbFalse ^. semStmts
   addStmt (BranchStmt e fTrue fFalse)
 
 -- Class instances
@@ -438,8 +438,8 @@ instance Pretty (Stmt (InstExpr fmt rv) rv) where
     $$ nest 2 (text "ELSE")
     $$ nest 4 (vcat (pPrint <$> toList s2s))
 
-instance Pretty (Formula (InstExpr fmt rv) rv) where
-  pPrint formula = vcat (pPrint <$> toList (formula ^. fDefs))
+instance Pretty (Semantics (InstExpr fmt rv) rv) where
+  pPrint semantics = vcat (pPrint <$> toList (semantics ^. semStmts))
 
 pPrintStateExpr' :: Bool -> StateExpr (InstExpr fmt rv) rv w -> Doc
 pPrintStateExpr' _ (LocExpr loc) = pPrint loc

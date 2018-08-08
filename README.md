@@ -61,6 +61,7 @@ Mandatory Requirements
   simulation is explicitly *not* a concern.
 - Must pass all relevant tests from riscv-tests and riscv-compliance test
   suites.
+- Must integrate with SVF bisimulation tooling for hardware validation.
 
 ## Documentation
 

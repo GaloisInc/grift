@@ -57,8 +57,8 @@ type EncodeMap rv = MapF (Opcode rv) OpBits
 -- | Reverse of 'EncodeMap'
 type DecodeMap rv = MapF OpBits (Opcode rv)
 
--- | Maps each opcode to its associated semantics 'Formula'.
-type SemanticsMap rv = MapF (Opcode rv) (InstFormula rv)
+-- | Maps each opcode to its associated semantics 'Semantics'.
+type SemanticsMap rv = MapF (Opcode rv) (InstSemantics rv)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions
 -- into categories based on extension and register width.
@@ -93,7 +93,7 @@ opcodeFromOpBits is opBits =
   maybe (Left Illegal) Right (Map.lookup opBits (isDecodeMap is))
 
 -- | Given an instruction set, obtain the semantics of an opcode
-semanticsFromOpcode :: InstructionSet rv -> Opcode rv fmt -> InstFormula rv fmt
+semanticsFromOpcode :: InstructionSet rv -> Opcode rv fmt -> InstSemantics rv fmt
 semanticsFromOpcode is opcode = fromMaybe (error msg) $ Map.lookup opcode (isSemanticsMap is)
   where msg = "Opcode " ++ show opcode ++ " does not have corresponding semantics defined."
 

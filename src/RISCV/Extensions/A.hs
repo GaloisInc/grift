@@ -92,7 +92,7 @@ a64Encode = Map.fromList
 
 aSemantics :: forall rv . (KnownRV rv, AExt << rv) => SemanticsMap rv
 aSemantics = Map.fromList
-  [ Pair Lrw $ InstFormula $ getFormula $ do
+  [ Pair Lrw $ InstSemantics $ getSemantics $ do
       comment "Loads the four bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
       comment "Registers a reservation on that memory word."
@@ -112,7 +112,7 @@ aSemantics = Map.fromList
               reserve x_rs1
               incrPC
 
-  , Pair Scw $ InstFormula $ getFormula $ do
+  , Pair Scw $ InstSemantics $ getSemantics $ do
       comment "Checks that there exists a load reservation on address x[rs1]."
       comment "If so, stores the four bytes in register x[rs2] at that address."
       comment "Writes 0 to x[rd] if the store succeeded, or a nonzero error code otherwise."
@@ -130,47 +130,47 @@ aSemantics = Map.fromList
               incrPC
         $> do assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
               incrPC
-  , Pair Amoswapw $ InstFormula $ getFormula $ do
+  , Pair Amoswapw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 const
-  , Pair Amoaddw $ InstFormula $ getFormula $ do
+  , Pair Amoaddw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t + x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 addE
-  , Pair Amoxorw $ InstFormula $ getFormula $ do
+  , Pair Amoxorw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t ^ x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 xorE
-  , Pair Amoandw $ InstFormula $ getFormula $ do
+  , Pair Amoandw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t & x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 andE
-  , Pair Amoorw $ InstFormula $ getFormula $ do
+  , Pair Amoorw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t | x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 orE
-  , Pair Amominw $ InstFormula $ getFormula $ do
+  , Pair Amominw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp32 $ \e1 e2 -> iteE (e1 `ltsE` e2) e1 e2
-  , Pair Amomaxw $ InstFormula $ getFormula $ do
+  , Pair Amomaxw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp32 $ \e1 e2 -> iteE (e1 `ltsE` e2) e2 e1
-  , Pair Amominuw $ InstFormula $ getFormula $ do
+  , Pair Amominuw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e1 e2
-  , Pair Amomaxuw $ InstFormula $ getFormula $ do
+  , Pair Amomaxuw $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
@@ -179,7 +179,7 @@ aSemantics = Map.fromList
 
 amoOp32 :: KnownRV rv
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
-        -> FormulaBuilder (InstExpr A rv) rv ()
+        -> SemanticsBuilder (InstExpr A rv) rv ()
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
@@ -195,7 +195,7 @@ amoOp32 op = do
 
 a64Semantics :: forall rv . (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
 a64Semantics = Map.fromList
-  [ Pair Lrd $ InstFormula $ getFormula $ do
+  [ Pair Lrd $ InstSemantics $ getSemantics $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
       comment "Registers a reservation on that memory word."
@@ -214,7 +214,7 @@ a64Semantics = Map.fromList
         $> do assignReg rd (sextE mVal)
               reserve x_rs1
 
-  , Pair Scd $ InstFormula $ getFormula $ do
+  , Pair Scd $ InstSemantics $ getSemantics $ do
       comment "Checks that there exists a load reservation on address x[rs1]."
       comment "If so, stores the eight bytes in register x[rs2] at that address."
       comment "Writes 0 to x[rd] if the store succeeded, or a nonzero error code otherwise."
@@ -230,47 +230,47 @@ a64Semantics = Map.fromList
         $> do assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2)
               assignReg rd (litBV 0)
         $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
-  , Pair Amoswapd $ InstFormula $ getFormula $ do
+  , Pair Amoswapd $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 const
-  , Pair Amoaddd $ InstFormula $ getFormula $ do
+  , Pair Amoaddd $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t + x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 addE
-  , Pair Amoxord $ InstFormula $ getFormula $ do
+  , Pair Amoxord $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t ^ x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 xorE
-  , Pair Amoandd $ InstFormula $ getFormula $ do
+  , Pair Amoandd $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t & x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 andE
-  , Pair Amoord $ InstFormula $ getFormula $ do
+  , Pair Amoord $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t | x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 orE
-  , Pair Amomind $ InstFormula $ getFormula $ do
+  , Pair Amomind $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp64 $ \e1 e2 -> iteE (e1 `ltsE` e2) e1 e2
-  , Pair Amomaxd $ InstFormula $ getFormula $ do
+  , Pair Amomaxd $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp64 $ \e1 e2 -> iteE (e1 `ltsE` e2) e2 e1
-  , Pair Amominud $ InstFormula $ getFormula $ do
+  , Pair Amominud $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e1 e2
-  , Pair Amomaxud $ InstFormula $ getFormula $ do
+  , Pair Amomaxud $ InstSemantics $ getSemantics $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
@@ -279,7 +279,7 @@ a64Semantics = Map.fromList
 
 amoOp64 :: KnownRV rv
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
-        -> FormulaBuilder (InstExpr A rv) rv ()
+        -> SemanticsBuilder (InstExpr A rv) rv ()
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 

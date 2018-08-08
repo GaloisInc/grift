@@ -146,7 +146,7 @@ instance KnownRV rv => RVStateM (MapMachineM rv) rv where
   logInstruction iset inst@(Inst opcode _) = do
     return ()
     let formula = semanticsFromOpcode iset opcode
-        tests = getTests (getInstFormula formula)
+        tests = getTests (getInstSemantics formula)
     testVals <- traverse (evalInstExpr iset inst 4) tests
     MapMachineM $ S.modify $ \m ->
       m { testMap = Map.insertWith union (Some opcode) [testVals] (testMap m) }

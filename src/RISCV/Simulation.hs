@@ -46,7 +46,7 @@ module RISCV.Simulation
   , Loc(..)
   , Assignment(..)
   , execAssignment
-  , execFormula
+  , execSemantics
   , runRV
   , getTests
   ) where
@@ -215,12 +215,12 @@ execAssignment (Branch condVal tAssignments fAssignments) =
     _ -> traverse_ execAssignment fAssignments
 
 -- | Execute a formula, given an 'RVStateM' implementation.
-execFormula :: forall m expr rv . (RVStateM m rv, KnownRV rv)
+execSemantics :: forall m expr rv . (RVStateM m rv, KnownRV rv)
              => (forall w . expr w -> m (BitVector w))
-             -> Formula expr rv
+             -> Semantics expr rv
              -> m ()
-execFormula eval f = do
-  assignments <- traverse (buildAssignment eval) (f ^. fDefs)
+execSemantics eval f = do
+  assignments <- traverse (buildAssignment eval) (f ^. semStmts)
   traverse_ execAssignment assignments
 
 -- | Fetch, decode, and execute a single instruction.
@@ -241,10 +241,10 @@ stepRV iset = do
   logInstruction iset inst
 
   -- Execute
-  execFormula (evalInstExpr iset inst 4) (getInstFormula $ semanticsFromOpcode iset opcode)
+  execSemantics (evalInstExpr iset inst 4) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
   -- Record cycle count
-  execFormula evalPureStateExpr $ getFormula $ do
+  execSemantics evalPureStateExpr $ getSemantics $ do
     let minstret = readCSR (litBV $ encodeCSR MInstRet)
     assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
 
@@ -272,8 +272,8 @@ runRV = runRV' knownISet 0
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Formula (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
-getTests formula = nub (concat $ getTestsStmt <$> formula ^. fDefs)
+getTests :: Semantics (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
+getTests formula = nub (concat $ getTestsStmt <$> formula ^. semStmts)
 
 getTestsStmt :: Stmt (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
 getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
