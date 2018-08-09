@@ -174,7 +174,6 @@ data Loc rv w where
 -- is a known location and the right-hand side is a known BitVector value.
 data Assignment (rv :: RV) where
   Assignment :: Loc rv w -> BitVector w -> Assignment rv
-  Branch :: BitVector 1 -> Seq (Assignment rv) -> Seq (Assignment rv) -> Assignment rv
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m rv, KnownRV rv)
@@ -226,10 +225,6 @@ execAssignment (Assignment (Res _) _) = return ()
 execAssignment (Assignment (CSR csr) val) = do
   setCSR csr val
 execAssignment (Assignment Priv val) = setPriv val
-execAssignment (Branch condVal tAssignments fAssignments) =
-  case condVal of
-    1 -> traverse_ execAssignment tAssignments
-    _ -> traverse_ execAssignment fAssignments
 
 -- | Execute a formula, given an 'RVStateM' implementation.
 execSemantics :: forall m expr rv . (RVStateM m rv, KnownRV rv)
