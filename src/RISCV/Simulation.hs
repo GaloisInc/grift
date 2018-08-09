@@ -64,6 +64,7 @@ import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
 import Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
 import Prelude hiding ((!!))
 
 import RISCV.Decode
@@ -109,10 +110,6 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
 
   -- | Log the execution of a particular instruction.
   logInstruction :: InstructionSet rv -> Instruction rv fmt -> m ()
-
-class (RVStateM m rv, FExt << rv) => RVFStateM m (rv :: RV) where
-  getFReg' :: BitVector 5 -> m (BitVector (RVFloatWidth rv))
-  setFReg' :: BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
 
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
@@ -174,10 +171,7 @@ data Loc rv w where
   Priv :: Loc rv 2
 
 -- | This type represents a concrete assignment statement, where the left-hand side
--- is a known location and the right-hand side is a known BitVector value. Because we
--- are still abstracting out the notion of throwing an exception, we also have a
--- constructor for that; however, this will be removed once we wire exception
--- handling into the semantics themselves.
+-- is a known location and the right-hand side is a known BitVector value.
 data Assignment (rv :: RV) where
   Assignment :: Loc rv w -> BitVector w -> Assignment rv
   Branch :: BitVector 1 -> Seq (Assignment rv) -> Seq (Assignment rv) -> Assignment rv
@@ -186,38 +180,40 @@ data Assignment (rv :: RV) where
 buildAssignment :: (RVStateM m rv, KnownRV rv)
                      => (forall w . expr w -> m (BitVector w))
                      -> Stmt expr rv
-                     -> m (Assignment rv)
+                     -> m [Assignment rv]
 buildAssignment eval (AssignStmt PCExpr pcE) = do
   pcVal <- eval pcE
-  return (Assignment PC pcVal)
+  return [Assignment PC pcVal]
 buildAssignment eval (AssignStmt (RegExpr ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
-  return (Assignment (Reg rid) eVal)
+  return [Assignment (Reg rid) eVal]
 buildAssignment eval (AssignStmt (FRegExpr ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
-  return (Assignment (FReg rid) eVal)
+  return [Assignment (FReg rid) eVal]
 buildAssignment eval (AssignStmt (MemExpr bytes addrE) e) = do
   addr <- eval addrE
   eVal <- eval e
-  return (Assignment (Mem bytes addr) eVal)
+  return [Assignment (Mem bytes addr) eVal]
 buildAssignment eval (AssignStmt (ResExpr addrE) e) = do
   addr <- eval addrE
   eVal <- eval e
-  return (Assignment (Res addr) eVal)
+  return [Assignment (Res addr) eVal]
 buildAssignment eval (AssignStmt (CSRExpr csrE) e) = do
   csr  <- eval csrE
   eVal <- eval e
-  return (Assignment (CSR csr) eVal)
+  return [Assignment (CSR csr) eVal]
 buildAssignment eval (AssignStmt PrivExpr privE) = do
   privVal <- eval privE
-  return (Assignment Priv privVal)
+  return [Assignment Priv privVal]
 buildAssignment eval (BranchStmt condE tStmts fStmts) = do
   condVal <- eval condE
   tAssignments <- traverse (buildAssignment eval) tStmts
   fAssignments <- traverse (buildAssignment eval) fStmts
-  return (Branch condVal tAssignments fAssignments)
+  case condVal of
+    0 -> return $ concat fAssignments
+    _ -> return $ concat tAssignments
 
 -- | Execute an assignment.
 execAssignment :: (RVStateM m rv, KnownRV rv) => Assignment rv -> m ()
@@ -241,7 +237,7 @@ execSemantics :: forall m expr rv . (RVStateM m rv, KnownRV rv)
              -> Semantics expr rv
              -> m ()
 execSemantics eval f = do
-  assignments <- traverse (buildAssignment eval) (f ^. semStmts)
+  assignments <- concat <$> traverse (buildAssignment eval) (f ^. semStmts)
   traverse_ execAssignment assignments
 
 -- | Fetch, decode, and execute a single instruction.

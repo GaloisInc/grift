@@ -343,7 +343,7 @@ baseSemantics = Map.fromList
       assignReg rd res
       incrPC
   , Pair Slti $ InstSemantics $ getSemantics $ do
-      comment "Compares x[rs1] and the sign-extended immediate as two's not numbers."
+      comment "Compares x[rs1] and the sign-extended immediate as two's complement numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
       rd :< rs1 :< imm12 :< Nil <- operandEs
