@@ -1,8 +1,0 @@
-Idea for modeling entire step function semantics
-
-Right now, we map the Operands (a list of BitVectors) to the operand
-expressions (a list of expressions).
-
-We could also map each BitLayout to a BVExpr (inside bv-sized), which would
-enable us to capture the denotational semantics of the  decoding mechanism. That
-would be pretty darn cool.

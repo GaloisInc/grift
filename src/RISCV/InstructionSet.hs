@@ -17,7 +17,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 
 {-# LANGUAGE DataKinds      #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PolyKinds      #-}
 
 {-|
 Module      : RISCV.Instruction
@@ -52,13 +52,13 @@ import RISCV.Types
 
 -- | Instruction encoding, mapping each opcode to its associated 'OpBits', the bits
 -- it fixes in an instruction word.
-type EncodeMap rv = MapF (Opcode rv) OpBits
+type EncodeMap (rv :: RV) = MapF (Opcode rv) OpBits
 
 -- | Reverse of 'EncodeMap'
-type DecodeMap rv = MapF OpBits (Opcode rv)
+type DecodeMap (rv :: RV) = MapF OpBits (Opcode rv)
 
 -- | Maps each opcode to its associated semantics 'Semantics'.
-type SemanticsMap rv = MapF (Opcode rv) (InstSemantics rv)
+type SemanticsMap (rv :: RV) = MapF (Opcode rv) (InstSemantics rv)
 
 -- | A set of RISC-V instructions. We use this type to group the various instructions
 -- into categories based on extension and register width.
