@@ -360,7 +360,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let res   = zextE (ltuE x_rs1 (zextE imm12))
+      let res   = zextE (ltuE x_rs1 (sextE imm12))
 
       assignReg rd res
       incrPC

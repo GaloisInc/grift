@@ -110,10 +110,6 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
   -- | Log the execution of a particular instruction.
   logInstruction :: InstructionSet rv -> Instruction rv fmt -> m ()
 
-class (RVStateM m rv, FExt << rv) => RVFStateM m (rv :: RV) where
-  getFReg' :: BitVector 5 -> m (BitVector (RVFloatWidth rv))
-  setFReg' :: BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
-
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
 evalLocExpr :: forall m expr rv w
