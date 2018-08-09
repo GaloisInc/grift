@@ -98,7 +98,6 @@ import Data.BitVector.Sized
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
-import GHC.Exts (Constraint)
 import GHC.TypeLits
 
 ----------------------------------------

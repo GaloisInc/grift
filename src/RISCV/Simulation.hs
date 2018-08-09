@@ -25,8 +25,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
 
 {-|
 Module      : RISCV.Simulation
@@ -63,8 +61,6 @@ import Data.List (nub)
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
-import Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
 import Prelude hiding ((!!))
 
 import RISCV.Decode

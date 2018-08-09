@@ -421,6 +421,7 @@ instance Eq (InstExpr fmt rv w) where
 instance Pretty (LocExpr (InstExpr fmt rv) rv w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
+  pPrint (FRegExpr e) = text "f[" <> pPrint e <> text "]"
   pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
   pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
   pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"

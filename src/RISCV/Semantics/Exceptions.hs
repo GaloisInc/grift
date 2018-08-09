@@ -64,9 +64,6 @@ data Exception = EnvironmentCall
                | StoreAccessFault
   deriving (Show)
 
-interruptBV :: forall w . KnownNat w => BitVector w
-interruptBV = 1 `bvShiftL` fromIntegral (natValue (knownNat @w) - 1)
-
 -- | Map an 'Exception' to its 'BitVector' representation.
 getMCause :: KnownNat w => Exception -> BitVector w
 getMCause IllegalInstruction = 2
