@@ -37,8 +37,10 @@ resolver: lts-11.11
 packages:
 - .
 - submodules/bv-sized
+- submodules/bv-sized-float
 - submodules/elf-edit
 - submodules/parameterized-utils
+- submodules/softfloat-hs
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

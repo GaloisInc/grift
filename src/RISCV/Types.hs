@@ -83,7 +83,8 @@ module RISCV.Types
   , Extension(..), type AExt, type DExt, type FExt, type MExt, type SExt, type UExt
   , ExtensionsContains
   -- * Instructions
-  , Format(..), type R, type I, type S, type B, type U, type J, type H, type P, type A, type X
+  , Format(..)
+  , type R, type I, type S, type B, type U, type J, type H, type P, type A, type R4, type X
   , FormatRepr(..)
   , OperandTypes
   , OperandID(..)
@@ -293,31 +294,33 @@ type family (<<) (e :: Extension) (rv :: RV) where
 -- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 
-data Format = R | I | S | B | U | J | H | P | A | X
+data Format = R | I | S | B | U | J | H | P | A | R4 | X
 
-type R = 'R
-type I = 'I
-type S = 'S
-type B = 'B
-type U = 'U
-type J = 'J
-type H = 'H
-type P = 'P
-type A = 'A
-type X = 'X
+type R  = 'R
+type I  = 'I
+type S  = 'S
+type B  = 'B
+type U  = 'U
+type J  = 'J
+type H  = 'H
+type P  = 'P
+type A  = 'A
+type R4 = 'R4
+type X  = 'X
 
 -- | A runtime representative for 'Format' for dependent typing.
 data FormatRepr :: Format -> * where
-  RRepr :: FormatRepr R
-  IRepr :: FormatRepr I
-  SRepr :: FormatRepr S
-  BRepr :: FormatRepr B
-  URepr :: FormatRepr U
-  JRepr :: FormatRepr J
-  HRepr :: FormatRepr H
-  PRepr :: FormatRepr P
-  ARepr :: FormatRepr A
-  XRepr :: FormatRepr X
+  RRepr  :: FormatRepr R
+  IRepr  :: FormatRepr I
+  SRepr  :: FormatRepr S
+  BRepr  :: FormatRepr B
+  URepr  :: FormatRepr U
+  JRepr  :: FormatRepr J
+  HRepr  :: FormatRepr H
+  PRepr  :: FormatRepr P
+  ARepr  :: FormatRepr A
+  R4Repr :: FormatRepr R4
+  XRepr  :: FormatRepr X
 
 -- Instances
 $(return [])
@@ -331,32 +334,34 @@ instance TestEquality FormatRepr where
 instance OrdF FormatRepr where
   compareF = $(structuralTypeOrd [t|FormatRepr|] [])
 
-instance KnownRepr FormatRepr R where knownRepr = RRepr
-instance KnownRepr FormatRepr I where knownRepr = IRepr
-instance KnownRepr FormatRepr S where knownRepr = SRepr
-instance KnownRepr FormatRepr B where knownRepr = BRepr
-instance KnownRepr FormatRepr U where knownRepr = URepr
-instance KnownRepr FormatRepr J where knownRepr = JRepr
-instance KnownRepr FormatRepr H where knownRepr = HRepr
-instance KnownRepr FormatRepr P where knownRepr = PRepr
-instance KnownRepr FormatRepr A where knownRepr = ARepr
-instance KnownRepr FormatRepr X where knownRepr = XRepr
+instance KnownRepr FormatRepr R  where knownRepr = RRepr
+instance KnownRepr FormatRepr I  where knownRepr = IRepr
+instance KnownRepr FormatRepr S  where knownRepr = SRepr
+instance KnownRepr FormatRepr B  where knownRepr = BRepr
+instance KnownRepr FormatRepr U  where knownRepr = URepr
+instance KnownRepr FormatRepr J  where knownRepr = JRepr
+instance KnownRepr FormatRepr H  where knownRepr = HRepr
+instance KnownRepr FormatRepr P  where knownRepr = PRepr
+instance KnownRepr FormatRepr A  where knownRepr = ARepr
+instance KnownRepr FormatRepr R4 where knownRepr = R4Repr
+instance KnownRepr FormatRepr X  where knownRepr = XRepr
 
 ----------------------------------------
 -- Operands
 
 -- | Maps each format type to the list of the corresponding operand widths.
 type family OperandTypes (fmt :: Format) :: [Nat] where
-  OperandTypes R = '[5, 5, 5]
-  OperandTypes I = '[5, 5, 12]
-  OperandTypes S = '[5, 5, 12]
-  OperandTypes B = '[5, 5, 12]
-  OperandTypes U = '[5, 20]
-  OperandTypes J = '[5, 20]
-  OperandTypes H = '[5, 5, 7]
-  OperandTypes P = '[]
-  OperandTypes A = '[5, 5, 5, 1, 1]
-  OperandTypes X = '[32]
+  OperandTypes R  = '[5, 5, 5]
+  OperandTypes I  = '[5, 5, 12]
+  OperandTypes S  = '[5, 5, 12]
+  OperandTypes B  = '[5, 5, 12]
+  OperandTypes U  = '[5, 20]
+  OperandTypes J  = '[5, 20]
+  OperandTypes H  = '[5, 5, 7]
+  OperandTypes P  = '[]
+  OperandTypes A  = '[5, 5, 5, 1, 1]
+  OperandTypes R4 = '[5, 5, 5, 5]
+  OperandTypes X  = '[32]
 
 -- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
 newtype OperandID (fmt :: Format) (w :: Nat) = OperandID { unOperandID :: Index (OperandTypes fmt) w }
@@ -381,16 +386,17 @@ instance ShowF Operands
 
 -- | Maps each format to the list of the corresponding opbits widths.
 type family OpBitsTypes (fmt :: Format) :: [Nat] where
-  OpBitsTypes R = '[7, 3, 7]
-  OpBitsTypes I = '[7, 3]
-  OpBitsTypes S = '[7, 3]
-  OpBitsTypes B = '[7, 3]
-  OpBitsTypes U = '[7]
-  OpBitsTypes J = '[7]
-  OpBitsTypes H = '[7, 3, 5]
-  OpBitsTypes P = '[32]
-  OpBitsTypes A = '[7, 3, 5]
-  OpBitsTypes X = '[]
+  OpBitsTypes R  = '[7, 3, 7]
+  OpBitsTypes I  = '[7, 3]
+  OpBitsTypes S  = '[7, 3]
+  OpBitsTypes B  = '[7, 3]
+  OpBitsTypes U  = '[7]
+  OpBitsTypes J  = '[7]
+  OpBitsTypes H  = '[7, 3, 5]
+  OpBitsTypes P  = '[32]
+  OpBitsTypes A  = '[7, 3, 5]
+  OpBitsTypes R4 = '[7, 3, 2]
+  OpBitsTypes X  = '[]
 
 -- | Bits fixed by an opcode.
 -- Holds all the bits that are fixed by a particular opcode.

@@ -7,3 +7,9 @@
 [submodule "submodules/parameterized-utils"]
 	path = submodules/parameterized-utils
 	url = git@github.com:GaloisInc/parameterized-utils.git
+[submodule "submodules/softfloat-hs"]
+	path = submodules/softfloat-hs
+	url = git@github.com:GaloisInc/softfloat-hs.git
+[submodule "submodules/bv-sized-float"]
+	path = submodules/bv-sized-float
+	url = git@github.com:GaloisInc/bv-sized-float.git
