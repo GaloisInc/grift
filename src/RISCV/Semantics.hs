@@ -87,6 +87,7 @@ module RISCV.Semantics
     -- ** Access to state
   , readPC
   , readReg
+  , readFReg
   , readMem
   , readCSR
   , readPriv
@@ -108,6 +109,7 @@ module RISCV.Semantics
     -- ** State actions
   , assignPC
   , assignReg
+  , assignFReg
   , assignMem
   , assignCSR
   , assignPriv
@@ -300,6 +302,12 @@ readPC = stateExpr (LocExpr PCExpr)
 readReg :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv) => expr rv 5 -> expr rv (RVWidth rv)
 readReg ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocExpr (RegExpr ridE)))
 
+-- | Read a value from a floating point register.
+readFReg :: (BVExpr (expr rv), RVStateExpr expr, FExt << rv)
+         => expr rv 5
+         -> expr rv (RVFloatWidth rv)
+readFReg ridE = stateExpr (LocExpr (FRegExpr ridE))
+
 -- | Read a variable number of bytes from memory, with an explicit width argument.
 readMem :: RVStateExpr expr
         => NatRepr bytes
@@ -332,6 +340,13 @@ assignReg r e = addStmt $
   BranchStmt (r `eqE` litBV 0)
   $> Seq.empty
   $> Seq.singleton (AssignStmt (RegExpr r) e)
+
+-- | Add a register assignment to the semantics.
+assignFReg :: (BVExpr (expr rv), FExt << rv)
+           => expr rv 5
+           -> expr rv (RVFloatWidth rv)
+           -> SemanticsBuilder (expr rv) rv ()
+assignFReg r e = addStmt (AssignStmt (FRegExpr r) e)
 
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
 assignMem :: NatRepr bytes

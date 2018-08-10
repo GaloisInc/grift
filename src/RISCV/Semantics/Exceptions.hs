@@ -49,7 +49,6 @@ import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import qualified Data.Map as Map
 import Data.Map (Map)
-import Data.Parameterized
 import GHC.TypeLits
 
 import RISCV.Semantics

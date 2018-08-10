@@ -245,7 +245,6 @@ stepRV iset = do
   Some inst@(Inst opcode _) <- return $ decode iset instBV
 
   -- Log instruction BEFORE execution
-  -- TODO: switch argument order here
   logInstruction iset inst
 
   -- Execute
