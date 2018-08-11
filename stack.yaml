@@ -29,7 +29,7 @@ setup-info:
         url: https://downloads.haskell.org/~ghc/8.6.1-alpha1/ghc-8.6.0.20180627-x86_64-unknown-mingw32.tar.xz
         sha256: ccff1f896425f932581c804e1fd6dd14dea7b7423f7f4970ff1d99ab03c97504
 
-resolver: lts-11.11
+resolver: lts-12.5
 # resolver: ghc-8.6.0.20180627
 # compiler: ghc-8.6.0.20180627
 # compiler-check: match-exact

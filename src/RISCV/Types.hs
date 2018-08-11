@@ -84,7 +84,9 @@ module RISCV.Types
   , ExtensionsContains
   -- * Instructions
   , Format(..)
-  , type R, type I, type S, type B, type U, type J, type H, type P, type A, type R4, type X
+  , type R, type I, type S, type B, type U, type J
+  , type H, type P, type A, type R2, type R3, type R4
+  , type RX, type X
   , FormatRepr(..)
   , OperandTypes
   , OperandID(..)
@@ -294,7 +296,7 @@ type family (<<) (e :: Extension) (rv :: RV) where
 -- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 
-data Format = R | I | S | B | U | J | H | P | A | R4 | X
+data Format = R | I | S | B | U | J | H | P | A | R2 | R3 | R4 | RX | X
 
 type R  = 'R
 type I  = 'I
@@ -305,7 +307,10 @@ type J  = 'J
 type H  = 'H
 type P  = 'P
 type A  = 'A
+type R2 = 'R2
+type R3 = 'R3
 type R4 = 'R4
+type RX = 'RX
 type X  = 'X
 
 -- | A runtime representative for 'Format' for dependent typing.
@@ -319,7 +324,10 @@ data FormatRepr :: Format -> * where
   HRepr  :: FormatRepr H
   PRepr  :: FormatRepr P
   ARepr  :: FormatRepr A
+  R2Repr :: FormatRepr R2
+  R3Repr :: FormatRepr R3
   R4Repr :: FormatRepr R4
+  RXRepr :: FormatRepr RX
   XRepr  :: FormatRepr X
 
 -- Instances
@@ -343,12 +351,19 @@ instance KnownRepr FormatRepr J  where knownRepr = JRepr
 instance KnownRepr FormatRepr H  where knownRepr = HRepr
 instance KnownRepr FormatRepr P  where knownRepr = PRepr
 instance KnownRepr FormatRepr A  where knownRepr = ARepr
+instance KnownRepr FormatRepr R2 where knownRepr = R2Repr
+instance KnownRepr FormatRepr R3 where knownRepr = R3Repr
 instance KnownRepr FormatRepr R4 where knownRepr = R4Repr
+instance KnownRepr FormatRepr RX where knownRepr = RXRepr
 instance KnownRepr FormatRepr X  where knownRepr = XRepr
 
 ----------------------------------------
 -- Operands
 
+-- TODO: It might make sense to reverse the order in this and OpBitsTypes; it's
+-- actually pretty confusing because it doesn't match how it looks when you're just
+-- looking at the bits. Also, BitLayout uses the reverse ordering for exactly this
+-- reason.
 -- | Maps each format type to the list of the corresponding operand widths.
 type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes R  = '[5, 5, 5]
@@ -360,7 +375,10 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes H  = '[5, 5, 7]
   OperandTypes P  = '[]
   OperandTypes A  = '[5, 5, 5, 1, 1]
-  OperandTypes R4 = '[5, 5, 5, 5]
+  OperandTypes R2 = '[5, 3, 5]
+  OperandTypes R3 = '[5, 3, 5, 5]
+  OperandTypes R4 = '[5, 3, 5, 5, 5]
+  OperandTypes RX = '[5, 5]
   OperandTypes X  = '[32]
 
 -- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
@@ -395,7 +413,10 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
   OpBitsTypes H  = '[7, 3, 5]
   OpBitsTypes P  = '[32]
   OpBitsTypes A  = '[7, 3, 5]
-  OpBitsTypes R4 = '[7, 3, 2]
+  OpBitsTypes R2 = '[7, 12]
+  OpBitsTypes R3 = '[7, 7]
+  OpBitsTypes R4 = '[7, 2]
+  OpBitsTypes RX = '[7, 3, 12]
   OpBitsTypes X  = '[]
 
 -- | Bits fixed by an opcode.

@@ -36,14 +36,13 @@ module RISCV.Extensions
     knownISet
   ) where
 
-import Data.Monoid
 import Data.Parameterized
 
 import RISCV.InstructionSet
-import RISCV.Extensions.Base
-import RISCV.Extensions.A
-import RISCV.Extensions.M
-import RISCV.Extensions.Priv
+import RISCV.InstructionSet.Base
+import RISCV.InstructionSet.A
+import RISCV.InstructionSet.M
+import RISCV.InstructionSet.Priv
 import RISCV.Types
 
 -- | Infer the current instruction set from a context in which the 'BaseArch' and

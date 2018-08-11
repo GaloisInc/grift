@@ -17,11 +17,11 @@ library
   exposed-modules:     RISCV.Coverage
                      , RISCV.Decode
                      , RISCV.Extensions
-                     , RISCV.Extensions.Base
-                     , RISCV.Extensions.Helpers
-                     , RISCV.Extensions.A
-                     , RISCV.Extensions.M
-                     , RISCV.Extensions.Priv
+                     , RISCV.InstructionSet.Base
+                     , RISCV.InstructionSet.Helpers
+                     , RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.M
+                     , RISCV.InstructionSet.Priv
                      , RISCV.InstructionSet
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions
@@ -50,11 +50,11 @@ executable grift
   other-modules:       RISCV.Coverage
                      , RISCV.Decode
                      , RISCV.Extensions
-                     , RISCV.Extensions.Base
-                     , RISCV.Extensions.Helpers
-                     , RISCV.Extensions.A
-                     , RISCV.Extensions.M
-                     , RISCV.Extensions.Priv
+                     , RISCV.InstructionSet.Base
+                     , RISCV.InstructionSet.Helpers
+                     , RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.M
+                     , RISCV.InstructionSet.Priv
                      , RISCV.InstructionSet
                      , RISCV.Semantics
                      , RISCV.Semantics.Exceptions

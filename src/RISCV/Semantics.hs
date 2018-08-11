@@ -126,6 +126,7 @@ import Data.Parameterized.List
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
+import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJClass
 
 import Data.BitVector.Sized.App
@@ -275,6 +276,20 @@ operandEsWithRepr repr = case repr of
             OperandExpr (OperandID index2) :<
             OperandExpr (OperandID index3) :<
             OperandExpr (OperandID index4) :< Nil)
+  R2Repr -> (OperandExpr (OperandID index0) :<
+             OperandExpr (OperandID index1) :<
+             OperandExpr (OperandID index2) :< Nil)
+  R3Repr -> (OperandExpr (OperandID index0) :<
+             OperandExpr (OperandID index1) :<
+             OperandExpr (OperandID index2) :<
+             OperandExpr (OperandID index3) :< Nil)
+  R4Repr -> (OperandExpr (OperandID index0) :<
+             OperandExpr (OperandID index1) :<
+             OperandExpr (OperandID index2) :<
+             OperandExpr (OperandID index3) :<
+             OperandExpr (OperandID index4) :< Nil)
+  RXRepr -> (OperandExpr (OperandID index0) :<
+             OperandExpr (OperandID index1) :< Nil)
   XRepr -> (OperandExpr (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 
