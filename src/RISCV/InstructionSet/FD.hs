@@ -36,7 +36,7 @@ F and D extensions for RV32 and RV64.
 -}
 
 module RISCV.InstructionSet.FD
-  ( -- f32
+  ( f32
   -- , f64
   -- , d32
   -- , d64
@@ -52,7 +52,9 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
-  -- RV32F
+-- | RV32F
+f32 :: (KnownRV rv, FExt << rv) => InstructionSet rv
+f32 = instructionSet fEncode fSemantics
 
 fEncode :: FExt << rv => EncodeMap rv
 fEncode = Map.fromList
@@ -83,6 +85,64 @@ fEncode = Map.fromList
   , Pair Fcvt_s_wu (OpBits R2Repr (0b1010011 :< 0b110100000001 :< Nil))
   , Pair Fmv_w_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100000000 :< Nil))
   ]
+
+fSemantics :: (KnownRV rv, FExt << rv) => SemanticsMap rv
+fSemantics = Map.fromList
+  [ Pair Flw $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsw $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmadd_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmsub_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fnmsub_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fnmadd_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fadd_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsub_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmul_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fdiv_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsqrt_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsgnj_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsgnjn_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsgnjx_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmin_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmax_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_w_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_wu_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmv_x_w $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Feq_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Flt_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fle_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fclass_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_s_w $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_s_wu $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmv_w_x $ InstSemantics $ getSemantics $ do
+      incrPC
+  ]
+
+
   -- -- RV64F
   -- Fcvt_l_s  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
   -- Fcvt_lu_s :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2

@@ -130,6 +130,7 @@ import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJClass
 
 import Data.BitVector.Sized.App
+import Data.BitVector.Sized.Float.App
 import RISCV.Types
 
 ----------------------------------------
@@ -151,11 +152,14 @@ data LocExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
 -- 'BVApp' expression language. Sub-expressions come from an arbitrary expression
 -- language @expr@.
 data StateExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
-  -- Accessing state
+  -- | Accessing state
   LocExpr :: !(LocExpr expr rv w) -> StateExpr expr rv w
 
-  -- BVApp with Expr subexpressions
+  -- | 'BVApp' with 'StateExpr' subexpressions
   AppExpr :: !(BVApp expr w) -> StateExpr expr rv w
+
+  -- | 'BVFloatApp' with 'StateExpr' subexpressions
+  FloatAppExpr :: !(BVFloatApp expr w) -> StateExpr expr rv w
 
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
@@ -163,6 +167,9 @@ newtype PureStateExpr (rv :: RV) (w :: Nat) = PureStateExpr (StateExpr (PureStat
 
 instance BVExpr (PureStateExpr rv) where
   appExpr = PureStateExpr . AppExpr
+
+instance BVFloatExpr (PureStateExpr rv) where
+  floatAppExpr = PureStateExpr . FloatAppExpr
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- an executing instruction.
@@ -179,6 +186,9 @@ data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
 
 instance BVExpr (InstExpr fmt rv) where
   appExpr = InstStateExpr . AppExpr
+
+instance BVFloatExpr (InstExpr fmt rv) where
+  floatAppExpr = InstStateExpr . FloatAppExpr
 
 -- TODO: When we get quantified constraints, put a forall arch. BVExpr (expr arch)
 -- here
@@ -472,6 +482,8 @@ instance Pretty (Stmt (InstExpr fmt rv) rv) where
 instance Pretty (Semantics (InstExpr fmt rv) rv) where
   pPrint semantics = vcat (pPrint <$> toList (semantics ^. semStmts))
 
+-- TODO: pretty print floating point expressions
+-- TODO: Can we do this more generally, with a general expr?
 pPrintStateExpr' :: Bool -> StateExpr (InstExpr fmt rv) rv w -> Doc
 pPrintStateExpr' _ (LocExpr loc) = pPrint loc
 pPrintStateExpr' top (AppExpr app) = pPrintApp' top app
