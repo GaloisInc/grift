@@ -562,6 +562,76 @@ data Opcode :: RV -> Format -> * where
   Amominud :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
   Amomaxud :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
 
+  -- RV32F
+  Flw       :: FExt << rv => Opcode rv I
+  Fsw       :: FExt << rv => Opcode rv S
+  Fmadd_s   :: FExt << rv => Opcode rv R4
+  Fmsub_s   :: FExt << rv => Opcode rv R4
+  Fnmsub_s  :: FExt << rv => Opcode rv R4
+  Fnmadd_s  :: FExt << rv => Opcode rv R4
+  Fadd_s    :: FExt << rv => Opcode rv R3
+  Fsub_s    :: FExt << rv => Opcode rv R3
+  Fmul_s    :: FExt << rv => Opcode rv R3
+  Fdiv_s    :: FExt << rv => Opcode rv R3
+  Fsqrt_s   :: FExt << rv => Opcode rv R2
+  Fsgnj_s   :: FExt << rv => Opcode rv R
+  Fsgnjn_s  :: FExt << rv => Opcode rv R
+  Fsgnjx_s  :: FExt << rv => Opcode rv R
+  Fmin_s    :: FExt << rv => Opcode rv R
+  Fmax_s    :: FExt << rv => Opcode rv R
+  Fcvt_w_s  :: FExt << rv => Opcode rv R2
+  Fcvt_wu_s :: FExt << rv => Opcode rv R2
+  Fmv_x_w   :: FExt << rv => Opcode rv RX
+  Feq_s     :: FExt << rv => Opcode rv R
+  Flt_s     :: FExt << rv => Opcode rv R
+  Fle_s     :: FExt << rv => Opcode rv R
+  Fclass_s  :: FExt << rv => Opcode rv RX
+  Fcvt_s_w  :: FExt << rv => Opcode rv R2
+  Fcvt_s_wu :: FExt << rv => Opcode rv R2
+  Fmv_w_x   :: FExt << rv => Opcode rv RX
+
+  -- RV64F
+  Fcvt_l_s  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+  Fcvt_lu_s :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+  Fcvt_s_l  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+  Fcvt_s_lu :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+
+  -- RV32D
+  Fld       :: DExt << rv => Opcode rv I
+  Fsd       :: DExt << rv => Opcode rv S
+  Fmadd_d   :: DExt << rv => Opcode rv R4
+  Fmsub_d   :: DExt << rv => Opcode rv R4
+  Fnmsub_d  :: DExt << rv => Opcode rv R4
+  Fnmadd_d  :: DExt << rv => Opcode rv R4
+  Fadd_d    :: DExt << rv => Opcode rv R3
+  Fsub_d    :: DExt << rv => Opcode rv R3
+  Fmul_d    :: DExt << rv => Opcode rv R3
+  Fdiv_d    :: DExt << rv => Opcode rv R3
+  Fsqrt_d   :: DExt << rv => Opcode rv R2
+  Fsgnj_d   :: DExt << rv => Opcode rv R
+  Fsgnjn_d  :: DExt << rv => Opcode rv R
+  Fsgnjx_d  :: DExt << rv => Opcode rv R
+  Fmin_d    :: DExt << rv => Opcode rv R
+  Fmax_d    :: DExt << rv => Opcode rv R
+  Fcvt_s_d  :: DExt << rv => Opcode rv R2
+  Fcvt_d_s  :: DExt << rv => Opcode rv R2
+  Feq_d     :: DExt << rv => Opcode rv R
+  Flt_d     :: DExt << rv => Opcode rv R
+  Fle_d     :: DExt << rv => Opcode rv R
+  Fclass_d  :: DExt << rv => Opcode rv RX
+  Fcvt_w_d  :: DExt << rv => Opcode rv R2
+  Fcvt_wu_d :: DExt << rv => Opcode rv R2
+  Fcvt_d_w  :: DExt << rv => Opcode rv R2
+  Fcvt_d_wu :: DExt << rv => Opcode rv R2
+
+  -- RV64D
+  Fcvt_l_d  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fcvt_lu_d :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fmv_x_d   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
+  Fcvt_d_l  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fcvt_d_lu :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fmv_d_x   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
+
 -- Instances
 $(return [])
 deriving instance Show (Opcode rv fmt)

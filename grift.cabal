@@ -20,6 +20,7 @@ library
                      , RISCV.InstructionSet.Base
                      , RISCV.InstructionSet.Helpers
                      , RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.FD
                      , RISCV.InstructionSet.M
                      , RISCV.InstructionSet.Priv
                      , RISCV.InstructionSet
@@ -55,6 +56,7 @@ executable grift
                      , RISCV.InstructionSet.Base
                      , RISCV.InstructionSet.Helpers
                      , RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.FD
                      , RISCV.InstructionSet.M
                      , RISCV.InstructionSet.Priv
                      , RISCV.InstructionSet
