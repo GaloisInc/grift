@@ -43,6 +43,7 @@ module RISCV.InstructionSet.FD
   ) where
 
 import Data.BitVector.Sized.App
+import Data.BitVector.Sized.Float.App
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
@@ -137,6 +138,19 @@ fSemantics = Map.fromList
   , Pair Fcvt_s_w $ InstSemantics $ getSemantics $ do
       incrPC
   , Pair Fcvt_s_wu $ InstSemantics $ getSemantics $ do
+      -- TODO:
+      -- FCSR
+      -- Dynamic rounding
+      -- Exception flags
+      -- NaN handling (any NaN should be canonical)
+      comment "Converts the 32-bit unsigned integer in x[rs1] to a single-precision float."
+      comment "Writes the result to f[rd]."
+
+      rd :< rm :< rs1 :< Nil <- operandEs
+      let x_rs1 = readReg rs1
+          (res, flags) = getFRes $ ui32ToF32E rm (extractE 0 x_rs1)
+
+      assignReg rd (zextE res)
       incrPC
   , Pair Fmv_w_x $ InstSemantics $ getSemantics $ do
       incrPC

@@ -28,6 +28,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 {-|
 Module      : RISCV.Semantics
@@ -159,7 +160,7 @@ data StateExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   AppExpr :: !(BVApp expr w) -> StateExpr expr rv w
 
   -- | 'BVFloatApp' with 'StateExpr' subexpressions
-  FloatAppExpr :: !(BVFloatApp expr w) -> StateExpr expr rv w
+  FloatAppExpr :: FExt << rv => !(BVFloatApp expr w) -> StateExpr expr rv w
 
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
@@ -168,7 +169,7 @@ newtype PureStateExpr (rv :: RV) (w :: Nat) = PureStateExpr (StateExpr (PureStat
 instance BVExpr (PureStateExpr rv) where
   appExpr = PureStateExpr . AppExpr
 
-instance BVFloatExpr (PureStateExpr rv) where
+instance FExt << rv => BVFloatExpr (PureStateExpr rv) where
   floatAppExpr = PureStateExpr . FloatAppExpr
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
@@ -187,7 +188,7 @@ data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
 instance BVExpr (InstExpr fmt rv) where
   appExpr = InstStateExpr . AppExpr
 
-instance BVFloatExpr (InstExpr fmt rv) where
+instance FExt << rv =>  BVFloatExpr (InstExpr fmt rv) where
   floatAppExpr = InstStateExpr . FloatAppExpr
 
 -- TODO: When we get quantified constraints, put a forall arch. BVExpr (expr arch)
