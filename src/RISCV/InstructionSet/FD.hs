@@ -90,8 +90,25 @@ fEncode = Map.fromList
 fSemantics :: (KnownRV rv, FExt << rv) => SemanticsMap rv
 fSemantics = Map.fromList
   [ Pair Flw $ InstSemantics $ getSemantics $ do
+      comment "Loads a single-precision float from memory address x[rs1] + sext(offset)."
+      comment "Writes the result to f[rd]."
+
+      rd :< rs1 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let mVal  = readMem (knownNat @4) (x_rs1 `addE` sextE offset)
+
+      assignFReg rd (zextE mVal)
       incrPC
   , Pair Fsw $ InstSemantics $ getSemantics $ do
+      comment "Stores the single-precision float in register f[rs2] to memory at address x[rs1] + sext(offset)."
+
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let f_rs2 = readFReg rs2
+
+      assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 f_rs2)
       incrPC
   , Pair Fmadd_s $ InstSemantics $ getSemantics $ do
       incrPC
@@ -148,7 +165,7 @@ fSemantics = Map.fromList
         let x_rs1 = readReg rs1
             (res, flags) = getFRes $ ui32ToF32E rm (extractE 0 x_rs1)
 
-        assignReg rd (zextE res)
+        assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_w_x $ InstSemantics $ getSemantics $ do
