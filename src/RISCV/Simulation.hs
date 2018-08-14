@@ -56,6 +56,7 @@ module RISCV.Simulation
 import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
+import Data.BitVector.Sized.Float.App
 import Data.Foldable
 import Data.List (nub)
 import Data.Parameterized
@@ -132,6 +133,7 @@ evalStateExpr :: forall m expr rv w
               -> m (BitVector w)
 evalStateExpr eval (LocExpr e) = evalLocExpr eval e
 evalStateExpr eval (AppExpr e) = evalBVAppM eval e
+evalStateExpr eval (FloatAppExpr e) = evalBVFloatAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
 evalPureStateExpr :: forall m rv w

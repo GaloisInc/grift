@@ -98,6 +98,8 @@ data CSR = MVendorID
          -- Skipping MHPMEvents
          -- Skipping debug/trace registers
          -- Skipping debug mode registers
+         | FCSR
+         -- TODO: special semantics handling for FFlags, FRm
   deriving (Eq, Ord)
 
 -- | Translate a CSR to its 'BitVector' code.
@@ -126,6 +128,8 @@ encodeCSR MCycle     = 0xB00
 encodeCSR MInstRet   = 0xB02
 encodeCSR MCycleh    = 0xB80
 encodeCSR MInstReth  = 0xB82
+
+encodeCSR FCSR       = 0x003
 
 data Privilege = MPriv | SPriv | UPriv
 
