@@ -20,7 +20,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies          #-}
 
 {-|
-Module      : RISCV.Extensions
+Module      : RISCV.InstructionSet.Known
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -31,7 +31,7 @@ Portability : portable
 Extensions for RISC-V.
 -}
 
-module RISCV.Extensions
+module RISCV.InstructionSet.Known
   ( -- * RISC-V Base ISA and extensions
     knownISet
   ) where

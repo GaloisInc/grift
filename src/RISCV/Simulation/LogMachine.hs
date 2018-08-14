@@ -71,9 +71,9 @@ import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
 
 import RISCV.Coverage
+import RISCV.InstructionSet.Utils
 import RISCV.Types
 import RISCV.Simulation
-import RISCV.Semantics.Exceptions
 
 import Debug.Trace (traceM)
 

@@ -16,19 +16,18 @@ extra-source-files:  README.md
 library
   exposed-modules:     RISCV.Coverage
                      , RISCV.Decode
-                     , RISCV.Extensions
                      , RISCV.InstructionSet.Base
-                     , RISCV.InstructionSet.Helpers
-                     , RISCV.InstructionSet.A
-                     , RISCV.InstructionSet.FD
-                     , RISCV.InstructionSet.M
-                     , RISCV.InstructionSet.Priv
+                     , RISCV.InstructionSet.Known
                      , RISCV.InstructionSet
                      , RISCV.Semantics
-                     , RISCV.Semantics.Exceptions
                      , RISCV.Simulation
                      , RISCV.Simulation.LogMachine
                      , RISCV.Types
+  other-modules:       RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.FD
+                     , RISCV.InstructionSet.M
+                     , RISCV.InstructionSet.Priv
+                     , RISCV.InstructionSet.Utils
   build-depends:       array >= 0.5 && < 0.6
                      , base >= 4.7 && < 5
                      , bv-sized >= 0.4 && < 0.5
@@ -52,16 +51,15 @@ executable grift
   main-is:             MainSimulator.hs
   other-modules:       RISCV.Coverage
                      , RISCV.Decode
-                     , RISCV.Extensions
                      , RISCV.InstructionSet.Base
-                     , RISCV.InstructionSet.Helpers
                      , RISCV.InstructionSet.A
                      , RISCV.InstructionSet.FD
+                     , RISCV.InstructionSet.Known
                      , RISCV.InstructionSet.M
                      , RISCV.InstructionSet.Priv
+                     , RISCV.InstructionSet.Utils
                      , RISCV.InstructionSet
                      , RISCV.Semantics
-                     , RISCV.Semantics.Exceptions
                      , RISCV.Simulation
                      , RISCV.Simulation.LogMachine
                      , RISCV.Types

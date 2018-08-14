@@ -65,10 +65,10 @@ import Data.Traversable
 import Prelude hiding ((!!))
 
 import RISCV.Decode
-import RISCV.Extensions
 import RISCV.InstructionSet
+import RISCV.InstructionSet.Known
+import RISCV.InstructionSet.Utils
 import RISCV.Semantics
-import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- TODO: Should getMem/setMem return a possibly exceptional value, so that we can

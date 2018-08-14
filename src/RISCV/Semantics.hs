@@ -406,7 +406,7 @@ checkReserved addr = stateExpr (LocExpr (ResExpr addr))
 
 infixl 1 $>
 
--- | Add a branch statement to the semantics. Note that comments in the subsemanticss
+-- | Add a branch statement to the semantics. Note that comments in the subsemantics
 -- will be ignored.
 branch :: expr rv 1
        -> SemanticsBuilder (expr rv) rv ()

@@ -15,13 +15,18 @@ You should have received a copy of the GNU Affero Public License
 along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 -}
 
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BinaryLiterals      #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 {-|
-Module      : RISCV.Semantics.Exceptions
+Module      : RISCV.InstructionSet.Utils
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -29,19 +34,23 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-This module provides types and functions for the semantics of exception handling in
-RISC-V. It is currently being developed, so it is not as clean as it will be. This is
-mainly hacked together to get something working quickly, and it does not represent
-the full functionality.
+Helper functions for defining instruction semantics.
 -}
 
-module RISCV.Semantics.Exceptions
-  ( -- ** CSRs and Exceptions
-    CSR(..)
+module RISCV.InstructionSet.Utils
+  ( getArchWidth
+  , incrPC
+  , CompOp
+  , b
+  , checkCSR
+  -- ** CSRs and Exceptions
+  , CSR(..)
   , encodeCSR
   , resetCSRs
   , Exception(..)
   , raiseException
+  , raiseFPExceptions
+  , withRM
   , getMCause
   ) where
 
@@ -49,10 +58,66 @@ import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import qualified Data.Map as Map
 import Data.Map (Map)
+import Data.Parameterized
+import Data.Parameterized.List
 import GHC.TypeLits
 
 import RISCV.Semantics
 import RISCV.Types
+
+-- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
+-- should probably be generalized when we fully implement the privileged architecture.
+getArchWidth :: forall rv fmt . KnownRV rv => SemanticsBuilder (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
+getArchWidth = return (knownNat @(RVWidth rv))
+
+-- | Increment the PC
+incrPC :: KnownRV rv => SemanticsBuilder (InstExpr fmt rv) rv ()
+incrPC = do
+  ib <- instBytes
+  let pc = readPC
+  assignPC $ pc `addE` (zextE ib)
+
+-- TODO: Deprecate a lot of these helpers. I actually think it's better to be more
+-- explicit in the instruction semantics themselves than to hide everything with
+-- abbreviations.
+
+-- | Generic comparison operator.
+type CompOp rv fmt = InstExpr fmt rv (RVWidth rv)
+                    -> InstExpr fmt rv (RVWidth rv)
+                    -> InstExpr fmt rv 1
+
+-- | Generic branch.
+b :: KnownRV rv => CompOp rv B -> SemanticsBuilder (InstExpr B rv) rv ()
+b cmp = do
+  rs1 :< rs2 :< offset :< Nil <- operandEs
+
+  let x_rs1 = readReg rs1
+  let x_rs2 = readReg rs2
+
+  let pc = readPC
+  ib <- instBytes
+
+  assignPC (iteE (x_rs1 `cmp` x_rs2) (pc `addE` sextE (offset `sllE` litBV 1)) (pc `addE` zextE ib))
+
+-- | Check if a csr is accessible. The Boolean argument should be true if we need
+-- write access, False if we are accessing in a read-only fashion.
+checkCSR :: KnownRV rv
+         => InstExpr fmt rv 1
+         -> InstExpr fmt rv 12
+         -> SemanticsBuilder (InstExpr fmt rv) rv ()
+         -> SemanticsBuilder (InstExpr fmt rv) rv ()
+checkCSR write csr rst = do
+  let priv = readPriv
+  let csrRW = extractEWithRepr (knownNat @2) 10 csr
+  let csrPriv = extractEWithRepr (knownNat @2) 8 csr
+  let csrOK = (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
+
+  iw <- instWord
+
+  branch (notE csrOK)
+    $> raiseException IllegalInstruction iw
+    $> rst
+
 
 -- TODO: Annotate appropriate exceptions with an Mcause.
 -- | Runtime exception. This is a convenience type for calls to 'raiseException'.
@@ -181,3 +246,25 @@ raiseException e info = do
   assignCSR (litBV $ encodeCSR MCause)  (litBV mcause)
 
   assignPC mtVecBase
+
+raiseFPExceptions :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
+                  => expr rv 5 -- * The exception flags
+                  -> SemanticsBuilder (expr rv) rv ()
+raiseFPExceptions flags = do
+  let fcsr = readCSR (litBV $ encodeCSR FCSR)
+  assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
+
+dynamicRM :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv) => expr rv 3
+dynamicRM = let fcsr = readCSR (litBV $ encodeCSR FCSR)
+               in extractE 5 fcsr
+
+withRM :: KnownRV rv
+       => InstExpr fmt rv 3
+       -> (InstExpr fmt rv 3 -> SemanticsBuilder (InstExpr fmt rv) rv ())
+       -> SemanticsBuilder (InstExpr fmt rv) rv ()
+withRM rm action = do
+  let rm' = iteE (rm `eqE` litBV 0b111) dynamicRM rm
+  branch ((rm' `eqE` litBV 0b101) `orE` (rm' `eqE` litBV 0b110))
+    $> do iw <- instWord
+          raiseException IllegalInstruction iw
+    $> action rm

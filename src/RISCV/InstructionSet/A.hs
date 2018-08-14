@@ -45,10 +45,9 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.InstructionSet.Helpers
 import RISCV.InstructionSet
+import RISCV.InstructionSet.Utils
 import RISCV.Semantics
-import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | A extension (RV32)
