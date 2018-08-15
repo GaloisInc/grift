@@ -163,6 +163,14 @@ fSemantics = Map.fromList
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_x_w $ InstSemantics $ getSemantics $ do
+      comment "Copies the single-precision float in register f[rs1] to x[rd]."
+      comment "Sign-extends the result."
+
+      rd :< rs1 :< Nil <- operandEs
+
+      let f_rs1 = readFReg rs1
+
+      assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 f_rs1))
       incrPC
   , Pair Feq_s $ InstSemantics $ getSemantics $ do
       incrPC
@@ -185,6 +193,8 @@ fSemantics = Map.fromList
             , (notE (f32Sgn f_rs1) `andE` isSubnormal32 f_rs1, litBV 0x20)
             , (notE (f32Sgn f_rs1) `andE` isNormal32 f_rs1, litBV 0x40)
             , (f_rs1 `eqE` posInfinity32, litBV 0x80)
+            , (isSNaN32 f_rs1, litBV 0x100)
+            , (isQNaN32 f_rs1, litBV 0x200)
             ]
             (litBV 0x0)
 
@@ -215,6 +225,14 @@ fSemantics = Map.fromList
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_w_x $ InstSemantics $ getSemantics $ do
+      comment "Copies the single-precision float in register x[rs1] to f[rd]."
+      comment "Sign-extends the result."
+
+      rd :< rs1 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+
+      assignFReg rd (sextE (extractEWithRepr (knownNat @32) 0 x_rs1))
       incrPC
   ]
 
