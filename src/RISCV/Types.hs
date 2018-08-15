@@ -63,6 +63,18 @@ module RISCV.Types
   , RVRepr(..)
   , RVWidth, RVFloatWidth, type (<<)
   , KnownRV
+    -- ** Common RISC-V Configurations
+    -- | Provided for convenience.
+  , RV32I
+  , RV32IM
+  , RV32IMA
+  , RV32IMAF
+  , RV32IMAFD
+  , RV64I
+  , RV64IM
+  , RV64IMA
+  , RV64IMAF
+  , RV64IMAFD
     -- * Base architecture
   , BaseArch(..), type RV32, type RV64, type RV128
   , ArchWidth
@@ -287,6 +299,18 @@ type family RVFloatWidth (rv :: RV) :: Nat where
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
+
+-- type synonyms for common RVConfigs.
+type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo))
+type RV32IM    = RVConfig '(RV32, Exts '(PrivM, MYes, ANo,  FDNo))
+type RV32IMA   = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDNo))
+type RV32IMAF  = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FYesDNo))
+type RV32IMAFD = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDYes))
+type RV64I     = RVConfig '(RV64, Exts '(PrivM, MNo,  ANo,  FDNo))
+type RV64IM    = RVConfig '(RV64, Exts '(PrivM, MYes, ANo,  FDNo))
+type RV64IMA   = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDNo))
+type RV64IMAF  = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FYesDNo))
+type RV64IMAFD = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes))
 
 ----------------------------------------
 -- Formats

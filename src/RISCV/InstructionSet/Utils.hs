@@ -73,11 +73,11 @@ import RISCV.Types
 
 -- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
 -- should probably be generalized when we fully implement the privileged architecture.
-getArchWidth :: forall rv fmt . KnownRV rv => SemanticsBuilder (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
+getArchWidth :: forall rv fmt . KnownRV rv => SemanticsM (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
 getArchWidth = return (knownNat @(RVWidth rv))
 
 -- | Increment the PC
-incrPC :: KnownRV rv => SemanticsBuilder (InstExpr fmt rv) rv ()
+incrPC :: KnownRV rv => SemanticsM (InstExpr fmt rv) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
@@ -93,7 +93,7 @@ type CompOp rv fmt = InstExpr fmt rv (RVWidth rv)
                     -> InstExpr fmt rv 1
 
 -- | Generic branch.
-b :: KnownRV rv => CompOp rv B -> SemanticsBuilder (InstExpr B rv) rv ()
+b :: KnownRV rv => CompOp rv B -> SemanticsM (InstExpr B rv) rv ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
@@ -120,8 +120,8 @@ cases cs d = foldr (uncurry iteE) d cs
 checkCSR :: KnownRV rv
          => InstExpr fmt rv 1
          -> InstExpr fmt rv 12
-         -> SemanticsBuilder (InstExpr fmt rv) rv ()
-         -> SemanticsBuilder (InstExpr fmt rv) rv ()
+         -> SemanticsM (InstExpr fmt rv) rv ()
+         -> SemanticsM (InstExpr fmt rv) rv ()
 checkCSR write csr rst = do
   let priv = readPriv
   let csrRW = extractEWithRepr (knownNat @2) 10 csr
@@ -237,7 +237,7 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
 raiseException :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
                => Exception
                -> expr rv (RVWidth rv)
-               -> SemanticsBuilder (expr rv) rv ()
+               -> SemanticsM (expr rv) rv ()
 raiseException e info = do
   -- Exception handling TODO:
   -- - For interrupts, PC should be incremented.
@@ -265,7 +265,7 @@ raiseException e info = do
 
 raiseFPExceptions :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
                   => expr rv 5 -- ^ The exception flags
-                  -> SemanticsBuilder (expr rv) rv ()
+                  -> SemanticsM (expr rv) rv ()
 raiseFPExceptions flags = do
   let fcsr = readCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
@@ -276,8 +276,8 @@ dynamicRM = let fcsr = readCSR (litBV $ encodeCSR FCSR)
 
 withRM :: KnownRV rv
        => InstExpr fmt rv 3
-       -> (InstExpr fmt rv 3 -> SemanticsBuilder (InstExpr fmt rv) rv ())
-       -> SemanticsBuilder (InstExpr fmt rv) rv ()
+       -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt rv) rv ())
+       -> SemanticsM (InstExpr fmt rv) rv ()
 withRM rm action = do
   let rm' = iteE (rm `eqE` litBV 0b111) dynamicRM rm
   branch ((rm' `eqE` litBV 0b101) `orE` (rm' `eqE` litBV 0b110))

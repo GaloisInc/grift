@@ -177,7 +177,7 @@ aSemantics = Map.fromList
 
 amoOp32 :: KnownRV rv
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
-        -> SemanticsBuilder (InstExpr A rv) rv ()
+        -> SemanticsM (InstExpr A rv) rv ()
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
@@ -277,7 +277,7 @@ a64Semantics = Map.fromList
 
 amoOp64 :: KnownRV rv
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
-        -> SemanticsBuilder (InstExpr A rv) rv ()
+        -> SemanticsM (InstExpr A rv) rv ()
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 

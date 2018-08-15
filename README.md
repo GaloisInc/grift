@@ -76,6 +76,8 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
   Group.
 - Straightforward integration with other languages, tools, and frameworks (Coq,
   Verilog, ...)
+- Cabal-driven test suite incorporating riscv-tests and riscv-compliance test
+  suites (among other tests)
 
 Current Status
 ===

@@ -79,8 +79,11 @@ defined using 'SemanticsBuilder'.
 -}
 
 module RISCV.Semantics
-  ( -- * RISC-V semantic expressions
-    LocExpr(..)
+  ( -- * 'BitVector' semantic expressions
+    module Data.BitVector.Sized.App
+  , module Data.BitVector.Sized.Float.App
+    -- * RISC-V semantic expressions
+  , LocExpr(..)
   , StateExpr(..)
   , PureStateExpr(..)
   , InstExpr(..)
@@ -97,16 +100,15 @@ module RISCV.Semantics
   , Stmt(..)
   , Semantics, semComments, semStmts
   , InstSemantics(..)
-    -- * SemanticsBuilder monad
-  , SemanticsBuilder
+    -- * SemanticsM monad
+  , SemanticsM
   , getSemantics
-    -- * SemanticsBuilder operations
+    -- * SemanticsM operations
     -- ** Auxiliary
   , comment
   , operandEs, operandEsWithRepr
   , instBytes
   , instWord
-  , litBV
     -- ** State actions
   , assignPC
   , assignReg
@@ -246,8 +248,8 @@ emptySemantics = Semantics Seq.empty Seq.empty
 -- expression language to vary, because sometimes we are in the context of an
 -- executing instruction, and sometimes we are not (for instance, when we are
 -- handling an exception).
-newtype SemanticsBuilder (expr :: Nat -> *) (rv :: RV) a =
-  SemanticsBuilder { unSemanticsBuilder :: State (Semantics expr rv) a }
+newtype SemanticsM (expr :: Nat -> *) (rv :: RV) a =
+  SemanticsM { unSemanticsM :: State (Semantics expr rv) a }
   deriving (Functor,
             Applicative,
             Monad,
@@ -255,7 +257,7 @@ newtype SemanticsBuilder (expr :: Nat -> *) (rv :: RV) a =
 
 -- | Get the operands for a particular known format.
 operandEs :: forall rv fmt . (KnownRepr FormatRepr fmt)
-          => SemanticsBuilder (InstExpr fmt rv) rv (List (InstExpr fmt rv) (OperandTypes fmt))
+          => SemanticsM (InstExpr fmt rv) rv (List (InstExpr fmt rv) (OperandTypes fmt))
 operandEs = return (operandEsWithRepr knownRepr)
 
 -- | Get the operands for a particular format, where the format is supplied as an
@@ -304,20 +306,20 @@ operandEsWithRepr repr = case repr of
   XRepr -> (OperandExpr (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 
--- | Obtain the semantics defined by a 'SemanticsBuilder' action.
-getSemantics :: SemanticsBuilder expr rv () -> Semantics expr rv
-getSemantics = flip execState emptySemantics . unSemanticsBuilder
+-- | Obtain the semantics defined by a 'SemanticsM' action.
+getSemantics :: SemanticsM expr rv () -> Semantics expr rv
+getSemantics = flip execState emptySemantics . unSemanticsM
 
 -- | Add a comment.
-comment :: String -> SemanticsBuilder expr rv ()
+comment :: String -> SemanticsM expr rv ()
 comment c = semComments %= \cs -> cs Seq.|> c
 
 -- | Get the width of the instruction word
-instBytes :: SemanticsBuilder (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
+instBytes :: SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
 instBytes = return InstBytes
 
 -- | Get the entire instruction word (useful for exceptions)
-instWord :: SemanticsBuilder (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
+instWord :: SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
 instWord = return InstWord
 
 -- | Read the pc.
@@ -350,18 +352,18 @@ readPriv :: RVStateExpr expr => expr rv 2
 readPriv = stateExpr (LocExpr PrivExpr)
 
 -- | Add a statement to the semantics.
-addStmt :: Stmt expr rv -> SemanticsBuilder expr rv ()
+addStmt :: Stmt expr rv -> SemanticsM expr rv ()
 addStmt stmt = semStmts %= \stmts -> stmts Seq.|> stmt
 
 -- | Add a PC assignment to the semantics.
-assignPC :: expr rv (RVWidth rv) -> SemanticsBuilder (expr rv) rv ()
+assignPC :: expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
 assignPC pc = addStmt (AssignStmt PCExpr pc)
 
 -- | Add a register assignment to the semantics.
 assignReg :: BVExpr (expr rv)
           => expr rv 5
           -> expr rv (RVWidth rv)
-          -> SemanticsBuilder (expr rv) rv ()
+          -> SemanticsM (expr rv) rv ()
 assignReg r e = addStmt $
   BranchStmt (r `eqE` litBV 0)
   $> Seq.empty
@@ -371,28 +373,28 @@ assignReg r e = addStmt $
 assignFReg :: (BVExpr (expr rv), FExt << rv)
            => expr rv 5
            -> expr rv (RVFloatWidth rv)
-           -> SemanticsBuilder (expr rv) rv ()
+           -> SemanticsM (expr rv) rv ()
 assignFReg r e = addStmt (AssignStmt (FRegExpr r) e)
 
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
 assignMem :: NatRepr bytes
           -> expr rv (RVWidth rv)
           -> expr rv (8*bytes)
-          -> SemanticsBuilder (expr rv) rv ()
+          -> SemanticsM (expr rv) rv ()
 assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
 
 -- | Add a CSR assignment to the semantics.
 assignCSR :: expr rv 12
           -> expr rv (RVWidth rv)
-          -> SemanticsBuilder (expr rv) rv ()
+          -> SemanticsM (expr rv) rv ()
 assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
 
 -- | Add a privilege assignment to the semantics.
-assignPriv :: expr rv 2 -> SemanticsBuilder (expr rv) rv ()
+assignPriv :: expr rv 2 -> SemanticsM (expr rv) rv ()
 assignPriv priv = addStmt (AssignStmt PrivExpr priv)
 
 -- | Reserve a memory location.
-reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> SemanticsBuilder (expr rv) rv ()
+reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
 reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
@@ -409,9 +411,9 @@ infixl 1 $>
 -- | Add a branch statement to the semantics. Note that comments in the subsemantics
 -- will be ignored.
 branch :: expr rv 1
-       -> SemanticsBuilder (expr rv) rv ()
-       -> SemanticsBuilder (expr rv) rv ()
-       -> SemanticsBuilder (expr rv) rv ()
+       -> SemanticsM (expr rv) rv ()
+       -> SemanticsM (expr rv) rv ()
+       -> SemanticsM (expr rv) rv ()
 branch e fbTrue fbFalse = do
   let fTrue  = getSemantics fbTrue  ^. semStmts
       fFalse = getSemantics fbFalse ^. semStmts
