@@ -53,7 +53,7 @@ import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 
--- | RV32F
+-- | F extension (RV32)
 f32 :: (KnownRV rv, FExt << rv) => InstructionSet rv
 f32 = instructionSet fEncode fSemantics
 
@@ -155,15 +155,13 @@ fSemantics = Map.fromList
   , Pair Fcvt_s_w $ InstSemantics $ getSemantics $ do
       incrPC
   , Pair Fcvt_s_wu $ InstSemantics $ getSemantics $ do
-      -- TODO:
-      -- NaN handling (any NaN should be canonical)
       comment "Converts the 32-bit unsigned integer in x[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
 
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFRes $ ui32ToF32E rm (extractE 0 x_rs1)
+            (res, flags) = getFRes32 $ ui32ToF32E rm (extractE 0 x_rs1)
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags

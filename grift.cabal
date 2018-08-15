@@ -16,14 +16,14 @@ extra-source-files:  README.md
 library
   exposed-modules:     RISCV.Coverage
                      , RISCV.Decode
-                     , RISCV.InstructionSet.Base
                      , RISCV.InstructionSet.Known
                      , RISCV.InstructionSet
                      , RISCV.Semantics
                      , RISCV.Simulation
                      , RISCV.Simulation.LogMachine
                      , RISCV.Types
-  other-modules:       RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.A
+                     , RISCV.InstructionSet.Base
                      , RISCV.InstructionSet.FD
                      , RISCV.InstructionSet.M
                      , RISCV.InstructionSet.Priv

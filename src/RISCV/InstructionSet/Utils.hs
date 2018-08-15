@@ -38,24 +38,29 @@ Helper functions for defining instruction semantics.
 -}
 
 module RISCV.InstructionSet.Utils
-  ( getArchWidth
-  , incrPC
-  , CompOp
-  , b
-  , checkCSR
-  -- ** CSRs and Exceptions
-  , CSR(..)
+  ( -- * CSRs and Exceptions
+    CSR(..)
   , encodeCSR
   , resetCSRs
   , Exception(..)
+  , checkCSR
   , raiseException
+  , getMCause
+    -- * Floating point
   , raiseFPExceptions
   , withRM
-  , getMCause
+  , getFRes32
+  , getFRes64
+    -- * Miscellaneous
+  , getArchWidth
+  , incrPC
+  , CompOp
+  , b
   ) where
 
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
+import Data.BitVector.Sized.Float.App
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Parameterized
@@ -248,7 +253,7 @@ raiseException e info = do
   assignPC mtVecBase
 
 raiseFPExceptions :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
-                  => expr rv 5 -- * The exception flags
+                  => expr rv 5 -- ^ The exception flags
                   -> SemanticsBuilder (expr rv) rv ()
 raiseFPExceptions flags = do
   let fcsr = readCSR (litBV $ encodeCSR FCSR)
@@ -268,3 +273,13 @@ withRM rm action = do
     $> do iw <- instWord
           raiseException IllegalInstruction iw
     $> action rm
+
+getFRes32 :: BVExpr expr => expr 37 -> (expr 32, expr 5)
+getFRes32 e = let (res, flags) = getFRes e
+                  res' = iteE (isNaN32 res) canonicalNaN32 res
+              in (res', flags)
+
+getFRes64 :: BVExpr expr => expr 69 -> (expr 64, expr 5)
+getFRes64 e = let (res, flags) = getFRes e
+                  res' = iteE (isNaN64 res) canonicalNaN64 res
+              in (res', flags)
