@@ -1,4 +1,5 @@
 rm -rf *.log
+rm results/*
 for file in *.elf
 do
     echo "testing $file..."
