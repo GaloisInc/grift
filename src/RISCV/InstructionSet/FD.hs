@@ -151,6 +151,24 @@ fSemantics = Map.fromList
   , Pair Fle_s $ InstSemantics $ getSemantics $ do
       incrPC
   , Pair Fclass_s $ InstSemantics $ getSemantics $ do
+      comment "Writes to x[rd] a mask indicating the class of the single-precision float in f[rs1]."
+      comment "Exactly one bit in x[rd] is set. Table not included in this comment."
+
+      rd :< rs1 :< Nil <- operandEs
+      let f_rs1 = extractE 0 (readFReg rs1)
+      let res = cases
+            [ (f_rs1 `eqE` negInfinity32, litBV 0x1)
+            , (f32Sgn f_rs1 `andE` isNormal32 f_rs1, litBV 0x2)
+            , (f32Sgn f_rs1 `andE` isSubnormal32 f_rs1, litBV 0x4)
+            , (f_rs1 `eqE` negZero32, litBV 0x8)
+            , (f_rs1 `eqE` posZero32, litBV 0x10)
+            , (notE (f32Sgn f_rs1) `andE` isSubnormal32 f_rs1, litBV 0x20)
+            , (notE (f32Sgn f_rs1) `andE` isNormal32 f_rs1, litBV 0x40)
+            , (f_rs1 `eqE` posInfinity32, litBV 0x80)
+            ]
+            (litBV 0x0)
+
+      assignReg rs1 res
       incrPC
   , Pair Fcvt_s_w $ InstSemantics $ getSemantics $ do
       comment "Converts the 32-bit signed integer in x[rs1] to a single-precision float."
