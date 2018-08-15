@@ -92,6 +92,10 @@ backends, and I am working on the subtleties of how to elegantly use Haskell's
 type system to conditionally support the floating point registers (this is the
 only extension for which there is additional state that we are supporting).
 
+Coming soon: configuration argument or file that lets you configure the GRIFT
+simulator to a particular RISC-V instance: RV32IM, RV64IMAFD, etc. Ultimately,
+we will support all configuration options in this manner.
+
 Other information
 ===
 
