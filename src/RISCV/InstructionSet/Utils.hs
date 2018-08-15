@@ -54,6 +54,7 @@ module RISCV.InstructionSet.Utils
     -- * Miscellaneous
   , getArchWidth
   , incrPC
+  , cases
   , CompOp
   , b
   ) where
@@ -103,6 +104,16 @@ b cmp = do
   ib <- instBytes
 
   assignPC (iteE (x_rs1 `cmp` x_rs2) (pc `addE` sextE (offset `sllE` litBV 1)) (pc `addE` zextE ib))
+
+cases :: BVExpr expr
+      => [(expr 1, expr w)] -- ^ list of guarded results
+      -> expr w             -- ^ default result
+      -> expr w
+cases cs d = foldr (uncurry iteE) d cs
+--  where f (testE, trueE) = iteE testE trueE
+-- cases [] def = def
+-- cases ((testE, resE) : rst) def = iteE testE resE (cases rst def)
+
 
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.

@@ -153,7 +153,17 @@ fSemantics = Map.fromList
   , Pair Fclass_s $ InstSemantics $ getSemantics $ do
       incrPC
   , Pair Fcvt_s_w $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the 32-bit signed integer in x[rs1] to a single-precision float."
+      comment "Writes the result to f[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let x_rs1 = readReg rs1
+            (res, flags) = getFRes32 $ i32ToF32E rm (extractE 0 x_rs1)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fcvt_s_wu $ InstSemantics $ getSemantics $ do
       comment "Converts the 32-bit unsigned integer in x[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
