@@ -234,7 +234,7 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
 -- through to mtval, so this should be a configurable option at the type level.
 
 -- | Semantics for raising an exception.
-raiseException :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
+raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
                => Exception
                -> expr rv (RVWidth rv)
                -> SemanticsM (expr rv) rv ()
@@ -263,14 +263,14 @@ raiseException e info = do
 
   assignPC mtVecBase
 
-raiseFPExceptions :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv)
+raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM (expr rv) rv ()
 raiseFPExceptions flags = do
   let fcsr = readCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
 
-dynamicRM :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv) => expr rv 3
+dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 3
 dynamicRM = let fcsr = readCSR (litBV $ encodeCSR FCSR)
                in extractE 5 fcsr
 

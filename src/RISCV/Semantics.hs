@@ -48,19 +48,19 @@ in that it can express everything that 'PureStateExpr' can express. In addition,
 context of an executing instruction, and so we can also access information about
 that instruction, such as its width and its operands.
 
-These two expression types are formed from the "open" expression type, 'StateExpr',
+These two expression types are formed from the "open" expression type, 'StateApp',
 which encapsulates the notion of compound expressions involving pieces of RISC-V
-machine state. The 'StateExpr' type has a type parameter @expr@, which allows us to
+machine state. The 'StateApp' type has a type parameter @expr@, which allows us to
 build compound expressions using sub-expressions of type @expr@. 'PureStateExpr' and
-'InstExpr' both contain 'StateExpr' as a special case, where the @expr@ parameter is
+'InstExpr' both contain 'StateApp' as a special case, where the @expr@ parameter is
 instantiated as 'PureStateExpr' and 'InstExpr', respectively, thus "tying the knot"
 and allowing us to construct arbitrary bitvector expressions involving the RISC-V
 machine state and, in the case of 'InstExpr', we can also refer to the instruction
 currently being executed.
 
-We also export a typeclass 'RVStateExpr', implemented by both 'PureStateExpr' and
+We also export a typeclass 'StateExpr', implemented by both 'PureStateExpr' and
 'InstExpr'. This contains a single method, 'stateExpr', which allows us to embed a
-'StateExpr' into these types. This class is useful for defining semantic formulas
+'StateApp' into these types. This class is useful for defining semantic formulas
 that could be executed either inside or outside the context of an executing
 instruction.
 
@@ -83,11 +83,11 @@ module RISCV.Semantics
     module Data.BitVector.Sized.App
   , module Data.BitVector.Sized.Float.App
     -- * RISC-V semantic expressions
-  , LocExpr(..)
-  , StateExpr(..)
+  , LocApp(..)
+  , StateApp(..)
   , PureStateExpr(..)
   , InstExpr(..)
-  , RVStateExpr(..)
+  , StateExpr(..)
     -- ** Access to state
   , readPC
   , readReg
@@ -123,7 +123,6 @@ module RISCV.Semantics
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
-import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float.App
 import Data.Foldable (toList)
@@ -142,32 +141,32 @@ import RISCV.Types
 
 -- | This type represents an abstract component of the global state. Sub-expressions
 -- come from an arbitrary expression language @expr@.
-data LocExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
-  PCExpr   :: LocExpr expr rv (RVWidth rv)
-  RegExpr  :: expr 5 -> LocExpr expr rv (RVWidth rv)
-  FRegExpr :: FExt << rv => expr 5 -> LocExpr expr rv (RVFloatWidth rv)
-  MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocExpr expr rv (8*bytes)
-  ResExpr  :: expr (RVWidth rv) -> LocExpr expr rv 1
-  CSRExpr  :: expr 12 -> LocExpr expr rv (RVWidth rv)
-  PrivExpr :: LocExpr expr rv 2
+data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
+  PCExpr   :: LocApp expr rv (RVWidth rv)
+  RegExpr  :: expr 5 -> LocApp expr rv (RVWidth rv)
+  FRegExpr :: FExt << rv => expr 5 -> LocApp expr rv (RVFloatWidth rv)
+  MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8*bytes)
+  ResExpr  :: expr (RVWidth rv) -> LocApp expr rv 1
+  CSRExpr  :: expr 12 -> LocApp expr rv (RVWidth rv)
+  PrivExpr :: LocApp expr rv 2
 
 -- | Expressions for general computations over the RISC-V machine state -- we can
 -- access specific locations, and we can also build up compound expressions using the
 -- 'BVApp' expression language. Sub-expressions come from an arbitrary expression
 -- language @expr@.
-data StateExpr (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
+data StateApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   -- | Accessing state
-  LocExpr :: !(LocExpr expr rv w) -> StateExpr expr rv w
+  LocApp :: !(LocApp expr rv w) -> StateApp expr rv w
 
-  -- | 'BVApp' with 'StateExpr' subexpressions
-  AppExpr :: !(BVApp expr w) -> StateExpr expr rv w
+  -- | 'BVApp' with 'StateApp' subexpressions
+  AppExpr :: !(BVApp expr w) -> StateApp expr rv w
 
-  -- | 'BVFloatApp' with 'StateExpr' subexpressions
-  FloatAppExpr :: FExt << rv => !(BVFloatApp expr w) -> StateExpr expr rv w
+  -- | 'BVFloatApp' with 'StateApp' subexpressions
+  FloatAppExpr :: FExt << rv => !(BVFloatApp expr w) -> StateApp expr rv w
 
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
-newtype PureStateExpr (rv :: RV) (w :: Nat) = PureStateExpr (StateExpr (PureStateExpr rv) rv w)
+newtype PureStateExpr (rv :: RV) (w :: Nat) = PureStateExpr (StateApp (PureStateExpr rv) rv w)
 
 instance BVExpr (PureStateExpr rv) where
   appExpr = PureStateExpr . AppExpr
@@ -186,7 +185,7 @@ data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
   InstWord :: InstExpr fmt rv (RVWidth rv)
 
   -- | Accessing the machine state
-  InstStateExpr :: !(StateExpr (InstExpr fmt rv) rv w) -> InstExpr fmt rv w
+  InstStateExpr :: !(StateApp (InstExpr fmt rv) rv w) -> InstExpr fmt rv w
 
 instance BVExpr (InstExpr fmt rv) where
   appExpr = InstStateExpr . AppExpr
@@ -198,13 +197,13 @@ instance FExt << rv =>  BVFloatExpr (InstExpr fmt rv) where
 -- here
 -- | A type class for expression languages that can refer to arbitrary pieces of
 -- RISC-V machine state.
-class RVStateExpr (expr :: RV -> Nat -> *) where
-  stateExpr :: StateExpr (expr rv) rv w -> expr rv w
+class StateExpr (expr :: RV -> Nat -> *) where
+  stateExpr :: StateApp (expr rv) rv w -> expr rv w
 
-instance RVStateExpr PureStateExpr where
+instance StateExpr PureStateExpr where
   stateExpr = PureStateExpr
 
-instance RVStateExpr (InstExpr fmt) where
+instance StateExpr (InstExpr fmt) where
   stateExpr = InstStateExpr
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
@@ -212,7 +211,7 @@ instance RVStateExpr (InstExpr fmt) where
 -- appropriate width.
 data Stmt (expr :: Nat -> *) (rv :: RV) where
   -- | Assign a piece of state to a value.
-  AssignStmt :: !(LocExpr expr rv w) -> !(expr w) -> Stmt expr rv
+  AssignStmt :: !(LocApp expr rv w) -> !(expr w) -> Stmt expr rv
   -- | If-then-else branch statement.
   BranchStmt :: !(expr 1)
              -> !(Seq (Stmt expr rv))
@@ -327,33 +326,33 @@ instWord :: SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
 instWord = return InstWord
 
 -- | Read the pc.
-readPC :: RVStateExpr expr => expr rv (RVWidth rv)
-readPC = stateExpr (LocExpr PCExpr)
+readPC :: StateExpr expr => expr rv (RVWidth rv)
+readPC = stateExpr (LocApp PCExpr)
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
-readReg :: (BVExpr (expr rv), RVStateExpr expr, KnownRV rv) => expr rv 5 -> expr rv (RVWidth rv)
-readReg ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocExpr (RegExpr ridE)))
+readReg :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 5 -> expr rv (RVWidth rv)
+readReg ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (RegExpr ridE)))
 
 -- | Read a value from a floating point register.
-readFReg :: (BVExpr (expr rv), RVStateExpr expr, FExt << rv)
+readFReg :: (BVExpr (expr rv), StateExpr expr, FExt << rv)
          => expr rv 5
          -> expr rv (RVFloatWidth rv)
-readFReg ridE = stateExpr (LocExpr (FRegExpr ridE))
+readFReg ridE = stateExpr (LocApp (FRegExpr ridE))
 
 -- | Read a variable number of bytes from memory, with an explicit width argument.
-readMem :: RVStateExpr expr
+readMem :: StateExpr expr
         => NatRepr bytes
         -> expr rv (RVWidth rv)
         -> expr rv (8*bytes)
-readMem bytes addr = stateExpr (LocExpr (MemExpr bytes addr))
+readMem bytes addr = stateExpr (LocApp (MemExpr bytes addr))
 
 -- | Read a value from a CSR.
-readCSR :: (RVStateExpr expr, KnownRV rv) => expr rv 12 -> expr rv (RVWidth rv)
-readCSR csr = stateExpr (LocExpr (CSRExpr csr))
+readCSR :: (StateExpr expr, KnownRV rv) => expr rv 12 -> expr rv (RVWidth rv)
+readCSR csr = stateExpr (LocApp (CSRExpr csr))
 
 -- | Read the current privilege level.
-readPriv :: RVStateExpr expr => expr rv 2
-readPriv = stateExpr (LocExpr PrivExpr)
+readPriv :: StateExpr expr => expr rv 2
+readPriv = stateExpr (LocApp PrivExpr)
 
 -- | Add a statement to the semantics.
 addStmt :: Stmt expr rv -> SemanticsM expr rv ()
@@ -402,8 +401,8 @@ reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> SemanticsM (expr rv) rv (
 reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
-checkReserved :: RVStateExpr expr => expr rv (RVWidth rv) -> expr rv 1
-checkReserved addr = stateExpr (LocExpr (ResExpr addr))
+checkReserved :: StateExpr expr => expr rv (RVWidth rv) -> expr rv 1
+checkReserved addr = stateExpr (LocApp (ResExpr addr))
 
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
 -- notation)
@@ -425,7 +424,7 @@ branch e fbTrue fbFalse = do
 
 -- Class instances
 
-instance TestEquality expr => TestEquality (LocExpr expr rv) where
+instance TestEquality expr => TestEquality (LocApp expr rv) where
   PCExpr `testEquality` PCExpr = Just Refl
   RegExpr e1 `testEquality` RegExpr e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
@@ -442,8 +441,8 @@ instance TestEquality expr => TestEquality (LocExpr expr rv) where
   PrivExpr `testEquality` PrivExpr = Just Refl
   _ `testEquality` _ = Nothing
 
-instance TestEquality expr => TestEquality (StateExpr expr rv) where
-  LocExpr e1 `testEquality` LocExpr e2 = case e1 `testEquality` e2 of
+instance TestEquality expr => TestEquality (StateApp expr rv) where
+  LocApp e1 `testEquality` LocApp e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
   AppExpr e1 `testEquality` AppExpr e2 = case e1 `testEquality` e2 of
@@ -465,7 +464,7 @@ instance TestEquality (InstExpr fmt rv) where
 instance Eq (InstExpr fmt rv w) where
   x == y = isJust (testEquality x y)
 
-instance Pretty (LocExpr (InstExpr fmt rv) rv w) where
+instance Pretty (LocApp (InstExpr fmt rv) rv w) where
   pPrint PCExpr      = text "pc"
   pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
   pPrint (FRegExpr e) = text "f[" <> pPrint e <> text "]"
@@ -492,15 +491,15 @@ instance Pretty (Semantics (InstExpr fmt rv) rv) where
 
 -- TODO: pretty print floating point expressions
 -- TODO: Can we do this more generally, with a general expr?
-pPrintStateExpr' :: Bool -> StateExpr (InstExpr fmt rv) rv w -> Doc
-pPrintStateExpr' _ (LocExpr loc) = pPrint loc
-pPrintStateExpr' top (AppExpr app) = pPrintApp' top app
+pPrintStateApp' :: Bool -> StateApp (InstExpr fmt rv) rv w -> Doc
+pPrintStateApp' _ (LocApp loc) = pPrint loc
+pPrintStateApp' top (AppExpr app) = pPrintApp' top app
 
 pPrintInstExpr' :: Bool -> InstExpr fmt rv w -> Doc
 pPrintInstExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
 pPrintInstExpr' _ InstBytes = text "step"
 pPrintInstExpr' _ InstWord = text "inst"
-pPrintInstExpr' top (InstStateExpr e) = pPrintStateExpr' top e
+pPrintInstExpr' top (InstStateExpr e) = pPrintStateApp' top e
 
 pPrintApp' :: Bool -> BVApp (InstExpr fmt rv) w -> Doc
 pPrintApp' _ (NotApp e) = text "!" <> pPrintInstExpr' False e
@@ -537,7 +536,7 @@ pPrintApp' _ (ConcatApp e1 e2) =
 --       e1
 --       (InstStateExpr (AppExpr (LitBVApp (BV _ 0)))))))
 --    (InstStateExpr (AppExpr (LitBVApp (BV _ 0))))
---    (InstStateExpr (LocExpr r@(RegExpr e2))))
+--    (InstStateExpr (LocApp r@(RegExpr e2))))
 --   | Just Refl <- e1 `testEquality` e2 = pPrint r
 pPrintApp' _ (IteApp e1 e2 e3) =
   text "if" <+> pPrintInstExpr' True e1 <+>

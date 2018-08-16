@@ -129,10 +129,46 @@ fSemantics = Map.fromList
   , Pair Fsqrt_s $ InstSemantics $ getSemantics $ do
       incrPC
   , Pair Fsgnj_s $ InstSemantics $ getSemantics $ do
+      comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
+      comment "Uses the sign of f[rs2], and writes the result to f[rd]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+      let f_rs1 = readFReg rs1
+      let f_rs2 = readFReg rs2
+
+      let res_sign = f32Sgn (extractE 0 f_rs2)
+      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res = zextE (res_sign `concatE` res_rst)
+
+      assignFReg rd res
       incrPC
   , Pair Fsgnjn_s $ InstSemantics $ getSemantics $ do
+      comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
+      comment "Uses the opposite sign of f[rs2], and writes the result to f[rd]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+      let f_rs1 = readFReg rs1
+      let f_rs2 = readFReg rs2
+
+      let res_sign = notE (f32Sgn (extractE 0 f_rs2))
+      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res = zextE (res_sign `concatE` res_rst)
+
+      assignFReg rd res
       incrPC
   , Pair Fsgnjx_s $ InstSemantics $ getSemantics $ do
+      comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
+      comment "Uses the xor of the signs of f[rs1] and f[rs2], and writes the result to f[rd]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+      let f_rs1 = readFReg rs1
+      let f_rs2 = readFReg rs2
+
+      let res_sign = (f32Sgn (extractE 0 f_rs1) `xorE` f32Sgn (extractE 0 f_rs2))
+      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res = zextE (notE res_sign `concatE` res_rst)
+
+      assignFReg rd res
       incrPC
   , Pair Fmin_s $ InstSemantics $ getSemantics $ do
       incrPC
