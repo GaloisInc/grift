@@ -3,14 +3,14 @@ GRIFT - Galois RISC-V ISA Formal Tools
 
 copyright (c) Galois Inc. 2018
 
-*Galois RISC-V Formal Tools* (hereafter, *GRIFT*) is part of the BESSPIN
+*Galois RISC-V ISA Formal Tools* (hereafter, *GRIFT*) is part of the BESSPIN
 software suite, developed by Galois, Inc. It contains a concrete representation
 of the semantics of the RISC-V instruction set, along with an elegant
 encoding/decoding mechanism, and simulation and analysis front-ends. It is
 intended for broad use in the RISC-V community - simulation, binary analysis,
-and software & hardware verification/validation are all current and/or
-potential future uses for *GRIFT*, and we have designed it specifically with
-these broad application domains in mind.
+and software & hardware verification/validation are all current and/or potential
+future uses for *GRIFT*, and we have designed it specifically with these broad
+application domains in mind.
 
 *GRIFT* differs from other Haskell-based RISC-V formalizations in its coding
 style (using highly dependently-typed GHC Haskell) and some of its foundational
