@@ -487,7 +487,8 @@ instance Pretty (Stmt (InstExpr fmt rv) rv) where
     $$ nest 4 (vcat (pPrint <$> toList s2s))
 
 instance Pretty (Semantics (InstExpr fmt rv) rv) where
-  pPrint semantics = vcat (pPrint <$> toList (semantics ^. semStmts))
+  pPrint semantics = (vcat $ pPrint <$> toList (semantics ^. semComments)) $$
+                     (vcat $ pPrint <$> toList (semantics ^. semStmts))
 
 -- TODO: pretty print floating point expressions
 -- TODO: Can we do this more generally, with a general expr?

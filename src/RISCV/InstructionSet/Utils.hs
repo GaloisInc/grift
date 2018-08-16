@@ -81,7 +81,7 @@ incrPC :: KnownRV rv => SemanticsM (InstExpr fmt rv) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
-  assignPC $ pc `addE` (zextE ib)
+  assignPC $ pc `addE` ib
 
 -- TODO: Deprecate a lot of these helpers. I actually think it's better to be more
 -- explicit in the instruction semantics themselves than to hide everything with
