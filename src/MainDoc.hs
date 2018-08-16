@@ -32,9 +32,11 @@ isetFromString s = case s of
 main :: IO ()
 main = do
   args <- getArgs
-  let someISet = case args of
-        [s] | Just iset' <- isetFromString s -> iset'
-        _ -> Some (knownISet :: InstructionSet RV32I)
+  someISet <- case args of
+    [s] | Just iset' <- isetFromString s -> return iset'
+    _ -> do
+      putStrLn $ "Defaulting to RV32I"
+      return $ Some (knownISet :: InstructionSet RV32I)
   case someISet of
     Some iset -> do
       forM_ (sortBy pairSort $ toList (isSemanticsMap iset)) $ \(Pair opcode semantics) -> do

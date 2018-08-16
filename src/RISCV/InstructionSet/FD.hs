@@ -37,9 +37,9 @@ F and D extensions for RV32 and RV64.
 
 module RISCV.InstructionSet.FD
   ( f32
-  -- , f64
-  -- , d32
-  -- , d64
+  , f64
+  , d32
+  , d64
   ) where
 
 import Data.BitVector.Sized.App
@@ -56,6 +56,18 @@ import RISCV.Types
 -- | F extension (RV32)
 f32 :: (KnownRV rv, FExt << rv) => InstructionSet rv
 f32 = instructionSet fEncode fSemantics
+
+-- | F extension (RV64)
+f64 :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+f64 = f32 <> instructionSet f64Encode f64Semantics
+
+-- | D extension (RV32)
+d32 :: (KnownRV rv, DExt << rv) => InstructionSet rv
+d32 = instructionSet dEncode dSemantics
+
+-- | D extension (RV64)
+d64 :: (KnownRV rv, DExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+d64 = d32 <> instructionSet d64Encode d64Semantics
 
 fEncode :: FExt << rv => EncodeMap rv
 fEncode = Map.fromList
@@ -444,40 +456,139 @@ fSemantics = Map.fromList
       incrPC
   ]
 
+f64Encode :: (64 <= RVWidth rv, FExt << rv) => EncodeMap rv
+f64Encode = Map.fromList
+  [ Pair Fcvt_l_s  (OpBits R2Repr (0b1010011 :< 0b110000000010 :< Nil))
+  , Pair Fcvt_lu_s (OpBits R2Repr (0b1010011 :< 0b110000000011 :< Nil))
+  , Pair Fcvt_s_l  (OpBits R2Repr (0b1010011 :< 0b110000100010 :< Nil))
+  , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110000100011 :< Nil))
+  ]
 
-  -- -- RV64F
-  -- Fcvt_l_s  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
-  -- Fcvt_lu_s :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
-  -- Fcvt_s_l  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
-  -- Fcvt_s_lu :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+f64Semantics :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+f64Semantics = Map.fromList
+  [ Pair Fcvt_l_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_l_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_lu_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_s_l $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_s_lu $ InstSemantics $ getSemantics $ do
+      incrPC
+  ]
 
-  -- -- RV32D
-  -- Fld       :: DExt << rv => Opcode rv I
-  -- Fsd       :: DExt << rv => Opcode rv S
-  -- Fmadd_d   :: DExt << rv => Opcode rv R4
-  -- Fmsub_d   :: DExt << rv => Opcode rv R4
-  -- Fnmsub_d  :: DExt << rv => Opcode rv R4
-  -- Fnmadd_d  :: DExt << rv => Opcode rv R4
-  -- Fadd_d    :: DExt << rv => Opcode rv R3
-  -- Fsub_d    :: DExt << rv => Opcode rv R3
-  -- Fmul_d    :: DExt << rv => Opcode rv R3
-  -- Fdiv_d    :: DExt << rv => Opcode rv R3
-  -- Fsqrt_d   :: DExt << rv => Opcode rv R2
-  -- Fsgnj_d   :: DExt << rv => Opcode rv R
-  -- Fsgnjn_d  :: DExt << rv => Opcode rv R
-  -- Fsgnjx_d  :: DExt << rv => Opcode rv R
-  -- Fmin_d    :: DExt << rv => Opcode rv R
-  -- Fmax_d    :: DExt << rv => Opcode rv R
-  -- Fcvt_s_d  :: DExt << rv => Opcode rv R2
-  -- Fcvt_d_s  :: DExt << rv => Opcode rv R2
-  -- Feq_d     :: DExt << rv => Opcode rv R
-  -- Flt_d     :: DExt << rv => Opcode rv R
-  -- Fle_d     :: DExt << rv => Opcode rv R
-  -- Fclass_d  :: DExt << rv => Opcode rv RX
-  -- Fcvt_w_d  :: DExt << rv => Opcode rv R2
-  -- Fcvt_wu_d :: DExt << rv => Opcode rv R2
-  -- Fcvt_d_w  :: DExt << rv => Opcode rv R2
-  -- Fcvt_d_wu :: DExt << rv => Opcode rv R2
+dEncode :: DExt << rv => EncodeMap rv
+dEncode = Map.fromList
+  [ Pair Fld (OpBits IRepr (0b0000111 :< 0b011 :< Nil))
+  , Pair Fsd (OpBits SRepr (0b0100111 :< 0b011 :< Nil))
+  , Pair Fmadd_d (OpBits R4Repr (0b1000011 :< 0b00 :< Nil))
+  , Pair Fmsub_d (OpBits R4Repr (0b1000111 :< 0b00 :< Nil))
+  , Pair Fnmsub_d (OpBits R4Repr (0b1001011 :< 0b00 :< Nil))
+  , Pair Fnmadd_d (OpBits R4Repr (0b1001111 :< 0b00 :< Nil))
+  , Pair Fadd_d (OpBits R3Repr (0b1010011 :< 0b0000001 :< Nil))
+  , Pair Fsub_d (OpBits R3Repr (0b1010011 :< 0b0000101 :< Nil))
+  , Pair Fmul_d (OpBits R3Repr (0b1010011 :< 0b0001001 :< Nil))
+  , Pair Fdiv_d (OpBits R3Repr (0b1010011 :< 0b0001101 :< Nil))
+  , Pair Fsqrt_d (OpBits R2Repr (0b1010011 :< 0b010110100000 :< Nil))
+  , Pair Fsgnj_d (OpBits RRepr (0b1010011 :< 0b000 :< 0b0010000 :< Nil))
+  , Pair Fsgnjn_d (OpBits RRepr (0b1010011 :< 0b001 :< 0b0010001 :< Nil))
+  , Pair Fsgnjx_d (OpBits RRepr (0b1010011 :< 0b010 :< 0b0010001 :< Nil))
+  , Pair Fmin_d (OpBits RRepr (0b1010011 :< 0b000 :< 0b0010101 :< Nil))
+  , Pair Fmax_d (OpBits RRepr (0b1010011 :< 0b001 :< 0b0010101 :< Nil))
+  , Pair Fcvt_s_d (OpBits R2Repr (0b1010011 :< 0b010000000001 :< Nil))
+  , Pair Fcvt_d_s (OpBits R2Repr (0b1010011 :< 0b010000100000 :< Nil))
+  , Pair Feq_d (OpBits RRepr (0b1010011 :< 0b010 :< 0b1010001 :< Nil))
+  , Pair Flt_d (OpBits RRepr (0b1010011 :< 0b001 :< 0b1010001 :< Nil))
+  , Pair Fle_d (OpBits RRepr (0b1010011 :< 0b000 :< 0b1010001 :< Nil))
+  , Pair Fclass_d (OpBits RXRepr (0b1010011 :< 0b001 :< 0b111000100000 :< Nil))
+  , Pair Fcvt_w_d (OpBits R2Repr (0b1010011 :< 0b110000100000 :< Nil))
+  , Pair Fcvt_wu_d (OpBits R2Repr (0b1010011 :< 0b110000100001 :< Nil))
+  , Pair Fcvt_d_w (OpBits R2Repr (0b1010011 :< 0b110100100000 :< Nil))
+  , Pair Fcvt_d_wu (OpBits R2Repr (0b1010011 :< 0b110100100001 :< Nil))
+  ]
+
+dSemantics :: (KnownRV rv, DExt << rv) => SemanticsMap rv
+dSemantics = Map.fromList
+  [ Pair Fld $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsd $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmadd_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmsub_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fnmsub_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fnmadd_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fadd_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsub_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmul_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fdiv_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsqrt_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsgnj_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsgnjn_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fsgnjx_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmin_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmax_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_s_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_d_s $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Feq_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Flt_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fle_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fclass_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_w_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_wu_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_d_w $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_d_wu $ InstSemantics $ getSemantics $ do
+      incrPC
+  ]
+
+d64Encode :: (64 <= RVWidth rv, DExt << rv) => EncodeMap rv
+d64Encode = Map.fromList
+  [ Pair Fcvt_l_d (OpBits R2Repr (0b1010011 :< 0b110000100010 :< Nil))
+  , Pair Fcvt_lu_d (OpBits R2Repr (0b1010011 :< 0b110000100011 :< Nil))
+  , Pair Fmv_x_d (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111000100000 :< Nil))
+  , Pair Fcvt_d_l (OpBits R2Repr (0b1010011 :< 0b110100100010 :< Nil))
+  , Pair Fcvt_d_lu (OpBits R2Repr (0b1010011 :< 0b110100100011 :< Nil))
+  , Pair Fmv_d_x (OpBits RXRepr (0b1010011 :< 0b000 :< 111100100000 :< Nil))
+  ]
+
+d64Semantics :: (KnownRV rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+d64Semantics = Map.fromList
+  [ Pair Fcvt_l_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_lu_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmv_x_d $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_d_l $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fcvt_d_lu $ InstSemantics $ getSemantics $ do
+      incrPC
+  , Pair Fmv_d_x $ InstSemantics $ getSemantics $ do
+      incrPC
+  ]
 
   -- -- RV64D
   -- Fcvt_l_d  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2

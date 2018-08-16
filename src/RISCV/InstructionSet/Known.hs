@@ -41,6 +41,7 @@ import Data.Parameterized
 import RISCV.InstructionSet
 import RISCV.InstructionSet.Base
 import RISCV.InstructionSet.A
+import RISCV.InstructionSet.FD
 import RISCV.InstructionSet.M
 import RISCV.InstructionSet.Priv
 import RISCV.Types
@@ -63,7 +64,10 @@ knownISet = case knownRepr :: RVRepr rv of
           (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> a32
           (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> a64
           _ -> mempty
-        fset = case ecRepr of
-          ExtensionsRepr _ _ _ FDNoRepr -> mempty
-          _ -> error "Floating point not yet supported"
+        fset = case (archRepr, ecRepr) of
+          (RV32Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f32
+          (RV32Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f32 <> d32
+          (RV64Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f64
+          (RV64Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f64 <> d64
+          _ -> mempty
     in baseset <> privset <> mset <> aset <> fset
