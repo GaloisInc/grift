@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Main where
 
 import Control.Monad
+import Data.List
 import Data.Parameterized
 import Data.Parameterized.Map
 import Text.PrettyPrint.HughesPJClass
@@ -10,6 +12,7 @@ import System.Environment
 
 import RISCV.InstructionSet
 import RISCV.InstructionSet.Known
+import RISCV.Semantics
 import RISCV.Types
 
 isetFromString :: String -> Maybe (Some InstructionSet)
@@ -34,6 +37,8 @@ main = do
         _ -> Some (knownISet :: InstructionSet RV32I)
   case someISet of
     Some iset -> do
-      forM_ (toList (isSemanticsMap iset)) $ \(Pair opcode semantics) -> do
+      forM_ (sortBy pairSort $ toList (isSemanticsMap iset)) $ \(Pair opcode semantics) -> do
         putStrLn $ show opcode ++ ": "
         print (nest 4 $ pPrint semantics)
+  where pairSort :: Pair (Opcode rv) (InstSemantics rv) -> Pair (Opcode rv) (InstSemantics rv) -> Ordering
+        pairSort p1@(Pair oc1 _) p2@(Pair oc2 _) = compare (show oc1) (show oc2)
