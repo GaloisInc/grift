@@ -123,6 +123,9 @@ module RISCV.Semantics
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
+import Data.BitVector.Sized
+import Data.BitVector.Sized.App
+import Data.BitVector.Sized.Float.App
 import Data.Foldable (toList)
 import Data.Parameterized
 import Data.Parameterized.List
@@ -132,8 +135,6 @@ import GHC.TypeLits
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJClass
 
-import Data.BitVector.Sized.App
-import Data.BitVector.Sized.Float.App
 import RISCV.Types
 
 ----------------------------------------
@@ -231,6 +232,9 @@ data Semantics (expr :: Nat -> *) (rv :: RV)
 -- the same format.
 newtype InstSemantics (rv :: RV) (fmt :: Format)
   = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv }
+
+instance Pretty (InstSemantics rv fmt) where
+  pPrint (InstSemantics sem) = pPrint sem
 
 -- | Lens for 'Semantics' comments.
 semComments :: Simple Lens (Semantics expr rv) (Seq String)
@@ -524,6 +528,16 @@ pPrintApp' _ (LtuApp e1 e2) = pPrintInstExpr' False e1 <+> text "<u" <+> pPrintI
 pPrintApp' _ (LtsApp e1 e2) = pPrintInstExpr' False e1 <+> text "<s" <+> pPrintInstExpr' False e2
 pPrintApp' _ (ConcatApp e1 e2) =
   text "{" <> pPrintInstExpr' True e1 <> text ", " <> pPrintInstExpr' True e2 <> text "}"
+-- pPrintApp' _
+--   (IteApp
+--    (InstStateExpr
+--     (AppExpr
+--      (EqApp
+--       e1
+--       (InstStateExpr (AppExpr (LitBVApp (BV _ 0)))))))
+--    (InstStateExpr (AppExpr (LitBVApp (BV _ 0))))
+--    (InstStateExpr (LocExpr r@(RegExpr e2))))
+--   | Just Refl <- e1 `testEquality` e2 = pPrint r
 pPrintApp' _ (IteApp e1 e2 e3) =
   text "if" <+> pPrintInstExpr' True e1 <+>
   text "then" <+> pPrintInstExpr' True e2 <+>
