@@ -495,6 +495,8 @@ pPrintStateApp' :: Bool -> StateApp (InstExpr fmt rv) rv w -> Doc
 pPrintStateApp' _ (LocApp loc) = pPrint loc
 pPrintStateApp' top (AppExpr app) = pPrintApp' top app
 
+-- TODO: Print operands with more descriptive names, based on the format of the
+-- instruction.
 pPrintInstExpr' :: Bool -> InstExpr fmt rv w -> Doc
 pPrintInstExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
 pPrintInstExpr' _ InstBytes = text "step"

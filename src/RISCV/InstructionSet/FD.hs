@@ -111,23 +111,138 @@ fSemantics = Map.fromList
       assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 f_rs2)
       incrPC
   , Pair Fmadd_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Multiplies the single-precision floats in f[rs1] and f[rs2]."
+      comment "Adds the unrounded product to the single precision float in f[rs3]."
+      comment "Writes the rounded single-precision result to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let f_rs3 = extractE 0 (readFReg rs3)
+        let (res, flags) = getFRes32 $ f32MulAddE rm f_rs1 f_rs2 f_rs3
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fmsub_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Multiplies the single-precision floats in f[rs1] and f[rs2]."
+      comment "Subtracts the single precision float in f[rs3] from the unrounded product."
+      comment "Writes the rounded single-precision result to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let f_rs3 = extractE 0 (readFReg rs3)
+        let (res, flags) = getFRes32 $ f32MulAddE rm f_rs1 f_rs2 (negate32 f_rs3)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fnmsub_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Multiplies the single-precision floats in f[rs1] and f[rs2], negating the result."
+      comment "Subtracts the single precision float in f[rs3] from the unrounded product."
+      comment "Writes the rounded single-precision result to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let f_rs3 = extractE 0 (readFReg rs3)
+        let (res, flags) = getFRes32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 (negate32 f_rs3)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fnmadd_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Multiplies the single-precision floats in f[rs1] and f[rs2], negating the result."
+      comment "Adds the single precision float in f[rs3] to the unrounded product."
+      comment "Writes the rounded single-precision result to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let f_rs3 = extractE 0 (readFReg rs3)
+        let (res, flags) = getFRes32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 f_rs3
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fadd_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Adds the single-precision float in registers f[rs1] and f[rs2]."
+      comment "Writes the rounded single-precision sum to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let (res, flags) = getFRes32 $ f32AddE rm f_rs1 f_rs2
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fsub_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Subtracts the single-precision float in register f[rs2] from f[rs1]."
+      comment "Writes the rounded single-precision difference to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let (res, flags) = getFRes32 $ f32SubE rm f_rs1 f_rs2
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fmul_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Multiplies the single-precision float in registers f[rs1] and f[rs2]."
+      comment "Writes the rounded single-precision sum to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let (res, flags) = getFRes32 $ f32MulE rm f_rs1 f_rs2
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fdiv_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Divides the single-precision float in register f[rs1] by f[rs2]."
+      comment "Writes the rounded single-precision difference to f[rd]."
+
+      rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let f_rs2 = extractE 0 (readFReg rs2)
+        let (res, flags) = getFRes32 $ f32DivE rm f_rs1 f_rs2
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fsqrt_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Computes the square root of the single-precision float in register f[rs1]."
+      comment "Writes the rounded single-precision result to f[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+
+      withRM rm' $ \rm -> do
+        let f_rs1 = extractE 0 (readFReg rs1)
+        let (res, flags) = getFRes32 $ f32SqrtE rm f_rs1
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fsgnj_s $ InstSemantics $ getSemantics $ do
       comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
       comment "Uses the sign of f[rs2], and writes the result to f[rd]."
@@ -171,8 +286,32 @@ fSemantics = Map.fromList
       assignFReg rd res
       incrPC
   , Pair Fmin_s $ InstSemantics $ getSemantics $ do
+      comment "Computes the smaller of the single-precision floats in registers f[rs1] and f[rs2]."
+      comment "Copies the result to f[rd]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+      let f_rs1 = extractE 0 (readFReg rs1)
+      let f_rs2 = extractE 0 (readFReg rs2)
+      let (cmp, flags) = getFRes $ f32LeE f_rs1 f_rs2
+
+      let res = iteE cmp f_rs1 f_rs2
+
+      assignReg rd (zextE res)
+      raiseFPExceptions flags
       incrPC
   , Pair Fmax_s $ InstSemantics $ getSemantics $ do
+      comment "Computes the larger of the single-precision floats in registers f[rs1] and f[rs2]."
+      comment "Copies the result to f[rd]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+      let f_rs1 = extractE 0 (readFReg rs1)
+      let f_rs2 = extractE 0 (readFReg rs2)
+      let (cmp, flags) = getFRes $ f32LeE f_rs1 f_rs2
+
+      let res = iteE cmp f_rs2 f_rs1
+
+      assignReg rd (zextE res)
+      raiseFPExceptions flags
       incrPC
   , Pair Fcvt_w_s $ InstSemantics $ getSemantics $ do
       comment "Converts the single-precision float in f[rs1] to a 32-bit signed integer."
@@ -209,10 +348,43 @@ fSemantics = Map.fromList
       assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 f_rs1))
       incrPC
   , Pair Feq_s $ InstSemantics $ getSemantics $ do
+      comment "Writes 1 to x[rd] if the single-precision float in f[rs1] equals f[rs2]."
+      comment "Writes 0 to x[rd] if not."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let f_rs1 = extractE 0 (readFReg rs1)
+      let f_rs2 = extractE 0 (readFReg rs2)
+      let (res, flags) = getFRes $ f32EqE f_rs1 f_rs2
+
+      assignReg rd (zextE res)
+      raiseFPExceptions flags
       incrPC
   , Pair Flt_s $ InstSemantics $ getSemantics $ do
+      comment "Writes 1 to x[rd] if the single-precision float in f[rs1] is less than f[rs2]."
+      comment "Writes 0 to x[rd] if not."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let f_rs1 = extractE 0 (readFReg rs1)
+      let f_rs2 = extractE 0 (readFReg rs2)
+      let (res, flags) = getFRes $ f32LtE f_rs1 f_rs2
+
+      assignReg rd (zextE res)
+      raiseFPExceptions flags
       incrPC
   , Pair Fle_s $ InstSemantics $ getSemantics $ do
+      comment "Writes 1 to x[rd] if the single-precision float in f[rs1] is less than or equal to f[rs2]."
+      comment "Writes 0 to x[rd] if not."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let f_rs1 = extractE 0 (readFReg rs1)
+      let f_rs2 = extractE 0 (readFReg rs2)
+      let (res, flags) = getFRes $ f32LeE f_rs1 f_rs2
+
+      assignReg rd (zextE res)
+      raiseFPExceptions flags
       incrPC
   , Pair Fclass_s $ InstSemantics $ getSemantics $ do
       comment "Writes to x[rd] a mask indicating the class of the single-precision float in f[rs1]."
