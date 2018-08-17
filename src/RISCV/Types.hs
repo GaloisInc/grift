@@ -63,6 +63,18 @@ module RISCV.Types
   , RVRepr(..)
   , RVWidth, RVFloatWidth, type (<<)
   , KnownRV
+    -- ** Common RISC-V Configurations
+    -- | Provided for convenience.
+  , RV32I
+  , RV32IM
+  , RV32IMA
+  , RV32IMAF
+  , RV32IMAFD
+  , RV64I
+  , RV64IM
+  , RV64IMA
+  , RV64IMAF
+  , RV64IMAFD
     -- * Base architecture
   , BaseArch(..), type RV32, type RV64, type RV128
   , ArchWidth
@@ -83,7 +95,10 @@ module RISCV.Types
   , Extension(..), type AExt, type DExt, type FExt, type MExt, type SExt, type UExt
   , ExtensionsContains
   -- * Instructions
-  , Format(..), type R, type I, type S, type B, type U, type J, type H, type P, type A, type X
+  , Format(..)
+  , type R, type I, type S, type B, type U, type J
+  , type H, type P, type A, type R2, type R3, type R4
+  , type RX, type X
   , FormatRepr(..)
   , OperandTypes
   , OperandID(..)
@@ -285,6 +300,18 @@ type family RVFloatWidth (rv :: RV) :: Nat where
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
 
+-- type synonyms for common RVConfigs.
+type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo))
+type RV32IM    = RVConfig '(RV32, Exts '(PrivM, MYes, ANo,  FDNo))
+type RV32IMA   = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDNo))
+type RV32IMAF  = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FYesDNo))
+type RV32IMAFD = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDYes))
+type RV64I     = RVConfig '(RV64, Exts '(PrivM, MNo,  ANo,  FDNo))
+type RV64IM    = RVConfig '(RV64, Exts '(PrivM, MYes, ANo,  FDNo))
+type RV64IMA   = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDNo))
+type RV64IMAF  = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FYesDNo))
+type RV64IMAFD = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes))
+
 ----------------------------------------
 -- Formats
 
@@ -293,31 +320,39 @@ type family (<<) (e :: Extension) (rv :: RV) where
 -- laid out as bits in the instruction word. We include one additional format, X,
 -- inhabited only by an illegal instruction.
 
-data Format = R | I | S | B | U | J | H | P | A | X
+data Format = R | I | S | B | U | J | H | P | A | R2 | R3 | R4 | RX | X
 
-type R = 'R
-type I = 'I
-type S = 'S
-type B = 'B
-type U = 'U
-type J = 'J
-type H = 'H
-type P = 'P
-type A = 'A
-type X = 'X
+type R  = 'R
+type I  = 'I
+type S  = 'S
+type B  = 'B
+type U  = 'U
+type J  = 'J
+type H  = 'H
+type P  = 'P
+type A  = 'A
+type R2 = 'R2
+type R3 = 'R3
+type R4 = 'R4
+type RX = 'RX
+type X  = 'X
 
 -- | A runtime representative for 'Format' for dependent typing.
 data FormatRepr :: Format -> * where
-  RRepr :: FormatRepr R
-  IRepr :: FormatRepr I
-  SRepr :: FormatRepr S
-  BRepr :: FormatRepr B
-  URepr :: FormatRepr U
-  JRepr :: FormatRepr J
-  HRepr :: FormatRepr H
-  PRepr :: FormatRepr P
-  ARepr :: FormatRepr A
-  XRepr :: FormatRepr X
+  RRepr  :: FormatRepr R
+  IRepr  :: FormatRepr I
+  SRepr  :: FormatRepr S
+  BRepr  :: FormatRepr B
+  URepr  :: FormatRepr U
+  JRepr  :: FormatRepr J
+  HRepr  :: FormatRepr H
+  PRepr  :: FormatRepr P
+  ARepr  :: FormatRepr A
+  R2Repr :: FormatRepr R2
+  R3Repr :: FormatRepr R3
+  R4Repr :: FormatRepr R4
+  RXRepr :: FormatRepr RX
+  XRepr  :: FormatRepr X
 
 -- Instances
 $(return [])
@@ -331,32 +366,44 @@ instance TestEquality FormatRepr where
 instance OrdF FormatRepr where
   compareF = $(structuralTypeOrd [t|FormatRepr|] [])
 
-instance KnownRepr FormatRepr R where knownRepr = RRepr
-instance KnownRepr FormatRepr I where knownRepr = IRepr
-instance KnownRepr FormatRepr S where knownRepr = SRepr
-instance KnownRepr FormatRepr B where knownRepr = BRepr
-instance KnownRepr FormatRepr U where knownRepr = URepr
-instance KnownRepr FormatRepr J where knownRepr = JRepr
-instance KnownRepr FormatRepr H where knownRepr = HRepr
-instance KnownRepr FormatRepr P where knownRepr = PRepr
-instance KnownRepr FormatRepr A where knownRepr = ARepr
-instance KnownRepr FormatRepr X where knownRepr = XRepr
+instance KnownRepr FormatRepr R  where knownRepr = RRepr
+instance KnownRepr FormatRepr I  where knownRepr = IRepr
+instance KnownRepr FormatRepr S  where knownRepr = SRepr
+instance KnownRepr FormatRepr B  where knownRepr = BRepr
+instance KnownRepr FormatRepr U  where knownRepr = URepr
+instance KnownRepr FormatRepr J  where knownRepr = JRepr
+instance KnownRepr FormatRepr H  where knownRepr = HRepr
+instance KnownRepr FormatRepr P  where knownRepr = PRepr
+instance KnownRepr FormatRepr A  where knownRepr = ARepr
+instance KnownRepr FormatRepr R2 where knownRepr = R2Repr
+instance KnownRepr FormatRepr R3 where knownRepr = R3Repr
+instance KnownRepr FormatRepr R4 where knownRepr = R4Repr
+instance KnownRepr FormatRepr RX where knownRepr = RXRepr
+instance KnownRepr FormatRepr X  where knownRepr = XRepr
 
 ----------------------------------------
 -- Operands
 
+-- TODO: It might make sense to reverse the order in this and OpBitsTypes; it's
+-- actually pretty confusing because it doesn't match how it looks when you're just
+-- looking at the bits. Also, BitLayout uses the reverse ordering for exactly this
+-- reason.
 -- | Maps each format type to the list of the corresponding operand widths.
 type family OperandTypes (fmt :: Format) :: [Nat] where
-  OperandTypes R = '[5, 5, 5]
-  OperandTypes I = '[5, 5, 12]
-  OperandTypes S = '[5, 5, 12]
-  OperandTypes B = '[5, 5, 12]
-  OperandTypes U = '[5, 20]
-  OperandTypes J = '[5, 20]
-  OperandTypes H = '[5, 5, 7]
-  OperandTypes P = '[]
-  OperandTypes A = '[5, 5, 5, 1, 1]
-  OperandTypes X = '[32]
+  OperandTypes R  = '[5, 5, 5]
+  OperandTypes I  = '[5, 5, 12]
+  OperandTypes S  = '[5, 5, 12]
+  OperandTypes B  = '[5, 5, 12]
+  OperandTypes U  = '[5, 20]
+  OperandTypes J  = '[5, 20]
+  OperandTypes H  = '[5, 5, 7]
+  OperandTypes P  = '[]
+  OperandTypes A  = '[5, 5, 5, 1, 1]
+  OperandTypes R2 = '[5, 3, 5]
+  OperandTypes R3 = '[5, 3, 5, 5]
+  OperandTypes R4 = '[5, 3, 5, 5, 5]
+  OperandTypes RX = '[5, 5]
+  OperandTypes X  = '[32]
 
 -- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
 newtype OperandID (fmt :: Format) (w :: Nat) = OperandID { unOperandID :: Index (OperandTypes fmt) w }
@@ -381,16 +428,20 @@ instance ShowF Operands
 
 -- | Maps each format to the list of the corresponding opbits widths.
 type family OpBitsTypes (fmt :: Format) :: [Nat] where
-  OpBitsTypes R = '[7, 3, 7]
-  OpBitsTypes I = '[7, 3]
-  OpBitsTypes S = '[7, 3]
-  OpBitsTypes B = '[7, 3]
-  OpBitsTypes U = '[7]
-  OpBitsTypes J = '[7]
-  OpBitsTypes H = '[7, 3, 5]
-  OpBitsTypes P = '[32]
-  OpBitsTypes A = '[7, 3, 5]
-  OpBitsTypes X = '[]
+  OpBitsTypes R  = '[7, 3, 7]
+  OpBitsTypes I  = '[7, 3]
+  OpBitsTypes S  = '[7, 3]
+  OpBitsTypes B  = '[7, 3]
+  OpBitsTypes U  = '[7]
+  OpBitsTypes J  = '[7]
+  OpBitsTypes H  = '[7, 3, 5]
+  OpBitsTypes P  = '[32]
+  OpBitsTypes A  = '[7, 3, 5]
+  OpBitsTypes R2 = '[7, 12]
+  OpBitsTypes R3 = '[7, 7]
+  OpBitsTypes R4 = '[7, 2]
+  OpBitsTypes RX = '[7, 3, 12]
+  OpBitsTypes X  = '[]
 
 -- | Bits fixed by an opcode.
 -- Holds all the bits that are fixed by a particular opcode.
@@ -534,6 +585,76 @@ data Opcode :: RV -> Format -> * where
   Amomaxd  :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
   Amominud :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
   Amomaxud :: (64 <= RVWidth rv, AExt << rv) => Opcode rv A
+
+  -- RV32F
+  Flw       :: FExt << rv => Opcode rv I
+  Fsw       :: FExt << rv => Opcode rv S
+  Fmadd_s   :: FExt << rv => Opcode rv R4
+  Fmsub_s   :: FExt << rv => Opcode rv R4
+  Fnmsub_s  :: FExt << rv => Opcode rv R4
+  Fnmadd_s  :: FExt << rv => Opcode rv R4
+  Fadd_s    :: FExt << rv => Opcode rv R3
+  Fsub_s    :: FExt << rv => Opcode rv R3
+  Fmul_s    :: FExt << rv => Opcode rv R3
+  Fdiv_s    :: FExt << rv => Opcode rv R3
+  Fsqrt_s   :: FExt << rv => Opcode rv R2
+  Fsgnj_s   :: FExt << rv => Opcode rv R
+  Fsgnjn_s  :: FExt << rv => Opcode rv R
+  Fsgnjx_s  :: FExt << rv => Opcode rv R
+  Fmin_s    :: FExt << rv => Opcode rv R
+  Fmax_s    :: FExt << rv => Opcode rv R
+  Fcvt_w_s  :: FExt << rv => Opcode rv R2
+  Fcvt_wu_s :: FExt << rv => Opcode rv R2
+  Fmv_x_w   :: FExt << rv => Opcode rv RX
+  Feq_s     :: FExt << rv => Opcode rv R
+  Flt_s     :: FExt << rv => Opcode rv R
+  Fle_s     :: FExt << rv => Opcode rv R
+  Fclass_s  :: FExt << rv => Opcode rv RX
+  Fcvt_s_w  :: FExt << rv => Opcode rv R2
+  Fcvt_s_wu :: FExt << rv => Opcode rv R2
+  Fmv_w_x   :: FExt << rv => Opcode rv RX
+
+  -- RV64F
+  Fcvt_l_s  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+  Fcvt_lu_s :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+  Fcvt_s_l  :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+  Fcvt_s_lu :: (64 <= RVWidth rv, FExt << rv) => Opcode rv R2
+
+  -- RV32D
+  Fld       :: DExt << rv => Opcode rv I
+  Fsd       :: DExt << rv => Opcode rv S
+  Fmadd_d   :: DExt << rv => Opcode rv R4
+  Fmsub_d   :: DExt << rv => Opcode rv R4
+  Fnmsub_d  :: DExt << rv => Opcode rv R4
+  Fnmadd_d  :: DExt << rv => Opcode rv R4
+  Fadd_d    :: DExt << rv => Opcode rv R3
+  Fsub_d    :: DExt << rv => Opcode rv R3
+  Fmul_d    :: DExt << rv => Opcode rv R3
+  Fdiv_d    :: DExt << rv => Opcode rv R3
+  Fsqrt_d   :: DExt << rv => Opcode rv R2
+  Fsgnj_d   :: DExt << rv => Opcode rv R
+  Fsgnjn_d  :: DExt << rv => Opcode rv R
+  Fsgnjx_d  :: DExt << rv => Opcode rv R
+  Fmin_d    :: DExt << rv => Opcode rv R
+  Fmax_d    :: DExt << rv => Opcode rv R
+  Fcvt_s_d  :: DExt << rv => Opcode rv R2
+  Fcvt_d_s  :: DExt << rv => Opcode rv R2
+  Feq_d     :: DExt << rv => Opcode rv R
+  Flt_d     :: DExt << rv => Opcode rv R
+  Fle_d     :: DExt << rv => Opcode rv R
+  Fclass_d  :: DExt << rv => Opcode rv RX
+  Fcvt_w_d  :: DExt << rv => Opcode rv R2
+  Fcvt_wu_d :: DExt << rv => Opcode rv R2
+  Fcvt_d_w  :: DExt << rv => Opcode rv R2
+  Fcvt_d_wu :: DExt << rv => Opcode rv R2
+
+  -- RV64D
+  Fcvt_l_d  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fcvt_lu_d :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fmv_x_d   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
+  Fcvt_d_l  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fcvt_d_lu :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
+  Fmv_d_x   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
 
 -- Instances
 $(return [])

@@ -20,7 +20,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies          #-}
 
 {-|
-Module      : RISCV.Extensions
+Module      : RISCV.InstructionSet.Known
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -31,19 +31,19 @@ Portability : portable
 Extensions for RISC-V.
 -}
 
-module RISCV.Extensions
+module RISCV.InstructionSet.Known
   ( -- * RISC-V Base ISA and extensions
     knownISet
   ) where
 
-import Data.Monoid
 import Data.Parameterized
 
 import RISCV.InstructionSet
-import RISCV.Extensions.Base
-import RISCV.Extensions.A
-import RISCV.Extensions.M
-import RISCV.Extensions.Priv
+import RISCV.InstructionSet.Base
+import RISCV.InstructionSet.A
+import RISCV.InstructionSet.FD
+import RISCV.InstructionSet.M
+import RISCV.InstructionSet.Priv
 import RISCV.Types
 
 -- | Infer the current instruction set from a context in which the 'BaseArch' and
@@ -64,7 +64,10 @@ knownISet = case knownRepr :: RVRepr rv of
           (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> a32
           (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> a64
           _ -> mempty
-        fset = case ecRepr of
-          ExtensionsRepr _ _ _ FDNoRepr -> mempty
-          _ -> error "Floating point not yet supported"
+        fset = case (archRepr, ecRepr) of
+          (RV32Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f32
+          (RV32Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f32 <> d32
+          (RV64Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f64
+          (RV64Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f64 <> d64
+          _ -> mempty
     in baseset <> privset <> mset <> aset <> fset

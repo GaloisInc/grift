@@ -41,8 +41,8 @@ A type class for simulating RISC-V code.
 module RISCV.Simulation
   ( -- * State monad
     RVStateM(..)
-  , evalLocExpr
-  , evalStateExpr
+  , evalLocApp
+  , evalStateApp
   , evalPureStateExpr
   , evalInstExpr
   , Loc(..)
@@ -56,6 +56,7 @@ module RISCV.Simulation
 import Control.Lens ( (^.) )
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
+import Data.BitVector.Sized.Float.App
 import Data.Foldable
 import Data.List (nub)
 import Data.Parameterized
@@ -64,10 +65,10 @@ import Data.Traversable
 import Prelude hiding ((!!))
 
 import RISCV.Decode
-import RISCV.Extensions
 import RISCV.InstructionSet
+import RISCV.InstructionSet.Known
+import RISCV.InstructionSet.Utils
 import RISCV.Semantics
-import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- TODO: Should getMem/setMem return a possibly exceptional value, so that we can
@@ -108,37 +109,38 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
   logInstruction :: InstructionSet rv -> Instruction rv fmt -> m ()
 
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
--- | Evaluate a 'LocExpr', given an 'RVStateM' implementation.
-evalLocExpr :: forall m expr rv w
+-- | Evaluate a 'LocApp', given an 'RVStateM' implementation.
+evalLocApp :: forall m expr rv w
                . (RVStateM m rv, KnownRV rv)
             => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
-            -> LocExpr expr rv w
+            -> LocApp expr rv w
             -> m (BitVector w)
-evalLocExpr _ PCExpr = getPC
-evalLocExpr eval (RegExpr ridE) = eval ridE >>= getReg
-evalLocExpr eval (FRegExpr ridE) = eval ridE >>= getFReg
-evalLocExpr eval (MemExpr bytes addrE) = eval addrE >>= getMem bytes
+evalLocApp _ PCExpr = getPC
+evalLocApp eval (RegExpr ridE) = eval ridE >>= getReg
+evalLocApp eval (FRegExpr ridE) = eval ridE >>= getFReg
+evalLocApp eval (MemExpr bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
-evalLocExpr _ (ResExpr _) = return 1
-evalLocExpr eval (CSRExpr csrE) = eval csrE >>= getCSR
-evalLocExpr _ PrivExpr = getPriv
+evalLocApp _ (ResExpr _) = return 1
+evalLocApp eval (CSRExpr csrE) = eval csrE >>= getCSR
+evalLocApp _ PrivExpr = getPriv
 
--- | Evaluate a 'StateExpr', given an 'RVStateM' implementation.
-evalStateExpr :: forall m expr rv w
+-- | Evaluate a 'StateApp', given an 'RVStateM' implementation.
+evalStateApp :: forall m expr rv w
                  . (RVStateM m rv, KnownRV rv)
               => (forall w' . expr w' -> m (BitVector w'))
                  -- ^ evaluator for internal expressions
-              -> StateExpr expr rv w
+              -> StateApp expr rv w
               -> m (BitVector w)
-evalStateExpr eval (LocExpr e) = evalLocExpr eval e
-evalStateExpr eval (AppExpr e) = evalBVAppM eval e
+evalStateApp eval (LocApp e) = evalLocApp eval e
+evalStateApp eval (AppExpr e) = evalBVAppM eval e
+evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
 evalPureStateExpr :: forall m rv w
                  . (RVStateM m rv, KnownRV rv)
               => PureStateExpr rv w
               -> m (BitVector w)
-evalPureStateExpr (PureStateExpr e) = evalStateExpr evalPureStateExpr e
+evalPureStateExpr (PureStateExpr e) = evalStateApp evalPureStateExpr e
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m rv fmt w
@@ -151,10 +153,10 @@ evalInstExpr :: forall m rv fmt w
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
 evalInstExpr _ _ ib InstBytes = return $ bitVector ib
 evalInstExpr iset inst _ InstWord = return $ (bvZext $ encode iset inst)
-evalInstExpr iset inst ib (InstStateExpr e) = evalStateExpr (evalInstExpr iset inst ib) e
+evalInstExpr iset inst ib (InstStateExpr e) = evalStateApp (evalInstExpr iset inst ib) e
 
 -- | This type represents a concrete component of the global state, after all
--- expressions have been evaluated. It is in direct correspondence with the 'LocExpr'
+-- expressions have been evaluated. It is in direct correspondence with the 'LocApp'
 -- type from RISCV.Semantics. Unlike that type, however, this will never appear on
 -- the right-hand side of an assignment, only the left-hand side.
 data Loc rv w where
@@ -283,27 +285,27 @@ getTests :: Semantics (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
 getTests formula = nub (concat $ getTestsStmt <$> formula ^. semStmts)
 
 getTestsStmt :: Stmt (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
-getTestsStmt (AssignStmt le e) = getTestsLocExpr le ++ getTestsInstExpr e
+getTestsStmt (AssignStmt le e) = getTestsLocApp le ++ getTestsInstExpr e
 getTestsStmt (BranchStmt t l r) =
   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocExpr :: LocExpr (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
-getTestsLocExpr (RegExpr   e) = getTestsInstExpr e
-getTestsLocExpr (FRegExpr  e) = getTestsInstExpr e
-getTestsLocExpr (MemExpr _ e) = getTestsInstExpr e
-getTestsLocExpr (ResExpr   e) = getTestsInstExpr e
-getTestsLocExpr (CSRExpr   e) = getTestsInstExpr e
-getTestsLocExpr _ = []
+getTestsLocApp :: LocApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
+getTestsLocApp (RegExpr   e) = getTestsInstExpr e
+getTestsLocApp (FRegExpr  e) = getTestsInstExpr e
+getTestsLocApp (MemExpr _ e) = getTestsInstExpr e
+getTestsLocApp (ResExpr   e) = getTestsInstExpr e
+getTestsLocApp (CSRExpr   e) = getTestsInstExpr e
+getTestsLocApp _ = []
 
-getTestsStateExpr :: StateExpr (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
-getTestsStateExpr (LocExpr e) = getTestsLocExpr e
-getTestsStateExpr (AppExpr e) = getTestsBVApp e
+getTestsStateApp :: StateApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
+getTestsStateApp (LocApp e) = getTestsLocApp e
+getTestsStateApp (AppExpr e) = getTestsBVApp e
 
 getTestsInstExpr :: InstExpr fmt rv w -> [InstExpr fmt rv 1]
 getTestsInstExpr (OperandExpr _) = []
 getTestsInstExpr InstBytes = []
 getTestsInstExpr InstWord = []
-getTestsInstExpr (InstStateExpr e) = getTestsStateExpr e
+getTestsInstExpr (InstStateExpr e) = getTestsStateApp e
 
 getTestsBVApp :: BVApp (InstExpr fmt rv) w -> [InstExpr fmt rv 1]
 getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r

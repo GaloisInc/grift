@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.Extensions.M
+Module      : RISCV.InstructionSet.M
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,19 +35,18 @@ Portability : portable
 RV32M/RV64M multiply extension
 -}
 
-module RISCV.Extensions.M
+module RISCV.InstructionSet.M
   ( m32
   , m64
   ) where
 
 import Data.BitVector.Sized.App
-import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.Extensions.Helpers
 import RISCV.InstructionSet
+import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 

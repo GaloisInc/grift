@@ -68,10 +68,12 @@ data InstructionSet (rv :: RV)
                    , isSemanticsMap :: !(SemanticsMap rv)
                    }
 
+instance Semigroup (InstructionSet rv) where
+  (<>) = mappend
+
 instance Monoid (InstructionSet rv) where
   -- RV32 is the default/minimum, so that should be mempty.
   mempty = InstructionSet Map.empty Map.empty Map.empty
-
 
   InstructionSet em1 dm1 sm1 `mappend` InstructionSet em2 dm2 sm2
     = InstructionSet (em1 `Map.union` em2) (dm1 `Map.union` dm2) (sm1 `Map.union` sm2)

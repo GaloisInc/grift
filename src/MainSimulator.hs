@@ -53,11 +53,11 @@ import           System.FilePath.Posix
 import           Text.PrettyPrint.HughesPJClass
 
 import           RISCV.Coverage
-import           RISCV.Extensions
 import           RISCV.InstructionSet
+import           RISCV.InstructionSet.Known
+import           RISCV.InstructionSet.Utils
 import           RISCV.Types
 import           RISCV.Semantics
-import           RISCV.Semantics.Exceptions
 import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 

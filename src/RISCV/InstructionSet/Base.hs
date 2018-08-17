@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.Extensions.Base
+Module      : RISCV.InstructionSet.Base
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,7 +35,7 @@ Portability : portable
 RV32I/RV64I base ISA; encoding and semantics.
 -}
 
-module RISCV.Extensions.Base
+module RISCV.InstructionSet.Base
   ( base32
   , base64
   )
@@ -43,15 +43,13 @@ module RISCV.Extensions.Base
 
 import Data.BitVector.Sized
 import Data.BitVector.Sized.App
-import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.Extensions.Helpers
+import RISCV.InstructionSet.Utils
 import RISCV.InstructionSet
 import RISCV.Semantics
-import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | RV32I/E base instruction set.

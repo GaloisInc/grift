@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.Extensions.A
+Module      : RISCV.InstructionSet.A
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,21 +35,19 @@ Portability : portable
 RV32A/RV64A, memory atomics extension
 -}
 
-module RISCV.Extensions.A
+module RISCV.InstructionSet.A
   ( a32
   , a64
   ) where
 
 import Data.BitVector.Sized.App
-import Data.Monoid
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.Extensions.Helpers
 import RISCV.InstructionSet
+import RISCV.InstructionSet.Utils
 import RISCV.Semantics
-import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | A extension (RV32)
@@ -179,7 +177,7 @@ aSemantics = Map.fromList
 
 amoOp32 :: KnownRV rv
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
-        -> SemanticsBuilder (InstExpr A rv) rv ()
+        -> SemanticsM (InstExpr A rv) rv ()
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
@@ -279,7 +277,7 @@ a64Semantics = Map.fromList
 
 amoOp64 :: KnownRV rv
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
-        -> SemanticsBuilder (InstExpr A rv) rv ()
+        -> SemanticsM (InstExpr A rv) rv ()
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 

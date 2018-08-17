@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.Extensions.Priv
+Module      : RISCV.InstructionSet.Priv
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,7 +35,7 @@ Portability : portable
 RISC-V Privileged architecture extensions
 -}
 
-module RISCV.Extensions.Priv
+module RISCV.InstructionSet.Priv
   ( privm
   ) where
 
@@ -44,10 +44,9 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.Extensions.Helpers
 import RISCV.InstructionSet
+import RISCV.InstructionSet.Utils
 import RISCV.Semantics
-import RISCV.Semantics.Exceptions
 import RISCV.Types
 
 -- | Instruction set for machine-mode privileged architecture.

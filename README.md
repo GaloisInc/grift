@@ -30,6 +30,32 @@ as coverage analysis (where a notion of coverage is encoded in the same
 bitvector language as the semantics), binary analysis, and verification, both
 within and without the Haskell programming environment.
 
+Build instructions
+===
+
+We assume you have the Haskell build tool stack installed on your system.
+
+First, clone all the dependencies recursively:
+```shell
+$ git submodule update --init --recursive
+```
+
+GRIFT depends on softfloat-hs, which in turn depends on the softfloat
+library. To install it on OSX, run:
+```shell
+$ ./install-softfloat-osx.sh
+```
+If you are not on OSX, you will have to modify the above script. We recommend
+linking softfloat dynamically.
+
+Finally, build GRIFT using stack:
+```shell
+$ stack build
+```
+
+You can now run GRIFT in this directory using the stack command `stack exec
+grift-sim`. 
+
 Requirements
 ===
 
@@ -76,6 +102,8 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
   Group.
 - Straightforward integration with other languages, tools, and frameworks (Coq,
   Verilog, ...)
+- Cabal-driven test suite incorporating riscv-tests and riscv-compliance test
+  suites (among other tests)
 
 Current Status
 ===
@@ -89,6 +117,10 @@ bindings to John Hauser's SoftFloat library, which we will use for simulation
 backends, and I am working on the subtleties of how to elegantly use Haskell's
 type system to conditionally support the floating point registers (this is the
 only extension for which there is additional state that we are supporting).
+
+Coming soon: configuration argument or file that lets you configure the GRIFT
+simulator to a particular RISC-V instance: RV32IM, RV64IMAFD, etc. Ultimately,
+we will support all configuration options in this manner.
 
 Other information
 ===

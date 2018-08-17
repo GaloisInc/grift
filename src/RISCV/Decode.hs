@@ -52,43 +52,64 @@ import RISCV.Types
 type OpBitsLayout fmt = List (BitLayout 32) (OpBitsTypes fmt)
 type OperandsLayout fmt = List (BitLayout 32) (OperandTypes fmt)
 
+opcode :: BitLayout 32 7
+opcode = chunk 0 <: empty
+
+funct3 :: BitLayout 32 3
+funct3 = singleChunk 12
+
+funct7 :: BitLayout 32 7
+funct7 = singleChunk 25
+
 -- | Given a format, get the 'BitLayout's for the 'OpBits' of that format.
 opBitsLayouts :: FormatRepr fmt -> OpBitsLayout fmt
 opBitsLayouts repr = case repr of
-  RRepr -> opcode :< funct3 :< funct7 :< Nil
-  IRepr -> opcode :< funct3 :< Nil
-  SRepr -> opcode :< funct3 :< Nil
-  BRepr -> opcode :< funct3 :< Nil
-  URepr -> opcode :< Nil
-  JRepr -> opcode :< Nil
-  HRepr -> opcode :< funct3 :< funct5 :< Nil
-  PRepr -> funct32 :< Nil
-  ARepr -> opcode :< funct3 :< funct5 :< Nil
-  XRepr -> Nil
-  where funct7 :: BitLayout 32 7
-        funct7 = singleChunk 25
-        funct5 :: BitLayout 32 5
+  RRepr  -> opcode :< funct3 :< funct7 :< Nil
+  IRepr  -> opcode :< funct3 :< Nil
+  SRepr  -> opcode :< funct3 :< Nil
+  BRepr  -> opcode :< funct3 :< Nil
+  URepr  -> opcode :< Nil
+  JRepr  -> opcode :< Nil
+  HRepr  -> opcode :< funct3 :< funct5 :< Nil
+  PRepr  -> funct32 :< Nil
+  ARepr  -> opcode :< funct3 :< funct5 :< Nil
+  R2Repr -> opcode :< funct12 :< Nil
+  R3Repr -> opcode :< funct7 :< Nil
+  R4Repr -> opcode :< funct2 :< Nil
+  RXRepr -> opcode :< funct3 :< funct12 :< Nil
+  XRepr  -> Nil
+  where funct5 :: BitLayout 32 5
         funct5 = singleChunk 27
         funct32 :: BitLayout 32 32
         funct32 = singleChunk 0
+        funct2 :: BitLayout 32 2
+        funct2 = singleChunk 25
+        funct12 :: BitLayout 32 12
+        funct12 = singleChunk 20
 
 -- | Given a format, get the 'BitLayout's for the 'Operands' of that format.
 operandsLayouts :: FormatRepr fmt -> OperandsLayout fmt
 operandsLayouts repr = case repr of
-  RRepr -> rdLayout  :< rs1Layout :< rs2Layout :< Nil
-  IRepr -> rdLayout  :< rs1Layout :< imm12ILayout :< Nil
-  SRepr -> rs1Layout :< rs2Layout :< imm12SLayout :< Nil
-  BRepr -> rs1Layout :< rs2Layout :< imm12BLayout :< Nil
-  URepr -> rdLayout  :< imm20ULayout :< Nil
-  JRepr -> rdLayout  :< imm20JLayout :< Nil
-  HRepr -> rdLayout  :< rs1Layout :< shamtLayout :< Nil
-  PRepr -> Nil
-  ARepr -> rdLayout  :< rs1Layout :< rs2Layout :< rlLayout :< aqLayout :< Nil
-  XRepr -> illegalLayout :< Nil
+  RRepr  -> rdLayout  :< rs1Layout :< rs2Layout :< Nil
+  IRepr  -> rdLayout  :< rs1Layout :< imm12ILayout :< Nil
+  SRepr  -> rs1Layout :< rs2Layout :< imm12SLayout :< Nil
+  BRepr  -> rs1Layout :< rs2Layout :< imm12BLayout :< Nil
+  URepr  -> rdLayout  :< imm20ULayout :< Nil
+  JRepr  -> rdLayout  :< imm20JLayout :< Nil
+  HRepr  -> rdLayout  :< rs1Layout :< shamtLayout :< Nil
+  PRepr  -> Nil
+  ARepr  -> rdLayout  :< rs1Layout :< rs2Layout :< rlLayout :< aqLayout :< Nil
+  R2Repr -> rdLayout  :< rmLayout :< rs1Layout :< Nil
+  R3Repr -> rdLayout  :< rmLayout :< rs1Layout :< rs2Layout :< Nil
+  R4Repr -> rdLayout  :< rmLayout :< rs1Layout :< rs2Layout :< rs3Layout :< Nil
+  RXRepr -> rdLayout  :< rs1Layout :< Nil
+  XRepr  -> illegalLayout :< Nil
 
   where rdLayout     :: BitLayout 32 5  = singleChunk 7
         rs1Layout    :: BitLayout 32 5 = singleChunk 15
         rs2Layout    :: BitLayout 32 5 = singleChunk 20
+        rs3Layout    :: BitLayout 32 5 = singleChunk 27
+        rmLayout     :: BitLayout 32 3 = singleChunk 12 -- same as funct3
         shamtLayout  :: BitLayout 32 7 = singleChunk 20
         rlLayout     :: BitLayout 32 1 = singleChunk 25
         aqLayout     :: BitLayout 32 1 = singleChunk 26
@@ -105,17 +126,22 @@ operandsLayouts repr = case repr of
           empty
         illegalLayout :: BitLayout 32 32 = singleChunk 0
 
-opcode :: BitLayout 32 7
-opcode = chunk 0 <: empty
-
-funct3 :: BitLayout 32 3
-funct3 = singleChunk 12
-
 -- | Get the format of an instruction word.
 getFormat :: BitVector 32 -> Some FormatRepr
 getFormat bv = case bv ^. layoutLens opcode of
   0b0110011 -> Some RRepr
   0b0111011 -> Some RRepr
+  0b1010011 -> case bv ^. layoutLens funct7 of
+    0b0000000 -> Some R3Repr
+    0b0000100 -> Some R3Repr
+    0b0001000 -> Some R3Repr
+    0b0001100 -> Some R3Repr
+    0b0101100 -> Some R2Repr
+    0b1100000 -> Some R2Repr
+    0b1101000 -> Some R2Repr
+    0b1110000 -> Some RXRepr
+    0b1111000 -> Some RXRepr
+    _ -> Some RRepr
 
   0b1100111 -> Some IRepr
   0b0000011 -> Some IRepr
@@ -128,8 +154,10 @@ getFormat bv = case bv ^. layoutLens opcode of
     0b001 -> Some RRepr
     0b101 -> Some RRepr
     _ -> Some IRepr
+  0b0000111 -> Some IRepr
 
   0b0100011 -> Some SRepr
+  0b0100111 -> Some SRepr
 
   0b1100011 -> Some BRepr
 
@@ -143,6 +171,11 @@ getFormat bv = case bv ^. layoutLens opcode of
     _ -> Some IRepr
 
   0b0101111 -> Some ARepr
+
+  0b1000011 -> Some R4Repr
+  0b1000111 -> Some R4Repr
+  0b1001011 -> Some R4Repr
+  0b1001111 -> Some R4Repr
 
   _ ->         Some XRepr
 
