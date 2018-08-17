@@ -484,7 +484,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readReg rs1
 
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
-        assignCSR csr x_rs1
+        writeCSR csr x_rs1
         assignReg rd t
         incrPC
   , Pair Csrrs $ InstSemantics $ getSemantics $ do
@@ -497,7 +497,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readReg rs1
 
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
-        assignCSR csr (x_rs1 `orE` t)
+        writeCSR csr (x_rs1 `orE` t)
         assignReg rd t
         incrPC
   , Pair Csrrc $ InstSemantics $ getSemantics $ do
@@ -511,7 +511,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readReg rs1
 
       checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
-        assignCSR csr ((notE x_rs1) `andE` t)
+        writeCSR csr ((notE x_rs1) `andE` t)
         assignReg rd t
         incrPC
   , Pair Csrrwi $ InstSemantics $ getSemantics $ do
@@ -523,7 +523,7 @@ baseSemantics = Map.fromList
 
       checkCSR (litBV 0b1) csr $ do
         assignReg rd t
-        assignCSR csr (zextE zimm)
+        writeCSR csr (zextE zimm)
         incrPC
   , Pair Csrrsi $ InstSemantics $ getSemantics $ do
       comment "Let t be the value of control and status register csr."
@@ -534,7 +534,7 @@ baseSemantics = Map.fromList
       let t = readCSR csr
 
       checkCSR (litBV 0b1) csr $ do
-        assignCSR csr (zextE zimm `orE` t)
+        writeCSR csr (zextE zimm `orE` t)
         assignReg rd t
         incrPC
   , Pair Csrrci $ InstSemantics $ getSemantics $ do
@@ -546,7 +546,7 @@ baseSemantics = Map.fromList
       let t = readCSR csr
 
       checkCSR (litBV 0b1) csr $ do
-        assignCSR csr (notE (zextE zimm) `andE` t)
+        writeCSR csr (notE (zextE zimm) `andE` t)
         assignReg rd t
         incrPC
 

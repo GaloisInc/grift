@@ -102,6 +102,7 @@ runElf stepsToRun logFile re = do
 
   pc         <- readIORef (ioPC m)
   registers  <- freezeRegisters m
+  fregisters <- freezeFRegisters m
   csrs       <- readIORef (ioCSRs m)
   testMap    <- readIORef (ioTestMap m)
 
@@ -113,7 +114,10 @@ runElf stepsToRun logFile re = do
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->
-    putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
+    putStrLn $ "  x[" ++ show (bvIntegerU r) ++ "] = " ++ show v
+  putStrLn "Final FP register state:"
+  forM_ (assocs fregisters) $ \(r, v) ->
+    putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
   -- putStrLn "\n--------Coverage report--------\n"
   -- forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do

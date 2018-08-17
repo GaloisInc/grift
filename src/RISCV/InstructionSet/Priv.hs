@@ -65,7 +65,7 @@ privmSemantics = Map.fromList
       comment "Returns from a machine-mode exception handler."
 
       -- TODO: Need to add the rest of the behavior here.
-      let mepc = readCSR (litBV $ encodeCSR MEPC)
+      let mepc = rawReadCSR (litBV $ encodeCSR MEPC)
 
       assignPC mepc
   , Pair Wfi $ InstSemantics $ getSemantics $ do

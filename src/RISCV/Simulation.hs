@@ -254,7 +254,7 @@ stepRV iset = do
 
   -- Record cycle count
   execSemantics evalPureStateExpr $ getSemantics $ do
-    let minstret = readCSR (litBV $ encodeCSR MInstRet)
+    let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
     assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
 
 -- | Check whether the machine has halted.

@@ -93,7 +93,7 @@ module RISCV.Semantics
   , readReg
   , readFReg
   , readMem
-  , readCSR
+  , rawReadCSR
   , readPriv
   , checkReserved
     -- * RISC-V semantic statements and formulas
@@ -347,8 +347,8 @@ readMem :: StateExpr expr
 readMem bytes addr = stateExpr (LocApp (MemExpr bytes addr))
 
 -- | Read a value from a CSR.
-readCSR :: (StateExpr expr, KnownRV rv) => expr rv 12 -> expr rv (RVWidth rv)
-readCSR csr = stateExpr (LocApp (CSRExpr csr))
+rawReadCSR :: (StateExpr expr, KnownRV rv) => expr rv 12 -> expr rv (RVWidth rv)
+rawReadCSR csr = stateExpr (LocApp (CSRExpr csr))
 
 -- | Read the current privilege level.
 readPriv :: StateExpr expr => expr rv 2
@@ -413,10 +413,7 @@ infixl 1 $>
 
 -- | Add a branch statement to the semantics. Note that comments in the subsemantics
 -- will be ignored.
-branch :: expr rv 1
-       -> SemanticsM (expr rv) rv ()
-       -> SemanticsM (expr rv) rv ()
-       -> SemanticsM (expr rv) rv ()
+branch :: expr 1 -> SemanticsM expr rv () -> SemanticsM expr rv () -> SemanticsM expr rv ()
 branch e fbTrue fbFalse = do
   let fTrue  = getSemantics fbTrue  ^. semStmts
       fFalse = getSemantics fbFalse ^. semStmts

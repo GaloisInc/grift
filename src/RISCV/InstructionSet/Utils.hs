@@ -38,12 +38,21 @@ Helper functions for defining instruction semantics.
 -}
 
 module RISCV.InstructionSet.Utils
-  ( -- * CSRs and Exceptions
-    CSR(..)
+  ( -- * General
+    getArchWidth
+  , incrPC
+  , cases
+  , branches
+  , CompOp
+  , b
+    -- * CSRs and Exceptions
+  , CSR(..)
+  , Exception(..)
   , encodeCSR
   , resetCSRs
-  , Exception(..)
   , checkCSR
+  , readCSR
+  , writeCSR
   , raiseException
   , getMCause
     -- * Floating point
@@ -51,12 +60,6 @@ module RISCV.InstructionSet.Utils
   , withRM
   , getFRes32
   , getFRes64
-    -- * Miscellaneous
-  , getArchWidth
-  , incrPC
-  , cases
-  , CompOp
-  , b
   ) where
 
 import Data.BitVector.Sized
@@ -83,10 +86,7 @@ incrPC = do
   let pc = readPC
   assignPC $ pc `addE` ib
 
--- TODO: Deprecate a lot of these helpers. I actually think it's better to be more
--- explicit in the instruction semantics themselves than to hide everything with
--- abbreviations.
-
+-- TODO: get rid of CompOp and b.
 -- | Generic comparison operator.
 type CompOp rv fmt = InstExpr fmt rv (RVWidth rv)
                     -> InstExpr fmt rv (RVWidth rv)
@@ -110,10 +110,11 @@ cases :: BVExpr expr
       -> expr w             -- ^ default result
       -> expr w
 cases cs d = foldr (uncurry iteE) d cs
---  where f (testE, trueE) = iteE testE trueE
--- cases [] def = def
--- cases ((testE, resE) : rst) def = iteE testE resE (cases rst def)
 
+branches :: [(expr 1, SemanticsM expr rv ())]
+         -> SemanticsM expr rv ()
+         -> SemanticsM expr rv ()
+branches cs d = foldr (uncurry branch) d cs
 
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
@@ -134,6 +135,51 @@ checkCSR write csr rst = do
     $> raiseException IllegalInstruction iw
     $> rst
 
+-- | Maps each CSR to an expression representing what value is returned when software
+-- attempts to read it.
+readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
+        => expr rv 12 -> expr rv (RVWidth rv)
+readCSR csr = cases
+  [ (csr `eqE` (litBV $ encodeCSR FFlags)
+    , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
+          flags = extractEWithRepr (knownNat @5) 0 fcsr
+      in zextE flags
+    )
+  , (csr `eqE` (litBV $ encodeCSR FRm)
+    , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
+          rm = extractEWithRepr (knownNat @3) 5 fcsr
+      in zextE rm
+    )
+  ]
+  (rawReadCSR csr)
+
+-- | Maps each CSR to a function taking a 'BVExpr' expression to a semantic action,
+-- determining what happens if you try to write a particular value to that CSR.  The
+-- idea is that if you try to write a value to a CSR, what actually ends up getting
+-- written is dependent on the particular CSR and the input.
+--
+-- At the moment, this function is little more than an alias for
+-- 'assignCSR', with a few aliasing cases (like for fflags and frm, as well as the
+-- various aliased registers in S- and U-mode of M-mode registers).
+writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
+              => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
+writeCSR csr val = branches
+  [ (csr `eqE` (litBV $ encodeCSR FFlags)
+    , do let val' = extractEWithRepr (knownNat @5) 0 val
+             fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
+             writeVal = extractEWithRepr (knownNat @27) 5 fcsr `concatE` val'
+         assignCSR csr (zextE writeVal)
+    )
+  , (csr `eqE` (litBV $ encodeCSR FRm)
+    , do let val' = extractEWithRepr (knownNat @3) 5 val
+             fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
+             writeVal = extractEWithRepr (knownNat @24) 8 fcsr `concatE`
+                        val' `concatE`
+                        extractEWithRepr (knownNat @5) 0 fcsr
+         assignCSR csr (zextE writeVal)
+    )
+  ]
+  (assignCSR csr val)
 
 -- TODO: Annotate appropriate exceptions with an Mcause.
 -- | Runtime exception. This is a convenience type for calls to 'raiseException'.
@@ -179,9 +225,11 @@ data CSR = MVendorID
          -- Skipping MHPMEvents
          -- Skipping debug/trace registers
          -- Skipping debug mode registers
+         | FRm
+         | FFlags
          | FCSR
          -- TODO: special semantics handling for FFlags, FRm
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Bounded, Enum)
 
 -- | Translate a CSR to its 'BitVector' code.
 encodeCSR :: CSR -> BitVector 12
@@ -210,14 +258,11 @@ encodeCSR MInstRet   = 0xB02
 encodeCSR MCycleh    = 0xB80
 encodeCSR MInstReth  = 0xB82
 
+encodeCSR FFlags     = 0x001
+encodeCSR FRm        = 0x002
 encodeCSR FCSR       = 0x003
 
 data Privilege = MPriv | SPriv | UPriv
-
-getPrivCode :: Privilege -> BitVector 2
-getPrivCode MPriv = 3
-getPrivCode SPriv = 1
-getPrivCode UPriv = 0
 
 -- | State of CSRs on reset.
 resetCSRs :: KnownNat w => Map (BitVector 12) (BitVector w)
@@ -232,6 +277,11 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
 
 -- TODO: It is actually an optional architectural feature to propagate certain values
 -- through to mtval, so this should be a configurable option at the type level.
+
+getPrivCode :: Privilege -> BitVector 2
+getPrivCode MPriv = 3
+getPrivCode SPriv = 1
+getPrivCode UPriv = 0
 
 -- | Semantics for raising an exception.
 raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
@@ -249,8 +299,8 @@ raiseException e info = do
 
   let pc      = readPC
   let priv    = readPriv
-  let mtVec   = readCSR (litBV $ encodeCSR MTVec)
-  let mstatus = readCSR (litBV $ encodeCSR MStatus)
+  let mtVec   = rawReadCSR (litBV $ encodeCSR MTVec)
+  let mstatus = rawReadCSR (litBV $ encodeCSR MStatus)
 
   let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
       mcause = getMCause e
@@ -267,12 +317,12 @@ raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM (expr rv) rv ()
 raiseFPExceptions flags = do
-  let fcsr = readCSR (litBV $ encodeCSR FCSR)
+  let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
 
 dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 3
-dynamicRM = let fcsr = readCSR (litBV $ encodeCSR FCSR)
-               in extractE 5 fcsr
+dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
+            in extractE 5 fcsr
 
 withRM :: KnownRV rv
        => InstExpr fmt rv 3

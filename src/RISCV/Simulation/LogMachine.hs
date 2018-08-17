@@ -50,6 +50,7 @@ module RISCV.Simulation.LogMachine
   , mkLogMachine
   , LogMachineM
   , freezeRegisters
+  , freezeFRegisters
   , freezeMemory
   , runLogMachine
   ) where
@@ -218,6 +219,11 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
 freezeRegisters :: LogMachine rv
                 -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
 freezeRegisters = freeze . ioRegisters
+
+-- | Create an immutable copy of the register file.
+freezeFRegisters :: LogMachine rv
+                 -> IO (Array (BitVector 5) (BitVector (RVFloatWidth rv)))
+freezeFRegisters = freeze . ioFRegisters
 
 -- TODO: Why does this need KnownNat (RVWidth rv) but freezeRegisters does not?
 -- | Create an immutable copy of the memory.
