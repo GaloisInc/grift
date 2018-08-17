@@ -589,11 +589,3 @@ d64Semantics = Map.fromList
   , Pair Fmv_d_x $ InstSemantics $ getSemantics $ do
       incrPC
   ]
-
-  -- -- RV64D
-  -- Fcvt_l_d  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
-  -- Fcvt_lu_d :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
-  -- Fmv_x_d   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
-  -- Fcvt_d_l  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
-  -- Fcvt_d_lu :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
-  -- Fmv_d_x   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
