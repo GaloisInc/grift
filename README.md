@@ -30,6 +30,32 @@ as coverage analysis (where a notion of coverage is encoded in the same
 bitvector language as the semantics), binary analysis, and verification, both
 within and without the Haskell programming environment.
 
+Build instructions
+===
+
+We assume you have the Haskell build tool stack installed on your system.
+
+First, clone all the dependencies recursively:
+```shell
+$ git submodule update --init --recursive
+```
+
+GRIFT depends on softfloat-hs, which in turn depends on the softfloat
+library. To install it on OSX, run:
+```shell
+$ ./install-softfloat-osx.sh
+```
+If you are not on OSX, you will have to modify the above script. We recommend
+linking softfloat dynamically.
+
+Finally, build GRIFT using stack:
+```shell
+$ stack build
+```
+
+You can now run GRIFT in this directory using the stack command `stack exec
+grift-sim`. 
+
 Requirements
 ===
 
