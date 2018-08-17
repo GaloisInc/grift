@@ -73,7 +73,7 @@ knownCoverageMap = case knownRepr :: RVRepr rv of
           _ -> Map.empty
         f = case ecRepr of
           ExtensionsRepr _ _ _ FDNoRepr -> Map.empty
-          _ -> error "Floating point not yet supported"
+          _ -> Map.empty
     in base `Map.union` m `Map.union` a `Map.union` f
 
 exprBitCoverage :: forall fmt rv w . KnownNat w => InstExpr fmt rv w -> [InstExpr fmt rv 1]

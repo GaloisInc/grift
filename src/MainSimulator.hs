@@ -62,7 +62,7 @@ import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 
 -- | The Extensions we enable in simulation.
-type SimExts = (Exts '(PrivM, MYes, AYes, FDNo))
+type SimExts = (Exts '(PrivM, MYes, AYes, FYesDNo))
 
 main :: IO ()
 main = do
@@ -115,15 +115,15 @@ runElf stepsToRun logFile re = do
   forM_ (assocs registers) $ \(r, v) ->
     putStrLn $ "  R[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  putStrLn "\n--------Coverage report--------\n"
-  forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
-    case MapF.lookup opcode knownCoverageMap of
-      Just (InstExprList exprs) -> do
-        let ones = length (filter (==1) vals)
-        putStrLn $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
-        forM_ (zip exprs vals) $ \(expr, val) ->
-          putStrLn $ "  " ++ prettyShow expr ++ " ---> " ++ show val
-      _ -> return ()
+  -- putStrLn "\n--------Coverage report--------\n"
+  -- forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
+  --   case MapF.lookup opcode knownCoverageMap of
+  --     Just (InstExprList exprs) -> do
+  --       let ones = length (filter (==1) vals)
+  --       putStrLn $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
+  --       forM_ (zip exprs vals) $ \(expr, val) ->
+  --         putStrLn $ "  " ++ prettyShow expr ++ " ---> " ++ show val
+  --     _ -> return ()
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

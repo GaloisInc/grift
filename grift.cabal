@@ -47,6 +47,7 @@ library
   ghc-options:         -Wall
 
 executable grift-sim
+  ghc-options:         -threaded
   hs-source-dirs:      src
   main-is:             MainSimulator.hs
   other-modules:       RISCV.Coverage
@@ -81,6 +82,7 @@ executable grift-sim
   
 
 executable grift-doc
+  ghc-options:         -threaded
   hs-source-dirs:      src
   main-is:             MainDoc.hs
   other-modules:       RISCV.Coverage
