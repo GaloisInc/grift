@@ -168,7 +168,7 @@ writeCSR csr val = branches
     , do let val' = extractEWithRepr (knownNat @5) 0 val
              fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
              writeVal = extractEWithRepr (knownNat @27) 5 fcsr `concatE` val'
-         assignCSR csr (zextE writeVal)
+         assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal)
     )
   , (csr `eqE` (litBV $ encodeCSR FRm)
     , do let val' = extractEWithRepr (knownNat @3) 5 val
@@ -176,7 +176,7 @@ writeCSR csr val = branches
              writeVal = extractEWithRepr (knownNat @24) 8 fcsr `concatE`
                         val' `concatE`
                         extractEWithRepr (knownNat @5) 0 fcsr
-         assignCSR csr (zextE writeVal)
+         assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal)
     )
   ]
   (assignCSR csr val)
