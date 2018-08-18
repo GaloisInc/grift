@@ -6,3 +6,4 @@ build/
 *.o
 *.a
 *.text
+*.dot

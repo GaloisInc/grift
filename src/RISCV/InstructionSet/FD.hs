@@ -133,7 +133,7 @@ fSemantics = Map.fromList
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
         let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFRes32 $ f32MulAddE rm f_rs1 f_rs2 f_rs3
+        let (res, flags) = getFResCanonical $ f32MulAddE rm f_rs1 f_rs2 f_rs3
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -149,7 +149,7 @@ fSemantics = Map.fromList
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
         let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFRes32 $ f32MulAddE rm f_rs1 f_rs2 (negate32 f_rs3)
+        let (res, flags) = getFResCanonical $ f32MulAddE rm f_rs1 f_rs2 (negate32 f_rs3)
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -165,7 +165,7 @@ fSemantics = Map.fromList
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
         let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFRes32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 (negate32 f_rs3)
+        let (res, flags) = getFResCanonical $ f32MulAddE rm (negate32 f_rs1) f_rs2 f_rs3
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -181,7 +181,7 @@ fSemantics = Map.fromList
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
         let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFRes32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 f_rs3
+        let (res, flags) = getFResCanonical $ f32MulAddE rm (negate32 f_rs1) f_rs2 (negate32 f_rs3)
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -195,7 +195,7 @@ fSemantics = Map.fromList
       withRM rm' $ \rm -> do
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFRes32 $ f32AddE rm f_rs1 f_rs2
+        let (res, flags) = getFResCanonical $ f32AddE rm f_rs1 f_rs2
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -209,7 +209,7 @@ fSemantics = Map.fromList
       withRM rm' $ \rm -> do
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFRes32 $ f32SubE rm f_rs1 f_rs2
+        let (res, flags) = getFResCanonical $ f32SubE rm f_rs1 f_rs2
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -223,7 +223,7 @@ fSemantics = Map.fromList
       withRM rm' $ \rm -> do
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFRes32 $ f32MulE rm f_rs1 f_rs2
+        let (res, flags) = getFResCanonical $ f32MulE rm f_rs1 f_rs2
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -237,7 +237,7 @@ fSemantics = Map.fromList
       withRM rm' $ \rm -> do
         let f_rs1 = extractE 0 (readFReg rs1)
         let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFRes32 $ f32DivE rm f_rs1 f_rs2
+        let (res, flags) = getFResCanonical $ f32DivE rm f_rs1 f_rs2
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -250,7 +250,7 @@ fSemantics = Map.fromList
 
       withRM rm' $ \rm -> do
         let f_rs1 = extractE 0 (readFReg rs1)
-        let (res, flags) = getFRes32 $ f32SqrtE rm f_rs1
+        let (res, flags) = getFResCanonical $ f32SqrtE rm f_rs1
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -301,6 +301,7 @@ fSemantics = Map.fromList
       comment "Computes the smaller of the single-precision floats in registers f[rs1] and f[rs2]."
       comment "Copies the result to f[rd]."
 
+      -- TODO: Handle NaNs as a special case
       rd :< rs1 :< rs2 :< Nil <- operandEs
       let f_rs1 = extractE 0 (readFReg rs1)
       let f_rs2 = extractE 0 (readFReg rs2)
@@ -308,13 +309,14 @@ fSemantics = Map.fromList
 
       let res = iteE cmp f_rs1 f_rs2
 
-      assignReg rd (zextE res)
+      assignFReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
   , Pair Fmax_s $ InstSemantics $ getSemantics $ do
       comment "Computes the larger of the single-precision floats in registers f[rs1] and f[rs2]."
       comment "Copies the result to f[rd]."
 
+      -- TODO: Handle NaNs as a special case
       rd :< rs1 :< rs2 :< Nil <- operandEs
       let f_rs1 = extractE 0 (readFReg rs1)
       let f_rs2 = extractE 0 (readFReg rs2)
@@ -322,7 +324,7 @@ fSemantics = Map.fromList
 
       let res = iteE cmp f_rs2 f_rs1
 
-      assignReg rd (zextE res)
+      assignFReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
   , Pair Fcvt_w_s $ InstSemantics $ getSemantics $ do
@@ -332,7 +334,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFReg rs1
-            (res, flags) = getFRes32 $ f32ToI32E rm (extractE 0 f_rs1)
+            (res, flags) = getFRes $ f32ToI32E rm (extractE 0 f_rs1)
 
         assignReg rd (zextE res)
         raiseFPExceptions flags
@@ -344,7 +346,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFReg rs1
-            (res, flags) = getFRes32 $ f32ToUi32E rm (extractE 0 f_rs1)
+            (res, flags) = getFRes $ f32ToUi32E rm (extractE 0 f_rs1)
 
         assignReg rd (zextE res)
         raiseFPExceptions flags
@@ -427,7 +429,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFRes32 $ i32ToF32E rm (extractE 0 x_rs1)
+            (res, flags) = getFResCanonical $ i32ToF32E rm (extractE 0 x_rs1)
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags
@@ -439,7 +441,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFRes32 $ ui32ToF32E rm (extractE 0 x_rs1)
+            (res, flags) = getFResCanonical $ ui32ToF32E rm (extractE 0 x_rs1)
 
         assignFReg rd (zextE res)
         raiseFPExceptions flags

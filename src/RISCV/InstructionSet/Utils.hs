@@ -58,8 +58,7 @@ module RISCV.InstructionSet.Utils
     -- * Floating point
   , raiseFPExceptions
   , withRM
-  , getFRes32
-  , getFRes64
+  , getFResCanonical
   ) where
 
 import Data.BitVector.Sized
@@ -335,12 +334,7 @@ withRM rm action = do
           raiseException IllegalInstruction iw
     $> action rm
 
-getFRes32 :: BVExpr expr => expr 37 -> (expr 32, expr 5)
-getFRes32 e = let (res, flags) = getFRes e
-                  res' = iteE (isNaN32 res) canonicalNaN32 res
-              in (res', flags)
-
-getFRes64 :: BVExpr expr => expr 69 -> (expr 64, expr 5)
-getFRes64 e = let (res, flags) = getFRes e
-                  res' = iteE (isNaN64 res) canonicalNaN64 res
-              in (res', flags)
+getFResCanonical :: BVExpr expr => expr 37 -> (expr 32, expr 5)
+getFResCanonical e = let (res, flags) = getFRes e
+                         res' = iteE (isNaN32 res) canonicalNaN32 res
+                     in (res', flags)
