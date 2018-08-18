@@ -293,7 +293,7 @@ fSemantics = Map.fromList
 
       let res_sign = (f32Sgn (extractE 0 f_rs1) `xorE` f32Sgn (extractE 0 f_rs2))
       let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
-      let res = zextE (notE res_sign `concatE` res_rst)
+      let res = zextE (res_sign `concatE` res_rst)
 
       assignFReg rd res
       incrPC
@@ -305,9 +305,18 @@ fSemantics = Map.fromList
       rd :< rs1 :< rs2 :< Nil <- operandEs
       let f_rs1 = extractE 0 (readFReg rs1)
       let f_rs2 = extractE 0 (readFReg rs2)
-      let (cmp, flags) = getFRes $ f32LeE f_rs1 f_rs2
+      let (cmp, _) = getFRes $ f32LeE f_rs1 f_rs2 -- ignore flags
 
-      let res = iteE cmp f_rs1 f_rs2
+      let res = cases
+            [ (isNaN32 f_rs1 `andE` isNaN32 f_rs2, canonicalNaN32)
+            , (isNaN32 f_rs1, f_rs2)
+            , (isNaN32 f_rs2, f_rs1)
+            , ((f_rs1 `eqE` negZero32) `andE` (f_rs2 `eqE` posZero32), f_rs1)
+            , ((f_rs1 `eqE` posZero32) `andE` (f_rs2 `eqE` negZero32), f_rs2)
+            ]
+            $ iteE cmp f_rs1 f_rs2
+      let invalid = isSNaN32 f_rs1 `orE` isSNaN32 f_rs2
+      let flags = iteE invalid (litBV 0x10) (litBV 0x00)
 
       assignFReg rd (zextE res)
       raiseFPExceptions flags
@@ -320,9 +329,18 @@ fSemantics = Map.fromList
       rd :< rs1 :< rs2 :< Nil <- operandEs
       let f_rs1 = extractE 0 (readFReg rs1)
       let f_rs2 = extractE 0 (readFReg rs2)
-      let (cmp, flags) = getFRes $ f32LeE f_rs1 f_rs2
+      let (cmp, _) = getFRes $ f32LeE f_rs1 f_rs2 -- ignore flags
 
-      let res = iteE cmp f_rs2 f_rs1
+      let res = cases
+            [ (isNaN32 f_rs1 `andE` isNaN32 f_rs2, canonicalNaN32)
+            , (isNaN32 f_rs1, f_rs2)
+            , (isNaN32 f_rs2, f_rs1)
+            , ((f_rs1 `eqE` negZero32) `andE` (f_rs2 `eqE` posZero32), f_rs2)
+            , ((f_rs1 `eqE` posZero32) `andE` (f_rs2 `eqE` negZero32), f_rs1)
+            ]
+            $ iteE cmp f_rs2 f_rs1
+      let invalid = isSNaN32 f_rs1 `orE` isSNaN32 f_rs2
+      let flags = iteE invalid (litBV 0x10) (litBV 0x00)
 
       assignFReg rd (zextE res)
       raiseFPExceptions flags
