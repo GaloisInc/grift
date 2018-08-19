@@ -62,7 +62,7 @@ import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 
 -- | The Extensions we enable in simulation.
-type SimExts = (Exts '(PrivM, MYes, AYes, FYesDNo))
+type SimExts = (Exts '(PrivM, MYes, AYes, FDYes))
 
 main :: IO ()
 main = do

@@ -45,6 +45,7 @@ import Data.BitVector.Sized
 import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
 import Data.Parameterized.List
+import Debug.Trace (trace)
 
 import RISCV.InstructionSet
 import RISCV.Types
@@ -151,6 +152,7 @@ getFormat bv = case bv ^. layoutLens opcode of
     0b1110000 -> Some RXRepr
     0b1110001 -> Some RXRepr
     0b1111000 -> Some RXRepr
+    0b1111001 -> Some RXRepr
     _ -> Some RRepr
 
   0b1100111 -> Some IRepr

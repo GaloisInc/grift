@@ -543,31 +543,31 @@ f64Semantics = Map.fromList
 
 dEncode :: DExt << rv => EncodeMap rv
 dEncode = Map.fromList
-  [ Pair Fld (OpBits IRepr (0b0000111 :< 0b011 :< Nil))
-  , Pair Fsd (OpBits SRepr (0b0100111 :< 0b011 :< Nil))
-  , Pair Fmadd_d (OpBits R4Repr (0b1000011 :< 0b01 :< Nil))
-  , Pair Fmsub_d (OpBits R4Repr (0b1000111 :< 0b01 :< Nil))
-  , Pair Fnmsub_d (OpBits R4Repr (0b1001011 :< 0b01 :< Nil))
-  , Pair Fnmadd_d (OpBits R4Repr (0b1001111 :< 0b01 :< Nil))
-  , Pair Fadd_d (OpBits R3Repr (0b1010011 :< 0b0000001 :< Nil))
-  , Pair Fsub_d (OpBits R3Repr (0b1010011 :< 0b0000101 :< Nil))
-  , Pair Fmul_d (OpBits R3Repr (0b1010011 :< 0b0001001 :< Nil))
-  , Pair Fdiv_d (OpBits R3Repr (0b1010011 :< 0b0001101 :< Nil))
-  , Pair Fsqrt_d (OpBits R2Repr (0b1010011 :< 0b010110100000 :< Nil))
-  , Pair Fsgnj_d (OpBits RRepr (0b1010011 :< 0b000 :< 0b0010000 :< Nil))
-  , Pair Fsgnjn_d (OpBits RRepr (0b1010011 :< 0b001 :< 0b0010001 :< Nil))
-  , Pair Fsgnjx_d (OpBits RRepr (0b1010011 :< 0b010 :< 0b0010001 :< Nil))
-  , Pair Fmin_d (OpBits RRepr (0b1010011 :< 0b000 :< 0b0010101 :< Nil))
-  , Pair Fmax_d (OpBits RRepr (0b1010011 :< 0b001 :< 0b0010101 :< Nil))
-  , Pair Fcvt_s_d (OpBits R2Repr (0b1010011 :< 0b010000000001 :< Nil))
-  , Pair Fcvt_d_s (OpBits R2Repr (0b1010011 :< 0b010000100000 :< Nil))
-  , Pair Feq_d (OpBits RRepr (0b1010011 :< 0b010 :< 0b1010001 :< Nil))
-  , Pair Flt_d (OpBits RRepr (0b1010011 :< 0b001 :< 0b1010001 :< Nil))
-  , Pair Fle_d (OpBits RRepr (0b1010011 :< 0b000 :< 0b1010001 :< Nil))
-  , Pair Fclass_d (OpBits RXRepr (0b1010011 :< 0b001 :< 0b111000100000 :< Nil))
-  , Pair Fcvt_w_d (OpBits R2Repr (0b1010011 :< 0b110000100000 :< Nil))
+  [ Pair Fld       (OpBits IRepr  (0b0000111 :< 0b011 :< Nil))
+  , Pair Fsd       (OpBits SRepr  (0b0100111 :< 0b011 :< Nil))
+  , Pair Fmadd_d   (OpBits R4Repr (0b1000011 :< 0b01 :< Nil))
+  , Pair Fmsub_d   (OpBits R4Repr (0b1000111 :< 0b01 :< Nil))
+  , Pair Fnmsub_d  (OpBits R4Repr (0b1001011 :< 0b01 :< Nil))
+  , Pair Fnmadd_d  (OpBits R4Repr (0b1001111 :< 0b01 :< Nil))
+  , Pair Fadd_d    (OpBits R3Repr (0b1010011 :< 0b0000001 :< Nil))
+  , Pair Fsub_d    (OpBits R3Repr (0b1010011 :< 0b0000101 :< Nil))
+  , Pair Fmul_d    (OpBits R3Repr (0b1010011 :< 0b0001001 :< Nil))
+  , Pair Fdiv_d    (OpBits R3Repr (0b1010011 :< 0b0001101 :< Nil))
+  , Pair Fsqrt_d   (OpBits R2Repr (0b1010011 :< 0b010110100000 :< Nil))
+  , Pair Fsgnj_d   (OpBits RRepr  (0b1010011 :< 0b000 :< 0b0010001 :< Nil))
+  , Pair Fsgnjn_d  (OpBits RRepr  (0b1010011 :< 0b001 :< 0b0010001 :< Nil))
+  , Pair Fsgnjx_d  (OpBits RRepr  (0b1010011 :< 0b010 :< 0b0010001 :< Nil))
+  , Pair Fmin_d    (OpBits RRepr  (0b1010011 :< 0b000 :< 0b0010101 :< Nil))
+  , Pair Fmax_d    (OpBits RRepr  (0b1010011 :< 0b001 :< 0b0010101 :< Nil))
+  , Pair Fcvt_s_d  (OpBits R2Repr (0b1010011 :< 0b010000000001 :< Nil))
+  , Pair Fcvt_d_s  (OpBits R2Repr (0b1010011 :< 0b010000100000 :< Nil))
+  , Pair Feq_d     (OpBits RRepr  (0b1010011 :< 0b010 :< 0b1010001 :< Nil))
+  , Pair Flt_d     (OpBits RRepr  (0b1010011 :< 0b001 :< 0b1010001 :< Nil))
+  , Pair Fle_d     (OpBits RRepr  (0b1010011 :< 0b000 :< 0b1010001 :< Nil))
+  , Pair Fclass_d  (OpBits RXRepr (0b1010011 :< 0b001 :< 0b111000100000 :< Nil))
+  , Pair Fcvt_w_d  (OpBits R2Repr (0b1010011 :< 0b110000100000 :< Nil))
   , Pair Fcvt_wu_d (OpBits R2Repr (0b1010011 :< 0b110000100001 :< Nil))
-  , Pair Fcvt_d_w (OpBits R2Repr (0b1010011 :< 0b110100100000 :< Nil))
+  , Pair Fcvt_d_w  (OpBits R2Repr (0b1010011 :< 0b110100100000 :< Nil))
   , Pair Fcvt_d_wu (OpBits R2Repr (0b1010011 :< 0b110100100001 :< Nil))
   ]
 
@@ -764,7 +764,7 @@ dSemantics = Map.fromList
       let f_rs2 = readFReg rs2
 
       let res_sign = (f64Sgn (extractE 0 f_rs1) `xorE` f64Sgn (extractE 0 f_rs2))
-      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res_rst  = extractEWithRepr (knownNat @63) 0 f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFReg rd res
@@ -952,26 +952,82 @@ dSemantics = Map.fromList
 
 d64Encode :: (64 <= RVWidth rv, DExt << rv) => EncodeMap rv
 d64Encode = Map.fromList
-  [ Pair Fcvt_l_d (OpBits R2Repr (0b1010011 :< 0b110000100010 :< Nil))
+  [ Pair Fcvt_l_d  (OpBits R2Repr (0b1010011 :< 0b110000100010 :< Nil))
   , Pair Fcvt_lu_d (OpBits R2Repr (0b1010011 :< 0b110000100011 :< Nil))
-  , Pair Fmv_x_d (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111000100000 :< Nil))
-  , Pair Fcvt_d_l (OpBits R2Repr (0b1010011 :< 0b110100100010 :< Nil))
+  , Pair Fmv_x_d   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111000100000 :< Nil))
+  , Pair Fcvt_d_l  (OpBits R2Repr (0b1010011 :< 0b110100100010 :< Nil))
   , Pair Fcvt_d_lu (OpBits R2Repr (0b1010011 :< 0b110100100011 :< Nil))
-  , Pair Fmv_d_x (OpBits RXRepr (0b1010011 :< 0b000 :< 111100100000 :< Nil))
+  , Pair Fmv_d_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100100000 :< Nil))
   ]
 
-d64Semantics :: (KnownRV rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+d64Semantics :: (KnownRV rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 d64Semantics = Map.fromList
   [ Pair Fcvt_l_d $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the double-precision float in f[rs1] to a 64-bit signed integer."
+      comment "Writes the result to x[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let f_rs1 = readFReg rs1
+            (res, flags) = getFRes $ f64ToI64E rm (extractE 0 f_rs1)
+
+        assignReg rd (sextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fcvt_lu_d $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the double-precision float in f[rs1] to a 64-bit unsigned integer."
+      comment "Writes the result to x[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let f_rs1 = readFReg rs1
+            (res, flags) = getFRes $ f64ToUi64E rm (extractE 0 f_rs1)
+
+        assignReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fmv_x_d $ InstSemantics $ getSemantics $ do
+      comment "Copies the double-precision float in register f[rs1] to x[rd]."
+      comment "Sign-extends the result."
+
+      rd :< rs1 :< Nil <- operandEs
+
+      let f_rs1 = readFReg rs1
+
+      assignReg rd (sextE (extractEWithRepr (knownNat @64) 0 f_rs1))
       incrPC
   , Pair Fcvt_d_l $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the 64-bit signed integer in x[rs1] to a double-precision float."
+      comment "Writes the result to f[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let x_rs1 = readReg rs1
+            (res, flags) = getFResCanonical64 $ i64ToF64E rm (extractE 0 x_rs1)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fcvt_d_lu $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the 64-bit unsigned integer in x[rs1] to a double-precision float."
+      comment "Writes the result to f[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let x_rs1 = readReg rs1
+            (res, flags) = getFResCanonical64 $ ui64ToF64E rm (extractE 0 x_rs1)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fmv_d_x $ InstSemantics $ getSemantics $ do
+      comment "Copies the double-precision float in register x[rs1] to f[rd]."
+      comment "Sign-extends the result."
+
+      rd :< rs1 :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+
+      assignFReg rd (sextE (extractEWithRepr (knownNat @64) 0 x_rs1))
       incrPC
   ]
