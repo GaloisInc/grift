@@ -354,7 +354,7 @@ fSemantics = Map.fromList
         let f_rs1 = readFReg rs1
             (res, flags) = getFRes $ f32ToI32E rm (extractE 0 f_rs1)
 
-        assignReg rd (zextE res)
+        assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_wu_s $ InstSemantics $ getSemantics $ do
@@ -366,7 +366,7 @@ fSemantics = Map.fromList
         let f_rs1 = readFReg rs1
             (res, flags) = getFRes $ f32ToUi32E rm (extractE 0 f_rs1)
 
-        assignReg rd (zextE res)
+        assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_x_w $ InstSemantics $ getSemantics $ do
@@ -480,22 +480,60 @@ f64Encode :: (64 <= RVWidth rv, FExt << rv) => EncodeMap rv
 f64Encode = Map.fromList
   [ Pair Fcvt_l_s  (OpBits R2Repr (0b1010011 :< 0b110000000010 :< Nil))
   , Pair Fcvt_lu_s (OpBits R2Repr (0b1010011 :< 0b110000000011 :< Nil))
-  , Pair Fcvt_s_l  (OpBits R2Repr (0b1010011 :< 0b110000100010 :< Nil))
-  , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110000100011 :< Nil))
+  , Pair Fcvt_s_l  (OpBits R2Repr (0b1010011 :< 0b110100000010 :< Nil))
+  , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110100000011 :< Nil))
   ]
 
 f64Semantics :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 f64Semantics = Map.fromList
   [ Pair Fcvt_l_s $ InstSemantics $ getSemantics $ do
-      incrPC
-  , Pair Fcvt_l_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the single-precision float in f[rs1] to a 64-bit signed integer."
+      comment "Writes the result to x[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let f_rs1 = readFReg rs1
+            (res, flags) = getFRes $ f32ToI64E rm (extractE 0 f_rs1)
+
+        assignReg rd (sextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fcvt_lu_s $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the single-precision float in f[rs1] to a 64-bit unsigned integer."
+      comment "Writes the result to x[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let f_rs1 = readFReg rs1
+            (res, flags) = getFRes $ f32ToUi64E rm (extractE 0 f_rs1)
+
+        assignReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fcvt_s_l $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the 64-bit signed integer in x[rs1] to a single-precision float."
+      comment "Writes the result to f[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let x_rs1 = readReg rs1
+            (res, flags) = getFResCanonical $ i64ToF32E rm (extractE 0 x_rs1)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   , Pair Fcvt_s_lu $ InstSemantics $ getSemantics $ do
-      incrPC
+      comment "Converts the 64-bit unsigned integer in x[rs1] to a single-precision float."
+      comment "Writes the result to f[rd]."
+
+      rd :< rm' :< rs1 :< Nil <- operandEs
+      withRM rm' $ \rm -> do
+        let x_rs1 = readReg rs1
+            (res, flags) = getFResCanonical $ ui64ToF32E rm (extractE 0 x_rs1)
+
+        assignFReg rd (zextE res)
+        raiseFPExceptions flags
+        incrPC
   ]
 
 dEncode :: DExt << rv => EncodeMap rv
