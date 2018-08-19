@@ -37,6 +37,7 @@ module RISCV.InstructionSet.Known
   ) where
 
 import Data.Parameterized
+import Debug.Trace (trace)
 
 import RISCV.InstructionSet
 import RISCV.InstructionSet.Base

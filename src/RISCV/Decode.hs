@@ -136,10 +136,20 @@ getFormat bv = case bv ^. layoutLens opcode of
     0b0000100 -> Some R3Repr
     0b0001000 -> Some R3Repr
     0b0001100 -> Some R3Repr
+    0b0000001 -> Some R3Repr
+    0b0000101 -> Some R3Repr
+    0b0001001 -> Some R3Repr
+    0b0001101 -> Some R3Repr
     0b0101100 -> Some R2Repr
+    0b0101101 -> Some R2Repr
     0b1100000 -> Some R2Repr
+    0b1100001 -> Some R2Repr
     0b1101000 -> Some R2Repr
+    0b1101001 -> Some R2Repr
+    0b0100000 -> Some R2Repr
+    0b0100001 -> Some R2Repr
     0b1110000 -> Some RXRepr
+    0b1110001 -> Some RXRepr
     0b1111000 -> Some RXRepr
     _ -> Some RRepr
 

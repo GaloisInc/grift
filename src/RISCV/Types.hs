@@ -285,7 +285,11 @@ instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(
   knownRepr = RVRepr knownRepr knownRepr
 
 -- | Everything we need to know about an 'RV' at compile time.
-type KnownRV rv = (KnownRepr RVRepr rv, KnownNat (RVWidth rv), KnownNat (RVFloatWidth rv))
+type KnownRV rv = ( KnownRepr RVRepr rv
+                  , KnownNat (RVWidth rv)
+                  , KnownNat (RVFloatWidth rv)
+                  , 32 <= RVFloatWidth rv
+                  , KnownNat (RVFloatWidth rv - 32))
 
 -- | Maps a RISC-V configuration to its register width, as a 'Nat'.
 type family RVWidth (rv :: RV) :: Nat where
