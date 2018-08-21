@@ -41,6 +41,8 @@ module RISCV.InstructionSet.Utils
   ( -- * General
     getArchWidth
   , incrPC
+  , nanBox32
+  , unBox32
   , cases
   , branches
   , CompOp
@@ -102,8 +104,26 @@ b cmp = do
 
   let pc = readPC
   ib <- instBytes
+  let branchPC = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-  assignPC (iteE (x_rs1 `cmp` x_rs2) (pc `addE` sextE (offset `sllE` litBV 1)) (pc `addE` zextE ib))
+  assignPC (iteE (x_rs1 `cmp` x_rs2)
+            (pc `addE` branchPC)
+            (pc `addE` zextE ib))
+
+nanBox32 :: forall proxy expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
+         => expr 32
+         -> SemanticsM expr rv (expr (RVFloatWidth rv))
+nanBox32 e = case knownRepr :: RVRepr rv of
+  RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> return $ (litBV (-1) :: expr 32) `concatE` e
+  RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> return e
+
+unBox32 :: forall proxy expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
+        => expr (RVFloatWidth rv)
+        -> SemanticsM expr rv (expr 32)
+unBox32 e = case knownRepr :: RVRepr rv of
+  RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> return $
+    iteE (extractEWithRepr (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
+  RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> return e
 
 cases :: BVExpr expr
       => [(expr 1, expr w)] -- ^ list of guarded results

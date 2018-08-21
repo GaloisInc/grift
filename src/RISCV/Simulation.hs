@@ -233,6 +233,8 @@ execSemantics eval f = do
   assignments <- concat <$> traverse (buildAssignment eval) (f ^. semStmts)
   traverse_ execAssignment assignments
 
+-- TODO: Write another version of this function that does not call logInstruction,
+-- for pure simulation (faster).
 -- | Fetch, decode, and execute a single instruction.
 stepRV :: forall m rv . (RVStateM m rv, KnownRV rv)
        => InstructionSet rv

@@ -108,17 +108,10 @@ fSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let mVal  = readMem (knownNat @4) (x_rs1 `addE` sextE offset)
+      mVal <- nanBox32 $ readMem (knownNat @4) (x_rs1 `addE` sextE offset)
 
-      -- TODO: clean this up, and finish up all NaN-boxing stuff.
-      case knownRepr :: RVRepr rv of
-        RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> do
-          let ones  = litBV (-1) :: InstExpr I rv 32
-          assignFReg rd (concatE ones mVal)
-          incrPC
-        RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> do
-          assignFReg rd mVal
-          incrPC
+      assignFReg rd mVal
+      incrPC
   , Pair Fsw $ InstSemantics $ getSemantics $ do
       comment "Stores the single-precision float in register f[rs2] to memory at address x[rs1] + sext(offset)."
 
@@ -137,12 +130,13 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFResCanonical32 $ f32MulAddE rm f_rs1 f_rs2 f_rs3
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        f_rs3 <- unBox32 (readFReg rs3)
+        let (res', flags) = getFResCanonical32 $ f32MulAddE rm f_rs1 f_rs2 f_rs3
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fmsub_s $ InstSemantics $ getSemantics $ do
@@ -153,12 +147,13 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFResCanonical32 $ f32MulAddE rm f_rs1 f_rs2 (negate32 f_rs3)
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        f_rs3 <- unBox32 (readFReg rs3)
+        let (res', flags) = getFResCanonical32 $ f32MulAddE rm f_rs1 f_rs2 (negate32 f_rs3)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fnmsub_s $ InstSemantics $ getSemantics $ do
@@ -169,12 +164,13 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFResCanonical32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 f_rs3
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        f_rs3 <- unBox32 (readFReg rs3)
+        let (res', flags) = getFResCanonical32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 f_rs3
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fnmadd_s $ InstSemantics $ getSemantics $ do
@@ -185,12 +181,13 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let f_rs3 = extractE 0 (readFReg rs3)
-        let (res, flags) = getFResCanonical32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 (negate32 f_rs3)
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        f_rs3 <- unBox32 (readFReg rs3)
+        let (res', flags) = getFResCanonical32 $ f32MulAddE rm (negate32 f_rs1) f_rs2 (negate32 f_rs3)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fadd_s $ InstSemantics $ getSemantics $ do
@@ -200,11 +197,12 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFResCanonical32 $ f32AddE rm f_rs1 f_rs2
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        let (res', flags) = getFResCanonical32 $ f32AddE rm f_rs1 f_rs2
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fsub_s $ InstSemantics $ getSemantics $ do
@@ -214,11 +212,12 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFResCanonical32 $ f32SubE rm f_rs1 f_rs2
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        let (res', flags) = getFResCanonical32 $ f32SubE rm f_rs1 f_rs2
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fmul_s $ InstSemantics $ getSemantics $ do
@@ -228,11 +227,12 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFResCanonical32 $ f32MulE rm f_rs1 f_rs2
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        let (res', flags) = getFResCanonical32 $ f32MulE rm f_rs1 f_rs2
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fdiv_s $ InstSemantics $ getSemantics $ do
@@ -242,11 +242,12 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let f_rs2 = extractE 0 (readFReg rs2)
-        let (res, flags) = getFResCanonical32 $ f32DivE rm f_rs1 f_rs2
+        f_rs1 <- unBox32 (readFReg rs1)
+        f_rs2 <- unBox32 (readFReg rs2)
+        let (res', flags) = getFResCanonical32 $ f32DivE rm f_rs1 f_rs2
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fsqrt_s $ InstSemantics $ getSemantics $ do
@@ -256,10 +257,11 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFReg rs1)
-        let (res, flags) = getFResCanonical32 $ f32SqrtE rm f_rs1
+        f_rs1 <- unBox32 (readFReg rs1)
+        let (res', flags) = getFResCanonical32 $ f32SqrtE rm f_rs1
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fsgnj_s $ InstSemantics $ getSemantics $ do
@@ -267,12 +269,13 @@ fSemantics = Map.fromList
       comment "Uses the sign of f[rs2], and writes the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = readFReg rs1
-      let f_rs2 = readFReg rs2
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
 
       let res_sign = f32Sgn (extractE 0 f_rs2)
       let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
-      let res = zextE (res_sign `concatE` res_rst)
+      let res' = res_sign `concatE` res_rst
+      res <- nanBox32 res'
 
       assignFReg rd res
       incrPC
@@ -281,12 +284,13 @@ fSemantics = Map.fromList
       comment "Uses the opposite sign of f[rs2], and writes the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = readFReg rs1
-      let f_rs2 = readFReg rs2
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
 
       let res_sign = notE (f32Sgn (extractE 0 f_rs2))
       let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
-      let res = zextE (res_sign `concatE` res_rst)
+      let res' = zextE (res_sign `concatE` res_rst)
+      res <- nanBox32 res'
 
       assignFReg rd res
       incrPC
@@ -295,12 +299,13 @@ fSemantics = Map.fromList
       comment "Uses the xor of the signs of f[rs1] and f[rs2], and writes the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = readFReg rs1
-      let f_rs2 = readFReg rs2
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
 
       let res_sign = (f32Sgn (extractE 0 f_rs1) `xorE` f32Sgn (extractE 0 f_rs2))
       let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
-      let res = zextE (res_sign `concatE` res_rst)
+      let res' = zextE (res_sign `concatE` res_rst)
+      res <- nanBox32 res'
 
       assignFReg rd res
       incrPC
@@ -309,11 +314,11 @@ fSemantics = Map.fromList
       comment "Copies the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = extractE 0 (readFReg rs1)
-      let f_rs2 = extractE 0 (readFReg rs2)
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
       let (cmp, _) = getFRes $ f32LeE f_rs1 f_rs2 -- ignore flags
 
-      let res = cases
+      let res' = cases
             [ (isNaN32 f_rs1 `andE` isNaN32 f_rs2, canonicalNaN32)
             , (isNaN32 f_rs1, f_rs2)
             , (isNaN32 f_rs2, f_rs1)
@@ -321,10 +326,11 @@ fSemantics = Map.fromList
             , ((f_rs1 `eqE` posZero32) `andE` (f_rs2 `eqE` negZero32), f_rs2)
             ]
             $ iteE cmp f_rs1 f_rs2
+      res <- nanBox32 res'
       let invalid = isSNaN32 f_rs1 `orE` isSNaN32 f_rs2
       let flags = iteE invalid (litBV 0x10) (litBV 0x00)
 
-      assignFReg rd (zextE res)
+      assignFReg rd res
       raiseFPExceptions flags
       incrPC
   , Pair Fmax_s $ InstSemantics $ getSemantics $ do
@@ -332,11 +338,11 @@ fSemantics = Map.fromList
       comment "Copies the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = extractE 0 (readFReg rs1)
-      let f_rs2 = extractE 0 (readFReg rs2)
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
       let (cmp, _) = getFRes $ f32LeE f_rs1 f_rs2 -- ignore flags
 
-      let res = cases
+      let res' = cases
             [ (isNaN32 f_rs1 `andE` isNaN32 f_rs2, canonicalNaN32)
             , (isNaN32 f_rs1, f_rs2)
             , (isNaN32 f_rs2, f_rs1)
@@ -344,10 +350,11 @@ fSemantics = Map.fromList
             , ((f_rs1 `eqE` posZero32) `andE` (f_rs2 `eqE` negZero32), f_rs1)
             ]
             $ iteE cmp f_rs2 f_rs1
+      res <- nanBox32 res'
       let invalid = isSNaN32 f_rs1 `orE` isSNaN32 f_rs2
       let flags = iteE invalid (litBV 0x10) (litBV 0x00)
 
-      assignFReg rd (zextE res)
+      assignFReg rd res
       raiseFPExceptions flags
       incrPC
   , Pair Fcvt_w_s $ InstSemantics $ getSemantics $ do
@@ -356,8 +363,8 @@ fSemantics = Map.fromList
 
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
-        let f_rs1 = readFReg rs1
-            (res, flags) = getFRes $ f32ToI32E rm (extractE 0 f_rs1)
+        f_rs1 <- unBox32 (readFReg rs1)
+        let (res, flags) = getFRes $ f32ToI32E rm (extractE 0 f_rs1)
 
         assignReg rd (sextE res)
         raiseFPExceptions flags
@@ -368,8 +375,8 @@ fSemantics = Map.fromList
 
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
-        let f_rs1 = readFReg rs1
-            (res, flags) = getFRes $ f32ToUi32E rm (extractE 0 f_rs1)
+        f_rs1 <- unBox32 (readFReg rs1)
+        let (res, flags) = getFRes $ f32ToUi32E rm (extractE 0 f_rs1)
 
         assignReg rd (sextE res)
         raiseFPExceptions flags
@@ -379,7 +386,6 @@ fSemantics = Map.fromList
       comment "Sign-extends the result."
 
       rd :< rs1 :< Nil <- operandEs
-
       let f_rs1 = readFReg rs1
 
       assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 f_rs1))
@@ -390,8 +396,8 @@ fSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let f_rs1 = extractE 0 (readFReg rs1)
-      let f_rs2 = extractE 0 (readFReg rs2)
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
       let (res, flags) = getFRes $ f32EqE f_rs1 f_rs2
 
       assignReg rd (zextE res)
@@ -403,8 +409,8 @@ fSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let f_rs1 = extractE 0 (readFReg rs1)
-      let f_rs2 = extractE 0 (readFReg rs2)
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
       let (res, flags) = getFRes $ f32LtE f_rs1 f_rs2
 
       assignReg rd (zextE res)
@@ -416,8 +422,8 @@ fSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let f_rs1 = extractE 0 (readFReg rs1)
-      let f_rs2 = extractE 0 (readFReg rs2)
+      f_rs1 <- unBox32 (readFReg rs1)
+      f_rs2 <- unBox32 (readFReg rs2)
       let (res, flags) = getFRes $ f32LeE f_rs1 f_rs2
 
       assignReg rd (zextE res)
@@ -428,7 +434,7 @@ fSemantics = Map.fromList
       comment "Exactly one bit in x[rd] is set. Table not included in this comment."
 
       rd :< rs1 :< Nil <- operandEs
-      let f_rs1 = extractE 0 (readFReg rs1)
+      f_rs1 <- unBox32 (readFReg rs1)
       let res = cases
             [ (f_rs1 `eqE` negInfinity32, litBV 0x1)
             , (f32Sgn f_rs1 `andE` isNormal32 f_rs1, litBV 0x2)
@@ -452,9 +458,10 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFResCanonical32 $ i32ToF32E rm (extractE 0 x_rs1)
+            (res', flags) = getFResCanonical32 $ i32ToF32E rm (extractE 0 x_rs1)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_s_wu $ InstSemantics $ getSemantics $ do
@@ -464,9 +471,10 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFResCanonical32 $ ui32ToF32E rm (extractE 0 x_rs1)
+            (res', flags) = getFResCanonical32 $ ui32ToF32E rm (extractE 0 x_rs1)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_w_x $ InstSemantics $ getSemantics $ do
@@ -476,8 +484,9 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
+      res <- nanBox32 (extractEWithRepr (knownNat @32) 0 x_rs1)
 
-      assignFReg rd (sextE (extractEWithRepr (knownNat @32) 0 x_rs1))
+      assignFReg rd res
       incrPC
   ]
 
@@ -497,8 +506,8 @@ f64Semantics = Map.fromList
 
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
-        let f_rs1 = readFReg rs1
-            (res, flags) = getFRes $ f32ToI64E rm (extractE 0 f_rs1)
+        f_rs1 <- unBox32 (readFReg rs1)
+        let (res, flags) = getFRes $ f32ToI64E rm (extractE 0 f_rs1)
 
         assignReg rd (sextE res)
         raiseFPExceptions flags
@@ -509,8 +518,8 @@ f64Semantics = Map.fromList
 
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
-        let f_rs1 = readFReg rs1
-            (res, flags) = getFRes $ f32ToUi64E rm (extractE 0 f_rs1)
+        f_rs1 <- unBox32 (readFReg rs1)
+        let (res, flags) = getFRes $ f32ToUi64E rm (extractE 0 f_rs1)
 
         assignReg rd (zextE res)
         raiseFPExceptions flags
@@ -522,9 +531,10 @@ f64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFResCanonical32 $ i64ToF32E rm (extractE 0 x_rs1)
+        let (res', flags) = getFResCanonical32 $ i64ToF32E rm (extractE 0 x_rs1)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_s_lu $ InstSemantics $ getSemantics $ do
@@ -534,9 +544,10 @@ f64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readReg rs1
-            (res, flags) = getFResCanonical32 $ ui64ToF32E rm (extractE 0 x_rs1)
+        let (res', flags) = getFResCanonical32 $ ui64ToF32E rm (extractE 0 x_rs1)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   ]
@@ -822,9 +833,10 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFReg rs1
-            (res, flags) = getFResCanonical32 $ f64ToF32E rm (extractE 0 f_rs1)
+        let (res', flags) = getFResCanonical32 $ f64ToF32E rm (extractE 0 f_rs1)
+        res <- nanBox32 res'
 
-        assignFReg rd (zextE res)
+        assignFReg rd res
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_d_s $ InstSemantics $ getSemantics $ do
