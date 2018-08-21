@@ -108,15 +108,23 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
 Current Status
 ===
 
-We currently support RV{32|64}IMA, with M-mode privileged
+We currently support RV{32|64}IMAFD, with M-mode privileged
 instructions. Exceptions are modeled incompletely; the bare minimum to run
-user-level code with traps is supported.
+user-level code with traps is supported. We are passing all the following tests
+in simulation:
 
-Coming soon: support for floating point F/D extensions. I have created Haskell
-bindings to John Hauser's SoftFloat library, which we will use for simulation
-backends, and I am working on the subtleties of how to elegantly use Haskell's
-type system to conditionally support the floating point registers (this is the
-only extension for which there is additional state that we are supporting).
+- rv32ui
+- rv64ui
+- rv32um
+- rv64um
+- rv32ua (except lrsc)
+- rv64ua (except lrsc)
+- rv32uf
+- rv64uf
+- rv32ud
+- rv64ud
+
+Coming soon: support for the C (compressed) extension.
 
 Coming soon: configuration argument or file that lets you configure the GRIFT
 simulator to a particular RISC-V instance: RV32IM, RV64IMAFD, etc. Ultimately,
