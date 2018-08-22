@@ -110,20 +110,22 @@ b cmp = do
             (pc `addE` branchPC)
             (pc `addE` zextE ib))
 
-nanBox32 :: forall expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
+nanBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
          => expr 32
          -> SemanticsM expr rv (expr (RVFloatWidth rv))
-nanBox32 e = case knownRepr :: RVRepr rv of
-  RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> return $ (litBV (-1) :: expr 32) `concatE` e
-  RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> return e
+nanBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
+  FDYesRepr   -> return $ (litBV (-1) :: expr 32) `concatE` e
+  FYesDNoRepr -> return e
+  _ -> undefined
 
-unBox32 :: forall expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
+unBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
         => expr (RVFloatWidth rv)
         -> SemanticsM expr rv (expr 32)
-unBox32 e = case knownRepr :: RVRepr rv of
-  RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> return $
+unBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
+  FDYesRepr -> return $
     iteE (extractEWithRepr (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
-  RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> return e
+  FYesDNoRepr -> return e
+  _ -> undefined
 
 cases :: BVExpr expr
       => [(expr 1, expr w)] -- ^ list of guarded results
@@ -334,18 +336,18 @@ raiseException e info = do
 
   assignPC mtVecBase
 
-raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
+raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM (expr rv) rv ()
 raiseFPExceptions flags = do
   let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
 
-dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 3
+dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 3
 dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
             in extractE 5 fcsr
 
-withRM :: KnownRV rv
+withRM :: KnownRVWidth rv
        => InstExpr fmt rv 3
        -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt rv) rv ())
        -> SemanticsM (InstExpr fmt rv) rv ()

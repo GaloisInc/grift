@@ -62,7 +62,11 @@ module RISCV.Types
     RV(..), type RVConfig
   , RVRepr(..)
   , RVWidth, RVFloatWidth, type (<<)
+  , FDFloatWidth
+  , RVFloatType
   , KnownRVWidth
+  , KnownRVFloatWidth
+  , KnownRVFloatType
   , KnownRV
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
@@ -288,6 +292,11 @@ instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(
 -- | The width of the GPRs are known at compile time.
 type KnownRVWidth rv = KnownNat (RVWidth rv)
 
+-- | The width of the floating point registers are known at compile time.
+type KnownRVFloatWidth rv = KnownNat (RVFloatWidth rv)
+
+type KnownRVFloatType rv = KnownRepr FDConfigRepr (RVFloatType rv)
+
 -- | Everything we need to know about an 'RV' at compile time.
 type KnownRV rv = ( KnownRepr RVRepr rv
                   , KnownNat (RVWidth rv)
@@ -297,10 +306,16 @@ type KnownRV rv = ( KnownRepr RVRepr rv
 type family RVWidth (rv :: RV) :: Nat where
   RVWidth (RVConfig '(arch, _)) = ArchWidth arch
 
+type family FDFloatWidth (fd :: FDConfig) :: Nat where
+  FDFloatWidth FDYes = 64
+  FDFloatWidth _ = 32
+
 -- | This should only be used in a context where FExt << rv.
 type family RVFloatWidth (rv :: RV) :: Nat where
-  RVFloatWidth (RVConfig '(_, Exts '(_, _, _, FDYes))) = 64
-  RVFloatWidth _ = 32
+  RVFloatWidth rv = FDFloatWidth (RVFloatType rv)
+
+type family RVFloatType (rv :: RV) :: FDConfig where
+  RVFloatType (RVConfig '(_, Exts '(_, _, _, fd))) = fd
 
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where

@@ -34,6 +34,7 @@ Extensions for RISC-V.
 module RISCV.InstructionSet.Known
   ( -- * RISC-V Base ISA and extensions
     knownISet
+  , knownISetWithRepr
   ) where
 
 import Data.Parameterized
@@ -49,42 +50,13 @@ import RISCV.Types
 -- | Infer the current instruction set from a context in which the 'BaseArch' and
 -- 'Extensions' are known.
 knownISet :: forall rv . KnownRV rv => InstructionSet rv
-knownISet = case knownRepr :: RVRepr rv of
-  rvRepr@(RVRepr archRepr ecRepr) ->
-    let baseset = baseFromRepr rvRepr
-        privset = privm -- TODO
-        mset = mFromRepr rvRepr
-        aset = aFromRepr rvRepr
-        fset = case (archRepr, ecRepr) of
-          (RV32Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f32
-          (RV32Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f32 <> d32
-          (RV64Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f64
-          (RV64Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f64 <> d64
-          _ -> mempty
-    in baseset <> privset <> mset <> aset <> fset
+knownISet = knownISetWithRepr knownRepr
 
--- | Infer the current instruction set from a context in which the 'BaseArch' and
--- 'Extensions' are known.
--- knownISetWithRepr :: RVRepr rv -> InstructionSet rv
--- knownISetWithRepr rvRepr = case rvRepr of
---   RVRepr archRepr ecRepr ->
---     let baseset = case archRepr of
---           RV32Repr -> base32
---           RV64Repr -> base64
---           RV128Repr -> error "RV128 not yet supported"
---         privset = privm -- TODO
---         mset = case (archRepr, ecRepr) of
---           (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> m32
---           (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> m64
---           _ -> mempty
---         aset = case (archRepr, ecRepr) of
---           (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> a32
---           (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> a64
---           _ -> mempty
---         fset = case (archRepr, ecRepr) of
---           (RV32Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f32
---           (RV32Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f32 <> d32
---           (RV64Repr, ExtensionsRepr _ _ _ FYesDNoRepr) -> f64
---           (RV64Repr, ExtensionsRepr _ _ _ FDYesRepr)   -> f64 <> d64
---           _ -> mempty
---     in baseset <> privset <> mset <> aset <> fset
+knownISetWithRepr :: RVRepr rv -> InstructionSet rv
+knownISetWithRepr rvRepr =
+  let baseset = baseFromRepr rvRepr
+      privset = privmFromRepr rvRepr -- TODO
+      mset = mFromRepr rvRepr
+      aset = aFromRepr rvRepr
+      fset = fdFromRepr rvRepr
+  in baseset <> privset <> mset <> aset <> fset

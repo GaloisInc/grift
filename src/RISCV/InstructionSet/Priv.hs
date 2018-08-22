@@ -36,7 +36,7 @@ RISC-V Privileged architecture extensions
 -}
 
 module RISCV.InstructionSet.Priv
-  ( privm
+  ( privmFromRepr
   ) where
 
 import Data.BitVector.Sized.App
@@ -49,8 +49,13 @@ import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 
+privmFromRepr :: RVRepr rv -> InstructionSet rv
+privmFromRepr (RVRepr RV32Repr _) = privm
+privmFromRepr (RVRepr RV64Repr _) = privm
+privmFromRepr _ = mempty
+
 -- | Instruction set for machine-mode privileged architecture.
-privm :: KnownRV rv => InstructionSet rv
+privm :: KnownRVWidth rv => InstructionSet rv
 privm = instructionSet privmEncode privmSemantics
 
 privmEncode :: EncodeMap rv
@@ -59,7 +64,7 @@ privmEncode = Map.fromList
   , Pair Wfi  (OpBits PRepr (0b00010000010100000000000001110011 :< Nil))
   ]
 
-privmSemantics :: KnownRV rv => SemanticsMap rv
+privmSemantics :: KnownRVWidth rv => SemanticsMap rv
 privmSemantics = Map.fromList
   [ Pair Mret $ InstSemantics $ getSemantics $ do
       comment "Returns from a machine-mode exception handler."
