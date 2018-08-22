@@ -36,8 +36,7 @@ RV32I/RV64I base ISA; encoding and semantics.
 -}
 
 module RISCV.InstructionSet.Base
-  ( base32
-  , base64
+  ( baseFromRepr
   )
   where
 
@@ -52,12 +51,17 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
+baseFromRepr :: RVRepr rv -> InstructionSet rv
+baseFromRepr (RVRepr RV32Repr _) = base32
+baseFromRepr (RVRepr RV64Repr _) = base64
+baseFromRepr (RVRepr RV128Repr _) = error "RV128 not supported"
+
 -- | RV32I/E base instruction set.
-base32 :: KnownRV rv => InstructionSet rv
+base32 :: KnownRVWidth rv => InstructionSet rv
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 :: (KnownRV rv, 64 <= RVWidth rv) => InstructionSet rv
+base64 :: (KnownRVWidth rv, 64 <= RVWidth rv) => InstructionSet rv
 base64 = base32 <> instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap rv
@@ -130,7 +134,7 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: forall rv . KnownRV rv => SemanticsMap rv
+baseSemantics :: forall rv . KnownRVWidth rv => SemanticsMap rv
 baseSemantics = Map.fromList
   [ Pair Add $ InstSemantics $ getSemantics $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -665,7 +669,7 @@ base64Encode = Map.fromList
   , Pair Sd    (OpBits SRepr (0b0100011 :< 0b011 :< Nil))
   ]
 
-base64Semantics :: (KnownRV rv, 64 <= RVWidth rv) => SemanticsMap rv
+base64Semantics :: (KnownRVWidth rv, 64 <= RVWidth rv) => SemanticsMap rv
 base64Semantics = Map.fromList
   [ Pair Addw $ InstSemantics $ getSemantics $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."

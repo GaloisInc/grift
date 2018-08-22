@@ -62,6 +62,7 @@ module RISCV.Types
     RV(..), type RVConfig
   , RVRepr(..)
   , RVWidth, RVFloatWidth, type (<<)
+  , KnownRVWidth
   , KnownRV
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
@@ -283,6 +284,9 @@ data RVRepr :: RV -> * where
 
 instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(arch, exts)) where
   knownRepr = RVRepr knownRepr knownRepr
+
+-- | The width of the GPRs are known at compile time.
+type KnownRVWidth rv = KnownNat (RVWidth rv)
 
 -- | Everything we need to know about an 'RV' at compile time.
 type KnownRV rv = ( KnownRepr RVRepr rv

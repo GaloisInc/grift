@@ -330,7 +330,7 @@ readPC :: StateExpr expr => expr rv (RVWidth rv)
 readPC = stateExpr (LocApp PCExpr)
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
-readReg :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 5 -> expr rv (RVWidth rv)
+readReg :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
 readReg ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (RegExpr ridE)))
 
 -- | Read a value from a floating point register.
@@ -347,7 +347,7 @@ readMem :: StateExpr expr
 readMem bytes addr = stateExpr (LocApp (MemExpr bytes addr))
 
 -- | Read a value from a CSR.
-rawReadCSR :: (StateExpr expr, KnownRV rv) => expr rv 12 -> expr rv (RVWidth rv)
+rawReadCSR :: (StateExpr expr, KnownRVWidth rv) => expr rv 12 -> expr rv (RVWidth rv)
 rawReadCSR csr = stateExpr (LocApp (CSRExpr csr))
 
 -- | Read the current privilege level.

@@ -36,8 +36,7 @@ RV32A/RV64A, memory atomics extension
 -}
 
 module RISCV.InstructionSet.A
-  ( a32
-  , a64
+  ( aFromRepr
   ) where
 
 import Data.BitVector.Sized.App
@@ -50,12 +49,17 @@ import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 
+aFromRepr :: RVRepr rv -> InstructionSet rv
+aFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ AYesRepr _)) = a32
+aFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _)) = a64
+aFromRepr _ = mempty
+
 -- | A extension (RV32)
-a32 :: (KnownRV rv, AExt << rv) => InstructionSet rv
+a32 :: (KnownRVWidth rv, AExt << rv) => InstructionSet rv
 a32 = instructionSet aEncode aSemantics
 
 -- | A extension (RV64)
-a64 :: (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => InstructionSet rv
+a64 :: (KnownRVWidth rv, 64 <= RVWidth rv, AExt << rv) => InstructionSet rv
 a64 = a32 <> instructionSet a64Encode a64Semantics
 
 aEncode :: AExt << rv => EncodeMap rv
@@ -88,7 +92,7 @@ a64Encode = Map.fromList
   , Pair Amomaxud (OpBits ARepr (0b0101111 :< 0b011 :< 0b11100 :< Nil))
   ]
 
-aSemantics :: forall rv . (KnownRV rv, AExt << rv) => SemanticsMap rv
+aSemantics :: forall rv . (KnownRVWidth rv, AExt << rv) => SemanticsMap rv
 aSemantics = Map.fromList
   [ Pair Lrw $ InstSemantics $ getSemantics $ do
       comment "Loads the four bytes from memory at address x[rs1]."
@@ -175,7 +179,7 @@ aSemantics = Map.fromList
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp32 :: KnownRV rv
+amoOp32 :: KnownRVWidth rv
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
         -> SemanticsM (InstExpr A rv) rv ()
 amoOp32 op = do
@@ -191,7 +195,7 @@ amoOp32 op = do
       incrPC
 
 
-a64Semantics :: forall rv . (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
+a64Semantics :: forall rv . (KnownRVWidth rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
 a64Semantics = Map.fromList
   [ Pair Lrd $ InstSemantics $ getSemantics $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
@@ -275,7 +279,7 @@ a64Semantics = Map.fromList
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp64 :: KnownRV rv
+amoOp64 :: KnownRVWidth rv
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
         -> SemanticsM (InstExpr A rv) rv ()
 amoOp64 op = do

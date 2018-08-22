@@ -78,11 +78,11 @@ import RISCV.Types
 
 -- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
 -- should probably be generalized when we fully implement the privileged architecture.
-getArchWidth :: forall rv fmt . KnownRV rv => SemanticsM (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
+getArchWidth :: forall rv fmt . KnownRVWidth rv => SemanticsM (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
 getArchWidth = return (knownNat @(RVWidth rv))
 
 -- | Increment the PC
-incrPC :: KnownRV rv => SemanticsM (InstExpr fmt rv) rv ()
+incrPC :: SemanticsM (InstExpr fmt rv) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
@@ -95,7 +95,7 @@ type CompOp rv fmt = InstExpr fmt rv (RVWidth rv)
                     -> InstExpr fmt rv 1
 
 -- | Generic branch.
-b :: KnownRV rv => CompOp rv B -> SemanticsM (InstExpr B rv) rv ()
+b :: KnownRVWidth rv => CompOp rv B -> SemanticsM (InstExpr B rv) rv ()
 b cmp = do
   rs1 :< rs2 :< offset :< Nil <- operandEs
 
@@ -138,7 +138,7 @@ branches cs d = foldr (uncurry branch) d cs
 
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
-checkCSR :: KnownRV rv
+checkCSR :: KnownRVWidth rv
          => InstExpr fmt rv 1
          -> InstExpr fmt rv 12
          -> SemanticsM (InstExpr fmt rv) rv ()
@@ -157,7 +157,7 @@ checkCSR write csr rst = do
 
 -- | Maps each CSR to an expression representing what value is returned when software
 -- attempts to read it.
-readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
+readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
         => expr rv 12 -> expr rv (RVWidth rv)
 readCSR csr = cases
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
@@ -181,7 +181,7 @@ readCSR csr = cases
 -- At the moment, this function is little more than an alias for
 -- 'assignCSR', with a few aliasing cases (like for fflags and frm, as well as the
 -- various aliased registers in S- and U-mode of M-mode registers).
-writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
+writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
               => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
 writeCSR csr val = branches
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
@@ -305,7 +305,7 @@ getPrivCode SPriv = 1
 getPrivCode UPriv = 0
 
 -- | Semantics for raising an exception.
-raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
+raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
                => Exception
                -> expr rv (RVWidth rv)
                -> SemanticsM (expr rv) rv ()
