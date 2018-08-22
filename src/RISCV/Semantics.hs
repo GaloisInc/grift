@@ -491,6 +491,7 @@ instance Pretty (Semantics (InstExpr fmt rv) rv) where
 pPrintStateApp' :: Bool -> StateApp (InstExpr fmt rv) rv w -> Doc
 pPrintStateApp' _ (LocApp loc) = pPrint loc
 pPrintStateApp' top (AppExpr app) = pPrintApp' top app
+pPrintStateApp' top (FloatAppExpr app) = pPrintFloatApp' top app
 
 -- TODO: Print operands with more descriptive names, based on the format of the
 -- instruction.
@@ -541,3 +542,6 @@ pPrintApp' _ (IteApp e1 e2 e3) =
   text "if" <+> pPrintInstExpr' True e1 <+>
   text "then" <+> pPrintInstExpr' True e2 <+>
   text "else" <+> pPrintInstExpr' True e3
+
+pPrintFloatApp' :: Bool -> BVFloatApp (InstExpr fmt rv) w -> Doc
+pPrintFloatApp' _ _ = text "<FLOAT>"

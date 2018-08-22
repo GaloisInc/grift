@@ -76,32 +76,31 @@ knownCoverageMap = case knownRepr :: RVRepr rv of
           _ -> Map.empty
     in base `Map.union` m `Map.union` a `Map.union` f
 
--- knownCoverageMapWithRepr :: RV
---                  => CoverageMap rv
--- knownCoverageMap = case knownRepr :: RVRepr rv of
---   RVRepr archRepr ecRepr ->
---     let base = case archRepr of
---           RV32Repr -> baseCoverage
---           RV64Repr -> baseCoverage `Map.union` base64Coverage
---           RV128Repr -> error "RV128 not yet supported"
---         m = case (archRepr, ecRepr) of
---           (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> mCoverage
---           (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> mCoverage `Map.union` m64Coverage
---           _ -> Map.empty
---         a = case (archRepr, ecRepr) of
---           (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> aCoverage
---           (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> aCoverage `Map.union` a64Coverage
---           _ -> Map.empty
---         f = case ecRepr of
---           ExtensionsRepr _ _ _ FDNoRepr -> Map.empty
---           _ -> Map.empty
---     in base `Map.union` m `Map.union` a `Map.union` f
+knownCoverageMapWithRepr :: RVRepr rv -> CoverageMap rv
+knownCoverageMapWithRepr rvRepr = case rvRepr of
+  RVRepr archRepr ecRepr ->
+    let base = case archRepr of
+          RV32Repr -> baseCoverage
+          RV64Repr -> baseCoverage `Map.union` base64Coverage
+          RV128Repr -> error "RV128 not yet supported"
+        m = case (archRepr, ecRepr) of
+          (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> mCoverage
+          (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> mCoverage `Map.union` m64Coverage
+          _ -> Map.empty
+        a = case (archRepr, ecRepr) of
+          (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> aCoverage
+          (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> aCoverage `Map.union` a64Coverage
+          _ -> Map.empty
+        f = case ecRepr of
+          ExtensionsRepr _ _ _ FDNoRepr -> Map.empty
+          _ -> Map.empty
+    in base `Map.union` m `Map.union` a `Map.union` f
 
-exprBitCoverage :: forall fmt rv w . KnownNat w => InstExpr fmt rv w -> [InstExpr fmt rv 1]
-exprBitCoverage expr = concat $ bitTests <$> [0..width-1]
+exprBitCoverage :: forall fmt rv w . NatRepr w -> InstExpr fmt rv w -> [InstExpr fmt rv 1]
+exprBitCoverage wRepr expr = concat $ bitTests <$> [0..width-1]
   where bitTests i = [extractEWithRepr (knownNat @1) i expr,
                       notE $ extractEWithRepr (knownNat @1) i expr]
-        width = fromIntegral (natValue (knownNat @w))
+        width = fromIntegral (natValue wRepr)
 
 immBitCoverage :: forall fmt rv . KnownRepr FormatRepr fmt => [InstExpr fmt rv 1]
 immBitCoverage = case knownRepr :: FormatRepr fmt of
@@ -122,7 +121,7 @@ immBitCoverage = case knownRepr :: FormatRepr fmt of
            in exprBitCoverage a ++ exprBitCoverage b
   _ -> []
 
-regBitCoverage :: forall fmt rv . (KnownRV rv, KnownRepr FormatRepr fmt) => [InstExpr fmt rv 1]
+regBitCoverage :: forall fmt rv . KnownRepr FormatRepr fmt => [InstExpr fmt rv 1]
 regBitCoverage = case knownRepr :: FormatRepr fmt of
   RRepr -> let _ :< rb :< rc :< Nil = operandEsWithRepr RRepr
            in exprBitCoverage (readReg rb) ++
@@ -177,10 +176,10 @@ ridCoverage = case knownRepr :: FormatRepr fmt of
               singleRidCoverage rc
   _ -> []
 
-generalCoverage :: forall fmt rv . (KnownRV rv, KnownRepr FormatRepr fmt) => [InstExpr fmt rv 1]
+generalCoverage :: forall fmt rv . KnownRepr FormatRepr fmt => [InstExpr fmt rv 1]
 generalCoverage = regBitCoverage ++ immBitCoverage
 
-baseCoverage :: KnownRV rv => CoverageMap rv
+baseCoverage :: CoverageMap rv
 baseCoverage = Map.fromList
   [ -- RV32I
     -- R type
@@ -250,7 +249,7 @@ baseCoverage = Map.fromList
   , Pair Illegal (InstExprList generalCoverage)
   ]
 
-base64Coverage :: (KnownRV rv, 64 <= RVWidth rv) => CoverageMap rv
+base64Coverage :: 64 <= RVWidth rv => CoverageMap rv
 base64Coverage = Map.fromList
   [ Pair Addw  (InstExprList generalCoverage)
   , Pair Subw  (InstExprList generalCoverage)
@@ -266,7 +265,7 @@ base64Coverage = Map.fromList
   , Pair Sd    (InstExprList generalCoverage)
   ]
 
-mCoverage :: (KnownRV rv, MExt << rv) => CoverageMap rv
+mCoverage :: MExt << rv => CoverageMap rv
 mCoverage = Map.fromList
   [ Pair Mul    (InstExprList generalCoverage)
   , Pair Mulh   (InstExprList generalCoverage)
@@ -278,7 +277,7 @@ mCoverage = Map.fromList
   , Pair Remu   (InstExprList generalCoverage)
   ]
 
-m64Coverage :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => CoverageMap rv
+m64Coverage :: (64 <= RVWidth rv, MExt << rv) => CoverageMap rv
 m64Coverage = Map.fromList
   [ Pair Mulw  (InstExprList generalCoverage)
   , Pair Divw  (InstExprList generalCoverage)
@@ -287,7 +286,7 @@ m64Coverage = Map.fromList
   , Pair Remuw (InstExprList generalCoverage)
   ]
 
-aCoverage :: (KnownRV rv, AExt << rv) => CoverageMap rv
+aCoverage :: AExt << rv => CoverageMap rv
 aCoverage = Map.fromList
   [ Pair Lrw      (InstExprList generalCoverage)
   , Pair Scw      (InstExprList generalCoverage)
@@ -302,7 +301,7 @@ aCoverage = Map.fromList
   , Pair Amomaxuw (InstExprList generalCoverage)
   ]
 
-a64Coverage :: (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => CoverageMap rv
+a64Coverage :: (64 <= RVWidth rv, AExt << rv) => CoverageMap rv
 a64Coverage = Map.fromList
   [ Pair Lrd      (InstExprList generalCoverage)
   , Pair Scd      (InstExprList generalCoverage)

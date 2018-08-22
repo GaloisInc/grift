@@ -61,43 +61,50 @@ import           RISCV.Semantics
 import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 
--- | The Extensions we enable in simulation.
-type SimExts = (Exts '(PrivM, MYes, AYes, FDYes))
+-- | Get an 'RV' type representative from an input 'String'.
+rvReprFromString :: String -> Maybe (Some RVRepr)
+rvReprFromString s = case s of
+  "RV32I"     -> Just $ Some (knownRepr :: RVRepr RV32I)
+  "RV32IM"    -> Just $ Some (knownRepr :: RVRepr RV32IM)
+  "RV32IMA"   -> Just $ Some (knownRepr :: RVRepr RV32IMA)
+  "RV32IMAF"  -> Just $ Some (knownRepr :: RVRepr RV32IMAF)
+  "RV32IMAFD" -> Just $ Some (knownRepr :: RVRepr RV32IMAFD)
+  "RV64I"     -> Just $ Some (knownRepr :: RVRepr RV64I)
+  "RV64IM"    -> Just $ Some (knownRepr :: RVRepr RV64IM)
+  "RV64IMA"   -> Just $ Some (knownRepr :: RVRepr RV64IMA)
+  "RV64IMAF"  -> Just $ Some (knownRepr :: RVRepr RV64IMAF)
+  "RV64IMAFD" -> Just $ Some (knownRepr :: RVRepr RV64IMAFD)
+  _ -> Nothing
 
 main :: IO ()
 main = do
   args <- getArgs
   when (length args /= 2) $ do
-    putStrLn "Use: riscv-sim steps elfFile"
+    putStrLn "Use: riscv-sim <config> <steps> elfFile"
+    putStrLn "  <config> = RV{32|64}I, RV{32|64}IM, ..., RV{32|64}IMAFD"
+    putStrLn "  <steps> = positive integer, # of steps to run"
     exitFailure
 
-  let [stepStr, fileName] = args
+  let [rvStr, stepStr, fileName] = args
       stepsToRun = read stepStr :: Int
       logFile = replaceExtensions fileName "log"
+  Some rvRepr <- case rvReprFromString rvStr of
+    Nothing -> do
+      putStrLn $ "Unknown configuration " ++ rvStr ++", defaulting to RV32I"
+      return (Some (knownRepr :: RVRepr RV32I))
+    Just repr -> return repr
 
   fileBS <- BS.readFile fileName
   case parseElf fileBS of
-    Elf32Res _ e -> runElf stepsToRun logFile (RV32Elf e)
-    Elf64Res _ e -> runElf stepsToRun logFile (RV64Elf e)
-
--- | Wrapper for 'Elf' datatype
-data RISCVElf (arch :: BaseArch) where
-  RV32Elf :: Elf 32 -> RISCVElf RV32
-  RV64Elf :: Elf 64 -> RISCVElf RV64
-
--- | Unpacking 'RISCVElf' into 'Elf'
-rElf :: RISCVElf arch -> Elf (ArchWidth arch)
-rElf (RV32Elf e) = e
-rElf (RV64Elf e) = e
+    Elf32Res _ e -> runElf rvRepr stepsToRun logFile e
+    Elf64Res _ e -> runElf rvRepr stepsToRun logFile e
 
 -- | Run a RISC-V ELF executable in simulation for a pre-specified number of steps.
-runElf :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
-       => Int -> FilePath -> RISCVElf arch -> IO ()
-runElf stepsToRun logFile re = do
-  let e = rElf re
-      byteStrings = elfBytes e
-  m :: LogMachine (RVConfig '(arch, SimExts)) <-
-    mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) 0x10000 byteStrings
+runElf :: forall rv w . ElfWidthConstraints w
+       => RVRepr rv -> Int -> FilePath -> Elf w -> IO ()
+runElf rvRepr stepsToRun logFile e = do
+  let byteStrings = elfBytes e
+  m  <- mkLogMachine rvRepr 0x1000000 (fromIntegral $ elfEntry e) 0x10000 byteStrings
   runLogMachine stepsToRun m
 
   pc         <- readIORef (ioPC m)

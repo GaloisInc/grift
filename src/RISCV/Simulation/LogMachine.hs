@@ -101,21 +101,21 @@ writeBS ix bs arr = do
 
 -- | Construct an LogMachine with a given maximum address, entry point, and list of
 -- (addr, bytestring) pairs to load into the memory.
-mkLogMachine :: forall rv . KnownRV rv
-             => BitVector (RVWidth rv)
+mkLogMachine :: RVRepr rv
+             -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
              -> [(BitVector (RVWidth rv), BS.ByteString)]
              -> IO (LogMachine rv)
-mkLogMachine maxAddr entryPoint sp byteStrings = do
-  pc        <- newIORef entryPoint
-  registers <- newArray (1, 31) 0
+mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
+  pc         <- newIORef entryPoint
+  registers  <- newArray (1, 31) 0
   fregisters <- newArray (0, 31) 0
-  memory    <- newArray (0, maxAddr) 0
-  csrs      <- newIORef $ Map.fromList [ ]
-  priv      <- newIORef 0b11 -- M mode by default.
+  memory     <- newArray (0, maxAddr) 0
+  csrs       <- newIORef $ Map.fromList [ ]
+  priv       <- newIORef 0b11 -- M mode by default.
   let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
-  testMap   <- newIORef $ Map.fromList $ f <$> MapF.toList knownCoverageMap
+  testMap    <- newIORef $ Map.fromList $ f <$> MapF.toList (knownCoverageMapWithRepr rvRepr)
 
   -- set up stack pointer
   writeArray registers 2 sp
