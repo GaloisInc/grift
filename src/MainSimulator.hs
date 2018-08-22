@@ -98,42 +98,33 @@ main = do
 
   fileBS <- BS.readFile fileName
   case (rvRepr, parseElf fileBS) of
-    (RVRepr RV32Repr _, Elf32Res _ e) -> runElf' rvRepr stepsToRun logFile e
-    (RVRepr RV64Repr _, Elf64Res _ e) -> runElf' rvRepr stepsToRun logFile e
+    (RVRepr RV32Repr _, Elf32Res _ e) -> runElf rvRepr stepsToRun logFile e
+    (RVRepr RV64Repr _, Elf64Res _ e) -> runElf rvRepr stepsToRun logFile e
     _ -> do putStrLn "Error: bad object file"
 
--- | Wrapper for 'Elf' datatype
-data RISCVElf (arch :: BaseArch) where
-  RV32Elf :: Elf 32 -> RISCVElf RV32
-  RV64Elf :: Elf 64 -> RISCVElf RV64
+runElf :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> FilePath -> Elf (RVWidth rv) -> IO ()
+runElf rvRepr stepsToRun logFile e = do
+  let byteStrings = withRVWidth rvRepr $ elfBytes e
+  m <- mkLogMachine
+    rvRepr
+    (withRVWidth rvRepr 0x1000000)
+    (withRVWidth rvRepr $ fromIntegral $ elfEntry e)
+    (withRVWidth rvRepr $ 0x10000)
+    byteStrings
+  runLogMachineWithRepr rvRepr stepsToRun m
 
--- | Unpacking 'RISCVElf' into 'Elf'
-rElf :: RISCVElf arch -> Elf (ArchWidth arch)
-rElf (RV32Elf e) = e
-rElf (RV64Elf e) = e
-
--- | Run a RISC-V ELF executable in simulation for a pre-specified number of steps.
-runElf :: forall arch . (ElfWidthConstraints (ArchWidth arch), KnownArch arch)
-       => Int -> FilePath -> RISCVElf arch -> IO ()
-runElf stepsToRun logFile re = do
-  let e = rElf re
-      byteStrings = elfBytes e
-  m :: LogMachine (RVConfig '(arch, SimExts)) <-
-    mkLogMachine 0x1000000 (fromIntegral $ elfEntry e) 0x10000 byteStrings
-  runLogMachine stepsToRun m
-
-  pc         <- readIORef (ioPC m)
+  pc         <- readIORef (lmPC m)
   registers  <- freezeRegisters m
   fregisters <- freezeFRegisters m
-  csrs       <- readIORef (ioCSRs m)
-  testMap    <- readIORef (ioTestMap m)
+  csrs       <- readIORef (lmCSRs m)
+  testMap    <- readIORef (lmTestMap m)
 
   putStrLn $ "MInstRet = " ++
-    show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
-  putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
-  putStrLn $ "MTVal = " ++ show (Map.findWithDefault 0 (encodeCSR MTVal) csrs)
-  putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
-  putStrLn $ "FCSR = " ++ show (Map.findWithDefault 0 (encodeCSR FCSR) csrs)
+    show (bvIntegerU (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MInstRet) csrs))
+  putStrLn $ "MEPC = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MEPC) csrs)
+  putStrLn $ "MTVal = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MTVal) csrs)
+  putStrLn $ "MCause = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MCause) csrs)
+  putStrLn $ "FCSR = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR FCSR) csrs)
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->
@@ -151,37 +142,6 @@ runElf stepsToRun logFile re = do
   --       forM_ (zip exprs vals) $ \(expr, val) ->
   --         putStrLn $ "  " ++ prettyShow expr ++ " ---> " ++ show val
   --     _ -> return ()
-
-runElf' :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> FilePath -> Elf (RVWidth rv) -> IO ()
-runElf' rvRepr stepsToRun logFile e = do
-  let byteStrings = withRVWidth rvRepr $ elfBytes e
-  m <- mkLogMachine'
-    rvRepr
-    (withRVWidth rvRepr 0x1000000)
-    (withRVWidth rvRepr $ fromIntegral $ elfEntry e)
-    (withRVWidth rvRepr $ 0x10000)
-    byteStrings
-  runLogMachineWithRepr rvRepr stepsToRun m
-
-  pc         <- readIORef (ioPC m)
-  registers  <- freezeRegisters m
-  fregisters <- freezeFRegisters m
-  csrs       <- readIORef (ioCSRs m)
-  testMap    <- readIORef (ioTestMap m)
-
-  putStrLn $ "MInstRet = " ++
-    show (bvIntegerU (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MInstRet) csrs))
-  putStrLn $ "MEPC = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MEPC) csrs)
-  putStrLn $ "MTVal = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MTVal) csrs)
-  putStrLn $ "MCause = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MCause) csrs)
-  putStrLn $ "FCSR = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR FCSR) csrs)
-  putStrLn $ "Final PC: " ++ show pc
-  putStrLn "Final register state:"
-  forM_ (assocs registers) $ \(r, v) ->
-    putStrLn $ "  x[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-  putStrLn "Final FP register state:"
-  forM_ (assocs fregisters) $ \(r, v) ->
-    putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

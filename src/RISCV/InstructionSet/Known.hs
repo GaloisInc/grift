@@ -47,11 +47,11 @@ import RISCV.InstructionSet.M
 import RISCV.InstructionSet.Priv
 import RISCV.Types
 
--- | Infer the current instruction set from a context in which the 'BaseArch' and
--- 'Extensions' are known.
+-- | Infer the current instruction set.
 knownISet :: forall rv . KnownRV rv => InstructionSet rv
 knownISet = knownISetWithRepr knownRepr
 
+-- | Infer an instruction set from an explicit 'RVRepr'.
 knownISetWithRepr :: RVRepr rv -> InstructionSet rv
 knownISetWithRepr rvRepr =
   let baseset = baseFromRepr rvRepr

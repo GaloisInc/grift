@@ -50,6 +50,7 @@ import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 
+-- | Get the F/D instruction set from an explicit 'RVRepr'.
 fdFromRepr :: RVRepr rv -> InstructionSet rv
 fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FYesDNoRepr)) = f32
 fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FDYesRepr))   = f32 <> d32

@@ -51,6 +51,7 @@ import RISCV.InstructionSet
 import RISCV.Semantics
 import RISCV.Types
 
+-- | Get the I instruction from an explicit 'RVRepr'.
 baseFromRepr :: RVRepr rv -> InstructionSet rv
 baseFromRepr (RVRepr RV32Repr _) = base32
 baseFromRepr (RVRepr RV64Repr _) = base64

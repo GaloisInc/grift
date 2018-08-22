@@ -49,6 +49,7 @@ import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 
+-- | Get the privileged instruction set from an explicit 'RVRepr'.
 privmFromRepr :: RVRepr rv -> InstructionSet rv
 privmFromRepr (RVRepr RV32Repr _) = privm
 privmFromRepr (RVRepr RV64Repr _) = privm

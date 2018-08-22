@@ -49,6 +49,7 @@ import RISCV.InstructionSet.Utils
 import RISCV.Semantics
 import RISCV.Types
 
+-- | Get the A instruction set from an explicit 'RVRepr'.
 aFromRepr :: RVRepr rv -> InstructionSet rv
 aFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ AYesRepr _)) = a32
 aFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _)) = a64

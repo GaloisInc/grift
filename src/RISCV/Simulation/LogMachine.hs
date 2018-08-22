@@ -49,7 +49,6 @@ This variant of LogMachine runs slower because it also logs coverage statistics.
 module RISCV.Simulation.LogMachine
   ( LogMachine(..)
   , mkLogMachine
-  , mkLogMachine'
   , LogMachineM
   , freezeRegisters
   , freezeFRegisters
@@ -84,14 +83,14 @@ import Debug.Trace (traceM)
 -- TODO: get rid of unused IORefs
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
-  { ioPC        :: IORef (BitVector (RVWidth rv))
-  , ioRegisters :: IOArray (BitVector 5) (BitVector (RVWidth rv))
-  , ioFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
-  , ioMemory    :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
-  , ioCSRs      :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
-  , ioPriv      :: IORef (BitVector 2)
-  , ioMaxAddr   :: BitVector (RVWidth rv)
-  , ioTestMap   :: IORef (Map (Some (Opcode rv)) [BitVector 1])
+  { lmPC        :: IORef (BitVector (RVWidth rv))
+  , lmRegisters :: IOArray (BitVector 5) (BitVector (RVWidth rv))
+  , lmFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
+  , lmMemory    :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
+  , lmCSRs      :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
+  , lmPriv      :: IORef (BitVector 2)
+  , lmMaxAddr   :: BitVector (RVWidth rv)
+  , lmTestMap   :: IORef (Map (Some (Opcode rv)) [BitVector 1])
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -102,38 +101,14 @@ writeBS ix bs arr = do
       writeArray arr ix (fromIntegral (BS.head bs))
       writeBS (ix+1) (BS.tail bs) arr
 
--- | Construct an LogMachine with a given maximum address, entry point, and list of
--- (addr, bytestring) pairs to load into the memory.
-mkLogMachine :: forall rv . KnownRV rv
-             => BitVector (RVWidth rv)
-             -> BitVector (RVWidth rv)
-             -> BitVector (RVWidth rv)
-             -> [(BitVector (RVWidth rv), BS.ByteString)]
-             -> IO (LogMachine rv)
-mkLogMachine maxAddr entryPoint sp byteStrings = do
-  pc        <- newIORef entryPoint
-  registers <- newArray (1, 31) 0
-  fregisters <- newArray (0, 31) 0
-  memory    <- newArray (0, maxAddr) 0
-  csrs      <- newIORef $ Map.fromList [ ]
-  priv      <- newIORef 0b11 -- M mode by default.
-  let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
-  testMap   <- newIORef $ Map.fromList $ []-- f <$> MapF.toList knownCoverageMap
-
-  -- set up stack pointer
-  writeArray registers 2 sp
-
-  forM_ byteStrings $ \(addr, bs) ->
-    writeBS addr bs memory
-  return (LogMachine pc registers fregisters memory csrs priv maxAddr testMap)
-
-mkLogMachine' :: RVRepr rv
+-- | Construction a 'LogMachine'.
+mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
              -> [(BitVector (RVWidth rv), BS.ByteString)]
              -> IO (LogMachine rv)
-mkLogMachine' rvRepr maxAddr entryPoint sp byteStrings = do
+mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
   pc        <- newIORef entryPoint
   registers <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
@@ -159,20 +134,20 @@ newtype LogMachineM (rv :: RV) a =
 
 instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   getPC = LogMachineM $ do
-    pcRef <- ioPC <$> ask
+    pcRef <- lmPC <$> ask
     pcVal <- lift $ readIORef pcRef
     return pcVal
   getReg rid = LogMachineM $ do
-    regArray <- ioRegisters <$> ask
+    regArray <- lmRegisters <$> ask
     regVal   <- lift $ readArray regArray rid
     return regVal
   getFReg rid = LogMachineM $ do
-    regArray <- ioFRegisters <$> ask
+    regArray <- lmFRegisters <$> ask
     regVal   <- lift $ readArray regArray rid
     return regVal
   getMem bytes addr = LogMachineM $ do
-    memArray <- ioMemory <$> ask
-    maxAddr  <- ioMaxAddr <$> ask
+    memArray <- lmMemory <$> ask
+    maxAddr  <- lmMaxAddr <$> ask
     case addr + fromIntegral (natValue bytes) < maxAddr of
       True -> do
         val <- lift $
@@ -182,34 +157,34 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
         -- TODO: We need to change this code to actually execute the semantics
         -- we've pre-defined in RISCV.Semantics.Exceptions
         traceM $ "Tried to read from memory location " ++ show addr
-        csrsRef <- ioCSRs <$> ask
+        csrsRef <- lmCSRs <$> ask
         csrMap  <- lift $ readIORef csrsRef
         lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
         return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = LogMachineM $ do
-    csrsRef <- ioCSRs <$> ask
+    csrsRef <- lmCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef
     let csrVal = case Map.lookup csr csrMap of
           Just val -> val
           Nothing  -> 0 -- TODO: throw exception in this case
     return csrVal
   getPriv = LogMachineM $ do
-    privRef <- ioPriv <$> ask
+    privRef <- lmPriv <$> ask
     privVal <- lift $ readIORef privRef
     return privVal
 
   setPC pcVal = LogMachineM $ do
-    pcRef <- ioPC <$> ask
+    pcRef <- lmPC <$> ask
     lift $ writeIORef pcRef pcVal
   setReg rid regVal = LogMachineM $ do
-    regArray <- ioRegisters <$> ask
+    regArray <- lmRegisters <$> ask
     lift $ writeArray regArray rid regVal
   setFReg rid regVal = LogMachineM $ do
-    regArray <- ioFRegisters <$> ask
+    regArray <- lmFRegisters <$> ask
     lift $ writeArray regArray rid regVal
   setMem bytes addr val = LogMachineM $ do
-    memArray <- ioMemory <$> ask
-    maxAddr <- ioMaxAddr <$> ask
+    memArray <- lmMemory <$> ask
+    maxAddr <- lmMaxAddr <$> ask
     case addr < maxAddr of
       True -> lift $
         for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
@@ -218,18 +193,18 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
                 (bvGetBytesU (fromIntegral (natValue bytes)) val)
       False -> do
         traceM $ "Tried to write to memory location " ++ show addr
-        csrsRef <- ioCSRs <$> ask
+        csrsRef <- lmCSRs <$> ask
         csrMap  <- lift $ readIORef csrsRef
         lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
   setCSR csr csrVal = LogMachineM $ do
-    csrsRef <- ioCSRs <$> ask
+    csrsRef <- lmCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef
     case Map.member csr csrMap of
       True -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap)
       False -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap) -- TODO:
                -- throw exception in this case
   setPriv privVal = LogMachineM $ do
-    privRef <- ioPriv <$> ask
+    privRef <- lmPriv <$> ask
     lift $ writeIORef privRef privVal
 
   logInstruction iset inst@(Inst opcode _) = do
@@ -245,25 +220,26 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine rv
                 -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
-freezeRegisters = freeze . ioRegisters
+freezeRegisters = freeze . lmRegisters
 
 -- | Create an immutable copy of the register file.
 freezeFRegisters :: LogMachine rv
                  -> IO (Array (BitVector 5) (BitVector (RVFloatWidth rv)))
-freezeFRegisters = freeze . ioFRegisters
+freezeFRegisters = freeze . lmFRegisters
 
 -- TODO: Why does this need KnownNat (RVWidth rv) but freezeRegisters does not?
 -- | Create an immutable copy of the memory.
 freezeMemory :: KnownRV rv
              => LogMachine rv
              -> IO (Array (BitVector (RVWidth rv)) (BitVector 8))
-freezeMemory = freeze . ioMemory
+freezeMemory = freeze . lmMemory
 
 -- | Run the simulator for a given number of steps.
 runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachine steps m =
   flip runReaderT m $ runLogMachineM $ runRV steps
 
+-- | Run the simulator for a given number of steps, with an explicit 'RVRepr'.
 runLogMachineWithRepr :: RVRepr rv -> Int -> LogMachine rv -> IO Int
 runLogMachineWithRepr rvRepr steps m =
   flip runReaderT m $ runLogMachineM $ withRVWidth rvRepr $ runRVWithRepr rvRepr steps

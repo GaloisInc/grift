@@ -304,18 +304,20 @@ type KnownRV rv = ( KnownRepr RVRepr rv
                   , KnownNat (RVWidth rv)
                   , KnownNat (RVFloatWidth rv))
 
--- | Maps a RISC-V configuration to its register width, as a 'Nat'.
+-- | Maps a RISC-V configuration to its register width.
 type family RVWidth (rv :: RV) :: Nat where
   RVWidth (RVConfig '(arch, _)) = ArchWidth arch
 
+-- | Maps a 'FDConfig' to its corresponding floating point register width.
 type family FDFloatWidth (fd :: FDConfig) :: Nat where
   FDFloatWidth FDYes = 64
   FDFloatWidth _ = 32
 
--- | This should only be used in a context where FExt << rv.
+-- | Maps a RISC-V configuration to its floating point register width.
 type family RVFloatWidth (rv :: RV) :: Nat where
   RVFloatWidth rv = FDFloatWidth (RVFloatType rv)
 
+-- | Maps a RISC-V configuration to its 'FDConfig'.
 type family RVFloatType (rv :: RV) :: FDConfig where
   RVFloatType (RVConfig '(_, Exts '(_, _, _, fd))) = fd
 
@@ -323,11 +325,13 @@ type family RVFloatType (rv :: RV) :: FDConfig where
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
 
+-- | Satisfy a 'KnownRVWidth' constraint from an explicit 'RVRepr'.
 withRVWidth :: RVRepr rv -> (KnownRVWidth rv => b) -> b
 withRVWidth (RVRepr RV32Repr _) b = b
 withRVWidth (RVRepr RV64Repr _) b = b
 withRVWidth (RVRepr RV128Repr _) b = b
 
+-- | Satisfy a 'KnownRVFloatWidth' constraint from an explicit 'RVRepr'.
 withRVFloatWidth :: RVRepr rv -> (KnownRVFloatWidth rv => b) -> b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr)) b = b

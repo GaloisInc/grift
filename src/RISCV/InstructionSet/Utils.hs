@@ -105,12 +105,13 @@ b cmp = do
 
   let pc = readPC
   ib <- instBytes
-  let branchPC = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+  let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
   assignPC (iteE (x_rs1 `cmp` x_rs2)
-            (pc `addE` branchPC)
+            (pc `addE` branchOffset)
             (pc `addE` zextE ib))
 
+-- | NaN-box a 32-bit expression to fit in a floating point register.
 nanBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
          => expr 32
          -> SemanticsM expr rv (expr (RVFloatWidth rv))
@@ -119,6 +120,8 @@ nanBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
   FYesDNoRepr -> return e
   FDNoRepr    -> undefined
 
+-- | Take a value from a floating-point register and get a 32-bit value, checking
+-- that the original value was properly NaN-boxed.
 unBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
         => expr (RVFloatWidth rv)
         -> SemanticsM expr rv (expr 32)
@@ -128,12 +131,15 @@ unBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
   FYesDNoRepr -> return e
   FDNoRepr -> undefined
 
+-- | Convenience function for creating a giant nested 'iteE' expression.
 cases :: BVExpr expr
       => [(expr 1, expr w)] -- ^ list of guarded results
       -> expr w             -- ^ default result
       -> expr w
 cases cs d = foldr (uncurry iteE) d cs
 
+-- | Convenience function for creating a giant nested 'branch' in a semantics
+-- definition.
 branches :: [(expr 1, SemanticsM expr rv ())]
          -> SemanticsM expr rv ()
          -> SemanticsM expr rv ()
@@ -337,6 +343,8 @@ raiseException e info = do
 
   assignPC mtVecBase
 
+-- | Raise floating point exceptions. This ORs the current fflags with the supplied
+-- 5-bit value.
 raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM (expr rv) rv ()
@@ -348,6 +356,10 @@ dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 3
 dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
             in extractE 5 fcsr
 
+-- | Perform a computation that requires a rounding mode by supplying a rounding
+-- mode. This handles the situation where the rounding mode is invalid or dynamic; in
+-- the former case an illegal instruction is raised, and in the latter, we select the
+-- rounding mode in frm.
 withRM :: KnownRVWidth rv
        => InstExpr fmt rv 3
        -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt rv) rv ())
@@ -359,11 +371,15 @@ withRM rm action = do
           raiseException IllegalInstruction iw
     $> action rm
 
+-- | Unpack a 32-bit floating point result into the returned value and exception
+-- flags. If the input is a NaN, return the canonical NaN.
 getFResCanonical32 :: BVExpr expr => expr 37 -> (expr 32, expr 5)
 getFResCanonical32 e = let (res, flags) = getFRes e
                            res' = iteE (isNaN32 res) canonicalNaN32 res
                        in (res', flags)
 
+-- | Unpack a 64-bit floating point result into the returned value and exception
+-- flags. If the input is a NaN, return the canonical NaN.
 getFResCanonical64 :: BVExpr expr => expr 69 -> (expr 64, expr 5)
 getFResCanonical64 e = let (res, flags) = getFRes e
                            res' = iteE (isNaN64 res) canonicalNaN64 res
