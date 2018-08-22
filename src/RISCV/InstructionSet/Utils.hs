@@ -18,6 +18,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE BinaryLiterals      #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -116,7 +117,7 @@ nanBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
 nanBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
   FDYesRepr   -> return $ (litBV (-1) :: expr 32) `concatE` e
   FYesDNoRepr -> return e
-  _ -> undefined
+  FDNoRepr    -> undefined
 
 unBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
         => expr (RVFloatWidth rv)
@@ -125,7 +126,7 @@ unBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
   FDYesRepr -> return $
     iteE (extractEWithRepr (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
   FYesDNoRepr -> return e
-  _ -> undefined
+  FDNoRepr -> undefined
 
 cases :: BVExpr expr
       => [(expr 1, expr w)] -- ^ list of guarded results

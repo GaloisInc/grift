@@ -68,6 +68,8 @@ module RISCV.Types
   , KnownRVFloatWidth
   , KnownRVFloatType
   , KnownRV
+  , withRVWidth
+  , withRVFloatWidth
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
   , RV32I
@@ -320,6 +322,16 @@ type family RVFloatType (rv :: RV) :: FDConfig where
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
+
+withRVWidth :: RVRepr rv -> (KnownRVWidth rv => b) -> b
+withRVWidth (RVRepr RV32Repr _) b = b
+withRVWidth (RVRepr RV64Repr _) b = b
+withRVWidth (RVRepr RV128Repr _) b = b
+
+withRVFloatWidth :: RVRepr rv -> (KnownRVFloatWidth rv => b) -> b
+withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr)) b = b
+withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr)) b = b
+withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDNoRepr)) b = b
 
 -- type synonyms for common RVConfigs.
 type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo))

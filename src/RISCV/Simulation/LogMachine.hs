@@ -24,6 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -48,11 +49,13 @@ This variant of LogMachine runs slower because it also logs coverage statistics.
 module RISCV.Simulation.LogMachine
   ( LogMachine(..)
   , mkLogMachine
+  , mkLogMachine'
   , LogMachineM
   , freezeRegisters
   , freezeFRegisters
   , freezeMemory
   , runLogMachine
+  , runLogMachineWithRepr
   ) where
 
 import           Control.Monad (forM_)
@@ -115,13 +118,36 @@ mkLogMachine maxAddr entryPoint sp byteStrings = do
   csrs      <- newIORef $ Map.fromList [ ]
   priv      <- newIORef 0b11 -- M mode by default.
   let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
-  testMap   <- newIORef $ Map.fromList $ f <$> MapF.toList knownCoverageMap
+  testMap   <- newIORef $ Map.fromList $ []-- f <$> MapF.toList knownCoverageMap
 
   -- set up stack pointer
   writeArray registers 2 sp
 
-  forM_ byteStrings $ \(addr, bs) -> do
+  forM_ byteStrings $ \(addr, bs) ->
     writeBS addr bs memory
+  return (LogMachine pc registers fregisters memory csrs priv maxAddr testMap)
+
+mkLogMachine' :: RVRepr rv
+             -> BitVector (RVWidth rv)
+             -> BitVector (RVWidth rv)
+             -> BitVector (RVWidth rv)
+             -> [(BitVector (RVWidth rv), BS.ByteString)]
+             -> IO (LogMachine rv)
+mkLogMachine' rvRepr maxAddr entryPoint sp byteStrings = do
+  pc        <- newIORef entryPoint
+  registers <- withRVWidth rvRepr $ newArray (1, 31) 0
+  fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
+  memory    <- withRVWidth rvRepr $ newArray (0, maxAddr) 0
+  csrs      <- newIORef $ Map.fromList [ ]
+  priv      <- newIORef 0b11 -- M mode by default.
+  let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
+  testMap   <- newIORef $ Map.fromList $ []-- f <$> MapF.toList knownCoverageMap
+
+  -- set up stack pointer
+  writeArray registers 2 sp
+
+  forM_ byteStrings $ \(addr, bs) ->
+    withRVWidth rvRepr $ writeBS addr bs memory
   return (LogMachine pc registers fregisters memory csrs priv maxAddr testMap)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
@@ -131,7 +157,7 @@ newtype LogMachineM (rv :: RV) a =
   LogMachineM { runLogMachineM :: ReaderT (LogMachine rv) IO a }
   deriving (Functor, Applicative, Monad, R.MonadReader (LogMachine rv))
 
-instance KnownRV rv => RVStateM (LogMachineM rv) rv where
+instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   getPC = LogMachineM $ do
     pcRef <- ioPC <$> ask
     pcVal <- lift $ readIORef pcRef
@@ -207,13 +233,14 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
     lift $ writeIORef privRef privVal
 
   logInstruction iset inst@(Inst opcode _) = do
-    testMap <- LogMachineM (ioTestMap <$> ask)
-    case MapF.lookup opcode knownCoverageMap of
-      Nothing -> return ()
-      Just (InstExprList exprs) -> do
-        exprVals <- traverse (evalInstExpr iset inst 4) exprs
-        LogMachineM $ lift $ modifyIORef testMap $ \m ->
-          Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
+    return ()
+    -- testMap <- LogMachineM (ioTestMap <$> ask)
+    -- case MapF.lookup opcode knownCoverageMap of
+    --   Nothing -> return ()
+    --   Just (InstExprList exprs) -> do
+    --     exprVals <- traverse (evalInstExpr iset inst 4) exprs
+    --     LogMachineM $ lift $ modifyIORef testMap $ \m ->
+    --       Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine rv
@@ -236,3 +263,7 @@ freezeMemory = freeze . ioMemory
 runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachine steps m =
   flip runReaderT m $ runLogMachineM $ runRV steps
+
+runLogMachineWithRepr :: RVRepr rv -> Int -> LogMachine rv -> IO Int
+runLogMachineWithRepr rvRepr steps m =
+  flip runReaderT m $ runLogMachineM $ withRVWidth rvRepr $ runRVWithRepr rvRepr steps

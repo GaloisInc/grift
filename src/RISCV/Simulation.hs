@@ -50,6 +50,7 @@ module RISCV.Simulation
   , execAssignment
   , execSemantics
   , runRV
+  , runRVWithRepr
   , getTests
   ) where
 
@@ -111,7 +112,7 @@ class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocApp', given an 'RVStateM' implementation.
 evalLocApp :: forall m expr rv w
-               . (RVStateM m rv, KnownRV rv)
+               . (RVStateM m rv)
             => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
             -> LocApp expr rv w
             -> m (BitVector w)
@@ -126,7 +127,7 @@ evalLocApp _ PrivExpr = getPriv
 
 -- | Evaluate a 'StateApp', given an 'RVStateM' implementation.
 evalStateApp :: forall m expr rv w
-                 . (RVStateM m rv, KnownRV rv)
+                 . (RVStateM m rv)
               => (forall w' . expr w' -> m (BitVector w'))
                  -- ^ evaluator for internal expressions
               -> StateApp expr rv w
@@ -137,14 +138,14 @@ evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
 evalPureStateExpr :: forall m rv w
-                 . (RVStateM m rv, KnownRV rv)
+                 . (RVStateM m rv)
               => PureStateExpr rv w
               -> m (BitVector w)
 evalPureStateExpr (PureStateExpr e) = evalStateApp evalPureStateExpr e
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m rv fmt w
-            . (RVStateM m rv, KnownRV rv)
+            . (RVStateM m rv, KnownRVWidth rv)
              => InstructionSet rv
              -> Instruction rv fmt -- ^ instruction
              -> Integer          -- ^ Instruction width (in bytes)
@@ -174,7 +175,7 @@ data Assignment (rv :: RV) where
   Assignment :: Loc rv w -> BitVector w -> Assignment rv
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
-buildAssignment :: (RVStateM m rv, KnownRV rv)
+buildAssignment :: (RVStateM m rv)
                      => (forall w . expr w -> m (BitVector w))
                      -> Stmt expr rv
                      -> m [Assignment rv]
@@ -213,7 +214,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
     _ -> return $ concat tAssignments
 
 -- | Execute an assignment.
-execAssignment :: (RVStateM m rv, KnownRV rv) => Assignment rv -> m ()
+execAssignment :: (RVStateM m rv) => Assignment rv -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (FReg rid) val) = setFReg rid val
@@ -225,7 +226,7 @@ execAssignment (Assignment (CSR csr) val) = do
 execAssignment (Assignment Priv val) = setPriv val
 
 -- | Execute a formula, given an 'RVStateM' implementation.
-execSemantics :: forall m expr rv . (RVStateM m rv, KnownRV rv)
+execSemantics :: forall m expr rv . (RVStateM m rv, KnownRVWidth rv)
              => (forall w . expr w -> m (BitVector w))
              -> Semantics expr rv
              -> m ()
@@ -236,7 +237,7 @@ execSemantics eval f = do
 -- TODO: Write another version of this function that does not call logInstruction,
 -- for pure simulation (faster).
 -- | Fetch, decode, and execute a single instruction.
-stepRV :: forall m rv . (RVStateM m rv, KnownRV rv)
+stepRV :: forall m rv . (RVStateM m rv, KnownRVWidth rv)
        => InstructionSet rv
        -> m ()
 stepRV iset = do
@@ -260,22 +261,28 @@ stepRV iset = do
     assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
 
 -- | Check whether the machine has halted.
-isHalted :: (RVStateM m rv, KnownRV rv) => m Bool
+isHalted :: (KnownRVWidth rv, RVStateM m rv) => m Bool
 isHalted = do
   mcause <- getCSR (encodeCSR MCause)
   return (mcause == 2 || mcause == 3 || mcause == 5 ||
           mcause == 7 || mcause == 8 || mcause == 11)
 
+runRV' :: forall m rv . (RVStateM m rv, KnownRVWidth rv) => InstructionSet rv -> Int -> Int -> m Int
+runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
+runRV' iset currSteps maxSteps = do
+  halted <- isHalted
+  case halted of
+    True  -> return currSteps
+    False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
+
 -- | Run for a given number of steps.
-runRV :: forall m rv . (RVStateM m rv, KnownRV rv)
-      => Int -> m Int
+runRV :: forall m rv . (RVStateM m rv, KnownRV rv) => Int -> m Int
 runRV = runRV' knownISet 0
-  where runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
-        runRV' iset currSteps maxSteps = do
-          halted <- isHalted
-          case halted of
-            True  -> return currSteps
-            False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
+
+
+-- | Run for a given number of steps.
+runRVWithRepr :: forall m rv . RVStateM m rv => RVRepr rv -> Int -> m Int
+runRVWithRepr rvRepr = withRVWidth rvRepr $ runRV' (knownISetWithRepr rvRepr) 0
 
 
 ----------------------------------------
