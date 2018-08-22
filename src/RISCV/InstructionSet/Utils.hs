@@ -110,14 +110,14 @@ b cmp = do
             (pc `addE` branchPC)
             (pc `addE` zextE ib))
 
-nanBox32 :: forall proxy expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
+nanBox32 :: forall expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
          => expr 32
          -> SemanticsM expr rv (expr (RVFloatWidth rv))
 nanBox32 e = case knownRepr :: RVRepr rv of
   RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> return $ (litBV (-1) :: expr 32) `concatE` e
   RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> return e
 
-unBox32 :: forall proxy expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
+unBox32 :: forall expr rv . (BVExpr expr, KnownRV rv, FExt << rv)
         => expr (RVFloatWidth rv)
         -> SemanticsM expr rv (expr 32)
 unBox32 e = case knownRepr :: RVRepr rv of

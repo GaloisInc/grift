@@ -45,7 +45,6 @@ import Data.BitVector.Sized
 import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
 import Data.Parameterized.List
-import Debug.Trace (trace)
 
 import RISCV.InstructionSet
 import RISCV.Types
