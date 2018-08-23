@@ -50,7 +50,6 @@ module RISCV.Simulation
   , execAssignment
   , execSemantics
   , runRV
-  , runRVWithRepr
   , getTests
   ) where
 
@@ -77,7 +76,10 @@ import RISCV.Types
 -- implementation side? How would that work? Punting on this until we need to go
 -- deeper with the exception handling stuff.
 -- | State monad for simulating RISC-V code
-class (Monad m) => RVStateM m (rv :: RV) | m -> rv where
+class Monad m => RVStateM m (rv :: RV) | m -> rv where
+  -- | Get the RISC-V configuration.
+  getRV :: m (RVRepr rv)
+
   -- | Get the current PC.
   getPC   :: m (BitVector (RVWidth rv))
   -- | Get the value of a register. This function shouldn't ever be called with an
@@ -144,16 +146,19 @@ evalPureStateExpr :: forall m rv w
 evalPureStateExpr (PureStateExpr e) = evalStateApp evalPureStateExpr e
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
-evalInstExpr :: forall m rv fmt w
-            . (RVStateM m rv, KnownRVWidth rv)
+evalInstExpr :: forall m rv fmt w . RVStateM m rv
              => InstructionSet rv
              -> Instruction rv fmt -- ^ instruction
              -> Integer          -- ^ Instruction width (in bytes)
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
              -> m (BitVector w)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
-evalInstExpr _ _ ib InstBytes = return $ bitVector ib
-evalInstExpr iset inst _ InstWord = return $ (bvZext $ encode iset inst)
+evalInstExpr _ _ ib InstBytes = do
+  rv <- getRV
+  return $ withRVWidth rv $ bitVector ib
+evalInstExpr iset inst _ InstWord = do
+  rv <- getRV
+  return $ (withRVWidth rv $ bvZext $ encode iset inst)
 evalInstExpr iset inst ib (InstStateExpr e) = evalStateApp (evalInstExpr iset inst ib) e
 
 -- | This type represents a concrete component of the global state, after all
@@ -214,7 +219,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
     _ -> return $ concat tAssignments
 
 -- | Execute an assignment.
-execAssignment :: (RVStateM m rv) => Assignment rv -> m ()
+execAssignment :: RVStateM m rv => Assignment rv -> m ()
 execAssignment (Assignment PC val) = setPC val
 execAssignment (Assignment (Reg rid) val) = setReg rid val
 execAssignment (Assignment (FReg rid) val) = setFReg rid val
@@ -226,7 +231,7 @@ execAssignment (Assignment (CSR csr) val) = do
 execAssignment (Assignment Priv val) = setPriv val
 
 -- | Execute a formula, given an 'RVStateM' implementation.
-execSemantics :: forall m expr rv . (RVStateM m rv, KnownRVWidth rv)
+execSemantics :: forall m expr rv . (RVStateM m rv)
              => (forall w . expr w -> m (BitVector w))
              -> Semantics expr rv
              -> m ()
@@ -237,28 +242,30 @@ execSemantics eval f = do
 -- TODO: Write another version of this function that does not call logInstruction,
 -- for pure simulation (faster).
 -- | Fetch, decode, and execute a single instruction.
-stepRV :: forall m rv . (RVStateM m rv, KnownRVWidth rv)
+stepRV :: forall m rv . (RVStateM m rv)
        => InstructionSet rv
        -> m ()
 stepRV iset = do
-  -- Fetch
-  pcVal  <- getPC
-  instBV <- getMem (knownNat @4) pcVal
+  rv <- getRV
+  withRVWidth rv $ do
+    -- Fetch
+    pcVal  <- getPC
+    instBV <- getMem (knownNat @4) pcVal
 
-  -- Decode
-  -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-  Some inst@(Inst opcode _) <- return $ decode iset instBV
+    -- Decode
+    -- TODO: When we add compression ('C' extension), we'll need to modify this code.
+    Some inst@(Inst opcode _) <- return $ decode iset instBV
 
-  -- Log instruction BEFORE execution
-  logInstruction iset inst
+    -- Log instruction BEFORE execution
+    logInstruction iset inst
 
-  -- Execute
-  execSemantics (evalInstExpr iset inst 4) (getInstSemantics $ semanticsFromOpcode iset opcode)
+    -- Execute
+    execSemantics (evalInstExpr iset inst 4) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
-  -- Record cycle count
-  execSemantics evalPureStateExpr $ getSemantics $ do
-    let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
-    assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
+    -- Record cycle count
+    execSemantics evalPureStateExpr $ getSemantics $ do
+      let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
+      assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
 
 -- | Check whether the machine has halted.
 isHalted :: (KnownRVWidth rv, RVStateM m rv) => m Bool
@@ -276,14 +283,10 @@ runRV' iset currSteps maxSteps = do
     False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
 
 -- | Run for a given number of steps.
-runRV :: forall m rv . (RVStateM m rv, KnownRV rv) => Int -> m Int
-runRV = runRV' knownISet 0
-
-
--- | Run for a given number of steps.
-runRVWithRepr :: forall m rv . RVStateM m rv => RVRepr rv -> Int -> m Int
-runRVWithRepr rvRepr = withRVWidth rvRepr $ runRV' (knownISetWithRepr rvRepr) 0
-
+runRV :: forall m rv . (RVStateM m rv) => Int -> m Int
+runRV steps = do
+  rv <- getRV
+  withRVWidth rv $ runRV' (knownISetWithRepr rv) 0 steps
 
 ----------------------------------------
 -- Analysis

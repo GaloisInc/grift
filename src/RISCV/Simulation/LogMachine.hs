@@ -52,9 +52,7 @@ module RISCV.Simulation.LogMachine
   , LogMachineM
   , freezeRegisters
   , freezeFRegisters
-  , freezeMemory
   , runLogMachine
-  , runLogMachineWithRepr
   ) where
 
 import           Control.Monad (forM_)
@@ -83,7 +81,8 @@ import Debug.Trace (traceM)
 -- TODO: get rid of unused IORefs
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
-  { lmPC        :: IORef (BitVector (RVWidth rv))
+  { lmRV        :: RVRepr rv
+  , lmPC        :: IORef (BitVector (RVWidth rv))
   , lmRegisters :: IOArray (BitVector 5) (BitVector (RVWidth rv))
   , lmFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
   , lmMemory    :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
@@ -123,7 +122,7 @@ mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
 
   forM_ byteStrings $ \(addr, bs) ->
     withRVWidth rvRepr $ writeBS addr bs memory
-  return (LogMachine pc registers fregisters memory csrs priv maxAddr testMap)
+  return (LogMachine rvRepr pc registers fregisters memory csrs priv maxAddr testMap)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -132,7 +131,8 @@ newtype LogMachineM (rv :: RV) a =
   LogMachineM { runLogMachineM :: ReaderT (LogMachine rv) IO a }
   deriving (Functor, Applicative, Monad, R.MonadReader (LogMachine rv))
 
-instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
+instance RVStateM (LogMachineM rv) rv where
+  getRV = LogMachineM $ lmRV <$> ask
   getPC = LogMachineM $ do
     pcRef <- lmPC <$> ask
     pcVal <- lift $ readIORef pcRef
@@ -148,25 +148,28 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   getMem bytes addr = LogMachineM $ do
     memArray <- lmMemory <$> ask
     maxAddr  <- lmMaxAddr <$> ask
-    case addr + fromIntegral (natValue bytes) < maxAddr of
-      True -> do
-        val <- lift $
-          for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
-        return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
-      False -> do
-        -- TODO: We need to change this code to actually execute the semantics
-        -- we've pre-defined in RISCV.Semantics.Exceptions
-        traceM $ "Tried to read from memory location " ++ show addr
-        csrsRef <- lmCSRs <$> ask
-        csrMap  <- lift $ readIORef csrsRef
-        lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
-        return (BV ((knownNat @8) `natMultiply` bytes) 0)
+    rv <- lmRV <$> ask
+    withRVWidth rv $
+      case addr + fromIntegral (natValue bytes) < maxAddr of
+        True -> do
+          val <- lift $
+            for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
+          return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
+        False -> do
+          -- TODO: We need to change this code to actually execute the semantics
+          -- we've pre-defined in RISCV.Semantics.Exceptions
+          traceM $ "Tried to read from memory location " ++ show addr
+          csrsRef <- lmCSRs <$> ask
+          csrMap  <- lift $ readIORef csrsRef
+          lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
+          return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = LogMachineM $ do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef
+    rv <- lmRV <$> ask
     let csrVal = case Map.lookup csr csrMap of
           Just val -> val
-          Nothing  -> 0 -- TODO: throw exception in this case
+          Nothing  -> withRVWidth rv 0 -- TODO: throw exception?
     return csrVal
   getPriv = LogMachineM $ do
     privRef <- lmPriv <$> ask
@@ -185,17 +188,19 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   setMem bytes addr val = LogMachineM $ do
     memArray <- lmMemory <$> ask
     maxAddr <- lmMaxAddr <$> ask
-    case addr < maxAddr of
-      True -> lift $
-        for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
-        where addrValPairs = zip
-                [addr..addr+(fromIntegral (natValue bytes-1))]
-                (bvGetBytesU (fromIntegral (natValue bytes)) val)
-      False -> do
-        traceM $ "Tried to write to memory location " ++ show addr
-        csrsRef <- lmCSRs <$> ask
-        csrMap  <- lift $ readIORef csrsRef
-        lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
+    rv <- lmRV <$> ask
+    withRVWidth rv $
+      case addr < maxAddr of
+        True -> lift $
+          for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
+          where addrValPairs = zip
+                  [addr..addr+(fromIntegral (natValue bytes-1))]
+                  (bvGetBytesU (fromIntegral (natValue bytes)) val)
+        False -> do
+          traceM $ "Tried to write to memory location " ++ show addr
+          csrsRef <- lmCSRs <$> ask
+          csrMap  <- lift $ readIORef csrsRef
+          lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
   setCSR csr csrVal = LogMachineM $ do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- lift $ readIORef csrsRef
@@ -222,24 +227,11 @@ freezeRegisters :: LogMachine rv
                 -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
 freezeRegisters = freeze . lmRegisters
 
--- | Create an immutable copy of the register file.
+-- | Create an immutable copy of the floating point register file.
 freezeFRegisters :: LogMachine rv
                  -> IO (Array (BitVector 5) (BitVector (RVFloatWidth rv)))
 freezeFRegisters = freeze . lmFRegisters
 
--- TODO: Why does this need KnownNat (RVWidth rv) but freezeRegisters does not?
--- | Create an immutable copy of the memory.
-freezeMemory :: KnownRV rv
-             => LogMachine rv
-             -> IO (Array (BitVector (RVWidth rv)) (BitVector 8))
-freezeMemory = freeze . lmMemory
-
 -- | Run the simulator for a given number of steps.
-runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
-runLogMachine steps m =
-  flip runReaderT m $ runLogMachineM $ runRV steps
-
--- | Run the simulator for a given number of steps, with an explicit 'RVRepr'.
-runLogMachineWithRepr :: RVRepr rv -> Int -> LogMachine rv -> IO Int
-runLogMachineWithRepr rvRepr steps m =
-  flip runReaderT m $ runLogMachineM $ withRVWidth rvRepr $ runRVWithRepr rvRepr steps
+runLogMachine :: Int -> LogMachine rv -> IO Int
+runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps

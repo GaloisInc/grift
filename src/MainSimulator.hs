@@ -103,15 +103,15 @@ main = do
     _ -> do putStrLn "Error: bad object file"
 
 runElf :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> FilePath -> Elf (RVWidth rv) -> IO ()
-runElf rvRepr stepsToRun logFile e = do
-  let byteStrings = withRVWidth rvRepr $ elfBytes e
+runElf rvRepr stepsToRun logFile e = withRVWidth rvRepr $ do
+  let byteStrings = elfBytes e
   m <- mkLogMachine
     rvRepr
-    (withRVWidth rvRepr 0x1000000)
-    (withRVWidth rvRepr $ fromIntegral $ elfEntry e)
-    (withRVWidth rvRepr $ 0x10000)
+    0x1000000
+    (fromIntegral $ elfEntry e)
+    0x10000
     byteStrings
-  runLogMachineWithRepr rvRepr stepsToRun m
+  runLogMachine stepsToRun m
 
   pc         <- readIORef (lmPC m)
   registers  <- freezeRegisters m
@@ -120,11 +120,11 @@ runElf rvRepr stepsToRun logFile e = do
   testMap    <- readIORef (lmTestMap m)
 
   putStrLn $ "MInstRet = " ++
-    show (bvIntegerU (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MInstRet) csrs))
-  putStrLn $ "MEPC = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MEPC) csrs)
-  putStrLn $ "MTVal = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MTVal) csrs)
-  putStrLn $ "MCause = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR MCause) csrs)
-  putStrLn $ "FCSR = " ++ show (Map.findWithDefault (withRVWidth rvRepr 0) (encodeCSR FCSR) csrs)
+    show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
+  putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
+  putStrLn $ "MTVal = " ++ show (Map.findWithDefault  0 (encodeCSR MTVal) csrs)
+  putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
+  putStrLn $ "FCSR = " ++ show (Map.findWithDefault 0 (encodeCSR FCSR) csrs)
   putStrLn $ "Final PC: " ++ show pc
   putStrLn "Final register state:"
   forM_ (assocs registers) $ \(r, v) ->
