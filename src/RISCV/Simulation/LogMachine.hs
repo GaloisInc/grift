@@ -162,16 +162,17 @@ instance RVStateM (LogMachineM rv) rv where
             for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
           return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
         False -> do
-          -- TODO: We need to change this code to actually execute the semantics
-          -- we've pre-defined in RISCV.Semantics.Exceptions
+          -- TODO: We need to handle this in the semantics and provide an interface
+          -- via the 'Simulation' type class. Currently, even when there is an access
+          -- fault, the entire instruction still gets executed; really what should
+          -- happen is there should be an implicit branch every time we access a
+          -- memory location.
           traceM $ "Tried to read from memory location " ++ show addr
           csrsRef <- lmCSRs <$> ask
           csrMap  <- liftIO $ readIORef csrsRef
           liftIO $ writeIORef csrsRef (Map.insert
                                        (encodeCSR MCause)
                                        (getMCause StoreAccessFault) csrMap)
-          -- execSemantics evalPureStateExpr $ getSemantics $ do
-          --   raiseException StoreAccessFault (litBV 0x0)
           return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = do
     csrsRef <- lmCSRs <$> ask
