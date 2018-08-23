@@ -56,9 +56,9 @@ module RISCV.Simulation.LogMachine
   ) where
 
 import           Control.Monad (forM_)
-import qualified Control.Monad.Reader.Class as R
+import           Control.Monad.Reader.Class
 import           Control.Monad.Trans
-import           Control.Monad.Trans.Reader
+import           Control.Monad.Trans.Reader hiding (ask)
 import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
@@ -74,6 +74,7 @@ import           Data.Traversable (for)
 import RISCV.Coverage
 import RISCV.InstructionSet.Utils
 import RISCV.Types
+import RISCV.Semantics
 import RISCV.Simulation
 
 import Debug.Trace (traceM)
@@ -129,30 +130,35 @@ mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
 -- state.
 newtype LogMachineM (rv :: RV) a =
   LogMachineM { runLogMachineM :: ReaderT (LogMachine rv) IO a }
-  deriving (Functor, Applicative, Monad, R.MonadReader (LogMachine rv))
+  deriving ( Functor
+           , Applicative
+           , Monad
+           , MonadReader (LogMachine rv)
+           , MonadIO
+           )
 
 instance RVStateM (LogMachineM rv) rv where
-  getRV = LogMachineM $ lmRV <$> ask
-  getPC = LogMachineM $ do
+  getRV = lmRV <$> ask
+  getPC = do
     pcRef <- lmPC <$> ask
-    pcVal <- lift $ readIORef pcRef
+    pcVal <- liftIO $ readIORef pcRef
     return pcVal
-  getReg rid = LogMachineM $ do
+  getReg rid = do
     regArray <- lmRegisters <$> ask
-    regVal   <- lift $ readArray regArray rid
+    regVal   <- liftIO $ readArray regArray rid
     return regVal
-  getFReg rid = LogMachineM $ do
+  getFReg rid = do
     regArray <- lmFRegisters <$> ask
-    regVal   <- lift $ readArray regArray rid
+    regVal   <- liftIO $ readArray regArray rid
     return regVal
-  getMem bytes addr = LogMachineM $ do
+  getMem bytes addr = do
     memArray <- lmMemory <$> ask
     maxAddr  <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
     withRVWidth rv $
       case addr + fromIntegral (natValue bytes) < maxAddr of
         True -> do
-          val <- lift $
+          val <- liftIO $
             for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
           return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
         False -> do
@@ -160,12 +166,16 @@ instance RVStateM (LogMachineM rv) rv where
           -- we've pre-defined in RISCV.Semantics.Exceptions
           traceM $ "Tried to read from memory location " ++ show addr
           csrsRef <- lmCSRs <$> ask
-          csrMap  <- lift $ readIORef csrsRef
-          lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
+          csrMap  <- liftIO $ readIORef csrsRef
+          liftIO $ writeIORef csrsRef (Map.insert
+                                       (encodeCSR MCause)
+                                       (getMCause StoreAccessFault) csrMap)
+          -- execSemantics evalPureStateExpr $ getSemantics $ do
+          --   raiseException StoreAccessFault (litBV 0x0)
           return (BV ((knownNat @8) `natMultiply` bytes) 0)
-  getCSR csr = LogMachineM $ do
+  getCSR csr = do
     csrsRef <- lmCSRs <$> ask
-    csrMap  <- lift $ readIORef csrsRef
+    csrMap  <- liftIO $ readIORef csrsRef
     rv <- lmRV <$> ask
     let csrVal = case Map.lookup csr csrMap of
           Just val -> val
@@ -176,22 +186,22 @@ instance RVStateM (LogMachineM rv) rv where
     privVal <- lift $ readIORef privRef
     return privVal
 
-  setPC pcVal = LogMachineM $ do
+  setPC pcVal = do
     pcRef <- lmPC <$> ask
-    lift $ writeIORef pcRef pcVal
-  setReg rid regVal = LogMachineM $ do
+    liftIO $ writeIORef pcRef pcVal
+  setReg rid regVal = do
     regArray <- lmRegisters <$> ask
-    lift $ writeArray regArray rid regVal
-  setFReg rid regVal = LogMachineM $ do
+    liftIO $ writeArray regArray rid regVal
+  setFReg rid regVal = do
     regArray <- lmFRegisters <$> ask
-    lift $ writeArray regArray rid regVal
-  setMem bytes addr val = LogMachineM $ do
+    liftIO $ writeArray regArray rid regVal
+  setMem bytes addr val = do
     memArray <- lmMemory <$> ask
     maxAddr <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
     withRVWidth rv $
       case addr < maxAddr of
-        True -> lift $
+        True -> liftIO $
           for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
           where addrValPairs = zip
                   [addr..addr+(fromIntegral (natValue bytes-1))]
@@ -199,18 +209,18 @@ instance RVStateM (LogMachineM rv) rv where
         False -> do
           traceM $ "Tried to write to memory location " ++ show addr
           csrsRef <- lmCSRs <$> ask
-          csrMap  <- lift $ readIORef csrsRef
-          lift $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
-  setCSR csr csrVal = LogMachineM $ do
+          csrMap  <- liftIO $ readIORef csrsRef
+          liftIO $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
+  setCSR csr csrVal = do
     csrsRef <- lmCSRs <$> ask
-    csrMap  <- lift $ readIORef csrsRef
+    csrMap  <- liftIO $ readIORef csrsRef
     case Map.member csr csrMap of
-      True -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap)
-      False -> lift $ writeIORef csrsRef (Map.insert csr csrVal csrMap) -- TODO:
-               -- throw exception in this case
-  setPriv privVal = LogMachineM $ do
+      True  -> liftIO $ writeIORef csrsRef (Map.insert csr csrVal csrMap)
+      False -> -- TODO: throw exception in this case
+        liftIO $ writeIORef csrsRef (Map.insert csr csrVal csrMap)
+  setPriv privVal = do
     privRef <- lmPriv <$> ask
-    lift $ writeIORef privRef privVal
+    liftIO $ writeIORef privRef privVal
 
   logInstruction iset inst@(Inst opcode _) = do
     return ()

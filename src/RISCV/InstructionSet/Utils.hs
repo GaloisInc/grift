@@ -315,8 +315,8 @@ getPrivCode UPriv = 0
 
 -- | Semantics for raising an exception.
 raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
-               => Exception
-               -> expr rv (RVWidth rv)
+               => Exception -- ^ The exception to raise
+               -> expr rv (RVWidth rv) -- ^ the value for MTVal
                -> SemanticsM (expr rv) rv ()
 raiseException e info = do
   -- Exception handling TODO:

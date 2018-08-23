@@ -339,6 +339,7 @@ readFReg :: (BVExpr (expr rv), StateExpr expr, FExt << rv)
          -> expr rv (RVFloatWidth rv)
 readFReg ridE = stateExpr (LocApp (FRegExpr ridE))
 
+-- TODO: We need a wrapper around this to handle access faults.
 -- | Read a variable number of bytes from memory, with an explicit width argument.
 readMem :: StateExpr expr
         => NatRepr bytes
@@ -379,6 +380,7 @@ assignFReg :: (BVExpr (expr rv), FExt << rv)
            -> SemanticsM (expr rv) rv ()
 assignFReg r e = addStmt (AssignStmt (FRegExpr r) e)
 
+-- TODO: We need a wrapper around this to handle access faults.
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
 assignMem :: NatRepr bytes
           -> expr rv (RVWidth rv)

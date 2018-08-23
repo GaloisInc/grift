@@ -113,11 +113,10 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
 
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocApp', given an 'RVStateM' implementation.
-evalLocApp :: forall m expr rv w
-               . (RVStateM m rv)
-            => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
-            -> LocApp expr rv w
-            -> m (BitVector w)
+evalLocApp :: forall m expr rv w . (RVStateM m rv)
+           => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
+           -> LocApp expr rv w
+           -> m (BitVector w)
 evalLocApp _ PCExpr = getPC
 evalLocApp eval (RegExpr ridE) = eval ridE >>= getReg
 evalLocApp eval (FRegExpr ridE) = eval ridE >>= getFReg
@@ -128,10 +127,8 @@ evalLocApp eval (CSRExpr csrE) = eval csrE >>= getCSR
 evalLocApp _ PrivExpr = getPriv
 
 -- | Evaluate a 'StateApp', given an 'RVStateM' implementation.
-evalStateApp :: forall m expr rv w
-                 . (RVStateM m rv)
-              => (forall w' . expr w' -> m (BitVector w'))
-                 -- ^ evaluator for internal expressions
+evalStateApp :: forall m expr rv w . (RVStateM m rv)
+              => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
               -> StateApp expr rv w
               -> m (BitVector w)
 evalStateApp eval (LocApp e) = evalLocApp eval e
@@ -139,17 +136,14 @@ evalStateApp eval (AppExpr e) = evalBVAppM eval e
 evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
-evalPureStateExpr :: forall m rv w
-                 . (RVStateM m rv)
-              => PureStateExpr rv w
-              -> m (BitVector w)
+evalPureStateExpr :: forall m rv w . (RVStateM m rv) => PureStateExpr rv w -> m (BitVector w)
 evalPureStateExpr (PureStateExpr e) = evalStateApp evalPureStateExpr e
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m rv fmt w . RVStateM m rv
              => InstructionSet rv
              -> Instruction rv fmt -- ^ instruction
-             -> Integer          -- ^ Instruction width (in bytes)
+             -> Integer            -- ^ Instruction width (in bytes)
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
              -> m (BitVector w)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
