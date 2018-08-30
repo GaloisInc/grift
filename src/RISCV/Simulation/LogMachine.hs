@@ -72,9 +72,9 @@ import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
 
 import RISCV.Coverage
+import RISCV.InstructionSet.Known
 import RISCV.InstructionSet.Utils
 import RISCV.Types
-import RISCV.Semantics
 import RISCV.Simulation
 
 import Debug.Trace (traceM)
@@ -82,15 +82,15 @@ import Debug.Trace (traceM)
 -- TODO: get rid of unused IORefs
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
-  { lmRV        :: RVRepr rv
-  , lmPC        :: IORef (BitVector (RVWidth rv))
-  , lmRegisters :: IOArray (BitVector 5) (BitVector (RVWidth rv))
+  { lmRV         :: RVRepr rv
+  , lmPC         :: IORef (BitVector (RVWidth rv))
+  , lmRegisters  :: IOArray (BitVector 5) (BitVector (RVWidth rv))
   , lmFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
-  , lmMemory    :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
-  , lmCSRs      :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
-  , lmPriv      :: IORef (BitVector 2)
-  , lmMaxAddr   :: BitVector (RVWidth rv)
-  , lmTestMap   :: IORef (Map (Some (Opcode rv)) [BitVector 1])
+  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
+  , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
+  , lmPriv       :: IORef (BitVector 2)
+  , lmMaxAddr    :: BitVector (RVWidth rv)
+  , lmTestMap    :: IORef (Map (Some (Opcode rv)) [BitVector 1])
   }
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
@@ -109,14 +109,14 @@ mkLogMachine :: RVRepr rv
              -> [(BitVector (RVWidth rv), BS.ByteString)]
              -> IO (LogMachine rv)
 mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
-  pc        <- newIORef entryPoint
-  registers <- withRVWidth rvRepr $ newArray (1, 31) 0
+  pc         <- newIORef entryPoint
+  registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
-  memory    <- withRVWidth rvRepr $ newArray (0, maxAddr) 0
-  csrs      <- newIORef $ Map.fromList [ ]
-  priv      <- newIORef 0b11 -- M mode by default.
+  memory     <- withRVWidth rvRepr $ newArray (0, maxAddr) 0
+  csrs       <- newIORef $ Map.fromList [ ]
+  priv       <- newIORef 0b11 -- M mode by default.
   let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
-  testMap   <- newIORef $ Map.fromList $ []-- f <$> MapF.toList knownCoverageMap
+  testMap    <- newIORef $ Map.fromList $ f <$> MapF.toList (knownCoverageWithRepr rvRepr)
 
   -- set up stack pointer
   writeArray registers 2 sp
@@ -223,15 +223,16 @@ instance RVStateM (LogMachineM rv) rv where
     privRef <- lmPriv <$> ask
     liftIO $ writeIORef privRef privVal
 
-  logInstruction iset inst@(Inst opcode _) = do
-    return ()
-    -- testMap <- LogMachineM (ioTestMap <$> ask)
-    -- case MapF.lookup opcode knownCoverageMap of
-    --   Nothing -> return ()
-    --   Just (InstExprList exprs) -> do
-    --     exprVals <- traverse (evalInstExpr iset inst 4) exprs
-    --     LogMachineM $ lift $ modifyIORef testMap $ \m ->
-    --       Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
+  logInstruction inst@(Inst opcode _) = do
+    rv <- lmRV <$> ask
+    let iset = knownISetWithRepr rv
+    testMap <- LogMachineM (lmTestMap <$> ask)
+    case MapF.lookup opcode (knownCoverageWithRepr rv) of
+      Nothing -> return ()
+      Just (InstExprList exprs) -> do
+        exprVals <- traverse (evalInstExpr iset inst 4) exprs
+        LogMachineM $ lift $ modifyIORef testMap $ \m ->
+          Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine rv

@@ -124,11 +124,11 @@ in simulation:
 - rv32ud
 - rv64ud
 
-Coming soon: support for the C (compressed) extension.
+We also now provide a command-line optiont to select a RISC-V architecture
+variant. Not every combination is possible -- legal ones begin with "RV32" or
+"RV64" and end in "I", "IM", "IMA", "IMAF", or "IMAFD".
 
-Coming soon: configuration argument or file that lets you configure the GRIFT
-simulator to a particular RISC-V instance: RV32IM, RV64IMAFD, etc. Ultimately,
-we will support all configuration options in this manner.
+Coming soon: support for the C (compressed) extension.
 
 Other information
 ===

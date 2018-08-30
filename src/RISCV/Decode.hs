@@ -37,6 +37,7 @@ This module defines a function 'decode' that converts a 'BitVector' @32@ an inte
 module RISCV.Decode
   ( -- * Functions
     decode
+  , decodeC
   , encode
   ) where
 
@@ -221,3 +222,14 @@ encode iset (Inst opc (Operands repr operands)) =
   where opBitsLens   = layoutsLens (opBitsLayouts repr)
         operandsLens = layoutsLens (operandsLayouts repr)
         (OpBits _ opBits) = opBitsFromOpcode iset opc
+
+-- Compressed extension
+decodeC :: BitVector 16 -> Maybe (BitVector 32)
+decodeC bv =
+  case bv ^. layoutLens (singleChunk 0 :: BitLayout 16 2) of
+    0b00 -> case bv ^. layoutLens (singleChunk 13 :: BitLayout 16 3) of
+      0b000 -> undefined
+      _ -> undefined
+    0b01 -> Nothing
+    0b10 -> Nothing
+    _    -> undefined
