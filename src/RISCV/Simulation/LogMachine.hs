@@ -53,6 +53,7 @@ module RISCV.Simulation.LogMachine
   , freezeRegisters
   , freezeFRegisters
   , runLogMachine
+  , runLogMachineLog
   ) where
 
 import           Control.Monad (forM_)
@@ -247,3 +248,7 @@ freezeFRegisters = freeze . lmFRegisters
 -- | Run the simulator for a given number of steps.
 runLogMachine :: Int -> LogMachine rv -> IO Int
 runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps
+
+-- | Like runLogMachine, but log each instruction.
+runLogMachineLog :: Int -> LogMachine rv -> IO Int
+runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps

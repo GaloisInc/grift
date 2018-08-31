@@ -50,6 +50,7 @@ module RISCV.Simulation
   , execAssignment
   , execSemantics
   , runRV
+  , runRVLog
   , getTests
   ) where
 
@@ -233,13 +234,34 @@ execSemantics eval f = do
   assignments <- concat <$> traverse (buildAssignment eval) (f ^. semStmts)
   traverse_ execAssignment assignments
 
--- TODO: Write another version of this function that does not call logInstruction,
--- for pure simulation (faster).
 -- | Fetch, decode, and execute a single instruction.
 stepRV :: forall m rv . (RVStateM m rv)
        => InstructionSet rv
        -> m ()
 stepRV iset = do
+  rv <- getRV
+  withRVWidth rv $ do
+    -- Fetch
+    pcVal  <- getPC
+    instBV <- getMem (knownNat @4) pcVal
+
+    -- Decode
+    -- TODO: When we add compression ('C' extension), we'll need to modify this code.
+    Some inst@(Inst opcode _) <- return $ decode iset instBV
+
+    -- Execute
+    execSemantics (evalInstExpr iset inst 4) (getInstSemantics $ semanticsFromOpcode iset opcode)
+
+    -- Record cycle count
+    execSemantics evalPureStateExpr $ getSemantics $ do
+      let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
+      assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
+
+-- | Like stepRV, but also log the instruction.
+stepRVLog :: forall m rv . (RVStateM m rv)
+          => InstructionSet rv
+          -> m ()
+stepRVLog iset = do
   rv <- getRV
   withRVWidth rv $ do
     -- Fetch
@@ -281,6 +303,20 @@ runRV :: forall m rv . (RVStateM m rv) => Int -> m Int
 runRV steps = do
   rv <- getRV
   withRVWidth rv $ runRV' (knownISetWithRepr rv) 0 steps
+
+runRVLog' :: forall m rv . (RVStateM m rv, KnownRVWidth rv) => InstructionSet rv -> Int -> Int -> m Int
+runRVLog' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
+runRVLog' iset currSteps maxSteps = do
+  halted <- isHalted
+  case halted of
+    True  -> return currSteps
+    False -> stepRVLog iset >> runRVLog' iset (currSteps+1) maxSteps
+
+-- | Like runRV, but log each instruction.
+runRVLog :: forall m rv . (RVStateM m rv) => Int -> m Int
+runRVLog steps = do
+  rv <- getRV
+  withRVWidth rv $ runRVLog' (knownISetWithRepr rv) 0 steps
 
 ----------------------------------------
 -- Analysis

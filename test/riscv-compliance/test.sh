@@ -1,7 +1,7 @@
-rm -rf *.log
-rm results/*
+rm -rf results/
+mkdir results
 for file in *.elf
 do
     echo "testing $file..."
-    grift-sim RV32IM 1000000 "$file" > "results/$file.out"
+    grift-sim --arch=RV32IM --steps=1000000 --coverage="results/$file.log" "$file" > "results/$file.out"
 done

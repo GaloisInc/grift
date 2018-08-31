@@ -19,6 +19,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE KindSignatures      #-}
+{-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
@@ -49,8 +50,12 @@ import           System.Environment
 import           System.Exit
 import           Data.ElfEdit
 import           GHC.TypeLits
+import           System.Console.GetOpt
 import           System.FilePath.Posix
+import           System.IO
+import           System.IO.Error
 import           Text.PrettyPrint.HughesPJClass
+import           Text.Read
 
 import           RISCV.Coverage
 import           RISCV.InstructionSet
@@ -62,9 +67,6 @@ import           RISCV.Simulation
 import           RISCV.Simulation.LogMachine
 
 import Data.Coerce
-
--- | The Extensions we enable in simulation.
-type SimExts = (Exts '(PrivM, MYes, AYes, FDYes))
 
 rvReprFromString :: String -> Maybe (Some RVRepr)
 rvReprFromString s = case s of
@@ -80,32 +82,80 @@ rvReprFromString s = case s of
   "RV64IMAFD" -> Just $ Some (knownRepr :: RVRepr RV64IMAFD)
   _ -> Nothing
 
+data SimOpts = SimOpts
+  { simSteps :: Int
+  , simRV :: Some RVRepr
+  , simCov :: Maybe String
+  }
+
+defaultSimOpts = SimOpts
+  { simSteps = 10000
+  , simRV = Some (knownRepr :: RVRepr RV32I)
+  , simCov = Nothing
+  }
+
+options :: [OptDescr (SimOpts -> IO SimOpts)]
+options =
+  [ Option ['s'] ["steps"]
+    (ReqArg (\stepStr opts -> case readMaybe stepStr of
+                Nothing    -> exitWithUsage $ "Illegal value for --steps: " ++ stepStr ++ "\n"
+                Just steps -> return $ opts { simSteps = steps } )
+     "NUM")
+    ("max # of simulation steps (default = " ++ show (simSteps defaultSimOpts))
+  , Option ['a'] ["arch"]
+    (ReqArg (\rvStr opts -> case rvReprFromString rvStr of
+                Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
+                Just someRV -> return $ opts { simRV = someRV } )
+     "ARCH")
+    ("RISC-V arch configuration (default = RV32I)")
+  , Option ['c'] ["coverage"]
+    (ReqArg (\covStr opts -> return $ opts { simCov = Just covStr })
+     "FILE")
+    ("Print coverage analysis to file")
+  , Option ['h'] ["help"]
+    (NoArg (\_ -> exitWithUsage ""))
+    ("display help message")
+  ]
+
+header :: String
+header = "Usage: grift-sim [-s NUM] [-a ARCH] elffile"
+
+exitWithUsage :: String -> IO a
+exitWithUsage "" = do
+  putStrLn $ usageInfo header options
+  exitWith (ExitFailure 1)
+exitWithUsage msg = do
+  putStrLn msg
+  putStrLn $ usageInfo header options
+  exitWith (ExitFailure 1)
+
 main :: IO ()
 main = do
   args <- getArgs
-  when (length args /= 3) $ do
-    putStrLn "Use: riscv-sim <rv> <steps> elfFile"
-    putStrLn "  - <rv> = RV32I, ... RV64IMAFD"
-    putStrLn "  - <steps> = # of steps to run"
-    exitFailure
+  let (actions, nonOptions, errors) = getOpt Permute options args
 
-  let [rvStr, stepStr, fileName] = args
-      stepsToRun = read stepStr :: Int
-      logFile = replaceExtensions fileName "log"
-  Some rvRepr <- case rvReprFromString rvStr of
-    Just r -> return r
-    Nothing -> do
-      putStrLn $ "Unrecognized config \"" ++ rvStr ++ "\", defaulting to RV32I"
-      return $ Some (knownRepr :: RVRepr RV32I)
+  -- First check that there were no option errors
+  when (not (null errors)) $ exitWithUsage (concat errors)
 
-  fileBS <- BS.readFile fileName
-  case (rvRepr, parseElf fileBS) of
-    (RVRepr RV32Repr _, Elf32Res _ e) -> runElf rvRepr stepsToRun logFile e
-    (RVRepr RV64Repr _, Elf64Res _ e) -> runElf rvRepr stepsToRun logFile e
-    _ -> do putStrLn "Error: bad object file"
+  -- Next build up the options, potentially exiting early
+  opts <- foldl (>>=) (return defaultSimOpts) actions
 
-runElf :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> FilePath -> Elf (RVWidth rv) -> IO ()
-runElf rvRepr stepsToRun logFile e = withRVWidth rvRepr $ do
+  -- Next check that there is exactly one argument, a path to an elf file
+  fileName <- case nonOptions of
+    [s] -> return s
+    _ -> exitWithUsage $ "error: provide a path to an elf file to simulate\n"
+
+  fileBS <- catchIOError (BS.readFile fileName) $ \_ ->
+    exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
+  case (simRV opts, parseElf fileBS) of
+    (Some rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
+      runElf rvRepr (simSteps opts) (simCov opts) e
+    (Some rvRepr@(RVRepr RV64Repr _), Elf64Res _ e) ->
+      runElf rvRepr (simSteps opts) (simCov opts) e
+    _ -> exitWithUsage $ "Error: bad object file\n"
+
+runElf :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> Maybe String -> Elf (RVWidth rv) -> IO ()
+runElf rvRepr stepsToRun mLogFile e = withRVWidth rvRepr $ do
   let byteStrings = elfBytes e
   m <- mkLogMachine
     rvRepr
@@ -113,7 +163,10 @@ runElf rvRepr stepsToRun logFile e = withRVWidth rvRepr $ do
     (fromIntegral $ elfEntry e)
     0x10000
     byteStrings
-  runLogMachine stepsToRun m
+
+  case mLogFile of
+    Nothing -> runLogMachine stepsToRun m
+    Just _  -> runLogMachineLog stepsToRun m
 
   pc         <- readIORef (lmPC m)
   registers  <- freezeRegisters m
@@ -135,15 +188,18 @@ runElf rvRepr stepsToRun logFile e = withRVWidth rvRepr $ do
   forM_ (assocs fregisters) $ \(r, v) ->
     putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  putStrLn "\n--------Coverage report--------\n"
-  forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
-    case MapF.lookup opcode (knownCoverageWithRepr rvRepr) of
-      Just (InstExprList exprs) -> do
-        let ones = length (filter (==1) vals)
-        putStrLn $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
-        forM_ (zip exprs vals) $ \(expr, val) ->
-          putStrLn $ "  " ++ prettyShow expr ++ " ---> " ++ show val
-      _ -> return ()
+  case mLogFile of
+    Nothing -> return ()
+    Just logFile -> withFile logFile WriteMode $ \h -> do
+      hPutStrLn h "\n--------Coverage report--------\n"
+      forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
+        case MapF.lookup opcode (knownCoverageWithRepr rvRepr) of
+          Just (InstExprList exprs) -> do
+            let ones = length (filter (==1) vals)
+            hPutStrLn h $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
+            forM_ (zip exprs vals) $ \(expr, val) ->
+              hPutStrLn h $ "  " ++ prettyShow expr ++ " ---> " ++ show val
+          _ -> return ()
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

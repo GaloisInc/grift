@@ -7,3 +7,4 @@ build/
 *.a
 *.text
 *.dot
+*.out
