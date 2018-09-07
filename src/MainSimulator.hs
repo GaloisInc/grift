@@ -101,7 +101,7 @@ options =
                 Nothing    -> exitWithUsage $ "Illegal value for --steps: " ++ stepStr ++ "\n"
                 Just steps -> return $ opts { simSteps = steps } )
      "NUM")
-    ("max # of simulation steps (default = " ++ show (simSteps defaultSimOpts))
+    ("max # of simulation steps (default = " ++ show (simSteps defaultSimOpts) ++ ")")
   , Option ['a'] ["arch"]
     (ReqArg (\rvStr opts -> case rvReprFromString rvStr of
                 Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
@@ -118,7 +118,7 @@ options =
   ]
 
 header :: String
-header = "Usage: grift-sim [-s NUM] [-a ARCH] elffile"
+header = "Usage: grift-sim [-s NUM] [-a ARCH] [-c FILE] elffile"
 
 exitWithUsage :: String -> IO a
 exitWithUsage "" = do
@@ -145,8 +145,10 @@ main = do
     [s] -> return s
     _ -> exitWithUsage $ "error: provide a path to an elf file to simulate\n"
 
+  -- Next check that the file actually exists
   fileBS <- catchIOError (BS.readFile fileName) $ \_ ->
     exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
+
   case (simRV opts, parseElf fileBS) of
     (Some rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
       runElf rvRepr (simSteps opts) (simCov opts) e

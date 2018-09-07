@@ -1,0 +1,78 @@
+Cambridge test generation toolflow
+
+* Overview of Cambridge work
+** High-level
+The goal is to validate a cycle-accurate L3 model of the ARM Cortex-M0 against real
+hardware using testing. The tests themselves are randomly-generated code fragments (a
+few instructions long), which are executed in both the L3 model (translated to HOL4)
+and the hardware, and the results are then compared. The hardware is taken as ground
+truth, and the HOL4 model is the object under test.
+
+The basic research problem is that given a random sequence of instructions, it could
+be the case that executing those instructions would lead to exceptional behavior
+either in the L3 model or in the hardware. Therefore, the authors propose a method to
+automatically derive a machine pre-state (in the form of a partial assignment) that
+guarantees that a given instruction sequence will be safe. An example is a partial
+assignment that guarantees that a particular value contains a valid memory address,
+so that a subsequent load or store at the address contained in that register will not
+trigger a memory access violation.
+
+The authors translate an L3 cycle-accurate ARM Cortex-M0 model into HOL4, generate
+short, random programs for testing, and use the HOL4 logic to express constraints
+associated with each instruction instance. These constraints are then fed to an SMT
+solver (yices), along with the entire model, which uses all this information to
+derive pre-states so that upon execution of the randomly-generated test instructions,
+we know that addresses are valid, or that the address is correctly aligned, or any
+number of other things.
+
+This work does not explicitly solve the problem of how to generate code sequences
+(prefixes to the so-called "test" instructions) that get the model into the given
+pre-state condition to begin with. This is simply accomplished with a debugger on the
+hardware side.
+** Technologies used (software)
+*** L3
+L3 is an ISA specification language & framework. It is used as the primary source for
+the ARM Cortex-M0 software model, but is translated into HOL4, and the HOL4 model is
+really the model under scrutiny.
+*** HOL4
+HOL4 is used a target specification logic for the ARM model (translated from L3). The
+semantics of each instruction are modeled as functions transforming a machine
+state. The overall step function is modeled as a conditional state transformation --
+given a particular instruction instance (with concrete values for all the operands),
+an associated HOL4 theorem is produced (using the step function for the instruction)
+that expresses the associated state transformation for that instance. See Figure 5
+in [1] for an example; basically, the precondition/hypothesis of the theorem
+expresses that the PC is properly aligned and points to that instruction instance,
+and certain exceptional conditions are false. Assuming said precondition holds, it is
+asserted that `NextStateM0 s` is equal to a transformed version of the initial state
+`s`. These preconditions are eventually used as constraints for the SMT solver to
+ensure valid execution, along with some other constraints that are not specific to
+the ISA, but the particular core that the model is being validated against.
+
+Since multiple instructions are generated for testing, HOL4 needs to compose the
+symbolic state of each successive instruction and accumulate the associated
+constraints.
+*** Yices
+HolSmtLib is used to convert the generated theorems, constraints and instruction
+definitions into SMTLib for use in the Yices SMT solver.
+* Incorporation into SSITH tools
+This is awesome work in that it provides a straightforward methodology and toolchain
+for expressing and combining constraints from a model of an instruction set, which
+can then be reified into partial state assignments via an SMT solver. However, my
+belief is that this alone is not enough to create general-purpose tests, even if
+everything in this work were ported to RISC-V. A major component of the tests we will
+be needing to create will be how to generate instruction sequences that get the
+machine into the given pre-state.
+
+This somewhat contradicts the conversation I had with Brian Campbell -- I think we
+may have slightly misunderstood each other. I asked him (or meant to) whether their
+tools were capable of generating instruction sequences to satisfy these pre-states,
+and I thought he answered in the affirmative. It could be that more work has been
+done since this paper was published, but I don't think so. Tristan, I think, is the
+only person I know of who actually does machine code synthesis in the way I am
+describing -- using the SMT solver not just to determine the correct pre-state (in
+the form of a partial assignment), but how to automatically generate code fragments
+that guarantee you end up in that pre-state.
+
+However, I think this could be relatively simple to do even without an SMT
+solver. Every piece of state that we would be interested in
