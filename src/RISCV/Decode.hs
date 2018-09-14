@@ -46,7 +46,6 @@ module RISCV.Decode
   ) where
 
 import Control.Lens hiding ( (:<), Index, op, iset )
-import Data.Bits
 import Data.BitVector.Sized
 import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
@@ -228,16 +227,6 @@ encode iset (Inst opc (Operands repr operands)) =
         operandsLens = layoutsLens (operandsLayouts repr)
         OpBits _ opBits = opBitsFromOpcode iset opc
 
-withRV64 :: forall rv w .
-            RVRepr rv
-         -> BitVector w
-         -> (64 <= RVWidth rv => Some (Instruction rv))
-         -> Some (Instruction rv)
-withRV64 rv iw inst = case rv of
-  RVRepr RV32Repr  _ -> Some $ Inst Illegal (Operands XRepr (bvZext iw :< Nil))
-  RVRepr RV64Repr  _ -> inst
-  RVRepr RV128Repr _ -> inst
-
 -- Compressed extension
 decodeC :: RVRepr rv -> BitVector 16 -> Maybe (Some (Instruction rv))
 decodeC rv bv =
@@ -245,26 +234,99 @@ decodeC rv bv =
     0b00 -> Nothing
     0b01 -> Nothing
     0b10 -> case bv ^. layoutLens slice13_15 of
-      0b010 -> case bv ^. layoutLens sp_imm of
-        imm -> js $
+      0b000 -> Nothing -- C.SLLI, C.SLLI64
+      0b001 -> case rv of
+        RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> js $
+          -- C.FLDSP
           let rd     = bv ^. layoutLens slice7_11
               rs1    = 0b00010
-              offset = bvZextWithRepr (knownNat @12) $ imm `shiftL` 2
-          in Inst Lw (Operands IRepr (rd :< rs1 :< offset :< Nil))
-      0b011 -> case bv ^. layoutLens sp_imm of
-        imm -> Just $ withRV64 rv bv $ Some $
+              imm    = bv ^. layoutLens sp_imm_d
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 3)
+          in Inst Fld (Operands IRepr (rd :< rs1 :< offset :< Nil))
+        _ -> js illegal
+      0b010 -> js $
+        -- C.LWSP
+        let rd     = bv ^. layoutLens slice7_11
+            rs1    = 0b00010
+            imm    = bv ^. layoutLens sp_imm_w
+            offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 2)
+        in Inst Lw (Operands IRepr (rd :< rs1 :< offset :< Nil))
+      0b011 -> case rv of
+        RVRepr RV32Repr (ExtensionsRepr _ _ _ FDYesRepr) -> js $
+          -- FLWSP
           let rd     = bv ^. layoutLens slice7_11
               rs1    = 0b00010
-              offset = bvZext (imm `shiftL` 2)
+              imm    = bv ^. layoutLens sp_imm_w
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 2)
+          in Inst Flw (Operands IRepr (rd :< rs1 :< offset :< Nil))
+        RVRepr RV32Repr (ExtensionsRepr _ _ _ FYesDNoRepr) -> js $
+          -- FLWSP
+          let rd     = bv ^. layoutLens slice7_11
+              rs1    = 0b00010
+              imm    = bv ^. layoutLens sp_imm_w
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 2)
+          in Inst Flw (Operands IRepr (rd :< rs1 :< offset :< Nil))
+        RVRepr RV64Repr _ -> js $
+          -- LDSP
+          let rd     = bv ^. layoutLens slice7_11
+              rs1    = 0b00010
+              imm    = bv ^. layoutLens sp_imm_d
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 3)
           in Inst Ld (Operands IRepr (rd :< rs1 :< offset :< Nil))
+        RVRepr RV128Repr _ -> js $
+          -- LDSP
+          let rd     = bv ^. layoutLens slice7_11
+              rs1    = 0b00010
+              imm    = bv ^. layoutLens sp_imm_d
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 3)
+          in Inst Ld (Operands IRepr (rd :< rs1 :< offset :< Nil))
+        _ -> js illegal
+      0b100 -> Nothing -- C.JR, C.MV, C.EBREAK, C.JALR, C.ADD
+      0b101 -> case rv of
+        RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> js $
+          -- C.FSDSP
+          let rs1 = 0b00010
+              rs2 = bv ^. layoutLens slice2_6
+              imm = bv ^. layoutLens sp_imm_w_d
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 3)
+          in Inst Fsd (Operands SRepr (rs1 :< rs2 :< offset :< Nil))
+        _ -> js illegal
+      0b110 -> case rv of
+        RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr) -> js $
+          -- C.SWSP
+          let rs1 = 0b00010
+              rs2 = bv ^. layoutLens slice2_6
+              imm = bv ^. layoutLens sp_imm_w_s
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 2)
+          in Inst Fsw (Operands SRepr (rs1 :< rs2 :< offset :< Nil))
+        RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr) -> js $
+          -- C.SWSP
+          let rs1 = 0b00010
+              rs2 = bv ^. layoutLens slice2_6
+              imm = bv ^. layoutLens sp_imm_w_s
+              offset = bvZextWithRepr (knownNat @12) $ imm <:> (0 :: BitVector 2)
+          in Inst Fsw (Operands SRepr (rs1 :< rs2 :< offset :< Nil))
+        _ -> js illegal
+      0b111 -> Nothing -- C.FSWSP, C.SDSP
       _ -> Nothing
     _ -> Nothing
   where js = Just . Some
+        illegal = Inst Illegal (Operands XRepr (bvZext bv :< Nil))
         slice0_1   = singleChunk 0  :: BitLayout 16 2
-        slice13_15 = singleChunk 13 :: BitLayout 16 3
         slice2_6   = singleChunk 2  :: BitLayout 16 5
+        slice13_15 = singleChunk 13 :: BitLayout 16 3
         slice7_11  = singleChunk 7  :: BitLayout 16 5
-        sp_imm     = (chunk 2 :: Chunk 2) <:
+        sp_imm_w   = (chunk 2 :: Chunk 2) <:
                      (chunk 12 :: Chunk 1) <:
                      (chunk 4 :: Chunk 3) <:
+                     (empty :: BitLayout 16 0)
+        sp_imm_d   = (chunk 2 :: Chunk 3) <:
+                     (chunk 12 :: Chunk 1) <:
+                     (chunk 5 :: Chunk 2) <:
+                     (empty :: BitLayout 16 0)
+        sp_imm_w_s = (chunk 7 :: Chunk 2) <:
+                     (chunk 9 :: Chunk 4) <:
+                     (empty :: BitLayout 16 0)
+        sp_imm_w_d = (chunk 7 :: Chunk 3) <:
+                     (chunk 10 :: Chunk 3) <:
                      (empty :: BitLayout 16 0)
