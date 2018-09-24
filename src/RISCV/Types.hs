@@ -114,6 +114,9 @@ module RISCV.Types
   , OpBits(..)
   , Opcode(..)
   , Instruction(..)
+  , mkInst
+  -- * Utils
+  , PrettyF(..)
   ) where
 
 import Data.BitVector.Sized
@@ -121,6 +124,11 @@ import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
 import GHC.TypeLits
+import Prelude hiding ((<>))
+import Text.PrettyPrint.HughesPJClass
+
+class PrettyF (a :: k -> *) where
+  pPrintF :: a tp -> Doc
 
 ----------------------------------------
 -- Architecture types
@@ -456,6 +464,43 @@ instance TestEquality (OperandID fmt) where
 data Operands :: Format -> * where
   Operands :: FormatRepr fmt -> List BitVector (OperandTypes fmt) -> Operands fmt
 
+prettyReg :: BitVector 5 -> Doc
+prettyReg bv = text "x" <> integer (bvIntegerU bv)
+
+prettyImm :: BitVector w -> Doc
+prettyImm bv = integer (bvIntegerS bv)
+
+commas :: [Doc] -> Doc
+commas = hcat . punctuate (comma <> space)
+
+instance PrettyF Operands where
+  pPrintF (Operands RRepr (rd :< rs1 :< rs2 :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1, prettyReg rs2]
+  pPrintF (Operands IRepr (rd :< rs1 :< imm :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1, prettyImm imm]
+  pPrintF (Operands SRepr (rs1 :< rs2 :< imm :< Nil)) =
+    commas [prettyReg rs2, prettyImm imm, parens (prettyReg rs1)]
+  pPrintF (Operands BRepr (rs1 :< rs2 :< imm :< Nil)) =
+    commas [prettyReg rs1, prettyReg rs2, comma <+> prettyImm imm]
+  pPrintF (Operands URepr (rd :< imm :< Nil)) =
+    commas [prettyReg rd, prettyImm imm]
+  pPrintF (Operands JRepr (rd :< imm :< Nil)) =
+    commas [prettyReg rd, prettyImm imm]
+  pPrintF (Operands HRepr (rd :< rs1 :< imm :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1, prettyImm imm]
+  pPrintF (Operands PRepr _) = empty
+  pPrintF (Operands ARepr (rd :< rs1 :< rs2 :< _rl :< _aq :< Nil)) =
+    commas [prettyReg rd, prettyReg rs2, parens (prettyReg rs1)]
+  pPrintF (Operands R2Repr (rd :< _rm :< rs1 :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1]
+  pPrintF (Operands R3Repr (rd :< _rm :< rs1 :< rs2 :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1, prettyReg rs2]
+  pPrintF (Operands R4Repr (rd :< _rm :< rs1 :< rs2 :< rs3 :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1, prettyReg rs2, prettyReg rs3]
+  pPrintF (Operands RXRepr (rd :< rs1 :< Nil)) =
+    commas [prettyReg rd, prettyReg rs1]
+  pPrintF (Operands XRepr (ill :< Nil)) = text (show ill)
+
 $(return [])
 deriving instance Show (Operands k)
 instance ShowF Operands
@@ -496,7 +541,6 @@ instance OrdF OpBits where
                [ (ConType [t|FormatRepr|] `TypeApp` AnyType, [|compareF|])
                , (ConType [t|List|] `TypeApp` AnyType `TypeApp` AnyType, [|compareF|])
                ])
-
 
 ----------------------------------------
 -- Opcodes
@@ -705,6 +749,196 @@ instance TestEquality (Opcode rv) where
 instance OrdF (Opcode rv) where
   compareF = $(structuralTypeOrd [t|Opcode|] [])
 
+instance Pretty (Opcode rv fmt) where
+
+  pPrint Add  = text "add"
+  pPrint Sub  = text "sub"
+  pPrint Sll  = text "sll"
+  pPrint Slt  = text "slt"
+  pPrint Sltu = text "sltu"
+  pPrint Xor  = text "xor"
+  pPrint Srl  = text "srl"
+  pPrint Sra  = text "sra"
+  pPrint Or   = text "or"
+  pPrint And  = text "and"
+
+  pPrint Jalr   = text "jalr"
+  pPrint Lb     = text "lb"
+  pPrint Lh     = text "lh"
+  pPrint Lw     = text "lw"
+  pPrint Lbu    = text "lbu"
+  pPrint Lhu    = text "lhu"
+  pPrint Addi   = text "addi"
+  pPrint Slti   = text "slti"
+  pPrint Sltiu  = text "sltiu"
+  pPrint Xori   = text "xori"
+  pPrint Ori    = text "ori"
+  pPrint Andi   = text "andi"
+  pPrint Fence  = text "fence"
+  pPrint FenceI = text "fencei"
+  pPrint Csrrw  = text "csrrw"
+  pPrint Csrrs  = text "csrrs"
+  pPrint Csrrc  = text "csrrc"
+  pPrint Csrrwi = text "csrrwi"
+  pPrint Csrrsi = text "csrrsi"
+  pPrint Csrrci = text "csrrci"
+
+  pPrint Slli   = text "slli"
+  pPrint Srli   = text "srli"
+  pPrint Srai   = text "srai"
+
+  pPrint Ecall  = text "ecall"
+  pPrint Ebreak = text "ebreak"
+
+  pPrint Sb     = text "sb"
+  pPrint Sh     = text "sh"
+  pPrint Sw     = text "sw"
+
+  pPrint Beq    = text "beq"
+  pPrint Bne    = text "bne"
+  pPrint Blt    = text "blt"
+  pPrint Bge    = text "bge"
+  pPrint Bltu = text "bltu"
+  pPrint Bgeu   = text "bgeu"
+
+  pPrint Lui   = text "lui"
+  pPrint Auipc = text "auipc"
+
+  pPrint Jal = text "jal"
+
+  pPrint Illegal = text "illegal"
+
+  -- RV64
+  pPrint Addw = text "addw"
+  pPrint Subw = text "subw"
+  pPrint Sllw = text "sllw"
+  pPrint Srlw = text "srlw"
+  pPrint Sraw = text "sraw"
+  pPrint Slliw = text "slliw"
+  pPrint Srliw = text "srliw"
+  pPrint Sraiw = text "sraiw"
+  pPrint Lwu = text "lwu"
+  pPrint Ld = text "ld"
+  pPrint Addiw = text "addiw"
+  pPrint Sd = text "sd"
+
+  -- M privileged instructions
+  pPrint Mret = text "mret"
+  pPrint Wfi = text "wfi"
+
+  -- RV32M
+  pPrint Mul = text "mul"
+  pPrint Mulh = text "mulh"
+  pPrint Mulhsu = text "mulhsu"
+  pPrint Mulhu = text "mulhu"
+  pPrint Div = text "div"
+  pPrint Divu = text "divu"
+  pPrint Rem = text "rem"
+  pPrint Remu = text "remu"
+
+  -- RV64M
+  pPrint Mulw = text "mulw"
+  pPrint Divw = text "divw"
+  pPrint Divuw = text "divuw"
+  pPrint Remw = text "remw"
+  pPrint Remuw = text "remuw"
+
+  -- RV32A
+  pPrint Lrw = text "lrw"
+  pPrint Scw = text "scw"
+  pPrint Amoswapw = text "amoswapw"
+  pPrint Amoaddw = text "amoaddw"
+  pPrint Amoxorw = text "amoxorw"
+  pPrint Amoandw = text "amoandw"
+  pPrint Amoorw = text "amoorw"
+  pPrint Amominw = text "amominw"
+  pPrint Amomaxw = text "amomaxw"
+  pPrint Amominuw = text "amominuw"
+  pPrint Amomaxuw = text "amomaxuw"
+
+  -- RV64A
+  pPrint Lrd = text "lrd"
+  pPrint Scd = text "scd"
+  pPrint Amoswapd = text "amoswapd"
+  pPrint Amoaddd = text "amoaddd"
+  pPrint Amoxord = text "amoxord"
+  pPrint Amoandd = text "amoandd"
+  pPrint Amoord = text "amoord"
+  pPrint Amomind = text "amomind"
+  pPrint Amomaxd = text "amomaxd"
+  pPrint Amominud = text "amominud"
+  pPrint Amomaxud = text "amomaxud"
+
+  -- RV32F
+  pPrint Flw = text "flw"
+  pPrint Fsw = text "fsw"
+  pPrint Fmadd_s = text "fmadd_s"
+  pPrint Fmsub_s = text "fmsub_s"
+  pPrint Fnmsub_s = text "fnmsub_s"
+  pPrint Fnmadd_s = text "fnmadd_s"
+  pPrint Fadd_s = text "fadd_s"
+  pPrint Fsub_s = text "fsub_s"
+  pPrint Fmul_s = text "fmul_s"
+  pPrint Fdiv_s = text "fdiv_s"
+  pPrint Fsqrt_s = text "fsqrt_s"
+  pPrint Fsgnj_s = text "fsgnj_s"
+  pPrint Fsgnjn_s = text "fsgnjn_s"
+  pPrint Fsgnjx_s = text "fsgnjx_s"
+  pPrint Fmin_s = text "fmin_s"
+  pPrint Fmax_s = text "fmax_s"
+  pPrint Fcvt_w_s = text "fcvt_w_s"
+  pPrint Fcvt_wu_s = text "fcvt_wu_s"
+  pPrint Fmv_x_w = text "fmv_x_w"
+  pPrint Feq_s = text "feq_s"
+  pPrint Flt_s = text "flt_s"
+  pPrint Fle_s = text "fle_s"
+  pPrint Fclass_s = text "fclass_s"
+  pPrint Fcvt_s_w = text "fcvt_s_w"
+  pPrint Fcvt_s_wu = text "fcvt_s_wu"
+  pPrint Fmv_w_x = text "fmv_w_x"
+
+  -- RV64F
+  pPrint Fcvt_l_s = text "fcvt_l_s"
+  pPrint Fcvt_lu_s = text "fcvt_lu_s"
+  pPrint Fcvt_s_l = text "fcvt_s_l"
+  pPrint Fcvt_s_lu = text "fcvt_s_lu"
+
+  -- RV32D
+  pPrint Fld = text "fld"
+  pPrint Fsd = text "fsd"
+  pPrint Fmadd_d = text "fmadd_d"
+  pPrint Fmsub_d = text "fmsub_d"
+  pPrint Fnmsub_d = text "fnmsub_d"
+  pPrint Fnmadd_d = text "fnmadd_d"
+  pPrint Fadd_d = text "fadd_d"
+  pPrint Fsub_d = text "fsub_d"
+  pPrint Fmul_d = text "fmul_d"
+  pPrint Fdiv_d = text "fdiv_d"
+  pPrint Fsqrt_d = text "fsqrt_d"
+  pPrint Fsgnj_d = text "fsgnj_d"
+  pPrint Fsgnjn_d = text "fsgnjn_d"
+  pPrint Fsgnjx_d = text "fsgnjx_d"
+  pPrint Fmin_d = text "fmin_d"
+  pPrint Fmax_d = text "fmax_d"
+  pPrint Fcvt_s_d = text "fcvt_s_d"
+  pPrint Fcvt_d_s = text "fcvt_d_s"
+  pPrint Feq_d = text "feq_d"
+  pPrint Flt_d = text "flt_d"
+  pPrint Fle_d = text "fle_d"
+  pPrint Fclass_d = text "fclass_d"
+  pPrint Fcvt_w_d = text "fcvt_w_d"
+  pPrint Fcvt_wu_d = text "fcvt_wu_d"
+  pPrint Fcvt_d_w = text "fcvt_d_w"
+  pPrint Fcvt_d_wu = text "fcvt_d_wu"
+
+  -- RV64D
+  pPrint Fcvt_l_d = text "fcvt_l_d"
+  pPrint Fcvt_lu_d = text "fcvt_lu_d"
+  pPrint Fmv_x_d = text "fmv_x_d"
+  pPrint Fcvt_d_l = text "fcvt_d_l"
+  pPrint Fcvt_d_lu = text "fcvt_d_lu"
+  pPrint Fmv_d_x = text "fmv_d_x"
+
 ----------------------------------------
 -- Instructions
 
@@ -712,8 +946,13 @@ instance OrdF (Opcode rv) where
 data Instruction (rv :: RV) (fmt :: Format) =
   Inst (Opcode rv fmt) (Operands fmt)
 
+mkInst :: KnownRepr FormatRepr fmt => Opcode rv fmt -> List BitVector (OperandTypes fmt) -> Instruction rv fmt
+mkInst opcode operands = Inst opcode (Operands knownRepr operands)
+
 -- Instances
 $(return [])
 instance Show (Instruction rv fmt) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
 instance ShowF (Instruction rv)
+instance PrettyF (Instruction rv) where
+  pPrintF (Inst opcode operands) = pPrint opcode <+> pPrintF operands
