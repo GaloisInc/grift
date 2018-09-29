@@ -21,12 +21,14 @@ isetFromString s = case s of
   "RV32IM" -> Just $ Some (knownISet :: InstructionSet RV32IM)
   "RV32IMA" -> Just $ Some (knownISet :: InstructionSet RV32IMA)
   "RV32IMAF" -> Just $ Some (knownISet :: InstructionSet RV32IMAF)
-  "RV32IMAFD" -> Just $ Some (knownISet :: InstructionSet RV32IMAFD)
+  "RV32G" -> Just $ Some (knownISet :: InstructionSet RV32G)
+  "RV32GC" -> Just $ Some (knownISet :: InstructionSet RV32GC)
   "RV64I" -> Just $ Some (knownISet :: InstructionSet RV64I)
   "RV64IM" -> Just $ Some (knownISet :: InstructionSet RV64IM)
   "RV64IMA" -> Just $ Some (knownISet :: InstructionSet RV64IMA)
   "RV64IMAF" -> Just $ Some (knownISet :: InstructionSet RV64IMAF)
-  "RV64IMAFD" -> Just $ Some (knownISet :: InstructionSet RV64IMAFD)
+  "RV64G" -> Just $ Some (knownISet :: InstructionSet RV64G)
+  "RV64GC" -> Just $ Some (knownISet :: InstructionSet RV64GC)
   _ -> Nothing
 
 main :: IO ()

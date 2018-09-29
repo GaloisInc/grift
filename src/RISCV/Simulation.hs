@@ -246,11 +246,17 @@ stepRV iset = do
     instBV <- getMem (knownNat @4) pcVal
 
     -- Decode
-    -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-    Some inst@(Inst opcode _) <- return $ decode iset instBV
+    (iw, Some inst@(Inst opcode _)) <- do
+      case rv of
+        RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr) -> do
+          let cinst = decodeC rv (bvExtract 0 instBV)
+          case cinst of
+            Just i -> return (2, i)
+            _ -> return $ (4, decode iset instBV)
+        _ -> return $ (4, decode iset instBV)
 
     -- Execute
-    execSemantics (evalInstExpr iset inst 4) (getInstSemantics $ semanticsFromOpcode iset opcode)
+    execSemantics (evalInstExpr iset inst iw) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
     -- Record cycle count
     execSemantics evalPureStateExpr $ getSemantics $ do
@@ -269,14 +275,20 @@ stepRVLog iset = do
     instBV <- getMem (knownNat @4) pcVal
 
     -- Decode
-    -- TODO: When we add compression ('C' extension), we'll need to modify this code.
-    Some inst@(Inst opcode _) <- return $ decode iset instBV
+    (iw, Some inst@(Inst opcode _)) <- do
+      case rv of
+        RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr) -> do
+          let cinst = decodeC rv (bvExtract 0 instBV)
+          case cinst of
+            Just i -> return (2, i)
+            _ -> return $ (4, decode iset instBV)
+        _ -> return $ (4, decode iset instBV)
 
     -- Log instruction BEFORE execution
     logInstruction inst
 
     -- Execute
-    execSemantics (evalInstExpr iset inst 4) (getInstSemantics $ semanticsFromOpcode iset opcode)
+    execSemantics (evalInstExpr iset inst iw) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
     -- Record cycle count
     execSemantics evalPureStateExpr $ getSemantics $ do

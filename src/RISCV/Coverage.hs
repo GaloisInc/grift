@@ -67,15 +67,15 @@ knownCoverageWithRepr rvRepr = case rvRepr of
           RV64Repr -> baseCoverage `Map.union` base64Coverage
           RV128Repr -> error "RV128 not yet supported"
         m = case (archRepr, ecRepr) of
-          (RV32Repr, ExtensionsRepr _ MYesRepr _ _) -> mCoverage
-          (RV64Repr, ExtensionsRepr _ MYesRepr _ _) -> mCoverage `Map.union` m64Coverage
+          (RV32Repr, ExtensionsRepr _ MYesRepr _ _ _) -> mCoverage
+          (RV64Repr, ExtensionsRepr _ MYesRepr _ _ _) -> mCoverage `Map.union` m64Coverage
           _ -> Map.empty
         a = case (archRepr, ecRepr) of
-          (RV32Repr, ExtensionsRepr _ _ AYesRepr _) -> aCoverage
-          (RV64Repr, ExtensionsRepr _ _ AYesRepr _) -> aCoverage `Map.union` a64Coverage
+          (RV32Repr, ExtensionsRepr _ _ AYesRepr _ _) -> aCoverage
+          (RV64Repr, ExtensionsRepr _ _ AYesRepr _ _) -> aCoverage `Map.union` a64Coverage
           _ -> Map.empty
         f = case ecRepr of
-          ExtensionsRepr _ _ _ FDNoRepr -> Map.empty
+          ExtensionsRepr _ _ _ FDNoRepr _ -> Map.empty
           _ -> Map.empty
     in base `Map.union` m `Map.union` a `Map.union` f
 

@@ -74,12 +74,14 @@ rvReprFromString s = case s of
   "RV32IM" -> Just $ Some (knownRepr :: RVRepr RV32IM)
   "RV32IMA" -> Just $ Some (knownRepr :: RVRepr RV32IMA)
   "RV32IMAF" -> Just $ Some (knownRepr :: RVRepr RV32IMAF)
-  "RV32IMAFD" -> Just $ Some (knownRepr :: RVRepr RV32IMAFD)
+  "RV32G" -> Just $ Some (knownRepr :: RVRepr RV32G)
+  "RV32GC" -> Just $ Some (knownRepr :: RVRepr RV32GC)
   "RV64I" -> Just $ Some (knownRepr :: RVRepr RV64I)
   "RV64IM" -> Just $ Some (knownRepr :: RVRepr RV64IM)
   "RV64IMA" -> Just $ Some (knownRepr :: RVRepr RV64IMA)
   "RV64IMAF" -> Just $ Some (knownRepr :: RVRepr RV64IMAF)
-  "RV64IMAFD" -> Just $ Some (knownRepr :: RVRepr RV64IMAFD)
+  "RV64G" -> Just $ Some (knownRepr :: RVRepr RV64G)
+  "RV64GC" -> Just $ Some (knownRepr :: RVRepr RV64GC)
   _ -> Nothing
 
 data SimOpts = SimOpts
@@ -90,7 +92,7 @@ data SimOpts = SimOpts
 
 defaultSimOpts = SimOpts
   { simSteps = 10000
-  , simRV = Some (knownRepr :: RVRepr RV32I)
+  , simRV = Some (knownRepr :: RVRepr RV64GC)
   , simCov = Nothing
   }
 
@@ -107,7 +109,7 @@ options =
                 Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
                 Just someRV -> return $ opts { simRV = someRV } )
      "ARCH")
-    ("RISC-V arch configuration (default = RV32I)")
+    ("RISC-V arch configuration (default = RV64GC)")
   , Option ['c'] ["coverage"]
     (ReqArg (\covStr opts -> return $ opts { simCov = Just covStr })
      "FILE")

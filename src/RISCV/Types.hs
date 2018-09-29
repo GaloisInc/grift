@@ -76,13 +76,15 @@ module RISCV.Types
   , RV32IM
   , RV32IMA
   , RV32IMAF
-  , RV32IMAFD
+  , RV32G
+  , RV32GC
   , RV64I
   , RV64IM
   , RV64IMA
   , RV64IMAF
-  , RV64IMAFD
-    -- * Base architecture
+  , RV64G
+  , RV64GC
+  -- * Base architecture
   , BaseArch(..), type RV32, type RV64, type RV128
   , ArchWidth
   , BaseArchRepr(..)
@@ -93,13 +95,15 @@ module RISCV.Types
   , MConfig(..), type MYes, type MNo
   , AConfig(..), type AYes, type ANo
   , FDConfig(..), type FDYes, type FYesDNo, type FDNo
+  , CConfig(..), type CYes, type CNo
   , ExtensionsRepr(..)
   , PrivConfigRepr(..)
   , MConfigRepr(..)
   , AConfigRepr(..)
   , FDConfigRepr(..)
+  , CConfigRepr(..)
   , KnownExtensions
-  , Extension(..), type AExt, type DExt, type FExt, type MExt, type SExt, type UExt
+  , Extension(..), type AExt, type DExt, type FExt, type MExt, type CExt, type SExt, type UExt
   , ExtensionsContains
   -- * Instructions
   , Format(..)
@@ -124,6 +128,7 @@ import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
 import GHC.TypeLits
+import Numeric
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJClass
 
@@ -178,7 +183,7 @@ instance KnownRepr BaseArchRepr RV128 where knownRepr = RV128Repr
 
 -- | This data structure describes the RISC-V extensions that are enabled in a
 -- particular type context.
-data Extensions = Exts (PrivConfig, MConfig, AConfig, FDConfig)
+data Extensions = Exts (PrivConfig, MConfig, AConfig, FDConfig, CConfig)
 
 type Exts = 'Exts
 
@@ -208,20 +213,28 @@ type FDYes = 'FDYes
 type FYesDNo = 'FYesDNo
 type FDNo = 'FDNo
 
+-- | The C extension is either enabled or disabled.
+data CConfig = CYes | CNo
+
+type CYes = 'CYes
+type CNo = 'CNo
+
 -- | A runtime representative for 'Extensions' for dependent typing.
 data ExtensionsRepr :: Extensions -> * where
   ExtensionsRepr :: PrivConfigRepr priv
                  -> MConfigRepr m
                  -> AConfigRepr a
                  -> FDConfigRepr fd
-                 -> ExtensionsRepr (Exts '(priv, m, a, fd))
+                 -> CConfigRepr c
+                 -> ExtensionsRepr (Exts '(priv, m, a, fd, c))
 
 instance ( KnownRepr PrivConfigRepr priv
          , KnownRepr MConfigRepr m
          , KnownRepr AConfigRepr a
          , KnownRepr FDConfigRepr fd
-         ) => KnownRepr ExtensionsRepr (Exts '(priv, m, a, fd)) where
-  knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr knownRepr
+         , KnownRepr CConfigRepr c
+         ) => KnownRepr ExtensionsRepr (Exts '(priv, m, a, fd, c)) where
+  knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr knownRepr knownRepr
 
 -- | A runtime representative for 'PrivConfig' for dependent typing.
 data PrivConfigRepr :: PrivConfig -> * where
@@ -259,30 +272,40 @@ instance KnownRepr FDConfigRepr FDYes   where knownRepr = FDYesRepr
 instance KnownRepr FDConfigRepr FYesDNo where knownRepr = FYesDNoRepr
 instance KnownRepr FDConfigRepr FDNo    where knownRepr = FDNoRepr
 
+-- | A runtime representative for 'CConfig' for dependent typing.
+data CConfigRepr :: CConfig -> * where
+  CYesRepr :: CConfigRepr CYes
+  CNoRepr  :: CConfigRepr CNo
+
+instance KnownRepr CConfigRepr CYes where knownRepr = CYesRepr
+instance KnownRepr CConfigRepr CNo  where knownRepr = CNoRepr
+
 -- | Everything we need to know about an 'Extensions' at compile time.
 type KnownExtensions exts = KnownRepr ExtensionsRepr exts
 
 -- | Type-level representation of a RISC-V extension.
-data Extension = AExt | DExt | FExt | MExt | SExt | UExt
+data Extension = AExt | DExt | FExt | MExt | CExt | SExt | UExt
 
 type AExt = 'MExt
 type DExt = 'DExt
 type FExt = 'FExt
 type MExt = 'MExt
+type CExt = 'CExt
 type SExt = 'SExt
 type UExt = 'UExt
 
 -- | Type operator that determines whether the 'Extensions' contains a particular
 -- 'Extension'.
 type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool where
-  ExtensionsContains (Exts '(_, MYes, _, _))       MExt = 'True
-  ExtensionsContains (Exts '(_,    _, AYes, _))    AExt = 'True
-  ExtensionsContains (Exts '(_,    _, _, FDYes))   FExt = 'True
-  ExtensionsContains (Exts '(_,    _, _, FYesDNo)) FExt = 'True
-  ExtensionsContains (Exts '(_,    _, _, FDYes))   DExt = 'True
-  ExtensionsContains (Exts '(PrivMU,  _, _, _))    UExt = 'True
-  ExtensionsContains (Exts '(PrivMSU, _, _, _))    UExt = 'True
-  ExtensionsContains (Exts '(PrivMSU, _, _, _))    SExt = 'True
+  ExtensionsContains (Exts '(_, MYes, _, _, _))       MExt = 'True
+  ExtensionsContains (Exts '(_,    _, AYes, _, _))    AExt = 'True
+  ExtensionsContains (Exts '(_,    _, _, FDYes, _))   FExt = 'True
+  ExtensionsContains (Exts '(_,    _, _, FYesDNo, _)) FExt = 'True
+  ExtensionsContains (Exts '(_,    _, _, FDYes, _))   DExt = 'True
+  ExtensionsContains (Exts '(PrivMU,  _, _, _, _))    UExt = 'True
+  ExtensionsContains (Exts '(PrivMSU, _, _, _, _))    UExt = 'True
+  ExtensionsContains (Exts '(PrivMSU, _, _, _, _))    SExt = 'True
+  ExtensionsContains (Exts '(_, _, _, _, CYes))       CExt = 'True
   ExtensionsContains _ _ = 'False
 
 ----------------------------------------
@@ -327,7 +350,7 @@ type family RVFloatWidth (rv :: RV) :: Nat where
 
 -- | Maps a RISC-V configuration to its 'FDConfig'.
 type family RVFloatType (rv :: RV) :: FDConfig where
-  RVFloatType (RVConfig '(_, Exts '(_, _, _, fd))) = fd
+  RVFloatType (RVConfig '(_, Exts '(_, _, _, fd, _))) = fd
 
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where
@@ -341,21 +364,23 @@ withRVWidth (RVRepr RV128Repr _) b = b
 
 -- | Satisfy a 'KnownRVFloatWidth' constraint from an explicit 'RVRepr'.
 withRVFloatWidth :: RVRepr rv -> (KnownRVFloatWidth rv => b) -> b
-withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr)) b = b
-withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr)) b = b
-withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDNoRepr)) b = b
+withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) b = b
+withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) b = b
+withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDNoRepr _)) b = b
 
 -- type synonyms for common RVConfigs.
-type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo))
-type RV32IM    = RVConfig '(RV32, Exts '(PrivM, MYes, ANo,  FDNo))
-type RV32IMA   = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDNo))
-type RV32IMAF  = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FYesDNo))
-type RV32IMAFD = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDYes))
-type RV64I     = RVConfig '(RV64, Exts '(PrivM, MNo,  ANo,  FDNo))
-type RV64IM    = RVConfig '(RV64, Exts '(PrivM, MYes, ANo,  FDNo))
-type RV64IMA   = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDNo))
-type RV64IMAF  = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FYesDNo))
-type RV64IMAFD = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes))
+type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo,    CNo))
+type RV32IM    = RVConfig '(RV32, Exts '(PrivM, MYes, ANo,  FDNo,    CNo))
+type RV32IMA   = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDNo,    CNo))
+type RV32IMAF  = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FYesDNo, CNo))
+type RV32G     = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDYes,   CNo))
+type RV32GC    = RVConfig '(RV32, Exts '(PrivM, MYes, AYes, FDYes,   CYes))
+type RV64I     = RVConfig '(RV64, Exts '(PrivM, MNo,  ANo,  FDNo,    CNo))
+type RV64IM    = RVConfig '(RV64, Exts '(PrivM, MYes, ANo,  FDNo,    CNo))
+type RV64IMA   = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDNo,    CNo))
+type RV64IMAF  = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FYesDNo, CNo))
+type RV64G     = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes,   CNo))
+type RV64GC    = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes,   CYes))
 
 ----------------------------------------
 -- Formats
@@ -468,11 +493,16 @@ prettyReg :: BitVector 5 -> Doc
 prettyReg bv = text "x" <> integer (bvIntegerU bv)
 
 prettyImm :: BitVector w -> Doc
-prettyImm bv = integer (bvIntegerS bv)
+prettyImm bv = text $ "0x" ++ showHex (bvIntegerS bv) ""
+
+_prettyAddr :: BitVector w -> BitVector 5 -> Doc
+_prettyAddr offset reg = prettyImm offset <> parens (prettyReg reg)
 
 commas :: [Doc] -> Doc
 commas = hcat . punctuate (comma <> space)
 
+-- TODO: Change pretty printing for addresses to use offset(reg). This involves
+-- dealing with individual instructions (yuck).
 instance PrettyF Operands where
   pPrintF (Operands RRepr (rd :< rs1 :< rs2 :< Nil)) =
     commas [prettyReg rd, prettyReg rs1, prettyReg rs2]

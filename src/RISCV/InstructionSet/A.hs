@@ -51,8 +51,8 @@ import RISCV.Types
 
 -- | Get the A instruction set from an explicit 'RVRepr'.
 aFromRepr :: RVRepr rv -> InstructionSet rv
-aFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ AYesRepr _)) = a32
-aFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _)) = a64
+aFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ AYesRepr _ _)) = a32
+aFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _ _)) = a64
 aFromRepr _ = mempty
 
 -- | A extension (RV32)

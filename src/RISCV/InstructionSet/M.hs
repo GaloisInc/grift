@@ -51,8 +51,8 @@ import RISCV.Types
 
 -- | Get the M instruction set from an explicit 'RVRepr'.
 mFromRepr :: RVRepr rv -> InstructionSet rv
-mFromRepr (RVRepr RV32Repr (ExtensionsRepr _ MYesRepr _ _)) = m32
-mFromRepr (RVRepr RV64Repr (ExtensionsRepr _ MYesRepr _ _)) = m64
+mFromRepr (RVRepr RV32Repr (ExtensionsRepr _ MYesRepr _ _ _)) = m32
+mFromRepr (RVRepr RV64Repr (ExtensionsRepr _ MYesRepr _ _ _)) = m64
 mFromRepr _ = mempty
 
 -- | M extension (RV32)

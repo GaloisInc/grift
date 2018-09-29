@@ -52,10 +52,10 @@ import RISCV.Types
 
 -- | Get the F/D instruction set from an explicit 'RVRepr'.
 fdFromRepr :: RVRepr rv -> InstructionSet rv
-fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FYesDNoRepr)) = f32
-fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FDYesRepr))   = f32 <> d32
-fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FYesDNoRepr)) = f64
-fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FDYesRepr))   = f64 <> d64
+fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FYesDNoRepr _)) = f32
+fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = f32 <> d32
+fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FYesDNoRepr _)) = f64
+fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = f64 <> d64
 fdFromRepr _ = mempty
 
 -- | F extension (RV32)
