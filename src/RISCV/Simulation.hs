@@ -335,32 +335,32 @@ runRVLog steps = do
 
 -- | Given a formula, constructs a list of all the tests that affect the execution of
 -- that formula.
-getTests :: Semantics (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
-getTests formula = nub (concat $ getTestsStmt <$> formula ^. semStmts)
+-- getTests :: Semantics (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
+-- getTests formula = nub (concat $ getTestsStmt <$> formula ^. semStmts)
 
-getTestsStmt :: Stmt (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
-getTestsStmt (AssignStmt le e) = getTestsLocApp le ++ getTestsInstExpr e
-getTestsStmt (BranchStmt t l r) =
-  t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
+-- getTestsStmt :: Stmt (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
+-- getTestsStmt (AssignStmt le e) = getTestsLocApp le ++ getTestsInstExpr e
+-- getTestsStmt (BranchStmt t l r) =
+--   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
 
-getTestsLocApp :: LocApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
-getTestsLocApp (RegExpr   e) = getTestsInstExpr e
-getTestsLocApp (FRegExpr  e) = getTestsInstExpr e
-getTestsLocApp (MemExpr _ e) = getTestsInstExpr e
-getTestsLocApp (ResExpr   e) = getTestsInstExpr e
-getTestsLocApp (CSRExpr   e) = getTestsInstExpr e
-getTestsLocApp _ = []
+-- getTestsLocApp :: LocApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
+-- getTestsLocApp (RegExpr   e) = getTestsInstExpr e
+-- getTestsLocApp (FRegExpr  e) = getTestsInstExpr e
+-- getTestsLocApp (MemExpr _ e) = getTestsInstExpr e
+-- getTestsLocApp (ResExpr   e) = getTestsInstExpr e
+-- getTestsLocApp (CSRExpr   e) = getTestsInstExpr e
+-- getTestsLocApp _ = []
 
-getTestsStateApp :: StateApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
-getTestsStateApp (LocApp e) = getTestsLocApp e
-getTestsStateApp (AppExpr e) = getTestsBVApp e
+-- getTestsStateApp :: StateApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
+-- getTestsStateApp (LocApp e) = getTestsLocApp e
+-- getTestsStateApp (AppExpr e) = getTestsBVApp e
 
-getTestsInstExpr :: InstExpr fmt rv w -> [InstExpr fmt rv 1]
-getTestsInstExpr (OperandExpr _) = []
-getTestsInstExpr InstBytes = []
-getTestsInstExpr InstWord = []
-getTestsInstExpr (InstStateExpr e) = getTestsStateApp e
+-- getTestsInstExpr :: InstExpr fmt rv w -> [InstExpr fmt rv 1]
+-- getTestsInstExpr (OperandExpr _) = []
+-- getTestsInstExpr InstBytes = []
+-- getTestsInstExpr InstWord = []
+-- getTestsInstExpr (InstStateExpr e) = getTestsStateApp e
 
-getTestsBVApp :: BVApp (InstExpr fmt rv) w -> [InstExpr fmt rv 1]
-getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
-getTestsBVApp app = foldMapFC getTestsInstExpr app
+-- getTestsBVApp :: BVApp (InstExpr fmt rv) w -> [InstExpr fmt rv 1]
+-- getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
+-- getTestsBVApp app = foldMapFC getTestsInstExpr app

@@ -475,6 +475,9 @@ instance Pretty (LocApp (InstExpr fmt rv) rv w) where
 instance Pretty (InstExpr fmt rv w) where
   pPrint = pPrintInstExpr' True
 
+instance PrettyF (InstExpr fmt rv) where
+  pPrintF = pPrint
+
 instance Pretty (Stmt (InstExpr fmt rv) rv) where
   pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
   pPrint (BranchStmt test s1s s2s) =
