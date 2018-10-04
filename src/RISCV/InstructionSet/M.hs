@@ -86,7 +86,7 @@ m64Encode = Map.fromList
 
 mSemantics :: forall rv . (KnownRVWidth rv, MExt << rv) => SemanticsMap rv
 mSemantics = Map.fromList
-  [ Pair Mul $ InstSemantics $ getSemantics $ do
+  [ Pair Mul $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
       comment "Arithmetic ovexbrflow is ignored."
 
@@ -98,7 +98,7 @@ mSemantics = Map.fromList
       assignReg rd (x_rs1 `mulE` x_rs2)
       incrPC
 
-  , Pair Mulh $ InstSemantics $ getSemantics $ do
+  , Pair Mulh $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiples x[rs1] by x[rs2], treating the values as two's complement numbers."
       comment "Writes the upper half of the prod in x[rd]."
 
@@ -117,7 +117,7 @@ mSemantics = Map.fromList
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  , Pair Mulhsu $ InstSemantics $ getSemantics $ do
+  , Pair Mulhsu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies x[rs1] by x[rs2]."
       comment "Treats x[rs1] as a two's complement number and x[rs2] as an unsigned number."
       comment "Writes the upper half of the prod in x[rd]."
@@ -137,7 +137,7 @@ mSemantics = Map.fromList
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  , Pair Mulhu $ InstSemantics $ getSemantics $ do
+  , Pair Mulhu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies x[rs1] by x[rs2], treating the values as unsigned numbers."
       comment "Writes the upper half of the prod in x[rd]."
 
@@ -156,7 +156,7 @@ mSemantics = Map.fromList
       assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
-  , Pair Div $ InstSemantics $ getSemantics $ do
+  , Pair Div $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
@@ -170,7 +170,7 @@ mSemantics = Map.fromList
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
 
-  , Pair Divu $ InstSemantics $ getSemantics $ do
+  , Pair Divu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
@@ -184,7 +184,7 @@ mSemantics = Map.fromList
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
 
-  , Pair Rem $ InstSemantics $ getSemantics $ do
+  , Pair Rem $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
       comment "Writes the quotient to r[d]."
 
@@ -198,7 +198,7 @@ mSemantics = Map.fromList
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
       incrPC
 
-  , Pair Remu $ InstSemantics $ getSemantics $ do
+  , Pair Remu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned numbers."
       comment "Writes the quotient to r[d]."
 
@@ -216,7 +216,7 @@ mSemantics = Map.fromList
 
 m64Semantics :: (KnownRVWidth rv, 64 <= RVWidth rv, MExt << rv) => SemanticsMap rv
 m64Semantics = Map.fromList
-  [ Pair Mulw $ InstSemantics $ getSemantics $ do
+  [ Pair Mulw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
@@ -227,7 +227,7 @@ m64Semantics = Map.fromList
 
       assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `mulE` x_rs2)))
       incrPC
-  , Pair Divw $ InstSemantics $ getSemantics $ do
+  , Pair Divw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
@@ -240,7 +240,7 @@ m64Semantics = Map.fromList
 
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
-  , Pair Divuw $ InstSemantics $ getSemantics $ do
+  , Pair Divuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
@@ -253,7 +253,7 @@ m64Semantics = Map.fromList
 
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
-  , Pair Remw $ InstSemantics $ getSemantics $ do
+  , Pair Remw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 
@@ -266,7 +266,7 @@ m64Semantics = Map.fromList
 
       assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
       incrPC
-  , Pair Remuw $ InstSemantics $ getSemantics $ do
+  , Pair Remuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
 

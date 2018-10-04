@@ -112,6 +112,7 @@ module RISCV.Types
   , type RX, type X
   , FormatRepr(..)
   , OperandTypes
+  , OperandName(..)
   , OperandID(..)
   , Operands(..)
   , OpBitsTypes
@@ -475,7 +476,23 @@ type family OperandTypes (fmt :: Format) :: [Nat] where
   OperandTypes RX = '[5, 5]
   OperandTypes X  = '[32]
 
--- | An 'OperandID' is just an index into a particular format's 'OperandTypes' list.
+data OperandName :: Nat -> * where
+  Aq     :: OperandName 1
+  Rl     :: OperandName 1
+  Rm     :: OperandName 3
+  Rd     :: OperandName 5
+  Rs1    :: OperandName 5
+  Rs2    :: OperandName 5
+  Rs3    :: OperandName 5
+  Imm5   :: OperandName 5
+  Shamt5 :: OperandName 5
+  Shamt7 :: OperandName 7
+  Imm12  :: OperandName 12
+  Csr    :: OperandName 12
+  Imm20  :: OperandName 20
+  Imm32  :: OperandName 32
+
+-- | An 'OperandID is just an index into a particular format's 'OperandTypes' list.
 newtype OperandID (fmt :: Format) (w :: Nat) = OperandID { unOperandID :: Index (OperandTypes fmt) w }
   deriving Eq
 

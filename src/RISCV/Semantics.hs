@@ -100,6 +100,7 @@ module RISCV.Semantics
   , Stmt(..)
   , Semantics, semComments, semStmts
   , InstSemantics(..)
+  , instSemantics
     -- * SemanticsM monad
   , SemanticsM
   , getSemantics
@@ -126,6 +127,7 @@ import Control.Monad.State
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float.App
 import Data.Foldable (toList)
+import Data.Functor.Const
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as Seq
@@ -221,19 +223,25 @@ data Stmt (expr :: Nat -> *) (rv :: RV) where
 -- | A 'Semantics' is simply a set of simultaneous 'Stmt's.
 data Semantics (expr :: Nat -> *) (rv :: RV)
   = Semantics { _semComments :: !(Seq String)
-              -- ^ multiline comment
-            , _semStmts    :: !(Seq (Stmt expr rv))
-              -- ^ sequence of statements defining the semantics
-            }
+                -- ^ multiline comment
+              , _semStmts    :: !(Seq (Stmt expr rv))
+              }
 
 -- | A wrapper for 'Semantics's over 'InstExpr's with the 'Format' type parameter
 -- appearing last, for the purposes of associating with an corresponding 'Opcode' of
 -- the same format.
-newtype InstSemantics (rv :: RV) (fmt :: Format)
-  = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv }
+data InstSemantics (rv :: RV) (fmt :: Format)
+  = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv
+                  , getOperandNames :: List OperandName (OperandTypes fmt)
+                  }
+
+instSemantics :: List OperandName (OperandTypes fmt)
+              -> SemanticsM (InstExpr fmt rv) rv ()
+              -> InstSemantics rv fmt
+instSemantics opNames semM = InstSemantics (getSemantics semM) opNames
 
 instance Pretty (InstSemantics rv fmt) where
-  pPrint (InstSemantics sem) = pPrint sem
+  pPrint (InstSemantics sem _) = pPrint sem
 
 -- | Lens for 'Semantics' comments.
 semComments :: Simple Lens (Semantics expr rv) (Seq String)

@@ -106,7 +106,7 @@ fEncode = Map.fromList
 
 fSemantics :: forall rv . (KnownRVWidth rv, KnownRVFloatType rv, FExt << rv) => SemanticsMap rv
 fSemantics = Map.fromList
-  [ Pair Flw $ InstSemantics $ getSemantics $ do
+  [ Pair Flw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a single-precision float from memory address x[rs1] + sext(offset)."
       comment "Writes the result to f[rd]."
 
@@ -117,7 +117,7 @@ fSemantics = Map.fromList
 
       assignFReg rd mVal
       incrPC
-  , Pair Fsw $ InstSemantics $ getSemantics $ do
+  , Pair Fsw $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Stores the single-precision float in register f[rs2] to memory at address x[rs1] + sext(offset)."
 
       rs1 :< rs2 :< offset :< Nil <- operandEs
@@ -127,7 +127,7 @@ fSemantics = Map.fromList
 
       assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 f_rs2)
       incrPC
-  , Pair Fmadd_s $ InstSemantics $ getSemantics $ do
+  , Pair Fmadd_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the single-precision floats in f[rs1] and f[rs2]."
       comment "Adds the unrounded product to the single-precision float in f[rs3]."
       comment "Writes the rounded single-precision result to f[rd]."
@@ -144,7 +144,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fmsub_s $ InstSemantics $ getSemantics $ do
+  , Pair Fmsub_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the single-precision floats in f[rs1] and f[rs2]."
       comment "Subtracts the single-precision float in f[rs3] from the unrounded product."
       comment "Writes the rounded single-precision result to f[rd]."
@@ -161,7 +161,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fnmsub_s $ InstSemantics $ getSemantics $ do
+  , Pair Fnmsub_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the single-precision floats in f[rs1] and f[rs2], negating the result."
       comment "Subtracts the single-precision float in f[rs3] from the unrounded product."
       comment "Writes the rounded single-precision result to f[rd]."
@@ -178,7 +178,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fnmadd_s $ InstSemantics $ getSemantics $ do
+  , Pair Fnmadd_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the single-precision floats in f[rs1] and f[rs2], negating the result."
       comment "Adds the single-precision float in f[rs3] to the unrounded product."
       comment "Writes the rounded single-precision result to f[rd]."
@@ -195,7 +195,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fadd_s $ InstSemantics $ getSemantics $ do
+  , Pair Fadd_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds the single-precision float in registers f[rs1] and f[rs2]."
       comment "Writes the rounded single-precision sum to f[rd]."
 
@@ -210,7 +210,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fsub_s $ InstSemantics $ getSemantics $ do
+  , Pair Fsub_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts the single-precision float in register f[rs2] from f[rs1]."
       comment "Writes the rounded single-precision difference to f[rd]."
 
@@ -225,7 +225,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fmul_s $ InstSemantics $ getSemantics $ do
+  , Pair Fmul_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies the single-precision float in registers f[rs1] and f[rs2]."
       comment "Writes the rounded single-precision sum to f[rd]."
 
@@ -240,7 +240,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fdiv_s $ InstSemantics $ getSemantics $ do
+  , Pair Fdiv_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides the single-precision float in register f[rs1] by f[rs2]."
       comment "Writes the rounded single-precision difference to f[rd]."
 
@@ -255,7 +255,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fsqrt_s $ InstSemantics $ getSemantics $ do
+  , Pair Fsqrt_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Computes the square root of the single-precision float in register f[rs1]."
       comment "Writes the rounded single-precision result to f[rd]."
 
@@ -269,7 +269,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fsgnj_s $ InstSemantics $ getSemantics $ do
+  , Pair Fsgnj_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
       comment "Uses the sign of f[rs2], and writes the result to f[rd]."
 
@@ -284,7 +284,7 @@ fSemantics = Map.fromList
 
       assignFReg rd res
       incrPC
-  , Pair Fsgnjn_s $ InstSemantics $ getSemantics $ do
+  , Pair Fsgnjn_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
       comment "Uses the opposite sign of f[rs2], and writes the result to f[rd]."
 
@@ -299,7 +299,7 @@ fSemantics = Map.fromList
 
       assignFReg rd res
       incrPC
-  , Pair Fsgnjx_s $ InstSemantics $ getSemantics $ do
+  , Pair Fsgnjx_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Constructs a new single-precision float from the significant and exponent of f[rs1]."
       comment "Uses the xor of the signs of f[rs1] and f[rs2], and writes the result to f[rd]."
 
@@ -314,7 +314,7 @@ fSemantics = Map.fromList
 
       assignFReg rd res
       incrPC
-  , Pair Fmin_s $ InstSemantics $ getSemantics $ do
+  , Pair Fmin_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the smaller of the single-precision floats in registers f[rs1] and f[rs2]."
       comment "Copies the result to f[rd]."
 
@@ -338,7 +338,7 @@ fSemantics = Map.fromList
       assignFReg rd res
       raiseFPExceptions flags
       incrPC
-  , Pair Fmax_s $ InstSemantics $ getSemantics $ do
+  , Pair Fmax_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the larger of the single-precision floats in registers f[rs1] and f[rs2]."
       comment "Copies the result to f[rd]."
 
@@ -362,7 +362,7 @@ fSemantics = Map.fromList
       assignFReg rd res
       raiseFPExceptions flags
       incrPC
-  , Pair Fcvt_w_s $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_w_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 32-bit signed integer."
       comment "Writes the result to x[rd]."
 
@@ -374,7 +374,7 @@ fSemantics = Map.fromList
         assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_wu_s $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_wu_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 32-bit unsigned integer."
       comment "Writes the result to x[rd]."
 
@@ -386,7 +386,7 @@ fSemantics = Map.fromList
         assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fmv_x_w $ InstSemantics $ getSemantics $ do
+  , Pair Fmv_x_w $ instSemantics (Rd :< Rs1 :< Nil) $ do
       comment "Copies the single-precision float in register f[rs1] to x[rd]."
       comment "Sign-extends the result."
 
@@ -395,7 +395,7 @@ fSemantics = Map.fromList
 
       assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 f_rs1))
       incrPC
-  , Pair Feq_s $ InstSemantics $ getSemantics $ do
+  , Pair Feq_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the single-precision float in f[rs1] equals f[rs2]."
       comment "Writes 0 to x[rd] if not."
 
@@ -408,7 +408,7 @@ fSemantics = Map.fromList
       assignReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Flt_s $ InstSemantics $ getSemantics $ do
+  , Pair Flt_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the single-precision float in f[rs1] is less than f[rs2]."
       comment "Writes 0 to x[rd] if not."
 
@@ -421,7 +421,7 @@ fSemantics = Map.fromList
       assignReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Fle_s $ InstSemantics $ getSemantics $ do
+  , Pair Fle_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the single-precision float in f[rs1] is less than or equal to f[rs2]."
       comment "Writes 0 to x[rd] if not."
 
@@ -434,7 +434,7 @@ fSemantics = Map.fromList
       assignReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Fclass_s $ InstSemantics $ getSemantics $ do
+  , Pair Fclass_s $ instSemantics (Rd :< Rs1 :< Nil) $ do
       comment "Writes to x[rd] a mask indicating the class of the single-precision float in f[rs1]."
       comment "Exactly one bit in x[rd] is set. Table not included in this comment."
 
@@ -456,7 +456,7 @@ fSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Fcvt_s_w $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_s_w $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 32-bit signed integer in x[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
 
@@ -469,7 +469,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_s_wu $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_s_wu $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 32-bit unsigned integer in x[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
 
@@ -482,7 +482,7 @@ fSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fmv_w_x $ InstSemantics $ getSemantics $ do
+  , Pair Fmv_w_x $ instSemantics (Rd :< Rs1 :< Nil) $ do
       comment "Copies the single-precision float in register x[rs1] to f[rd]."
       comment "Sign-extends the result."
 
@@ -505,7 +505,7 @@ f64Encode = Map.fromList
 
 f64Semantics :: (KnownRVWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 f64Semantics = Map.fromList
-  [ Pair Fcvt_l_s $ InstSemantics $ getSemantics $ do
+  [ Pair Fcvt_l_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 64-bit signed integer."
       comment "Writes the result to x[rd]."
 
@@ -517,7 +517,7 @@ f64Semantics = Map.fromList
         assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_lu_s $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_lu_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 64-bit unsigned integer."
       comment "Writes the result to x[rd]."
 
@@ -529,7 +529,7 @@ f64Semantics = Map.fromList
         assignReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_s_l $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_s_l $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit signed integer in x[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
 
@@ -542,7 +542,7 @@ f64Semantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_s_lu $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_s_lu $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit unsigned integer in x[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
 
@@ -589,7 +589,7 @@ dEncode = Map.fromList
 
 dSemantics :: (KnownRVWidth rv, KnownRVFloatType rv, KnownRVFloatWidth rv, FExt << rv, DExt << rv) => SemanticsMap rv
 dSemantics = Map.fromList
-  [ Pair Fld $ InstSemantics $ getSemantics $ do
+  [ Pair Fld $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a double-precision float from memory address x[rs1] + sext(offset)."
       comment "Writes the result to f[rd]."
 
@@ -600,7 +600,7 @@ dSemantics = Map.fromList
 
       assignFReg rd (zextE mVal)
       incrPC
-  , Pair Fsd $ InstSemantics $ getSemantics $ do
+  , Pair Fsd $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Stores the double-precision float in register f[rs2] to memory at address x[rs1] + sext(offset)."
 
       rs1 :< rs2 :< offset :< Nil <- operandEs
@@ -610,7 +610,7 @@ dSemantics = Map.fromList
 
       assignMem (knownNat @8) (x_rs1 `addE` sextE offset) (extractE 0 f_rs2)
       incrPC
-  , Pair Fmadd_d $ InstSemantics $ getSemantics $ do
+  , Pair Fmadd_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs2 :< Nil) $ do
       comment "Multiplies the double-precision floats in f[rs1] and f[rs2]."
       comment "Adds the unrounded product to the double-precision float in f[rs3]."
       comment "Writes the rounded double-precision result to f[rd]."
@@ -626,7 +626,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fmsub_d $ InstSemantics $ getSemantics $ do
+  , Pair Fmsub_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the double-precision floats in f[rs1] and f[rs2]."
       comment "Subtracts the double-precision float in f[rs3] from the unrounded product."
       comment "Writes the rounded double-precision result to f[rd]."
@@ -642,7 +642,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fnmsub_d $ InstSemantics $ getSemantics $ do
+  , Pair Fnmsub_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the double-precision floats in f[rs1] and f[rs2], negating the result."
       comment "Subtracts the double-precision float in f[rs3] from the unrounded product."
       comment "Writes the rounded double-precision result to f[rd]."
@@ -658,7 +658,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fnmadd_d $ InstSemantics $ getSemantics $ do
+  , Pair Fnmadd_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the double-precision floats in f[rs1] and f[rs2], negating the result."
       comment "Adds the double-precision float in f[rs3] to the unrounded product."
       comment "Writes the rounded double-precision result to f[rd]."
@@ -674,7 +674,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fadd_d $ InstSemantics $ getSemantics $ do
+  , Pair Fadd_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds the double-precision float in registers f[rs1] and f[rs2]."
       comment "Writes the rounded double-precision sum to f[rd]."
 
@@ -688,7 +688,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fsub_d $ InstSemantics $ getSemantics $ do
+  , Pair Fsub_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts the double-precision float in register f[rs2] from f[rs1]."
       comment "Writes the rounded double-precision difference to f[rd]."
 
@@ -702,7 +702,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fmul_d $ InstSemantics $ getSemantics $ do
+  , Pair Fmul_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies the double-precision float in registers f[rs1] and f[rs2]."
       comment "Writes the rounded double-precision sum to f[rd]."
 
@@ -716,7 +716,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fdiv_d $ InstSemantics $ getSemantics $ do
+  , Pair Fdiv_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides the double-precision float in register f[rs1] by f[rs2]."
       comment "Writes the rounded double-precision difference to f[rd]."
 
@@ -730,7 +730,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fsqrt_d $ InstSemantics $ getSemantics $ do
+  , Pair Fsqrt_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Computes the square root of the double-precision float in register f[rs1]."
       comment "Writes the rounded double-precision result to f[rd]."
 
@@ -743,7 +743,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fsgnj_d $ InstSemantics $ getSemantics $ do
+  , Pair Fsgnj_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Constructs a new double-precision float from the significant and exponent of f[rs1]."
       comment "Uses the sign of f[rs2], and writes the result to f[rd]."
 
@@ -757,7 +757,7 @@ dSemantics = Map.fromList
 
       assignFReg rd res
       incrPC
-  , Pair Fsgnjn_d $ InstSemantics $ getSemantics $ do
+  , Pair Fsgnjn_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Constructs a new double-precision float from the significant and exponent of f[rs1]."
       comment "Uses the opposite sign of f[rs2], and writes the result to f[rd]."
 
@@ -771,7 +771,7 @@ dSemantics = Map.fromList
 
       assignFReg rd res
       incrPC
-  , Pair Fsgnjx_d $ InstSemantics $ getSemantics $ do
+  , Pair Fsgnjx_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Constructs a new double-precision float from the significant and exponent of f[rs1]."
       comment "Uses the xor of the signs of f[rs1] and f[rs2], and writes the result to f[rd]."
 
@@ -785,7 +785,7 @@ dSemantics = Map.fromList
 
       assignFReg rd res
       incrPC
-  , Pair Fmin_d $ InstSemantics $ getSemantics $ do
+  , Pair Fmin_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the smaller of the double-precision floats in registers f[rs1] and f[rs2]."
       comment "Copies the result to f[rd]."
 
@@ -808,7 +808,7 @@ dSemantics = Map.fromList
       assignFReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Fmax_d $ InstSemantics $ getSemantics $ do
+  , Pair Fmax_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the larger of the double-precision floats in registers f[rs1] and f[rs2]."
       comment "Copies the result to f[rd]."
 
@@ -831,7 +831,7 @@ dSemantics = Map.fromList
       assignFReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Fcvt_s_d $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_s_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a single-precision float."
       comment "Writes the result to f[rd]."
 
@@ -844,7 +844,7 @@ dSemantics = Map.fromList
         assignFReg rd res
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_d_s $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_d_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a double-precision float."
       comment "Writes the result to f[rd]."
 
@@ -856,7 +856,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Feq_d $ InstSemantics $ getSemantics $ do
+  , Pair Feq_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the double-precision float in f[rs1] equals f[rs2]."
       comment "Writes 0 to x[rd] if not."
 
@@ -869,7 +869,7 @@ dSemantics = Map.fromList
       assignReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Flt_d $ InstSemantics $ getSemantics $ do
+  , Pair Flt_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the double-precision float in f[rs1] is less than f[rs2]."
       comment "Writes 0 to x[rd] if not."
 
@@ -882,7 +882,7 @@ dSemantics = Map.fromList
       assignReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Fle_d $ InstSemantics $ getSemantics $ do
+  , Pair Fle_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the double-precision float in f[rs1] is less than or equal to f[rs2]."
       comment "Writes 0 to x[rd] if not."
 
@@ -895,7 +895,7 @@ dSemantics = Map.fromList
       assignReg rd (zextE res)
       raiseFPExceptions flags
       incrPC
-  , Pair Fclass_d $ InstSemantics $ getSemantics $ do
+  , Pair Fclass_d $ instSemantics (Rd :< Rs1 :< Nil) $ do
       comment "Writes to x[rd] a mask indicating the class of the double-precision float in f[rs1]."
       comment "Exactly one bit in x[rd] is set. Table not included in this comment."
 
@@ -917,7 +917,7 @@ dSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Fcvt_w_d $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_w_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 32-bit signed integer."
       comment "Writes the result to x[rd]."
 
@@ -929,7 +929,7 @@ dSemantics = Map.fromList
         assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_wu_d $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_wu_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 32-bit unsigned integer."
       comment "Writes the result to x[rd]."
 
@@ -941,7 +941,7 @@ dSemantics = Map.fromList
         assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_d_w $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_d_w $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 32-bit signed integer in x[rs1] to a double-precision float."
       comment "Writes the result to f[rd]."
 
@@ -953,7 +953,7 @@ dSemantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_d_wu $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_d_wu $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 32-bit unsigned integer in x[rs1] to a double-precision float."
       comment "Writes the result to f[rd]."
 
@@ -979,7 +979,7 @@ d64Encode = Map.fromList
 
 d64Semantics :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 d64Semantics = Map.fromList
-  [ Pair Fcvt_l_d $ InstSemantics $ getSemantics $ do
+  [ Pair Fcvt_l_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 64-bit signed integer."
       comment "Writes the result to x[rd]."
 
@@ -991,7 +991,7 @@ d64Semantics = Map.fromList
         assignReg rd (sextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_lu_d $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_lu_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 64-bit unsigned integer."
       comment "Writes the result to x[rd]."
 
@@ -1003,7 +1003,7 @@ d64Semantics = Map.fromList
         assignReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fmv_x_d $ InstSemantics $ getSemantics $ do
+  , Pair Fmv_x_d $ instSemantics (Rd :< Rs1 :< Nil) $ do
       comment "Copies the double-precision float in register f[rs1] to x[rd]."
       comment "Sign-extends the result."
 
@@ -1013,7 +1013,7 @@ d64Semantics = Map.fromList
 
       assignReg rd (sextE (extractEWithRepr (knownNat @64) 0 f_rs1))
       incrPC
-  , Pair Fcvt_d_l $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_d_l $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit signed integer in x[rs1] to a double-precision float."
       comment "Writes the result to f[rd]."
 
@@ -1025,7 +1025,7 @@ d64Semantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fcvt_d_lu $ InstSemantics $ getSemantics $ do
+  , Pair Fcvt_d_lu $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit unsigned integer in x[rs1] to a double-precision float."
       comment "Writes the result to f[rd]."
 
@@ -1037,7 +1037,7 @@ d64Semantics = Map.fromList
         assignFReg rd (zextE res)
         raiseFPExceptions flags
         incrPC
-  , Pair Fmv_d_x $ InstSemantics $ getSemantics $ do
+  , Pair Fmv_d_x $ instSemantics (Rd :< Rs1 :< Nil) $ do
       comment "Copies the double-precision float in register x[rs1] to f[rd]."
       comment "Sign-extends the result."
 

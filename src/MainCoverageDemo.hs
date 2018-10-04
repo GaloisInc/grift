@@ -19,12 +19,13 @@ import RISCV.InstructionSet.Known
 import RISCV.Semantics
 import RISCV.Types
 
-data BoolTree (expr :: Nat -> *) = BoolTree (expr 1) [BoolTree expr] [BoolTree expr]
+data BoolTree (expr :: Nat -> *) = BoolTree (expr 1) [BoolTree expr] [BoolTree expr] [BoolTree expr]
 
 instance PrettyF expr => Pretty (BoolTree expr) where
-  pPrint (BoolTree e [] []) = pPrintF e
-  pPrint (BoolTree e l r) =
+  pPrint (BoolTree e [] [] []) = pPrintF e
+  pPrint (BoolTree e t l r) =
     pPrintF e $$
+    nest 2 (text "?>" <+> vcat (pPrint <$> t)) $$
     nest 2 (text "t>" <+> vcat (pPrint <$> l)) $$
     nest 2 (text "f>" <+> vcat (pPrint <$> r))
 
@@ -45,15 +46,17 @@ coverageTreeInstExpr (InstStateExpr e) = coverageTreeStateApp e
 coverageTreeInstExpr _ = []
 
 coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [BoolTree (InstExpr fmt rv)]
-coverageTreeBVApp (IteApp t l r) = [BoolTree t (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
+coverageTreeBVApp (IteApp t l r) =
+  [BoolTree t (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
 coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 
 coverageTreeStmt :: Stmt (InstExpr fmt rv) rv -> [BoolTree (InstExpr fmt rv)]
 coverageTreeStmt (AssignStmt _ e) = coverageTreeInstExpr e
 coverageTreeStmt (BranchStmt t l r) =
-  let lTrees = concat $ toList $ coverageTreeStmt <$> l
+  let tTrees = coverageTreeInstExpr t
+      lTrees = concat $ toList $ coverageTreeStmt <$> l
       rTrees = concat $ toList $ coverageTreeStmt <$> r
-  in [BoolTree t lTrees rTrees]
+  in [BoolTree t tTrees lTrees rTrees]
 
 coverageTreeSemantics :: Semantics (InstExpr fmt rv) rv -> [BoolTree (InstExpr fmt rv)]
 coverageTreeSemantics sem = concat $ toList $ coverageTreeStmt <$> sem ^. semStmts
@@ -61,7 +64,7 @@ coverageTreeSemantics sem = concat $ toList $ coverageTreeStmt <$> sem ^. semStm
 main :: IO ()
 main = do
   let iset = knownISet :: InstructionSet RV64GC
-      sem  = getInstSemantics $ fromJust $ Map.lookup Slli (isSemanticsMap iset)
+      sem  = getInstSemantics $ fromJust $ Map.lookup Bne (isSemanticsMap iset)
       cov  = coverageTreeSemantics sem
   print (pPrint sem)
   putStrLn ""

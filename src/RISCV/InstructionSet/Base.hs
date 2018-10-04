@@ -137,7 +137,7 @@ baseEncode = Map.fromList
 
 baseSemantics :: forall rv . KnownRVWidth rv => SemanticsMap rv
 baseSemantics = Map.fromList
-  [ Pair Add $ InstSemantics $ getSemantics $ do
+  [ Pair Add $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
@@ -149,7 +149,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Sub $ InstSemantics $ getSemantics $ do
+  , Pair Sub $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts register x[rs2] from register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
@@ -161,7 +161,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Sll $ InstSemantics $ getSemantics $ do
+  , Pair Sll $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Shifts register x[rs1] left by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -175,7 +175,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Slt $ InstSemantics $ getSemantics $ do
+  , Pair Slt $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Compares x[rs1] and x[rs2] as two's complement numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
@@ -187,7 +187,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Sltu $ InstSemantics $ getSemantics $ do
+  , Pair Sltu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Compares x[rs1] and x[rs2] as unsigned numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, or 0 if not."
 
@@ -199,7 +199,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Xor $ InstSemantics $ getSemantics $ do
+  , Pair Xor $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the bitwise exclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
@@ -211,7 +211,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Srl $ InstSemantics $ getSemantics $ do
+  , Pair Srl $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -226,7 +226,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Sra $ InstSemantics $ getSemantics $ do
+  , Pair Sra $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Shifts register x[rs1] right by x[rs2] bit positions."
       comment "The vacated bits are filled with copies of x[rs1]'s most significant bit."
       comment "The result is written to x[rd]."
@@ -242,7 +242,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Or $ InstSemantics $ getSemantics $ do
+  , Pair Or $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the bitwise inclusive-OR of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
@@ -254,7 +254,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair And $ InstSemantics $ getSemantics $ do
+  , Pair And $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Computes the bitwise AND of registers x[rs1] and x[rs2]."
       comment "Writes the result to x[rd]."
 
@@ -267,7 +267,7 @@ baseSemantics = Map.fromList
       assignReg rd res
       incrPC
   -- I type
-  , Pair Jalr $ InstSemantics $ getSemantics $ do
+  , Pair Jalr $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Sets the pc to x[rs1] + sext(offset)."
       comment "Masks off the least significant bit of the computed address."
       comment "Writes the previous pc+4 to x[rd]."
@@ -279,7 +279,7 @@ baseSemantics = Map.fromList
 
       assignReg rd $ pc `addE` zextE ib
       assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
-  , Pair Lb $ InstSemantics $ getSemantics $ do
+  , Pair Lb $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -290,7 +290,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Lh $ InstSemantics $ getSemantics $ do
+  , Pair Lh $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -301,7 +301,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Lw $ InstSemantics $ getSemantics $ do
+  , Pair Lw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -312,7 +312,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Lbu $ InstSemantics $ getSemantics $ do
+  , Pair Lbu $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
@@ -323,7 +323,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (zextE mVal)
       incrPC
-  , Pair Lhu $ InstSemantics $ getSemantics $ do
+  , Pair Lhu $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
@@ -334,7 +334,7 @@ baseSemantics = Map.fromList
 
       assignReg rd (zextE mVal)
       incrPC
-  , Pair Addi $ InstSemantics $ getSemantics $ do
+  , Pair Addi $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
 
@@ -345,7 +345,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Slti $ InstSemantics $ getSemantics $ do
+  , Pair Slti $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Compares x[rs1] and the sign-extended immediate as two's complement numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
@@ -356,7 +356,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Sltiu $ InstSemantics $ getSemantics $ do
+  , Pair Sltiu $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Compares x[rs1] and the sign-extended immediate as unsigned numbers."
       comment "Writes 1 to x[rd] if x[rs1] is smaller, 0 if not."
 
@@ -367,7 +367,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Xori $ InstSemantics $ getSemantics $ do
+  , Pair Xori $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Computes the bitwise exclusive-OR of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
@@ -378,7 +378,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Ori $ InstSemantics $ getSemantics $ do
+  , Pair Ori $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Computes the bitwise inclusive-OR of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
@@ -389,7 +389,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Andi $ InstSemantics $ getSemantics $ do
+  , Pair Andi $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Computes the bitwise AND of the sign-extended immediate and register x[rs1]."
       comment "Writes the result to x[rd]."
 
@@ -400,7 +400,7 @@ baseSemantics = Map.fromList
 
       assignReg rd res
       incrPC
-  , Pair Slli $ InstSemantics $ getSemantics $ do
+  , Pair Slli $ instSemantics (Rd :< Rs1 :< Shamt7 :< Nil) $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -419,7 +419,7 @@ baseSemantics = Map.fromList
               raiseException IllegalInstruction iw
         $> do assignReg rd $ x_rs1 `sllE` zextE shamt
               incrPC
-  , Pair Srli $ InstSemantics $ getSemantics $ do
+  , Pair Srli $ instSemantics (Rd :< Rs1 :< Shamt7 :< Nil) $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -438,7 +438,7 @@ baseSemantics = Map.fromList
               raiseException IllegalInstruction iw
         $> do assignReg rd $ x_rs1 `srlE` zextE shamt
               incrPC
-  , Pair Srai $ InstSemantics $ getSemantics $ do
+  , Pair Srai $ instSemantics (Rd :< Rs1 :< Shamt7 :< Nil) $ do
       comment "Shifts register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the result is written to x[rd]."
 
@@ -460,26 +460,26 @@ baseSemantics = Map.fromList
 
   -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
   -- EnvironmentBreak exception.
-  , Pair Ecall $ InstSemantics $ getSemantics $ do
+  , Pair Ecall $ instSemantics Nil $ do
       comment "Makes a request of the execution environment."
 
       raiseException EnvironmentCall (litBV 0x0)
 
-  , Pair Ebreak $ InstSemantics $ getSemantics $ do
+  , Pair Ebreak $ instSemantics Nil $ do
       comment "Makes a request to the debugger."
 
       raiseException EnvironmentCall (litBV 0x0) -- TODO: change this
 
   -- TODO: Fence instructions.
-  , Pair Fence $ InstSemantics $ getSemantics $ do
+  , Pair Fence $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Fence. Currently a no-op."
 
       incrPC
-  , Pair FenceI $ InstSemantics $ getSemantics $ do
+  , Pair FenceI $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "FenceI. Currently a no-op."
 
       incrPC
-  , Pair Csrrw $ InstSemantics $ getSemantics $ do
+  , Pair Csrrw $ instSemantics (Rd :< Rs1 :< Csr :< Nil) $ do
       comment "Let t be the value of control and status register csr."
       comment "Copy x[rs1] to the csr, then write t to x[rd]."
 
@@ -492,7 +492,7 @@ baseSemantics = Map.fromList
         writeCSR csr x_rs1
         assignReg rd t
         incrPC
-  , Pair Csrrs $ InstSemantics $ getSemantics $ do
+  , Pair Csrrs $ instSemantics (Rd :< Rs1 :< Csr :< Nil) $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and x[rs1] to the csr, then write t to x[rd]."
 
@@ -505,7 +505,7 @@ baseSemantics = Map.fromList
         writeCSR csr (x_rs1 `orE` t)
         assignReg rd t
         incrPC
-  , Pair Csrrc $ InstSemantics $ getSemantics $ do
+  , Pair Csrrc $ instSemantics (Rd :< Rs1 :< Csr :< Nil) $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of x[rs1] to the csr."
       comment "Then, write t to x[rd]."
@@ -519,7 +519,7 @@ baseSemantics = Map.fromList
         writeCSR csr ((notE x_rs1) `andE` t)
         assignReg rd t
         incrPC
-  , Pair Csrrwi $ InstSemantics $ getSemantics $ do
+  , Pair Csrrwi $ instSemantics (Rd :< Imm5 :< Csr :< Nil) $ do
       comment "Copies the control and status register csr to x[rd]."
       comment "Then, writes the five-bit zero-extended immediate zimm to the csr."
 
@@ -530,7 +530,7 @@ baseSemantics = Map.fromList
         assignReg rd t
         writeCSR csr (zextE zimm)
         incrPC
-  , Pair Csrrsi $ InstSemantics $ getSemantics $ do
+  , Pair Csrrsi $ instSemantics (Rd :< Imm5 :< Csr :< Nil) $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise OR of t and the five-bit zero-extended immediate zimm to the csr."
       comment "Then, write to to x[rd]."
@@ -542,7 +542,7 @@ baseSemantics = Map.fromList
         writeCSR csr (zextE zimm `orE` t)
         assignReg rd t
         incrPC
-  , Pair Csrrci $ InstSemantics $ getSemantics $ do
+  , Pair Csrrci $ instSemantics (Rd :< Imm5 :< Csr :< Nil) $ do
       comment "Let t be the value of control and status register csr."
       comment "Write the bitwise AND of t and the ones' complement of the five-bit zero-extended zimm to the csr."
       comment "Then, write t to x[rd]."
@@ -556,7 +556,7 @@ baseSemantics = Map.fromList
         incrPC
 
   -- S type
-  , Pair Sb $ InstSemantics $ getSemantics $ do
+  , Pair Sb $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Computes the least-significant byte in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
@@ -567,7 +567,7 @@ baseSemantics = Map.fromList
 
       assignMem (knownNat @1) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
-  , Pair Sh $ InstSemantics $ getSemantics $ do
+  , Pair Sh $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Computes the least-significant half-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
@@ -578,7 +578,7 @@ baseSemantics = Map.fromList
 
       assignMem (knownNat @2) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
-  , Pair Sw $ InstSemantics $ getSemantics $ do
+  , Pair Sw $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Computes the least-significant word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 
@@ -590,33 +590,99 @@ baseSemantics = Map.fromList
       assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
       incrPC
   -- B type
-  , Pair Beq $ InstSemantics $ getSemantics $ do
+  , Pair Beq $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] equals register x[rs2], add sext(offset) to the pc."
 
-      b eqE
-  , Pair Bne $ InstSemantics $ getSemantics $ do
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let pc = readPC
+      ib <- instBytes
+      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+
+      assignPC (iteE (x_rs1 `eqE` x_rs2)
+                (pc `addE` branchOffset)
+                (pc `addE` zextE ib))
+  , Pair Bne $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] does not equal register x[rs2], add sext(offset) to the pc."
 
-      b $ \e1 e2 -> notE (eqE e1 e2)
-  , Pair Blt $ InstSemantics $ getSemantics $ do
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let pc = readPC
+      ib <- instBytes
+      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+
+      assignPC (iteE (notE (x_rs1 `eqE` x_rs2))
+                (pc `addE` branchOffset)
+                (pc `addE` zextE ib))
+  , Pair Blt $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is less than register x[rs2], add sext(offset) to the pc."
 
-      b ltsE
-  , Pair Bge $ InstSemantics $ getSemantics $ do
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let pc = readPC
+      ib <- instBytes
+      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+
+      assignPC (iteE (x_rs1 `ltsE` x_rs2)
+                (pc `addE` branchOffset)
+                (pc `addE` zextE ib))
+  , Pair Bge $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2], add sext(offset) to the pc."
 
-      b $ \e1 e2 -> notE (ltsE e1 e2)
-  , Pair Bltu $ InstSemantics $ getSemantics $ do
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let pc = readPC
+      ib <- instBytes
+      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+
+      assignPC (iteE (notE (x_rs1 `ltsE` x_rs2))
+                (pc `addE` branchOffset)
+                (pc `addE` zextE ib))
+  , Pair Bltu $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is less than register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
-      b ltuE
-  , Pair Bgeu $ InstSemantics $ getSemantics $ do
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let pc = readPC
+      ib <- instBytes
+      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+
+      assignPC (iteE (x_rs1 `ltuE` x_rs2)
+                (pc `addE` branchOffset)
+                (pc `addE` zextE ib))
+  , Pair Bgeu $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
-      b $ \e1 e2 -> notE (ltuE e1 e2)
+      rs1 :< rs2 :< offset :< Nil <- operandEs
+
+      let x_rs1 = readReg rs1
+      let x_rs2 = readReg rs2
+
+      let pc = readPC
+      ib <- instBytes
+      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+
+      assignPC (iteE (notE (x_rs1 `ltuE` x_rs2))
+                (pc `addE` branchOffset)
+                (pc `addE` zextE ib))
 
   -- U type
-  , Pair Lui $ InstSemantics $ getSemantics $ do
+  , Pair Lui $ instSemantics (Rd :< Imm20 :< Nil) $ do
       comment "Writes the sign-extended 20-bit immediate, left-shifted by 12 bits, to x[rd]."
       comment "Zeros the lower 12 bits."
 
@@ -624,7 +690,7 @@ baseSemantics = Map.fromList
 
       assignReg rd $ sextE imm20 `sllE` litBV 12
       incrPC
-  , Pair Auipc $ InstSemantics $ getSemantics $ do
+  , Pair Auipc $ instSemantics (Rd :< Imm20 :< Nil) $ do
       comment "Adds the sign-extended 20-bit immediate, left-shifted by 12 bits, to the pc."
       comment "Writes the result to x[rd]."
 
@@ -635,7 +701,7 @@ baseSemantics = Map.fromList
       incrPC
 
   -- J type
-  , Pair Jal $ InstSemantics $ getSemantics $ do
+  , Pair Jal $ instSemantics (Rd :< Imm20 :< Nil) $ do
       comment "Writes the address of the next instruction to x[rd]."
       comment "Then sets the pc to the current pc plus the sign-extended offset."
 
@@ -647,7 +713,7 @@ baseSemantics = Map.fromList
       assignPC $ pc `addE` sextE (imm20 `sllE` litBV 1)
 
   -- X type
-  , Pair Illegal $ InstSemantics $ getSemantics $ do
+  , Pair Illegal $ instSemantics (Imm32 :< Nil) $ do
       comment "Raise an IllegalInstruction exception"
 
       iw <- instWord
@@ -672,7 +738,7 @@ base64Encode = Map.fromList
 
 base64Semantics :: (KnownRVWidth rv, 64 <= RVWidth rv) => SemanticsMap rv
 base64Semantics = Map.fromList
-  [ Pair Addw $ InstSemantics $ getSemantics $ do
+  [ Pair Addw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -685,7 +751,7 @@ base64Semantics = Map.fromList
 
       assignReg rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
       incrPC
-  , Pair Subw $ InstSemantics $ getSemantics $ do
+  , Pair Subw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -700,7 +766,7 @@ base64Semantics = Map.fromList
       incrPC
 
   -- TODO: Correct this
-  , Pair Sllw $ InstSemantics $ getSemantics $ do
+  , Pair Sllw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -715,7 +781,7 @@ base64Semantics = Map.fromList
       incrPC
 
 
-  , Pair Srlw $ InstSemantics $ getSemantics $ do
+  , Pair Srlw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -729,7 +795,7 @@ base64Semantics = Map.fromList
       assignReg rd $ sextE (x_rs1' `srlE` zextE shamt)
       incrPC
 
-  , Pair Sraw $ InstSemantics $ getSemantics $ do
+  , Pair Sraw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -743,7 +809,7 @@ base64Semantics = Map.fromList
       assignReg rd $ sextE (x_rs1' `sraE` zextE shamt)
       incrPC
 
-  , Pair Lwu $ InstSemantics $ getSemantics $ do
+  , Pair Lwu $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], zero-extending the result."
 
@@ -754,7 +820,7 @@ base64Semantics = Map.fromList
 
       assignReg rd (zextE mVal)
       incrPC
-  , Pair Ld $ InstSemantics $ getSemantics $ do
+  , Pair Ld $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a double-word from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
 
@@ -765,7 +831,7 @@ base64Semantics = Map.fromList
 
       assignReg rd (sextE mVal)
       incrPC
-  , Pair Addiw $ InstSemantics $ getSemantics $ do
+  , Pair Addiw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
       comment "Writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -778,7 +844,7 @@ base64Semantics = Map.fromList
       assignReg rd res
       incrPC
 
-  , Pair Slliw $ InstSemantics $ getSemantics $ do
+  , Pair Slliw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
       comment "Shifts lower 32 bits of register x[rs1] left by shamt bit positions."
       comment "The vacated bits are filled with zeros, and the sign-extended 32-bit result is written to x[rd]."
 
@@ -788,14 +854,14 @@ base64Semantics = Map.fromList
       assignReg rd $ sextE (x_rs1' `sllE` zextE shamt)
       incrPC
 
-  , Pair Srliw $ InstSemantics $ getSemantics $ do
+  , Pair Srliw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
       rd :< rs1 :< shamt :< Nil <- operandEs
       let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
 
       assignReg rd $ sextE (x_rs1' `srlE` zextE shamt)
       incrPC
 
-  , Pair Sraiw $ InstSemantics $ getSemantics $ do
+  , Pair Sraiw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
 
       rd :< rs1 :< shamt :< Nil <- operandEs
       let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readReg rs1)
@@ -803,7 +869,7 @@ base64Semantics = Map.fromList
       assignReg rd $ sextE (x_rs1' `sraE` zextE shamt)
       incrPC
 
-  , Pair Sd $ InstSemantics $ getSemantics $ do
+  , Pair Sd $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Computes the least-significant double-word in register x[rs2]."
       comment "Stores the result at memory address x[rs1] + sext(offset)."
 

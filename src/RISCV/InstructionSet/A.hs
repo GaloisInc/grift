@@ -95,7 +95,7 @@ a64Encode = Map.fromList
 
 aSemantics :: forall rv . (KnownRVWidth rv, AExt << rv) => SemanticsMap rv
 aSemantics = Map.fromList
-  [ Pair Lrw $ InstSemantics $ getSemantics $ do
+  [ Pair Lrw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the four bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
       comment "Registers a reservation on that memory word."
@@ -115,7 +115,7 @@ aSemantics = Map.fromList
               reserve x_rs1
               incrPC
 
-  , Pair Scw $ InstSemantics $ getSemantics $ do
+  , Pair Scw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Checks that there exists a load reservation on address x[rs1]."
       comment "If so, stores the four bytes in register x[rs2] at that address."
       comment "Writes 0 to x[rd] if the store succeeded, or a nonzero error code otherwise."
@@ -133,47 +133,47 @@ aSemantics = Map.fromList
               incrPC
         $> do assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
               incrPC
-  , Pair Amoswapw $ InstSemantics $ getSemantics $ do
+  , Pair Amoswapw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 const
-  , Pair Amoaddw $ InstSemantics $ getSemantics $ do
+  , Pair Amoaddw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t + x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 addE
-  , Pair Amoxorw $ InstSemantics $ getSemantics $ do
+  , Pair Amoxorw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t ^ x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 xorE
-  , Pair Amoandw $ InstSemantics $ getSemantics $ do
+  , Pair Amoandw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t & x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 andE
-  , Pair Amoorw $ InstSemantics $ getSemantics $ do
+  , Pair Amoorw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t | x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp32 orE
-  , Pair Amominw $ InstSemantics $ getSemantics $ do
+  , Pair Amominw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp32 $ \e1 e2 -> iteE (e1 `ltsE` e2) e1 e2
-  , Pair Amomaxw $ InstSemantics $ getSemantics $ do
+  , Pair Amomaxw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp32 $ \e1 e2 -> iteE (e1 `ltsE` e2) e2 e1
-  , Pair Amominuw $ InstSemantics $ getSemantics $ do
+  , Pair Amominuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e1 e2
-  , Pair Amomaxuw $ InstSemantics $ getSemantics $ do
+  , Pair Amomaxuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
@@ -198,7 +198,7 @@ amoOp32 op = do
 
 a64Semantics :: forall rv . (KnownRVWidth rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
 a64Semantics = Map.fromList
-  [ Pair Lrd $ InstSemantics $ getSemantics $ do
+  [ Pair Lrd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
       comment "Registers a reservation on that memory word."
@@ -217,7 +217,7 @@ a64Semantics = Map.fromList
         $> do assignReg rd (sextE mVal)
               reserve x_rs1
 
-  , Pair Scd $ InstSemantics $ getSemantics $ do
+  , Pair Scd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Checks that there exists a load reservation on address x[rs1]."
       comment "If so, stores the eight bytes in register x[rs2] at that address."
       comment "Writes 0 to x[rd] if the store succeeded, or a nonzero error code otherwise."
@@ -233,47 +233,47 @@ a64Semantics = Map.fromList
         $> do assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2)
               assignReg rd (litBV 0)
         $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
-  , Pair Amoswapd $ InstSemantics $ getSemantics $ do
+  , Pair Amoswapd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 const
-  , Pair Amoaddd $ InstSemantics $ getSemantics $ do
+  , Pair Amoaddd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t + x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 addE
-  , Pair Amoxord $ InstSemantics $ getSemantics $ do
+  , Pair Amoxord $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t ^ x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 xorE
-  , Pair Amoandd $ InstSemantics $ getSemantics $ do
+  , Pair Amoandd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t & x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 andE
-  , Pair Amoord $ InstSemantics $ getSemantics $ do
+  , Pair Amoord $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to t | x[rs2]. Set x[rd] to the sign extension of t."
 
       amoOp64 orE
-  , Pair Amomind $ InstSemantics $ getSemantics $ do
+  , Pair Amomind $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp64 $ \e1 e2 -> iteE (e1 `ltsE` e2) e1 e2
-  , Pair Amomaxd $ InstSemantics $ getSemantics $ do
+  , Pair Amomaxd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_s(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp64 $ \e1 e2 -> iteE (e1 `ltsE` e2) e2 e1
-  , Pair Amominud $ InstSemantics $ getSemantics $ do
+  , Pair Amominud $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to min_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e1 e2
-  , Pair Amomaxud $ InstSemantics $ getSemantics $ do
+  , Pair Amomaxud $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to max_u(t, x[rs2]). Set x[rd] to the sign extension of t."
 
