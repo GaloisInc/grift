@@ -46,8 +46,6 @@ module RISCV.InstructionSet.Utils
   , unBox32
   , cases
   , branches
-  , CompOp
-  , b
     -- * CSRs and Exceptions
   , CSR(..)
   , Exception(..)
@@ -71,7 +69,6 @@ import Data.BitVector.Sized.Float.App
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Parameterized
-import Data.Parameterized.List
 import GHC.TypeLits
 
 import RISCV.Semantics
@@ -88,28 +85,6 @@ incrPC = do
   ib <- instBytes
   let pc = readPC
   assignPC $ pc `addE` ib
-
--- TODO: get rid of CompOp and b.
--- | Generic comparison operator.
-type CompOp rv fmt = InstExpr fmt rv (RVWidth rv)
-                    -> InstExpr fmt rv (RVWidth rv)
-                    -> InstExpr fmt rv 1
-
--- | Generic branch.
-b :: KnownRVWidth rv => CompOp rv B -> SemanticsM (InstExpr B rv) rv ()
-b cmp = do
-  rs1 :< rs2 :< offset :< Nil <- operandEs
-
-  let x_rs1 = readReg rs1
-  let x_rs2 = readReg rs2
-
-  let pc = readPC
-  ib <- instBytes
-  let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
-
-  assignPC (iteE (x_rs1 `cmp` x_rs2)
-            (pc `addE` branchOffset)
-            (pc `addE` zextE ib))
 
 -- | NaN-box a 32-bit expression to fit in a floating point register.
 nanBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)

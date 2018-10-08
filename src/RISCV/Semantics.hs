@@ -23,6 +23,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -120,20 +121,22 @@ module RISCV.Semantics
   , reserve
   , branch
   , ($>)
+    -- ** Miscellaneous
+  , pPrintInstExpr
+  , pPrintInstSemantics
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.State
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float.App
-import Data.Foldable (toList)
-import Data.Functor.Const
+import Data.Foldable
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
-import Prelude hiding ((<>))
+import Prelude hiding ((<>), (!!))
 import Text.PrettyPrint.HughesPJClass
 
 import RISCV.Types
@@ -240,8 +243,8 @@ instSemantics :: List OperandName (OperandTypes fmt)
               -> InstSemantics rv fmt
 instSemantics opNames semM = InstSemantics (getSemantics semM) opNames
 
-instance Pretty (InstSemantics rv fmt) where
-  pPrint (InstSemantics sem _) = pPrint sem
+-- instance Pretty (InstSemantics rv fmt) where
+--   pPrint (InstSemantics sem _) = pPrint sem
 
 -- | Lens for 'Semantics' comments.
 semComments :: Simple Lens (Semantics expr rv) (Seq String)
@@ -471,86 +474,165 @@ instance TestEquality (InstExpr fmt rv) where
 instance Eq (InstExpr fmt rv w) where
   x == y = isJust (testEquality x y)
 
-instance Pretty (LocApp (InstExpr fmt rv) rv w) where
-  pPrint PCExpr      = text "pc"
-  pPrint (RegExpr e) = text "x[" <> pPrint e <> text "]"
-  pPrint (FRegExpr e) = text "f[" <> pPrint e <> text "]"
-  pPrint (MemExpr bytes e) = text "M[" <> pPrint e <> text "]_" <> pPrint (natValue bytes)
-  pPrint (ResExpr e) = text "MReserved[" <> pPrint e <> text "]"
-  pPrint (CSRExpr e) = text "CSR[" <> pPrint e <> text "]"
-  pPrint PrivExpr    = text "current_priv"
+-- instance Pretty (InstExpr fmt rv w) where
+--   pPrint = pPrintInstExpr' True
 
-instance Pretty (InstExpr fmt rv w) where
-  pPrint = pPrintInstExpr' True
+-- instance PrettyF (InstExpr fmt rv) where
+--   pPrintF = pPrint
 
-instance PrettyF (InstExpr fmt rv) where
-  pPrintF = pPrint
+-- instance Pretty (Stmt (InstExpr fmt rv) rv) where
+--   pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
+--   pPrint (BranchStmt test s1s s2s) =
+--     text "IF" <+> pPrint test
+--     $$ nest 2 (text "THEN")
+--     $$ nest 4 (vcat (pPrint <$> toList s1s))
+--     $$ nest 2 (text "ELSE")
+--     $$ nest 4 (vcat (pPrint <$> toList s2s))
 
-instance Pretty (Stmt (InstExpr fmt rv) rv) where
-  pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
-  pPrint (BranchStmt test s1s s2s) =
-    text "IF" <+> pPrint test
-    $$ nest 2 (text "THEN")
-    $$ nest 4 (vcat (pPrint <$> toList s1s))
-    $$ nest 2 (text "ELSE")
-    $$ nest 4 (vcat (pPrint <$> toList s2s))
+-- instance Pretty (Semantics (InstExpr fmt rv) rv) where
+--   pPrint semantics = (vcat $ pPrint <$> toList (semantics ^. semComments)) $$
+--                      (vcat $ pPrint <$> toList (semantics ^. semStmts))
 
-instance Pretty (Semantics (InstExpr fmt rv) rv) where
-  pPrint semantics = (vcat $ pPrint <$> toList (semantics ^. semComments)) $$
-                     (vcat $ pPrint <$> toList (semantics ^. semStmts))
+pPrintLocApp :: (forall w' . Bool -> expr w' -> Doc)
+             -> Bool
+             -> LocApp expr rv w
+             -> Doc
+pPrintLocApp _ _ PCExpr = text "pc"
+pPrintLocApp ppExpr top (RegExpr e) = text "x[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (FRegExpr e) = text "f[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (MemExpr bytes e) = text "M[" <> ppExpr top e <> text "]_" <> pPrint (natValue bytes)
+pPrintLocApp ppExpr top (ResExpr e) = text "MReserved[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (CSRExpr e) = text "CSR[" <> ppExpr top e <> text "]"
+pPrintLocApp _ _ PrivExpr = text "current_priv"
 
--- TODO: pretty print floating point expressions
--- TODO: Can we do this more generally, with a general expr?
-pPrintStateApp' :: Bool -> StateApp (InstExpr fmt rv) rv w -> Doc
-pPrintStateApp' _ (LocApp loc) = pPrint loc
-pPrintStateApp' top (AppExpr app) = pPrintApp' top app
+pPrintStateApp :: (forall w' . Bool -> expr w' -> Doc)
+               -> Bool
+               -> StateApp expr rv w
+               -> Doc
+pPrintStateApp ppExpr top (LocApp loc) = pPrintLocApp ppExpr top loc
+pPrintStateApp ppExpr top (AppExpr app) = pPrintBVApp ppExpr top app
 
--- TODO: Print operands with more descriptive names, based on the format of the
--- instruction.
-pPrintInstExpr' :: Bool -> InstExpr fmt rv w -> Doc
-pPrintInstExpr' _ (OperandExpr (OperandID oid)) = text "arg" <> pPrint (indexValue oid)
-pPrintInstExpr' _ InstBytes = text "step"
-pPrintInstExpr' _ InstWord = text "inst"
-pPrintInstExpr' top (InstStateExpr e) = pPrintStateApp' top e
-
-pPrintApp' :: Bool -> BVApp (InstExpr fmt rv) w -> Doc
-pPrintApp' _ (NotApp e) = text "!" <> pPrintInstExpr' False e
-pPrintApp' _ (LitBVApp bv) = text $ show bv
-pPrintApp' _ (ZExtApp _ e) = text "zext(" <> pPrintInstExpr' True e <> text ")"
-pPrintApp' _ (SExtApp _ e) = text "sext(" <> pPrintInstExpr' True e <> text ")"
-pPrintApp' top (ExtractApp w ix e) =
-  pPrintInstExpr' top e <> text "[" <> pPrint ix <> text ":" <>
+pPrintBVApp :: (forall w' . Bool -> expr w' -> Doc)
+            -> Bool
+            -> BVApp expr w
+            -> Doc
+pPrintBVApp ppExpr _ (NotApp e) = text "!" <> ppExpr False e
+pPrintBVApp ppExpr _ (NegateApp e) = text "-" <> ppExpr False e
+pPrintBVApp _ _ (LitBVApp bv) = text $ show bv
+pPrintBVApp ppExpr _ (AbsApp e) = text "|" <> ppExpr True e <> text "|"
+pPrintBVApp ppExpr _ (SignumApp e) = text "signum(" <> ppExpr True e <> text ")"
+pPrintBVApp ppExpr _ (ZExtApp _ e) = text "zext(" <> ppExpr True e <> text ")"
+pPrintBVApp ppExpr _ (SExtApp _ e) = text "sext(" <> ppExpr True e <> text ")"
+pPrintBVApp ppExpr top (ExtractApp w ix e) =
+  ppExpr top e <> text "[" <> pPrint ix <> text ":" <>
   pPrint (ix + fromIntegral (natValue w) - 1) <> text "]"
-pPrintApp' False e = parens (pPrintApp' True e)
-pPrintApp' _ (AndApp e1 e2) = pPrintInstExpr' False e1 <+> text "&" <+> pPrintInstExpr' False e2
-pPrintApp' _ (OrApp  e1 e2) = pPrintInstExpr' False e1 <+> text "|" <+> pPrintInstExpr' False e2
-pPrintApp' _ (XorApp e1 e2) = pPrintInstExpr' False e1 <+> text "^" <+> pPrintInstExpr' False e2
-pPrintApp' _ (SllApp e1 e2) = pPrintInstExpr' False e1 <+> text "<<" <+> pPrintInstExpr' False e2
-pPrintApp' _ (SrlApp e1 e2) = pPrintInstExpr' False e1 <+> text ">l>" <+> pPrintInstExpr' False e2
-pPrintApp' _ (SraApp e1 e2) = pPrintInstExpr' False e1 <+> text ">a>" <+> pPrintInstExpr' False e2
-pPrintApp' _ (AddApp e1 e2) = pPrintInstExpr' False e1 <+> text "+" <+> pPrintInstExpr' False e2
-pPrintApp' _ (SubApp e1 e2) = pPrintInstExpr' False e1 <+> text "-" <+> pPrintInstExpr' False e2
-pPrintApp' _ (MulApp e1 e2) = pPrintInstExpr' False e1 <+> text "*" <+> pPrintInstExpr' False e2
-pPrintApp' _ (QuotUApp e1 e2) = pPrintInstExpr' False e1 <+> text "/u" <+> pPrintInstExpr' False e2
-pPrintApp' _ (QuotSApp e1 e2) = pPrintInstExpr' False e1 <+> text "/s" <+> pPrintInstExpr' False e2
-pPrintApp' _ (RemUApp e1 e2) = pPrintInstExpr' False e1 <+> text "%u" <+> pPrintInstExpr' False e2
-pPrintApp' _ (RemSApp e1 e2) = pPrintInstExpr' False e1 <+> text "%s" <+> pPrintInstExpr' False e2
-pPrintApp' _ (EqApp  e1 e2) = pPrintInstExpr' False e1 <+> text "==" <+> pPrintInstExpr' False e2
-pPrintApp' _ (LtuApp e1 e2) = pPrintInstExpr' False e1 <+> text "<u" <+> pPrintInstExpr' False e2
-pPrintApp' _ (LtsApp e1 e2) = pPrintInstExpr' False e1 <+> text "<s" <+> pPrintInstExpr' False e2
-pPrintApp' _ (ConcatApp e1 e2) =
-  text "{" <> pPrintInstExpr' True e1 <> text ", " <> pPrintInstExpr' True e2 <> text "}"
--- pPrintApp' _
---   (IteApp
---    (InstStateExpr
---     (AppExpr
---      (EqApp
---       e1
---       (InstStateExpr (AppExpr (LitBVApp (BV _ 0)))))))
---    (InstStateExpr (AppExpr (LitBVApp (BV _ 0))))
---    (InstStateExpr (LocApp r@(RegExpr e2))))
---   | Just Refl <- e1 `testEquality` e2 = pPrint r
-pPrintApp' _ (IteApp e1 e2 e3) =
-  text "if" <+> pPrintInstExpr' True e1 <+>
-  text "then" <+> pPrintInstExpr' True e2 <+>
-  text "else" <+> pPrintInstExpr' True e3
+pPrintBVApp ppExpr False e = parens (pPrintBVApp ppExpr True e)
+pPrintBVApp ppExpr _ (AndApp e1 e2) = ppExpr False e1 <+> text "&" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (OrApp  e1 e2) = ppExpr False e1 <+> text "|" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (XorApp e1 e2) = ppExpr False e1 <+> text "^" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SllApp e1 e2) = ppExpr False e1 <+> text "<<" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SrlApp e1 e2) = ppExpr False e1 <+> text ">l>" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SraApp e1 e2) = ppExpr False e1 <+> text ">a>" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (AddApp e1 e2) = ppExpr False e1 <+> text "+" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SubApp e1 e2) = ppExpr False e1 <+> text "-" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (MulApp e1 e2) = ppExpr False e1 <+> text "*" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (QuotUApp e1 e2) = ppExpr False e1 <+> text "/u" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (QuotSApp e1 e2) = ppExpr False e1 <+> text "/s" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (RemUApp e1 e2) = ppExpr False e1 <+> text "%u" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (RemSApp e1 e2) = ppExpr False e1 <+> text "%s" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (EqApp  e1 e2) = ppExpr False e1 <+> text "==" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (LtuApp e1 e2) = ppExpr False e1 <+> text "<u" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (LtsApp e1 e2) = ppExpr False e1 <+> text "<s" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (ConcatApp e1 e2) =
+  text "{" <> ppExpr True e1 <> text ", " <> ppExpr True e2 <> text "}"
+pPrintBVApp ppExpr _ (IteApp e1 e2 e3) =
+  text "if" <+> ppExpr True e1 <+>
+  text "then" <+> ppExpr True e2 <+>
+  text "else" <+> ppExpr True e3
+
+
+-- -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
+-- -- of a state component (register, memory location, etc.) to an expression of the
+-- -- appropriate width.
+-- data Stmt (expr :: Nat -> *) (rv :: RV) where
+--   -- | Assign a piece of state to a value.
+--   AssignStmt :: !(LocApp expr rv w) -> !(expr w) -> Stmt expr rv
+--   -- | If-then-else branch statement.
+--   BranchStmt :: !(expr 1)
+--              -> !(Seq (Stmt expr rv))
+--              -> !(Seq (Stmt expr rv))
+--              -> Stmt expr rv
+
+-- -- | A 'Semantics' is simply a set of simultaneous 'Stmt's.
+-- data Semantics (expr :: Nat -> *) (rv :: RV)
+--   = Semantics { _semComments :: !(Seq String)
+--                 -- ^ multiline comment
+--               , _semStmts    :: !(Seq (Stmt expr rv))
+--               }
+
+-- instance Pretty (Semantics (InstExpr fmt rv) rv) where
+--   pPrint semantics = (vcat $ pPrint <$> toList (semantics ^. semComments)) $$
+--                      (vcat $ pPrint <$> toList (semantics ^. semStmts))
+
+-- instance Pretty (Stmt (InstExpr fmt rv) rv) where
+--   pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
+--   pPrint (BranchStmt test s1s s2s) =
+--     text "IF" <+> pPrint test
+--     $$ nest 2 (text "THEN")
+--     $$ nest 4 (vcat (pPrint <$> toList s1s))
+--     $$ nest 2 (text "ELSE")
+--     $$ nest 4 (vcat (pPrint <$> toList s2s))
+
+-- -- | A wrapper for 'Semantics's over 'InstExpr's with the 'Format' type parameter
+-- -- appearing last, for the purposes of associating with an corresponding 'Opcode' of
+-- -- the same format.
+-- data InstSemantics (rv :: RV) (fmt :: Format)
+--   = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv
+--                   , getOperandNames :: List OperandName (OperandTypes fmt)
+--                   }
+
+pPrintStmt :: (forall w' . Bool -> expr w' -> Doc)
+       -> Stmt expr rv
+       -> Doc
+pPrintStmt ppExpr (AssignStmt le e) = pPrintLocApp ppExpr True le <+> text ":=" <+> ppExpr True e
+pPrintStmt ppExpr (BranchStmt test s1s s2s) =
+  text "IF" <+> ppExpr True test
+  $$ nest 2 (text "THEN")
+  $$ nest 4 (vcat (pPrintStmt ppExpr <$> toList s1s))
+  $$ nest 2 (text "ELSE")
+  $$ nest 4 (vcat (pPrintStmt ppExpr <$> toList s2s))
+
+pPrintSemantics :: (forall w' . Bool -> expr w' -> Doc)
+                -> Semantics expr rv
+                -> Doc
+pPrintSemantics ppExpr semantics = (vcat $ text <$> toList (semantics ^. semComments)) $$
+                               (vcat $ pPrintStmt ppExpr <$> toList (semantics ^. semStmts))
+
+pPrintOperandName :: OperandName w -> Doc
+pPrintOperandName Aq = text "aq"
+pPrintOperandName Rl = text "rl"
+pPrintOperandName Rm = text "rm"
+pPrintOperandName Rd = text "rd"
+pPrintOperandName Rs1 = text "rs1"
+pPrintOperandName Rs2 = text "rs2"
+pPrintOperandName Rs3 = text "rs3"
+pPrintOperandName Imm5 = text "imm5"
+pPrintOperandName Shamt5 = text "shamt5"
+pPrintOperandName Shamt7 = text "shamt7"
+pPrintOperandName Imm12 = text "imm12"
+pPrintOperandName Csr = text "csr"
+pPrintOperandName Imm20 = text "imm20"
+pPrintOperandName Imm32 = text "imm32"
+
+pPrintInstExpr :: List OperandName (OperandTypes fmt)
+               -> Bool
+               -> InstExpr fmt rv w
+               -> Doc
+pPrintInstExpr opNames _ (OperandExpr (OperandID oid)) = pPrintOperandName (opNames !! oid)
+pPrintInstExpr _ _ InstBytes = text "step"
+pPrintInstExpr _ _ InstWord = text "inst"
+pPrintInstExpr opNames top (InstStateExpr e) = pPrintStateApp (pPrintInstExpr opNames) top e
+
+pPrintInstSemantics :: InstSemantics rv fmt -> Doc
+pPrintInstSemantics (InstSemantics semantics opNames) =
+  pPrintSemantics (pPrintInstExpr opNames) semantics

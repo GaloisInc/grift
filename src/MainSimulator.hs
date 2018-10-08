@@ -192,18 +192,18 @@ runElf rvRepr stepsToRun mLogFile e = withRVWidth rvRepr $ do
   forM_ (assocs fregisters) $ \(r, v) ->
     putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-  case mLogFile of
-    Nothing -> return ()
-    Just logFile -> withFile logFile WriteMode $ \h -> do
-      hPutStrLn h "\n--------Coverage report--------\n"
-      forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
-        case MapF.lookup opcode (knownCoverageWithRepr rvRepr) of
-          Just (InstExprList exprs) -> do
-            let ones = length (filter (==1) vals)
-            hPutStrLn h $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
-            forM_ (zip exprs vals) $ \(expr, val) ->
-              hPutStrLn h $ "  " ++ prettyShow expr ++ " ---> " ++ show val
-          _ -> return ()
+  -- case mLogFile of
+  --   Nothing -> return ()
+  --   Just logFile -> withFile logFile WriteMode $ \h -> do
+  --     hPutStrLn h "\n--------Coverage report--------\n"
+  --     forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
+  --       case MapF.lookup opcode (knownCoverageWithRepr rvRepr) of
+  --         Just (InstExprList exprs) -> do
+  --           let ones = length (filter (==1) vals)
+  --           hPutStrLn h $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
+  --           forM_ (zip exprs vals) $ \(expr, val) ->
+  --             hPutStrLn h $ "  " ++ show (pPrintInstExpr True expr) ++ " ---> " ++ show val
+  --         _ -> return ()
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.

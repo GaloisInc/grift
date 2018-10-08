@@ -43,6 +43,6 @@ main = do
     Some iset -> do
       forM_ (sortBy pairSort $ toList (isSemanticsMap iset)) $ \(Pair opcode semantics) -> do
         putStrLn $ show opcode ++ ": "
-        print (nest 4 $ pPrint semantics)
+        print (nest 4 $ pPrintInstSemantics semantics)
   where pairSort :: Pair (Opcode rv) (InstSemantics rv) -> Pair (Opcode rv) (InstSemantics rv) -> Ordering
         pairSort p1@(Pair oc1 _) p2@(Pair oc2 _) = compare (show oc1) (show oc2)

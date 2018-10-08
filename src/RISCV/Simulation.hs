@@ -51,7 +51,6 @@ module RISCV.Simulation
   , execSemantics
   , runRV
   , runRVLog
-  , getTests
   ) where
 
 import Control.Lens ( (^.) )
@@ -59,7 +58,6 @@ import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float.App
 import Data.Foldable
-import Data.List (nub)
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
