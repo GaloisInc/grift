@@ -86,9 +86,9 @@ module RISCV.Semantics
     -- * RISC-V semantic expressions
   , LocApp(..)
   , StateApp(..)
+  , StateExpr(..)
   , PureStateExpr(..)
   , InstExpr(..)
-  , StateExpr(..)
     -- ** Access to state
   , readPC
   , readReg
@@ -121,7 +121,7 @@ module RISCV.Semantics
   , reserve
   , branch
   , ($>)
-    -- ** Miscellaneous
+    -- ** Pretty printing
   , pPrintInstExpr
   , pPrintInstSemantics
   ) where
@@ -242,9 +242,6 @@ instSemantics :: List OperandName (OperandTypes fmt)
               -> SemanticsM (InstExpr fmt rv) rv ()
               -> InstSemantics rv fmt
 instSemantics opNames semM = InstSemantics (getSemantics semM) opNames
-
--- instance Pretty (InstSemantics rv fmt) where
---   pPrint (InstSemantics sem _) = pPrint sem
 
 -- | Lens for 'Semantics' comments.
 semComments :: Simple Lens (Semantics expr rv) (Seq String)
@@ -474,24 +471,7 @@ instance TestEquality (InstExpr fmt rv) where
 instance Eq (InstExpr fmt rv w) where
   x == y = isJust (testEquality x y)
 
--- instance Pretty (InstExpr fmt rv w) where
---   pPrint = pPrintInstExpr' True
-
--- instance PrettyF (InstExpr fmt rv) where
---   pPrintF = pPrint
-
--- instance Pretty (Stmt (InstExpr fmt rv) rv) where
---   pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
---   pPrint (BranchStmt test s1s s2s) =
---     text "IF" <+> pPrint test
---     $$ nest 2 (text "THEN")
---     $$ nest 4 (vcat (pPrint <$> toList s1s))
---     $$ nest 2 (text "ELSE")
---     $$ nest 4 (vcat (pPrint <$> toList s2s))
-
--- instance Pretty (Semantics (InstExpr fmt rv) rv) where
---   pPrint semantics = (vcat $ pPrint <$> toList (semantics ^. semComments)) $$
---                      (vcat $ pPrint <$> toList (semantics ^. semStmts))
+-- Pretty printing
 
 pPrintLocApp :: (forall w' . Bool -> expr w' -> Doc)
              -> Bool
@@ -549,47 +529,6 @@ pPrintBVApp ppExpr _ (IteApp e1 e2 e3) =
   text "if" <+> ppExpr True e1 <+>
   text "then" <+> ppExpr True e2 <+>
   text "else" <+> ppExpr True e3
-
-
--- -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
--- -- of a state component (register, memory location, etc.) to an expression of the
--- -- appropriate width.
--- data Stmt (expr :: Nat -> *) (rv :: RV) where
---   -- | Assign a piece of state to a value.
---   AssignStmt :: !(LocApp expr rv w) -> !(expr w) -> Stmt expr rv
---   -- | If-then-else branch statement.
---   BranchStmt :: !(expr 1)
---              -> !(Seq (Stmt expr rv))
---              -> !(Seq (Stmt expr rv))
---              -> Stmt expr rv
-
--- -- | A 'Semantics' is simply a set of simultaneous 'Stmt's.
--- data Semantics (expr :: Nat -> *) (rv :: RV)
---   = Semantics { _semComments :: !(Seq String)
---                 -- ^ multiline comment
---               , _semStmts    :: !(Seq (Stmt expr rv))
---               }
-
--- instance Pretty (Semantics (InstExpr fmt rv) rv) where
---   pPrint semantics = (vcat $ pPrint <$> toList (semantics ^. semComments)) $$
---                      (vcat $ pPrint <$> toList (semantics ^. semStmts))
-
--- instance Pretty (Stmt (InstExpr fmt rv) rv) where
---   pPrint (AssignStmt le e) = pPrint le <+> text ":=" <+> pPrint e
---   pPrint (BranchStmt test s1s s2s) =
---     text "IF" <+> pPrint test
---     $$ nest 2 (text "THEN")
---     $$ nest 4 (vcat (pPrint <$> toList s1s))
---     $$ nest 2 (text "ELSE")
---     $$ nest 4 (vcat (pPrint <$> toList s2s))
-
--- -- | A wrapper for 'Semantics's over 'InstExpr's with the 'Format' type parameter
--- -- appearing last, for the purposes of associating with an corresponding 'Opcode' of
--- -- the same format.
--- data InstSemantics (rv :: RV) (fmt :: Format)
---   = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv
---                   , getOperandNames :: List OperandName (OperandTypes fmt)
---                   }
 
 pPrintStmt :: (forall w' . Bool -> expr w' -> Doc)
        -> Stmt expr rv
