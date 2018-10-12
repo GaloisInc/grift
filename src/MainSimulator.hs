@@ -37,14 +37,17 @@ Tool for simulating RISC-V programs in the ELF executable format.
 
 module Main where
 
-import           Control.Lens ( (^..) )
+import           Control.Lens ( (^..), (^.) )
 import           Control.Monad
 import           Data.Array.IArray
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
+import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map as Map
+import           Data.Maybe (fromJust)
 import           Data.Parameterized
+import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
 import           System.Environment
 import           System.Exit
@@ -171,6 +174,16 @@ main = do
   fileBS <- catchIOError (BS.readFile fileName) $ \_ ->
     exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
 
+  case simOpcodeCov opts of
+    Just (Some oc) -> do
+      let iset = knownISetWithRepr (simRV opts)
+          sem = fromJust $ MapF.lookup oc (isSemanticsMap iset)
+          cov = coverageTreeSemantics sem
+      print (pPrintInstSemantics sem)
+      putStrLn ""
+      traverse_ (print . pPrintCT (getOperandNames sem)) cov
+    Nothing -> return ()
+
   case (simRV opts, parseElf fileBS) of
     (rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
       runElf rvRepr (simSteps opts) (simCovFile opts) e
@@ -232,3 +245,52 @@ elfBytes e = pairWithAddr <$> filter memoryMapped sections
   where sections = e ^.. elfSections
         memoryMapped section = elfSectionAddr section > 0
         pairWithAddr section = (fromIntegral $ elfSectionAddr section, elfSectionData section)
+
+-- | A 'CTNode' contains an expression and a flag indicating whether or not that
+-- expression has been evaluated.
+data CTNode (expr :: Nat -> *) (w :: Nat) = CTNode Bool (expr w)
+
+data CT (expr :: Nat -> *) = CT (expr 1) [CT expr] [CT expr] [CT expr]
+
+pPrintCT :: List OperandName (OperandTypes fmt)
+               -> CT (InstExpr fmt rv)
+               -> Doc
+pPrintCT opNames (CT e [] [] []) = pPrintInstExpr opNames True e
+pPrintCT opNames (CT e t l r) =
+  pPrintInstExpr opNames True e
+  $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> t))
+  $$ nest 2 (text "t>" <+> vcat (pPrintCT opNames <$> l))
+  $$ nest 2 (text "f>" <+> vcat (pPrintCT opNames <$> r))
+
+coverageTreeLocApp :: LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
+coverageTreeLocApp (RegExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (FRegExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (MemExpr _ e) = coverageTreeInstExpr e
+coverageTreeLocApp (ResExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (CSRExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp _ = []
+
+coverageTreeStateApp :: StateApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
+coverageTreeStateApp (LocApp e) = coverageTreeLocApp e
+coverageTreeStateApp (AppExpr e) = coverageTreeBVApp e
+
+coverageTreeInstExpr :: InstExpr fmt rv w -> [CT (InstExpr fmt rv)]
+coverageTreeInstExpr (InstStateExpr e) = coverageTreeStateApp e
+coverageTreeInstExpr _ = []
+
+coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
+coverageTreeBVApp (IteApp t l r) =
+  [CT t (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
+coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
+
+coverageTreeStmt :: Stmt (InstExpr fmt rv) rv -> [CT (InstExpr fmt rv)]
+coverageTreeStmt (AssignStmt _ e) = coverageTreeInstExpr e
+coverageTreeStmt (BranchStmt t l r) =
+  let tTrees = coverageTreeInstExpr t
+      lTrees = concat $ toList $ coverageTreeStmt <$> l
+      rTrees = concat $ toList $ coverageTreeStmt <$> r
+  in [CT t tTrees lTrees rTrees]
+
+coverageTreeSemantics :: InstSemantics rv fmt -> [CT (InstExpr fmt rv)]
+coverageTreeSemantics (InstSemantics sem _) =
+  concat $ toList $ coverageTreeStmt <$> sem ^. semStmts
