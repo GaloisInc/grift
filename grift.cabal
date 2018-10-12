@@ -39,7 +39,7 @@ library
                      , lens >= 4 && < 5
                      , mtl >= 2.2 && < 2.3
                      , parameterized-utils
-                     , prettyclass >= 1.0 && < 1.1
+                     , pretty
                      , softfloat-hs
                      , transformers >= 0.5 && < 0.6
   hs-source-dirs:      src
@@ -76,7 +76,7 @@ executable grift-sim
                      , lens >= 4 && < 5
                      , mtl >= 2.2 && < 2.3
                      , parameterized-utils
-                     , prettyclass >= 1.0 && < 1.1
+                     , pretty
                      , softfloat-hs
                      , transformers >= 0.5 && < 0.6
 
@@ -110,7 +110,7 @@ executable grift-cov-demo
                      , lens >= 4 && < 5
                      , mtl >= 2.2 && < 2.3
                      , parameterized-utils
-                     , prettyclass >= 1.0 && < 1.1
+                     , pretty
                      , softfloat-hs
                      , transformers >= 0.5 && < 0.6
   
@@ -145,7 +145,7 @@ executable grift-doc
                      , lens >= 4 && < 5
                      , mtl >= 2.2 && < 2.3
                      , parameterized-utils
-                     , prettyclass >= 1.0 && < 1.1
+                     , pretty
                      , softfloat-hs
                      , transformers >= 0.5 && < 0.6
 

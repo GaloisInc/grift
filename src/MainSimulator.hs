@@ -84,39 +84,59 @@ rvReprFromString s = case s of
   "RV64GC" -> Just $ Some (knownRepr :: RVRepr RV64GC)
   _ -> Nothing
 
-data SimOpts = SimOpts
+data SimOpts rv = SimOpts
   { simSteps :: Int
-  , simRV :: Some RVRepr
-  , simCov :: Maybe String
+  , simRV :: RVRepr rv
+  , simCovFile :: Maybe String
+  , simOpcodeCov :: Maybe (Some (Opcode rv))
   }
 
+defaultSimOpts :: SimOpts RV64GC
 defaultSimOpts = SimOpts
   { simSteps = 10000
-  , simRV = Some (knownRepr :: RVRepr RV64GC)
-  , simCov = Nothing
+  , simRV = knownRepr :: RVRepr RV64GC
+  , simCovFile = Nothing
+  , simOpcodeCov = Nothing
   }
 
-options :: [OptDescr (SimOpts -> IO SimOpts)]
+-- TODO: Idea -- if the opcode does not belong to the current instruction set,
+-- augment the instruction set minimally to include it.
+options :: [OptDescr (Some SimOpts -> IO (Some SimOpts))]
 options =
   [ Option ['s'] ["steps"]
-    (ReqArg (\stepStr opts -> case readMaybe stepStr of
+    (ReqArg (\stepStr (Some opts) -> case readMaybe stepStr of
                 Nothing    -> exitWithUsage $ "Illegal value for --steps: " ++ stepStr ++ "\n"
-                Just steps -> return $ opts { simSteps = steps } )
+                Just steps -> return $ Some $ opts { simSteps = steps } )
      "NUM")
     ("max # of simulation steps (default = " ++ show (simSteps defaultSimOpts) ++ ")")
   , Option ['a'] ["arch"]
-    (ReqArg (\rvStr opts -> case rvReprFromString rvStr of
+    (ReqArg (\rvStr (Some opts) -> case rvReprFromString rvStr of
                 Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
-                Just someRV -> return $ opts { simRV = someRV } )
+                Just (Some rv) ->
+                  case simOpcodeCov opts of
+                    Just (Some oc) -> do
+                      case opcodeCast rv oc of
+                        Just oc' -> return $ Some $ opts { simRV = rv, simOpcodeCov = Just (Some oc') }
+                        Nothing  -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing }
+                    Nothing -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing } )
      "ARCH")
     ("RISC-V arch configuration (default = RV64GC)")
   , Option ['c'] ["coverage"]
-    (ReqArg (\covStr opts -> return $ opts { simCov = Just covStr })
+    (ReqArg (\covStr (Some opts) -> return $ Some $ opts { simCovFile = Just covStr })
      "FILE")
     ("Print coverage analysis to file")
   , Option ['h'] ["help"]
     (NoArg (\_ -> exitWithUsage ""))
     ("display help message")
+  , Option [] ["inst-coverage"]
+    (ReqArg (\ocStr (Some opts) -> case readOpcode ocStr of
+                Nothing -> exitWithUsage $ "Unrecognized --inst-coverage value: " ++ ocStr ++ "\n"
+                Just (Some oc) ->
+                  case opcodeCast (simRV opts) oc of
+                    Nothing -> exitWithUsage $ "Opcode " ++ ocStr ++ " is not in specified instruction set"
+                    Just oc' -> return $ Some $ opts { simOpcodeCov = Just (Some oc') } )
+      "OPCODE")
+    "display semantic coverage of a particular instruction"
   ]
 
 header :: String
@@ -140,7 +160,7 @@ main = do
   when (not (null errors)) $ exitWithUsage (concat errors)
 
   -- Next build up the options, potentially exiting early
-  opts <- foldl (>>=) (return defaultSimOpts) actions
+  Some opts <- foldl (>>=) (return (Some defaultSimOpts)) actions
 
   -- Next check that there is exactly one argument, a path to an elf file
   fileName <- case nonOptions of
@@ -152,10 +172,10 @@ main = do
     exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
 
   case (simRV opts, parseElf fileBS) of
-    (Some rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
-      runElf rvRepr (simSteps opts) (simCov opts) e
-    (Some rvRepr@(RVRepr RV64Repr _), Elf64Res _ e) ->
-      runElf rvRepr (simSteps opts) (simCov opts) e
+    (rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
+      runElf rvRepr (simSteps opts) (simCovFile opts) e
+    (rvRepr@(RVRepr RV64Repr _), Elf64Res _ e) ->
+      runElf rvRepr (simSteps opts) (simCovFile opts) e
     _ -> exitWithUsage $ "Error: bad object file\n"
 
 runElf :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> Maybe String -> Elf (RVWidth rv) -> IO ()

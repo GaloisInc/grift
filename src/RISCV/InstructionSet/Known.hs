@@ -28,7 +28,9 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-Extensions for RISC-V.
+This module provides a function to compute the instruction set, complete with
+encoding/decoding information and semantics, from a particular RISC-V configuration
+(a data kind of kind RV).
 -}
 
 module RISCV.InstructionSet.Known

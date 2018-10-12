@@ -71,10 +71,10 @@ does exactly this. We can also create 'BranchStmt's which conditionally execute 
 of two distinct sets of statements based on a test condition.
 
 Finally, we can combine 'Stmt's to create 'Semantics's, which are simply sequences of
-statements. We export a monad, 'SemanticsBuilder,' to facilitate straightforward
+statements. We export a monad, 'SemanticsM', to facilitate straightforward
 definitions of these assignments, and a number of functions ('assignPC', 'assignReg',
 etc.) that can be used within this monad. To see examples of its use, take a look at
-RISCV.Extensions.Base, which contains the base RISC-V ISA instruction definitions,
+'RISCV.Extensions.Base', which contains the base RISC-V ISA instruction definitions,
 defined using 'SemanticsBuilder'.
 
 -}
@@ -157,8 +157,8 @@ data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
 
 -- | Expressions for general computations over the RISC-V machine state -- we can
 -- access specific locations, and we can also build up compound expressions using the
--- 'BVApp' expression language. Sub-expressions come from an arbitrary expression
--- language @expr@.
+-- 'BVApp' and 'BVFloatApp' expression language. Sub-expressions come from an
+-- arbitrary expression language @expr@.
 data StateApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   -- | Accessing state
   LocApp :: !(LocApp expr rv w) -> StateApp expr rv w

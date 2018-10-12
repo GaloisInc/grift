@@ -120,11 +120,15 @@ module RISCV.Types
   , Opcode(..)
   , Instruction(..)
   , mkInst
+  , opcodeCast
+  , readOpcode
   -- * Utils
   , PrettyF(..)
   ) where
 
+import Control.Monad
 import Data.BitVector.Sized
+import Data.Char
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
@@ -783,6 +787,381 @@ data Opcode :: RV -> Format -> * where
   Fcvt_d_l  :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
   Fcvt_d_lu :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
   Fmv_d_x   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
+
+withRV64 :: RVRepr rv -> ((64 <= RVWidth rv) => a) -> Maybe a
+withRV64 (RVRepr RV64Repr _) a = Just a
+withRV64 (RVRepr RV128Repr _) a = Just a
+withRV64 _ _ = Nothing
+
+withM :: RVRepr rv -> ((MExt << rv) => a) -> Maybe a
+withM (RVRepr _ (ExtensionsRepr _ MYesRepr _ _ _)) a = Just a
+withM _ _ = Nothing
+
+withA :: RVRepr rv -> ((AExt << rv) => a) -> Maybe a
+withA (RVRepr _ (ExtensionsRepr _ _ AYesRepr _ _)) a = Just a
+withA _ _ = Nothing
+
+withF :: RVRepr rv -> ((FExt << rv) => a) -> Maybe a
+withF (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) a = Just a
+withF (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) a = Just a
+withF _ _ = Nothing
+
+withD :: RVRepr rv -> ((DExt << rv) => a) -> Maybe a
+withD (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) a = Just a
+withD _ _ = Nothing
+
+-- TODO: Create invertible parser for instructions.
+readOpcode :: String -> Maybe (Some (Opcode RV64GC))
+readOpcode str = case (toLower <$> str) of
+  "add" -> Just (Some Add)
+  "sub" -> Just (Some Sub)
+  "sll" -> Just (Some Sll)
+  "slt" -> Just (Some Slt)
+  "sltu" -> Just (Some Sltu)
+  "xor" -> Just (Some Xor)
+  "srl" -> Just (Some Srl)
+  "sra" -> Just (Some Sra)
+  "or" -> Just (Some Or)
+  "and" -> Just (Some And)
+
+  "jalr" -> Just (Some Jalr)
+  "lb" -> Just (Some Lb)
+  "lh" -> Just (Some Lh)
+  "lw" -> Just (Some Lw)
+  "lbu" -> Just (Some Lbu)
+  "lhu" -> Just (Some Lhu)
+  "addi" -> Just (Some Addi)
+  "slti" -> Just (Some Slti)
+  "sltiu" -> Just (Some Sltiu)
+  "xori" -> Just (Some Xori)
+  "ori" -> Just (Some Ori)
+  "andi" -> Just (Some Andi)
+  "fence" -> Just (Some Fence)
+  "fencei" -> Just (Some FenceI)
+  "csrrw" -> Just (Some Csrrw)
+  "csrrs" -> Just (Some Csrrs)
+  "csrrc" -> Just (Some Csrrc)
+  "csrrwi" -> Just (Some Csrrwi)
+  "csrrsi" -> Just (Some Csrrsi)
+  "csrrci" -> Just (Some Csrrci)
+
+  "slli" -> Just (Some Slli)
+  "srli" -> Just (Some Srli)
+  "srai" -> Just (Some Srai)
+
+  "ecall" -> Just (Some Ecall)
+  "ebreak" -> Just (Some Ebreak)
+
+  "sb" -> Just (Some Sb)
+  "sh" -> Just (Some Sh)
+  "sw" -> Just (Some Sw)
+  "beq" -> Just (Some Beq)
+  "bne" -> Just (Some Bne)
+  "blt" -> Just (Some Blt)
+  "bge" -> Just (Some Bge)
+  "bltu" -> Just (Some Bltu)
+  "bgeu" -> Just (Some Bgeu)
+
+  "lui" -> Just (Some Lui)
+  "auipc" -> Just (Some Auipc)
+
+  "jal" -> Just (Some Jal)
+
+  "illegal" -> Just (Some Illegal)
+
+  "addw" -> Just (Some Addw)
+  "subw" -> Just (Some Subw)
+  "sllw" -> Just (Some Sllw)
+  "srlw" -> Just (Some Srlw)
+  "sraw" -> Just (Some Sraw)
+  "slliw" -> Just (Some Slliw)
+  "srliw" -> Just (Some Srliw)
+  "sraiw" -> Just (Some Sraiw)
+  "lwu" -> Just (Some Lwu)
+  "ld" -> Just (Some Ld)
+  "addiw" -> Just (Some Addiw)
+  "sd" -> Just (Some Sd)
+
+  "mret" -> Just (Some Mret)
+  "wfi" -> Just (Some Wfi)
+
+  "mul" -> Just (Some Mul)
+  "mulh" -> Just (Some Mulh)
+  "mulhsu" -> Just (Some Mulhsu)
+  "mulhu" -> Just (Some Mulhu)
+  "div" -> Just (Some Div)
+  "divu" -> Just (Some Divu)
+  "rem" -> Just (Some Rem)
+  "remu" -> Just (Some Remu)
+
+  "mulw" -> Just (Some Mulw)
+  "divw" -> Just (Some Divw)
+  "divuw" -> Just (Some Divuw)
+  "remw" -> Just (Some Remw)
+  "remuw" -> Just (Some Remuw)
+
+  "lrw" -> Just (Some Lrw)
+  "scw" -> Just (Some Scw)
+  "amoswapw" -> Just (Some Amoswapw)
+  "amoaddw" -> Just (Some Amoaddw)
+  "amoxorw" -> Just (Some Amoxorw)
+  "amoandw" -> Just (Some Amoandw)
+  "amoorw" -> Just (Some Amoorw)
+  "amominw" -> Just (Some Amominw)
+  "amomaxw" -> Just (Some Amomaxw)
+  "amominuw" -> Just (Some Amominuw)
+  "amomaxuw" -> Just (Some Amomaxuw)
+
+  "lrd" -> Just (Some Lrd)
+  "scd" -> Just (Some Scd)
+  "amoswapd" -> Just (Some Amoswapd)
+  "amoaddd" -> Just (Some Amoaddd)
+  "amoxord" -> Just (Some Amoxord)
+  "amoandd" -> Just (Some Amoandd)
+  "amoord" -> Just (Some Amoord)
+  "amomind" -> Just (Some Amomind)
+  "amomaxd" -> Just (Some Amomaxd)
+  "amominud" -> Just (Some Amominud)
+  "amomaxud" -> Just (Some Amomaxud)
+
+  -- RV32F
+  "flw" -> Just (Some Flw)
+  "fsw" -> Just (Some Fsw)
+  "fmadd_s" -> Just (Some Fmadd_s)
+  "fmsub_s" -> Just (Some Fmsub_s)
+  "fnmsub_s" -> Just (Some Fnmsub_s)
+  "fnmadd_s" -> Just (Some Fnmadd_s)
+  "fadd_s" -> Just (Some Fadd_s)
+  "fsub_s" -> Just (Some Fsub_s)
+  "fmul_s" -> Just (Some Fmul_s)
+  "fdiv_s" -> Just (Some Fdiv_s)
+  "fsqrt_s" -> Just (Some Fsqrt_s)
+  "fsgnj_s" -> Just (Some Fsgnj_s)
+  "fsgnjn_s" -> Just (Some Fsgnjn_s)
+  "fsgnjx_s" -> Just (Some Fsgnjx_s)
+  "fmin_s" -> Just (Some Fmin_s)
+  "fmax_s" -> Just (Some Fmax_s)
+  "fcvt_w_s" -> Just (Some Fcvt_w_s)
+  "fcvt_wu_s" -> Just (Some Fcvt_wu_s)
+  "fmv_x_w" -> Just (Some Fmv_x_w)
+  "feq_s" -> Just (Some Feq_s)
+  "flt_s" -> Just (Some Flt_s)
+  "fle_s" -> Just (Some Fle_s)
+  "fclass_s" -> Just (Some Fclass_s)
+  "fcvt_s_w" -> Just (Some Fcvt_s_w)
+  "fcvt_s_wu" -> Just (Some Fcvt_s_wu)
+  "fmv_w_x" -> Just (Some Fmv_w_x)
+
+  "fcvt_l_s" -> Just (Some Fcvt_l_s)
+  "fcvt_lu_s" -> Just (Some Fcvt_lu_s)
+  "fcvt_s_l" -> Just (Some Fcvt_s_l)
+  "fcvt_s_lu" -> Just (Some Fcvt_s_lu)
+
+  "fld" -> Just (Some Fld)
+  "fsd" -> Just (Some Fsd)
+  "fmadd_d" -> Just (Some Fmadd_d)
+  "fmsub_d" -> Just (Some Fmsub_d)
+  "fnmsub_d" -> Just (Some Fnmsub_d)
+  "fnmadd_d" -> Just (Some Fnmadd_d)
+  "fadd_d" -> Just (Some Fadd_d)
+  "fsub_d" -> Just (Some Fsub_d)
+  "fmul_d" -> Just (Some Fmul_d)
+  "fdiv_d" -> Just (Some Fdiv_d)
+  "fsqrt_d" -> Just (Some Fsqrt_d)
+  "fsgnj_d" -> Just (Some Fsgnj_d)
+  "fsgnjn_d" -> Just (Some Fsgnjn_d)
+  "fsgnjx_d" -> Just (Some Fsgnjx_d)
+  "fmin_d" -> Just (Some Fmin_d)
+  "fmax_d" -> Just (Some Fmax_d)
+  "fcvt_s_d" -> Just (Some Fcvt_s_d)
+  "fcvt_d_s" -> Just (Some Fcvt_d_s)
+  "feq_d" -> Just (Some Feq_d)
+  "flt_d" -> Just (Some Flt_d)
+  "fle_d" -> Just (Some Fle_d)
+  "fclass_d" -> Just (Some Fclass_d)
+  "fcvt_w_d" -> Just (Some Fcvt_w_d)
+  "fcvt_wu_d" -> Just (Some Fcvt_wu_d)
+  "fcvt_d_w" -> Just (Some Fcvt_d_w)
+  "fcvt_d_wu" -> Just (Some Fcvt_d_wu)
+
+  "fcvt_l_d" -> Just (Some Fcvt_l_d)
+  "fcvt_lu_d" -> Just (Some Fcvt_lu_d)
+  "fmv_x_d" -> Just (Some Fmv_x_d)
+  "fcvt_d_l" -> Just (Some Fcvt_d_l)
+  "fcvt_d_lu" -> Just (Some Fcvt_d_lu)
+  "fmv_d_x" -> Just (Some Fmv_d_x)
+
+  _ -> Nothing
+
+opcodeCast :: RVRepr rv -> Opcode rv' fmt -> Maybe (Opcode rv fmt)
+opcodeCast _ Add = Just Add
+opcodeCast _ Sub = Just Sub
+opcodeCast _ Sll = Just Sll
+opcodeCast _ Slt = Just Slt
+opcodeCast _ Sltu = Just Sltu
+opcodeCast _ Xor = Just Xor
+opcodeCast _ Srl = Just Srl
+opcodeCast _ Sra = Just Sra
+opcodeCast _ Or  = Just Or
+opcodeCast _ And = Just And
+opcodeCast _ Jalr   = Just Jalr
+opcodeCast _ Lb     = Just Lb
+opcodeCast _ Lh     = Just Lh
+opcodeCast _ Lw     = Just Lw
+opcodeCast _ Lbu    = Just Lbu
+opcodeCast _ Lhu    = Just Lhu
+opcodeCast _ Addi   = Just Addi
+opcodeCast _ Slti   = Just Slti
+opcodeCast _ Sltiu  = Just Sltiu
+opcodeCast _ Xori   = Just Xori
+opcodeCast _ Ori    = Just Ori
+opcodeCast _ Andi   = Just Andi
+opcodeCast _ Fence  = Just Fence
+opcodeCast _ FenceI = Just FenceI
+opcodeCast _ Csrrw  = Just Csrrw
+opcodeCast _ Csrrs  = Just Csrrs
+opcodeCast _ Csrrc  = Just Csrrc
+opcodeCast _ Csrrwi = Just Csrrwi
+opcodeCast _ Csrrsi = Just Csrrsi
+opcodeCast _ Csrrci = Just Csrrci
+opcodeCast _ Slli   = Just Slli
+opcodeCast _ Srli   = Just Srli
+opcodeCast _ Srai   = Just Srai
+opcodeCast _ Ecall  = Just Ecall
+opcodeCast _ Ebreak = Just Ebreak
+opcodeCast _ Sb = Just Sb
+opcodeCast _ Sh = Just Sh
+opcodeCast _ Sw = Just Sw
+opcodeCast _ Beq = Just Beq
+opcodeCast _ Bne = Just Bne
+opcodeCast _ Blt = Just Blt
+opcodeCast _ Bge = Just Bge
+opcodeCast _ Bltu = Just Bltu
+opcodeCast _ Bgeu = Just Bgeu
+opcodeCast _ Lui  = Just Lui
+opcodeCast _ Auipc = Just Auipc
+opcodeCast _ Jal = Just Jal
+opcodeCast _ Illegal = Just Illegal
+opcodeCast _ Mret = Just Mret
+opcodeCast _ Wfi = Just Wfi
+
+opcodeCast rv Addw = withRV64 rv Addw
+opcodeCast rv Subw = withRV64 rv Subw
+opcodeCast rv Sllw = withRV64 rv Sllw
+opcodeCast rv Srlw = withRV64 rv Srlw
+opcodeCast rv Sraw = withRV64 rv Sraw
+opcodeCast rv Slliw = withRV64 rv Slliw
+opcodeCast rv Srliw = withRV64 rv Srliw
+opcodeCast rv Sraiw = withRV64 rv Sraiw
+opcodeCast rv Lwu = withRV64 rv Lwu
+opcodeCast rv Ld = withRV64 rv Ld
+opcodeCast rv Addiw = withRV64 rv Addiw
+opcodeCast rv Sd = withRV64 rv Sd
+
+opcodeCast rv Mul = withM rv Mul
+opcodeCast rv Mulh = withM rv Mulh
+opcodeCast rv Mulhsu = withM rv Mulhsu
+opcodeCast rv Mulhu = withM rv Mulhu
+opcodeCast rv Div = withM rv Div
+opcodeCast rv Divu = withM rv Divu
+opcodeCast rv Rem = withM rv Rem
+opcodeCast rv Remu = withM rv Remu
+
+opcodeCast rv Mulw = join (withRV64 rv (withM rv Mulw))
+opcodeCast rv Divw = join (withRV64 rv (withM rv Divw))
+opcodeCast rv Divuw = join (withRV64 rv (withM rv Divuw))
+opcodeCast rv Remw = join (withRV64 rv (withM rv Remw))
+opcodeCast rv Remuw = join (withRV64 rv (withM rv Remuw))
+
+opcodeCast rv Lrw = withA rv Lrw
+opcodeCast rv Scw = withA rv Scw
+opcodeCast rv Amoswapw = withA rv Amoswapw
+opcodeCast rv Amoaddw = withA rv Amoaddw
+opcodeCast rv Amoxorw = withA rv Amoxorw
+opcodeCast rv Amoandw = withA rv Amoandw
+opcodeCast rv Amoorw = withA rv Amoorw
+opcodeCast rv Amominw = withA rv Amominw
+opcodeCast rv Amomaxw = withA rv Amomaxw
+opcodeCast rv Amominuw = withA rv Amominuw
+opcodeCast rv Amomaxuw = withA rv Amomaxuw
+
+opcodeCast rv Lrd = join (withRV64 rv (withA rv Lrd))
+opcodeCast rv Scd = join (withRV64 rv (withA rv Scd))
+opcodeCast rv Amoswapd = join (withRV64 rv (withA rv Amoswapd))
+opcodeCast rv Amoaddd = join (withRV64 rv (withA rv Amoaddd))
+opcodeCast rv Amoxord = join (withRV64 rv (withA rv Amoxord))
+opcodeCast rv Amoandd = join (withRV64 rv (withA rv Amoandd))
+opcodeCast rv Amoord = join (withRV64 rv (withA rv Amoord))
+opcodeCast rv Amomind = join (withRV64 rv (withA rv Amomind))
+opcodeCast rv Amomaxd = join (withRV64 rv (withA rv Amomaxd))
+opcodeCast rv Amominud = join (withRV64 rv (withA rv Amominud))
+opcodeCast rv Amomaxud = join (withRV64 rv (withA rv Amomaxud))
+
+opcodeCast rv Flw = withF rv Flw
+opcodeCast rv Fsw = withF rv Fsw
+opcodeCast rv Fmadd_s = withF rv Fmadd_s
+opcodeCast rv Fmsub_s = withF rv Fmsub_s
+opcodeCast rv Fnmsub_s = withF rv Fnmsub_s
+opcodeCast rv Fnmadd_s = withF rv Fnmadd_s
+opcodeCast rv Fadd_s = withF rv Fadd_s
+opcodeCast rv Fsub_s = withF rv Fsub_s
+opcodeCast rv Fmul_s = withF rv Fmul_s
+opcodeCast rv Fdiv_s = withF rv Fdiv_s
+opcodeCast rv Fsqrt_s = withF rv Fsqrt_s
+opcodeCast rv Fsgnj_s = withF rv Fsgnj_s
+opcodeCast rv Fsgnjn_s = withF rv Fsgnjn_s
+opcodeCast rv Fsgnjx_s = withF rv Fsgnjx_s
+opcodeCast rv Fmin_s = withF rv Fmin_s
+opcodeCast rv Fmax_s = withF rv Fmax_s
+opcodeCast rv Fcvt_w_s = withF rv Fcvt_w_s
+opcodeCast rv Fcvt_wu_s = withF rv Fcvt_wu_s
+opcodeCast rv Fmv_x_w = withF rv Fmv_x_w
+opcodeCast rv Feq_s = withF rv Feq_s
+opcodeCast rv Flt_s = withF rv Flt_s
+opcodeCast rv Fle_s = withF rv Fle_s
+opcodeCast rv Fclass_s = withF rv Fclass_s
+opcodeCast rv Fcvt_s_w = withF rv Fcvt_s_w
+opcodeCast rv Fcvt_s_wu = withF rv Fcvt_s_wu
+opcodeCast rv Fmv_w_x = withF rv Fmv_w_x
+
+opcodeCast rv Fcvt_l_s = join (withRV64 rv (withF rv Fcvt_l_s))
+opcodeCast rv Fcvt_lu_s = join (withRV64 rv (withF rv Fcvt_lu_s))
+opcodeCast rv Fcvt_s_l = join (withRV64 rv (withF rv Fcvt_s_l))
+opcodeCast rv Fcvt_s_lu = join (withRV64 rv (withF rv Fcvt_s_lu))
+
+opcodeCast rv Fld = withD rv Fld
+opcodeCast rv Fsd = withD rv Fsd
+opcodeCast rv Fmadd_d = withD rv Fmadd_d
+opcodeCast rv Fmsub_d = withD rv Fmsub_d
+opcodeCast rv Fnmsub_d = withD rv Fnmsub_d
+opcodeCast rv Fnmadd_d = withD rv Fnmadd_d
+opcodeCast rv Fadd_d = withD rv Fadd_d
+opcodeCast rv Fsub_d = withD rv Fsub_d
+opcodeCast rv Fmul_d = withD rv Fmul_d
+opcodeCast rv Fdiv_d = withD rv Fdiv_d
+opcodeCast rv Fsqrt_d = withD rv Fsqrt_d
+opcodeCast rv Fsgnj_d = withD rv Fsgnj_d
+opcodeCast rv Fsgnjn_d = withD rv Fsgnjn_d
+opcodeCast rv Fsgnjx_d = withD rv Fsgnjx_d
+opcodeCast rv Fmin_d = withD rv Fmin_d
+opcodeCast rv Fmax_d = withD rv Fmax_d
+opcodeCast rv Fcvt_s_d = withD rv Fcvt_s_d
+opcodeCast rv Fcvt_d_s = withD rv Fcvt_d_s
+opcodeCast rv Feq_d = withD rv Feq_d
+opcodeCast rv Flt_d = withD rv Flt_d
+opcodeCast rv Fle_d = withD rv Fle_d
+opcodeCast rv Fclass_d = withD rv Fclass_d
+opcodeCast rv Fcvt_w_d = withD rv Fcvt_w_d
+opcodeCast rv Fcvt_wu_d = withD rv Fcvt_wu_d
+opcodeCast rv Fcvt_d_w = withD rv Fcvt_d_w
+opcodeCast rv Fcvt_d_wu = withD rv Fcvt_d_wu
+
+opcodeCast rv Fcvt_l_d = join (withRV64 rv (withD rv Fcvt_l_d))
+opcodeCast rv Fcvt_lu_d = join (withRV64 rv (withD rv Fcvt_lu_d))
+opcodeCast rv Fmv_x_d = join (withRV64 rv (withD rv Fmv_x_d))
+opcodeCast rv Fcvt_d_l = join (withRV64 rv (withD rv Fcvt_d_l))
+opcodeCast rv Fcvt_d_lu = join (withRV64 rv (withD rv Fcvt_d_lu))
+opcodeCast rv Fmv_d_x = join (withRV64 rv (withD rv Fmv_d_x))
 
 -- Instances
 $(return [])
