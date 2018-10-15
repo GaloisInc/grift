@@ -56,6 +56,7 @@ module RISCV.Simulation.LogMachine
   , runLogMachineLog
   ) where
 
+import           Control.Lens ((^.))
 import           Control.Monad (forM_)
 import           Control.Monad.Reader.Class
 import           Control.Monad.Trans
@@ -64,18 +65,23 @@ import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
-import           Data.Foldable (for_)
+import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
 import           Data.Parameterized
+import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
+import           GHC.TypeLits
+import           Text.PrettyPrint.HughesPJ
 
 import RISCV.Coverage
+import RISCV.InstructionSet
 import RISCV.InstructionSet.Known
 import RISCV.InstructionSet.Utils
 import RISCV.Types
+import RISCV.Semantics
 import RISCV.Simulation
 
 import Debug.Trace (traceM)
@@ -91,8 +97,10 @@ data LogMachine (rv :: RV) = LogMachine
   , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
   , lmPriv       :: IORef (BitVector 2)
   , lmMaxAddr    :: BitVector (RVWidth rv)
-  , lmTestMap    :: IORef (Map (Some (Opcode rv)) [BitVector 1])
+  , lmCov        :: IORef (Maybe (Pair (Opcode rv) (InstCTList rv)))
   }
+
+newtype InstCTList rv fmt = InstCTList [InstCT rv fmt]
 
 writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
 writeBS ix bs arr = do
@@ -102,7 +110,7 @@ writeBS ix bs arr = do
       writeArray arr ix (fromIntegral (BS.head bs))
       writeBS (ix+1) (BS.tail bs) arr
 
--- | Construction a 'LogMachine'.
+-- | Construct a 'LogMachine'.
 mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
@@ -116,15 +124,15 @@ mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
   memory     <- withRVWidth rvRepr $ newArray (0, maxAddr) 0
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
+  cov        <- newIORef Nothing
   let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
-  testMap    <- newIORef $ Map.fromList $ f <$> MapF.toList (knownCoverageWithRepr rvRepr)
 
   -- set up stack pointer
   writeArray registers 2 sp
 
   forM_ byteStrings $ \(addr, bs) ->
     withRVWidth rvRepr $ writeBS addr bs memory
-  return (LogMachine rvRepr pc registers fregisters memory csrs priv maxAddr testMap)
+  return (LogMachine rvRepr pc registers fregisters memory csrs priv maxAddr cov)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -224,16 +232,18 @@ instance RVStateM (LogMachineM rv) rv where
     privRef <- lmPriv <$> ask
     liftIO $ writeIORef privRef privVal
 
-  logInstruction inst@(Inst opcode _) = do
-    rv <- lmRV <$> ask
-    let iset = knownISetWithRepr rv
-    testMap <- LogMachineM (lmTestMap <$> ask)
-    case MapF.lookup opcode (knownCoverageWithRepr rv) of
-      Nothing -> return ()
-      Just (InstExprList exprs) -> do
-        exprVals <- traverse (evalInstExpr iset inst 4) exprs
-        LogMachineM $ lift $ modifyIORef testMap $ \m ->
-          Map.insertWith (zipWith bvOr) (Some opcode) exprVals m
+  logInstruction iset inst@(Inst opcode _) iw = do
+    mCovRef <- lmCov <$> ask
+    mCov <- liftIO $ readIORef mCovRef
+    case mCov of
+      Just (Pair covOpcode (InstCTList covTrees)) ->
+        case covOpcode `testEquality` opcode of
+          Just Refl ->  do
+            covTrees <- traverse (evalInstCT iset inst iw) covTrees
+            liftIO $ writeIORef mCovRef (Just (Pair covOpcode (InstCTList covTrees)))
+            return ()
+          _ -> return ()
+      _ -> return ()
 
 -- | Create an immutable copy of the register file.
 freezeRegisters :: LogMachine rv
@@ -252,3 +262,86 @@ runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps
 -- | Like runLogMachine, but log each instruction.
 runLogMachineLog :: Int -> LogMachine rv -> IO Int
 runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
+
+-- | A 'CTNode' contains an expression and a flag indicating whether or not that
+-- expression has been evaluated.
+data CTNode (expr :: Nat -> *) (w :: Nat) = CTNode Bool (expr w)
+
+data CT (expr :: Nat -> *) = CT (CTNode expr 1) [CT expr] [CT expr] [CT expr]
+
+-- | Evaluate a coverage tree and recursively flag all evaluated nodes.
+evalCT :: RVStateM m rv
+       => InstructionSet rv
+       -> Instruction rv fmt
+       -> Integer
+       -> CT (InstExpr fmt rv)
+       -> m (CT (InstExpr fmt rv))
+evalCT iset inst iw (CT (CTNode _ testExpr) testTrees trueTrees falseTrees) = do
+  testResult  <- evalInstExpr iset inst iw testExpr
+  testTrees <- traverse (evalCT iset inst iw) testTrees
+  case testResult of
+    0b1 -> do
+      trueTrees <- traverse (evalCT iset inst iw) trueTrees
+      return $ CT (CTNode True testExpr) testTrees trueTrees falseTrees
+    _ -> do
+      falseTrees <- traverse (evalCT iset inst iw) falseTrees
+      return $ CT (CTNode True testExpr) testTrees trueTrees falseTrees
+
+evalInstCT :: RVStateM m rv
+           => InstructionSet rv
+           -> Instruction rv fmt
+           -> Integer
+           -> InstCT rv fmt
+           -> m (InstCT rv fmt)
+evalInstCT iset inst iw (InstCT ct) = do
+  ct <- evalCT iset inst iw ct
+  return (InstCT ct)
+
+-- TODO: Print with colors or something to indicate coverage
+pPrintCT :: List OperandName (OperandTypes fmt)
+         -> CT (InstExpr fmt rv)
+         -> Doc
+pPrintCT opNames (CT (CTNode _ e) [] [] []) = pPrintInstExpr opNames True e
+pPrintCT opNames (CT (CTNode _ e) t l r) =
+  pPrintInstExpr opNames True e
+  $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> t))
+  $$ nest 2 (text "t>" <+> vcat (pPrintCT opNames <$> l))
+  $$ nest 2 (text "f>" <+> vcat (pPrintCT opNames <$> r))
+
+-- Semantic coverage
+coverageTreeLocApp :: LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
+coverageTreeLocApp (RegExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (FRegExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (MemExpr _ e) = coverageTreeInstExpr e
+coverageTreeLocApp (ResExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (CSRExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp _ = []
+
+coverageTreeStateApp :: StateApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
+coverageTreeStateApp (LocApp e) = coverageTreeLocApp e
+coverageTreeStateApp (AppExpr e) = coverageTreeBVApp e
+
+coverageTreeInstExpr :: InstExpr fmt rv w -> [CT (InstExpr fmt rv)]
+coverageTreeInstExpr (InstStateExpr e) = coverageTreeStateApp e
+coverageTreeInstExpr _ = []
+
+coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
+coverageTreeBVApp (IteApp t l r) =
+  [CT (CTNode False t) (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
+coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
+
+coverageTreeStmt :: Stmt (InstExpr fmt rv) rv -> [CT (InstExpr fmt rv)]
+coverageTreeStmt (AssignStmt _ e) = coverageTreeInstExpr e
+coverageTreeStmt (BranchStmt t l r) =
+  let tTrees = coverageTreeInstExpr t
+      lTrees = concat $ toList $ coverageTreeStmt <$> l
+      rTrees = concat $ toList $ coverageTreeStmt <$> r
+  in [CT (CTNode False t) tTrees lTrees rTrees]
+
+newtype InstCT rv fmt = InstCT (CT (InstExpr fmt rv))
+
+coverageTreeSemantics :: InstSemantics rv fmt -> [InstCT rv fmt]
+coverageTreeSemantics (InstSemantics sem _) =
+  let stmts = sem ^. semStmts
+      trees = concat $ toList $ coverageTreeStmt <$> stmts
+  in InstCT <$> trees

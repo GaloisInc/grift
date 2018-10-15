@@ -108,7 +108,7 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   setFReg :: FExt << rv => BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
 
   -- | Log the execution of a particular instruction.
-  logInstruction :: Instruction rv fmt -> m ()
+  logInstruction :: InstructionSet rv -> Instruction rv fmt -> Integer -> m ()
 
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocApp', given an 'RVStateM' implementation.
@@ -283,7 +283,7 @@ stepRVLog iset = do
         _ -> return $ (4, decode iset instBV)
 
     -- Log instruction BEFORE execution
-    logInstruction inst
+    logInstruction iset inst iw
 
     -- Execute
     execSemantics (evalInstExpr iset inst iw) (getInstSemantics $ semanticsFromOpcode iset opcode)
