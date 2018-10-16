@@ -54,6 +54,8 @@ module RISCV.Simulation.LogMachine
   , freezeFRegisters
   , runLogMachine
   , runLogMachineLog
+  , InstCTList
+  , pPrintInstCTList
   ) where
 
 import           Control.Lens ((^.))
@@ -74,6 +76,7 @@ import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
 import           Data.Traversable (for)
 import           GHC.TypeLits
+import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
 
 import RISCV.Coverage
@@ -116,15 +119,18 @@ mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
              -> [(BitVector (RVWidth rv), BS.ByteString)]
+             -> Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
-mkLogMachine rvRepr maxAddr entryPoint sp byteStrings = do
+mkLogMachine rvRepr maxAddr entryPoint sp byteStrings covOpcode = do
   pc         <- newIORef entryPoint
   registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
   memory     <- withRVWidth rvRepr $ newArray (0, maxAddr) 0
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
-  cov        <- newIORef Nothing
+  cov        <- newIORef $ case covOpcode of
+                             Nothing -> Nothing
+                             Just (Some oc) -> Just (Pair oc (coverageTreeOpcode rvRepr oc))
   let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
 
   -- set up stack pointer
@@ -236,13 +242,12 @@ instance RVStateM (LogMachineM rv) rv where
     mCovRef <- lmCov <$> ask
     mCov <- liftIO $ readIORef mCovRef
     case mCov of
-      Just (Pair covOpcode (InstCTList covTrees)) ->
-        case covOpcode `testEquality` opcode of
-          Just Refl ->  do
-            covTrees <- traverse (evalInstCT iset inst iw) covTrees
-            liftIO $ writeIORef mCovRef (Just (Pair covOpcode (InstCTList covTrees)))
-            return ()
-          _ -> return ()
+      Just (Pair covOpcode (InstCTList covTrees)) -> case covOpcode `testEquality` opcode of
+        Just Refl ->  do
+          covTrees <- traverse (evalInstCT iset inst iw) covTrees
+          liftIO $ writeIORef mCovRef (Just (Pair covOpcode (InstCTList covTrees)))
+          return ()
+        _ -> return ()
       _ -> return ()
 
 -- | Create an immutable copy of the register file.
@@ -298,15 +303,32 @@ evalInstCT iset inst iw (InstCT ct) = do
   return (InstCT ct)
 
 -- TODO: Print with colors or something to indicate coverage
+hitChar :: Bool -> Doc
+hitChar False = char ' '
+hitChar True = char '*'
+
 pPrintCT :: List OperandName (OperandTypes fmt)
          -> CT (InstExpr fmt rv)
          -> Doc
-pPrintCT opNames (CT (CTNode _ e) [] [] []) = pPrintInstExpr opNames True e
-pPrintCT opNames (CT (CTNode _ e) t l r) =
-  pPrintInstExpr opNames True e
+pPrintCT opNames (CT (CTNode hit e) [] [] []) = hitChar hit <> pPrintInstExpr opNames True e
+pPrintCT opNames (CT (CTNode hit e) t l r) = (hitChar hit <> pPrintInstExpr opNames True e)
   $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> t))
   $$ nest 2 (text "t>" <+> vcat (pPrintCT opNames <$> l))
   $$ nest 2 (text "f>" <+> vcat (pPrintCT opNames <$> r))
+
+pPrintInstCT :: List OperandName (OperandTypes fmt)
+             -> InstCT rv fmt
+             -> Doc
+pPrintInstCT opNames (InstCT ct) = pPrintCT opNames ct
+
+pPrintInstCTList :: RVRepr rv
+                 -> Opcode rv fmt
+                 -> InstCTList rv fmt
+                 -> [Doc]
+pPrintInstCTList rvRepr opcode (InstCTList instCTs) =
+  case MapF.lookup opcode (isSemanticsMap $ knownISetWithRepr rvRepr) of
+    Nothing -> []
+    Just sem -> pPrintInstCT (getOperandNames sem) <$> instCTs
 
 -- Semantic coverage
 coverageTreeLocApp :: LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
@@ -345,3 +367,10 @@ coverageTreeSemantics (InstSemantics sem _) =
   let stmts = sem ^. semStmts
       trees = concat $ toList $ coverageTreeStmt <$> stmts
   in InstCT <$> trees
+
+coverageTreeOpcode :: RVRepr rv -> Opcode rv fmt -> InstCTList rv fmt
+coverageTreeOpcode rvRepr opcode =
+  let iset = knownISetWithRepr rvRepr
+  in case MapF.lookup opcode (isSemanticsMap iset) of
+    Nothing -> InstCTList []
+    Just sem -> InstCTList (coverageTreeSemantics sem)

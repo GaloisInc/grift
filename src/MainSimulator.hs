@@ -90,7 +90,7 @@ rvReprFromString s = case s of
 data SimOpts rv = SimOpts
   { simSteps :: Int
   , simRV :: RVRepr rv
-  , simCovFile :: Maybe String
+--  , simCovFile :: Maybe String
   , simOpcodeCov :: Maybe (Some (Opcode rv))
   }
 
@@ -98,7 +98,7 @@ defaultSimOpts :: SimOpts RV64GC
 defaultSimOpts = SimOpts
   { simSteps = 10000
   , simRV = knownRepr :: RVRepr RV64GC
-  , simCovFile = Nothing
+--  , simCovFile = Nothing
   , simOpcodeCov = Nothing
   }
 
@@ -115,19 +115,17 @@ options =
   , Option ['a'] ["arch"]
     (ReqArg (\rvStr (Some opts) -> case rvReprFromString rvStr of
                 Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
-                Just (Some rv) ->
-                  case simOpcodeCov opts of
-                    Just (Some oc) -> do
-                      case opcodeCast rv oc of
-                        Just oc' -> return $ Some $ opts { simRV = rv, simOpcodeCov = Just (Some oc') }
-                        Nothing  -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing }
-                    Nothing -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing } )
+                Just (Some rv) -> case simOpcodeCov opts of
+                  Nothing -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing }
+                  Just (Some oc) -> case opcodeCast rv oc of
+                    Just oc' -> return $ Some $ opts { simRV = rv, simOpcodeCov = Just (Some oc') }
+                    Nothing  -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing } )
      "ARCH")
     ("RISC-V arch configuration (default = RV64GC)")
-  , Option ['c'] ["coverage"]
-    (ReqArg (\covStr (Some opts) -> return $ Some $ opts { simCovFile = Just covStr })
-     "FILE")
-    ("Print coverage analysis to file")
+  -- , Option ['c'] ["coverage"]
+  --   (ReqArg (\covStr (Some opts) -> return $ Some $ opts { simCovFile = Just covStr })
+  --    "FILE")
+  --   ("Print coverage analysis to file")
   , Option ['h'] ["help"]
     (NoArg (\_ -> exitWithUsage ""))
     ("display help message")
@@ -176,22 +174,26 @@ main = do
 
   case (simRV opts, parseElf fileBS) of
     (rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
-      runElf rvRepr (simSteps opts) (simCovFile opts) e
+      runElf opts e
     (rvRepr@(RVRepr RV64Repr _), Elf64Res _ e) ->
-      runElf rvRepr (simSteps opts) (simCovFile opts) e
+      runElf opts e
     _ -> exitWithUsage $ "Error: bad object file\n"
 
-runElf :: ElfWidthConstraints (RVWidth rv) => RVRepr rv -> Int -> Maybe String -> Elf (RVWidth rv) -> IO ()
-runElf rvRepr stepsToRun mLogFile e = withRVWidth rvRepr $ do
+runElf :: ElfWidthConstraints (RVWidth rv)
+       => SimOpts rv
+       -> Elf (RVWidth rv)
+       -> IO ()
+runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
   let byteStrings = elfBytes e
   m <- mkLogMachine
-    rvRepr
-    0x1000000
-    (fromIntegral $ elfEntry e)
-    0x10000
-    byteStrings
+       rvRepr
+       0x1000000
+       (fromIntegral $ elfEntry e)
+       0x10000
+       byteStrings
+       covOpcode
 
-  case mLogFile of
+  case covOpcode of
     Nothing -> runLogMachine stepsToRun m
     Just _  -> runLogMachineLog stepsToRun m
 
@@ -199,33 +201,24 @@ runElf rvRepr stepsToRun mLogFile e = withRVWidth rvRepr $ do
   registers  <- freezeRegisters m
   fregisters <- freezeFRegisters m
   csrs       <- readIORef (lmCSRs m)
+  cov        <- readIORef (lmCov m)
 
-  putStrLn $ "MInstRet = " ++
-    show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
-  putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
-  putStrLn $ "MTVal = " ++ show (Map.findWithDefault  0 (encodeCSR MTVal) csrs)
-  putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
-  putStrLn $ "FCSR = " ++ show (Map.findWithDefault 0 (encodeCSR FCSR) csrs)
-  putStrLn $ "Final PC: " ++ show pc
-  putStrLn "Final register state:"
-  forM_ (assocs registers) $ \(r, v) ->
-    putStrLn $ "  x[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-  putStrLn "Final FP register state:"
-  forM_ (assocs fregisters) $ \(r, v) ->
-    putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-
-  -- case mLogFile of
-  --   Nothing -> return ()
-  --   Just logFile -> withFile logFile WriteMode $ \h -> do
-  --     hPutStrLn h "\n--------Coverage report--------\n"
-  --     forM_ (Map.toList testMap) $ \(Some opcode, vals) -> do
-  --       case MapF.lookup opcode (knownCoverageWithRepr rvRepr) of
-  --         Just (InstExprList exprs) -> do
-  --           let ones = length (filter (==1) vals)
-  --           hPutStrLn h $ show opcode ++ " (" ++ show ones ++ "/" ++ show (length vals) ++ ") :"
-  --           forM_ (zip exprs vals) $ \(expr, val) ->
-  --             hPutStrLn h $ "  " ++ show (pPrintInstExpr True expr) ++ " ---> " ++ show val
-  --         _ -> return ()
+  case cov of
+    Nothing -> do
+      putStrLn $ "MInstRet = " ++
+        show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
+      putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
+      putStrLn $ "MTVal = " ++ show (Map.findWithDefault  0 (encodeCSR MTVal) csrs)
+      putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
+      putStrLn $ "FCSR = " ++ show (Map.findWithDefault 0 (encodeCSR FCSR) csrs)
+      putStrLn $ "Final PC: " ++ show pc
+      putStrLn "Final register state:"
+      forM_ (assocs registers) $ \(r, v) ->
+        putStrLn $ "  x[" ++ show (bvIntegerU r) ++ "] = " ++ show v
+      putStrLn "Final FP register state:"
+      forM_ (assocs fregisters) $ \(r, v) ->
+        putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
+    Just (Pair opcode covTrees) -> traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
