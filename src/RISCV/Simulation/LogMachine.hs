@@ -46,6 +46,8 @@ unspecified.
 This variant of LogMachine runs slower because it also logs coverage statistics.
 -}
 
+-- TODO: Abstract out instruction logging mechanism to be user-supplied.
+
 module RISCV.Simulation.LogMachine
   ( LogMachine(..)
   , mkLogMachine
@@ -270,7 +272,7 @@ runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
 
 -- | A 'CTNode' contains an expression and a flag indicating whether or not that
 -- expression has been evaluated.
-data CTNode (expr :: Nat -> *) (w :: Nat) = CTNode Bool (expr w)
+data CTNode (expr :: Nat -> *) (w :: Nat) = CTNode Bool Bool (expr w)
 
 data CT (expr :: Nat -> *) = CT (CTNode expr 1) [CT expr] [CT expr] [CT expr]
 
@@ -281,16 +283,16 @@ evalCT :: RVStateM m rv
        -> Integer
        -> CT (InstExpr fmt rv)
        -> m (CT (InstExpr fmt rv))
-evalCT iset inst iw (CT (CTNode _ testExpr) testTrees trueTrees falseTrees) = do
+evalCT iset inst iw (CT (CTNode t f testExpr) testTrees trueTrees falseTrees) = do
   testResult  <- evalInstExpr iset inst iw testExpr
   testTrees <- traverse (evalCT iset inst iw) testTrees
   case testResult of
     0b1 -> do
       trueTrees <- traverse (evalCT iset inst iw) trueTrees
-      return $ CT (CTNode True testExpr) testTrees trueTrees falseTrees
+      return $ CT (CTNode True f testExpr) testTrees trueTrees falseTrees
     _ -> do
       falseTrees <- traverse (evalCT iset inst iw) falseTrees
-      return $ CT (CTNode True testExpr) testTrees trueTrees falseTrees
+      return $ CT (CTNode t True testExpr) testTrees trueTrees falseTrees
 
 evalInstCT :: RVStateM m rv
            => InstructionSet rv
@@ -304,17 +306,23 @@ evalInstCT iset inst iw (InstCT ct) = do
 
 -- TODO: Print with colors or something to indicate coverage
 hitChar :: Bool -> Doc
+hitChar True  = char '*'
 hitChar False = char ' '
-hitChar True = char '*'
+
+hitChar2 :: Bool -> Bool -> Doc
+hitChar2 True True  = char '*'
+hitChar2 True False = char '^'
+hitChar2 False True = char '_'
+hitChar2 _     _    = char ' '
 
 pPrintCT :: List OperandName (OperandTypes fmt)
          -> CT (InstExpr fmt rv)
          -> Doc
-pPrintCT opNames (CT (CTNode hit e) [] [] []) = hitChar hit <> pPrintInstExpr opNames True e
-pPrintCT opNames (CT (CTNode hit e) t l r) = (hitChar hit <> pPrintInstExpr opNames True e)
-  $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> t))
-  $$ nest 2 (text "t>" <+> vcat (pPrintCT opNames <$> l))
-  $$ nest 2 (text "f>" <+> vcat (pPrintCT opNames <$> r))
+pPrintCT opNames (CT (CTNode t f e) [] [] []) = hitChar2 t f <> pPrintInstExpr opNames True e
+pPrintCT opNames (CT (CTNode t f e) ts ls rs) = (hitChar2 t f <> pPrintInstExpr opNames True e)
+  $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> ts))
+  $$ nest 1 (hitChar t <> text "t>" <> vcat (pPrintCT opNames <$> ls))
+  $$ nest 1 (hitChar f <> text "f>" <> vcat (pPrintCT opNames <$> rs))
 
 pPrintInstCT :: List OperandName (OperandTypes fmt)
              -> InstCT rv fmt
@@ -349,16 +357,16 @@ coverageTreeInstExpr _ = []
 
 coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVApp (IteApp t l r) =
-  [CT (CTNode False t) (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
+  [CT (CTNode False False t) (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
 coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 
 coverageTreeStmt :: Stmt (InstExpr fmt rv) rv -> [CT (InstExpr fmt rv)]
-coverageTreeStmt (AssignStmt _ e) = coverageTreeInstExpr e
+coverageTreeStmt (AssignStmt loc e) = coverageTreeLocApp loc ++ coverageTreeInstExpr e
 coverageTreeStmt (BranchStmt t l r) =
   let tTrees = coverageTreeInstExpr t
       lTrees = concat $ toList $ coverageTreeStmt <$> l
       rTrees = concat $ toList $ coverageTreeStmt <$> r
-  in [CT (CTNode False t) tTrees lTrees rTrees]
+  in [CT (CTNode False False t) tTrees lTrees rTrees]
 
 newtype InstCT rv fmt = InstCT (CT (InstExpr fmt rv))
 

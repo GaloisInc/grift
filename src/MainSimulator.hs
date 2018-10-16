@@ -218,7 +218,16 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
       putStrLn "Final FP register state:"
       forM_ (assocs fregisters) $ \(r, v) ->
         putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-    Just (Pair opcode covTrees) -> traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
+    Just (Pair opcode covTrees) -> do
+      -- the pattern match below should never fail
+      let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
+      putStrLn "Instruction semantics"
+      putStrLn "====================="
+      print $ pPrintInstSemantics sem
+      putStrLn ""
+      putStrLn "Instruction coverage"
+      putStrLn "===================="
+      traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
