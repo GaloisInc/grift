@@ -327,8 +327,8 @@ pPrintCT :: List OperandName (OperandTypes fmt)
 pPrintCT opNames (CT (CTNode t f e) [] [] []) = color2 t f (pPrintInstExpr opNames True e)
 pPrintCT opNames (CT (CTNode t f e) ts ls rs) = (color2 t f (pPrintInstExpr opNames True e))
   $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> ts))
-  $$ nest 2 (text "t>" <> vcat (pPrintCT opNames <$> ls))
-  $$ nest 2 (text "f>" <> vcat (pPrintCT opNames <$> rs))
+  $$ nest 2 (text "t>" <+> vcat (pPrintCT opNames <$> ls))
+  $$ nest 2 (text "f>" <+> vcat (pPrintCT opNames <$> rs))
 
 pPrintInstCT :: List OperandName (OperandTypes fmt)
              -> InstCT rv fmt
