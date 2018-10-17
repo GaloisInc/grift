@@ -229,6 +229,8 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
       putStrLn "===================="
       traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
 
+      putStrLn "\n(blue = false, green = true, red = both)"
+
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
 elfBytes :: (KnownNat w, ElfWidthConstraints w) => Elf w -> [(BitVector w, BS.ByteString)]

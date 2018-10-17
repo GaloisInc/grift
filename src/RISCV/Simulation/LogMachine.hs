@@ -81,7 +81,6 @@ import           GHC.TypeLits
 import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
 
-import RISCV.Coverage
 import RISCV.InstructionSet
 import RISCV.InstructionSet.Known
 import RISCV.InstructionSet.Utils
@@ -133,7 +132,6 @@ mkLogMachine rvRepr maxAddr entryPoint sp byteStrings covOpcode = do
   cov        <- newIORef $ case covOpcode of
                              Nothing -> Nothing
                              Just (Some oc) -> Just (Pair oc (coverageTreeOpcode rvRepr oc))
-  let f (Pair oc (InstExprList exprs)) = (Some oc, replicate (length exprs) 0)
 
   -- set up stack pointer
   writeArray registers 2 sp
@@ -246,8 +244,8 @@ instance RVStateM (LogMachineM rv) rv where
     case mCov of
       Just (Pair covOpcode (InstCTList covTrees)) -> case covOpcode `testEquality` opcode of
         Just Refl ->  do
-          covTrees <- traverse (evalInstCT iset inst iw) covTrees
-          liftIO $ writeIORef mCovRef (Just (Pair covOpcode (InstCTList covTrees)))
+          covTrees' <- traverse (evalInstCT iset inst iw) covTrees
+          liftIO $ writeIORef mCovRef (Just (Pair covOpcode (InstCTList covTrees')))
           return ()
         _ -> return ()
       _ -> return ()
@@ -285,14 +283,14 @@ evalCT :: RVStateM m rv
        -> m (CT (InstExpr fmt rv))
 evalCT iset inst iw (CT (CTNode t f testExpr) testTrees trueTrees falseTrees) = do
   testResult  <- evalInstExpr iset inst iw testExpr
-  testTrees <- traverse (evalCT iset inst iw) testTrees
+  testTrees' <- traverse (evalCT iset inst iw) testTrees
   case testResult of
     0b1 -> do
-      trueTrees <- traverse (evalCT iset inst iw) trueTrees
-      return $ CT (CTNode True f testExpr) testTrees trueTrees falseTrees
+      trueTrees' <- traverse (evalCT iset inst iw) trueTrees
+      return $ CT (CTNode True f testExpr) testTrees' trueTrees' falseTrees
     _ -> do
-      falseTrees <- traverse (evalCT iset inst iw) falseTrees
-      return $ CT (CTNode t True testExpr) testTrees trueTrees falseTrees
+      falseTrees' <- traverse (evalCT iset inst iw) falseTrees
+      return $ CT (CTNode t True testExpr) testTrees' trueTrees falseTrees'
 
 evalInstCT :: RVStateM m rv
            => InstructionSet rv
@@ -301,28 +299,36 @@ evalInstCT :: RVStateM m rv
            -> InstCT rv fmt
            -> m (InstCT rv fmt)
 evalInstCT iset inst iw (InstCT ct) = do
-  ct <- evalCT iset inst iw ct
-  return (InstCT ct)
+  ct' <- evalCT iset inst iw ct
+  return (InstCT ct')
 
--- TODO: Print with colors or something to indicate coverage
-hitChar :: Bool -> Doc
-hitChar True  = char '*'
-hitChar False = char ' '
+color1 :: Bool -> Doc -> Doc
+color1 True = red
+color1 False = id
 
-hitChar2 :: Bool -> Bool -> Doc
-hitChar2 True True  = char '*'
-hitChar2 True False = char '^'
-hitChar2 False True = char '_'
-hitChar2 _     _    = char ' '
+color2 :: Bool -> Bool -> Doc -> Doc
+color2 True True = red
+color2 True False = green
+color2 False True = cyan
+color2 False False = id
+
+red :: Doc -> Doc
+red doc = text "\x1b[31m" <> doc <> text "\x1b[0m"
+
+green :: Doc -> Doc
+green doc = text "\x1b[32m" <> doc <> text "\x1b[0m"
+
+cyan :: Doc -> Doc
+cyan doc = text "\x1b[36m" <> doc <> text "\x1b[0m"
 
 pPrintCT :: List OperandName (OperandTypes fmt)
          -> CT (InstExpr fmt rv)
          -> Doc
-pPrintCT opNames (CT (CTNode t f e) [] [] []) = hitChar2 t f <> pPrintInstExpr opNames True e
-pPrintCT opNames (CT (CTNode t f e) ts ls rs) = (hitChar2 t f <> pPrintInstExpr opNames True e)
+pPrintCT opNames (CT (CTNode t f e) [] [] []) = color2 t f (pPrintInstExpr opNames True e)
+pPrintCT opNames (CT (CTNode t f e) ts ls rs) = (color2 t f (pPrintInstExpr opNames True e))
   $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> ts))
-  $$ nest 1 (hitChar t <> text "t>" <> vcat (pPrintCT opNames <$> ls))
-  $$ nest 1 (hitChar f <> text "f>" <> vcat (pPrintCT opNames <$> rs))
+  $$ nest 2 (text "t>" <> vcat (pPrintCT opNames <$> ls))
+  $$ nest 2 (text "f>" <> vcat (pPrintCT opNames <$> rs))
 
 pPrintInstCT :: List OperandName (OperandTypes fmt)
              -> InstCT rv fmt
