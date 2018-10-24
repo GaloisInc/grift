@@ -303,23 +303,26 @@ evalInstCT iset inst iw (InstCT ct) = do
   return (InstCT ct')
 
 color1 :: Bool -> Doc -> Doc
-color1 True = red
-color1 False = id
+color1 True = green
+color1 False = red
 
 color2 :: Bool -> Bool -> Doc -> Doc
-color2 True True = red
-color2 True False = green
-color2 False True = cyan
-color2 False False = id
+color2 True True = green
+color2 True False = cyan
+color2 False True = yellow
+color2 False False = red
 
 red :: Doc -> Doc
 red doc = text "\x1b[31m" <> doc <> text "\x1b[0m"
 
-green :: Doc -> Doc
-green doc = text "\x1b[32m" <> doc <> text "\x1b[0m"
-
 cyan :: Doc -> Doc
 cyan doc = text "\x1b[36m" <> doc <> text "\x1b[0m"
+
+yellow :: Doc -> Doc
+yellow doc = text "\x1b[33m" <> doc <> text "\x1b[0m"
+
+green :: Doc -> Doc
+green doc = text "\x1b[32m" <> doc <> text "\x1b[0m"
 
 pPrintCT :: List OperandName (OperandTypes fmt)
          -> CT (InstExpr fmt rv)
@@ -388,3 +391,4 @@ coverageTreeOpcode rvRepr opcode =
   in case MapF.lookup opcode (isSemanticsMap iset) of
     Nothing -> InstCTList []
     Just sem -> InstCTList (coverageTreeSemantics sem)
+

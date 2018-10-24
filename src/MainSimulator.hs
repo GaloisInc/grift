@@ -229,7 +229,7 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
       putStrLn "===================="
       traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
 
-      putStrLn "\n(blue = false, green = true, red = both)"
+      putStrLn "\n(green = fully covered, red = not covered, cyan = covered true, yellow = covered false)"
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
