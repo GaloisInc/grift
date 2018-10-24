@@ -56,6 +56,11 @@ $ stack build
 You can now run GRIFT in this directory using the stack command `stack exec
 grift-sim`. 
 
+Running
+===
+
+Type `grift-sim --help` for a full list of invocation instructions.
+
 Requirements
 ===
 
