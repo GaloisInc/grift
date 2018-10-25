@@ -113,10 +113,9 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
 Current Status
 ===
 
-We currently support RV{32|64}IMAFD, with M-mode privileged
-instructions. Exceptions are modeled incompletely; the bare minimum to run
-user-level code with traps is supported. We are passing all the following tests
-in simulation:
+We currently support RV{32|64}IMAFDC, with M-mode privileged instructions. Exceptions
+are modeled incompletely; the bare minimum to run user-level code with traps is
+supported. We are passing all the following tests in simulation:
 
 - rv32ui
 - rv64ui
@@ -128,12 +127,21 @@ in simulation:
 - rv64uf
 - rv32ud
 - rv64ud
+- rv32uc
+- rv64uc
 
-We also now provide a command-line optiont to select a RISC-V architecture
-variant. Not every combination is possible -- legal ones begin with "RV32" or
-"RV64" and end in "I", "IM", "IMA", "IMAF", or "IMAFD".
+We also now provide a command-line option to select a RISC-V architecture
+variant. Not every combination is possible -- legal ones begin with "RV32" or "RV64"
+and end in "I", "IM", "IMA", "IMAF", "G", or "GC".
 
-Coming soon: support for the C (compressed) extension.
+We also support the --inst-coverage=OPCODE command-line option for testing coverage
+of a particular instruction, based on that instruction's semantic if/then/else
+branching structure. This type of coverage analysis is flexible enough to accomodate
+most kinds of coverage, not necessarily based purely on the semantics of the
+instruction in question. However, this would require a bit of hand-coding because we
+do not support an option in grift-sim to specify exactly what kind of coverage to
+keep track of. This is an area of active development, and we are open to suggestions
+on this.
 
 Other information
 ===
