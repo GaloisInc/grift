@@ -8,7 +8,7 @@ import Data.Parameterized
 import Data.Parameterized.List
 import Data.Foldable
 
-import RISCV.Types
+import GRIFT.Types
 
 inst :: KnownRepr FormatRepr fmt
      => Opcode rv fmt

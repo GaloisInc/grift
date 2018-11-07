@@ -32,7 +32,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE UndecidableInstances       #-}
 
 {-|
-Module      : RISCV.Semantics
+Module      : GRIFT.Semantics
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -74,12 +74,12 @@ Finally, we can combine 'Stmt's to create 'Semantics's, which are simply sequenc
 statements. We export a monad, 'SemanticsM', to facilitate straightforward
 definitions of these assignments, and a number of functions ('assignPC', 'assignReg',
 etc.) that can be used within this monad. To see examples of its use, take a look at
-'RISCV.Extensions.Base', which contains the base RISC-V ISA instruction definitions,
+'GRIFT.Extensions.Base', which contains the base RISC-V ISA instruction definitions,
 defined using 'SemanticsBuilder'.
 
 -}
 
-module RISCV.Semantics
+module GRIFT.Semantics
   ( -- * 'BitVector' semantic expressions
     module Data.BitVector.Sized.App
   , module Data.BitVector.Sized.Float.App
@@ -139,7 +139,7 @@ import GHC.TypeLits
 import Prelude hiding ((<>), (!!))
 import Text.PrettyPrint.HughesPJClass
 
-import RISCV.Types
+import GRIFT.Types
 
 ----------------------------------------
 -- Expressions, statements, and semantics

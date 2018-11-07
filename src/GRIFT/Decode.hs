@@ -26,7 +26,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators       #-}
 
 {-|
-Module      : RISCV.Decode
+Module      : GRIFT.Decode
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -38,7 +38,7 @@ This module defines a function 'decode' that converts a 'BitVector' @32@ an inte
 'Instruction', as well as the corresponding reverse 'encode' function.
 -}
 
-module RISCV.Decode
+module GRIFT.Decode
   ( -- * Functions
     decode
   , decodeC
@@ -51,8 +51,8 @@ import Data.BitVector.Sized.BitLayout
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.InstructionSet
-import RISCV.Types
+import GRIFT.InstructionSet
+import GRIFT.Types
 
 type OpBitsLayout fmt = List (BitLayout 32) (OpBitsTypes fmt)
 type OperandsLayout fmt = List (BitLayout 32) (OperandTypes fmt)
@@ -227,7 +227,8 @@ encode iset (Inst opc (Operands repr operands)) =
         operandsLens = layoutsLens (operandsLayouts repr)
         OpBits _ opBits = opBitsFromOpcode iset opc
 
--- Compressed extension
+-- | Attempt to decode a compressed 16-bit instruction word. This is only for the C
+-- extension.
 decodeC :: CExt << rv => RVRepr rv -> BitVector 16 -> Maybe (Some (Instruction rv))
 decodeC rv bv =
   case bv ^. layoutLens slice0_1 of

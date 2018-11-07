@@ -10,10 +10,10 @@ import Data.Parameterized.Map
 import Text.PrettyPrint.HughesPJClass
 import System.Environment
 
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Known
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Known
+import GRIFT.Semantics
+import GRIFT.Types
 
 isetFromString :: String -> Maybe (Some InstructionSet)
 isetFromString s = case s of

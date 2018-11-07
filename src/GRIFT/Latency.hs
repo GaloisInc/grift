@@ -25,7 +25,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.Latency
+Module      : GRIFT.Latency
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -37,13 +37,13 @@ Experimental -- we are attaching cycle counts to each instruction, which will be
 computed during simulation.
 -}
 
-module RISCV.Latency where
+module GRIFT.Latency where
 
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.Semantics
+import GRIFT.Types
 
 newtype Flip t a b c = Flip (t c a b)
 

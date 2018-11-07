@@ -27,7 +27,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators          #-}
 
 {-|
-Module      : RISCV.Simulation
+Module      : GRIFT.Simulation
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -38,7 +38,7 @@ Portability : portable
 A type class for simulating RISC-V code.
 -}
 
-module RISCV.Simulation
+module GRIFT.Simulation
   ( -- * State monad
     RVStateM(..)
   , evalLocApp
@@ -63,12 +63,12 @@ import Data.Parameterized.List
 import Data.Traversable
 import Prelude hiding ((!!))
 
-import RISCV.Decode
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Known
-import RISCV.InstructionSet.Utils
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.Decode
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Known
+import GRIFT.InstructionSet.Utils
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- TODO: Should getMem/setMem return a possibly exceptional value, so that we can
 -- handle the actual exception handling in this module rather than on the
@@ -156,7 +156,7 @@ evalInstExpr iset inst ib (InstStateExpr e) = evalStateApp (evalInstExpr iset in
 
 -- | This type represents a concrete component of the global state, after all
 -- expressions have been evaluated. It is in direct correspondence with the 'LocApp'
--- type from RISCV.Semantics. Unlike that type, however, this will never appear on
+-- type from 'GRIFT.Semantics'. Unlike that type, however, this will never appear on
 -- the right-hand side of an assignment, only the left-hand side.
 data Loc rv w where
   PC :: Loc rv (RVWidth rv)
@@ -327,38 +327,3 @@ runRVLog :: forall m rv . (RVStateM m rv) => Int -> m Int
 runRVLog steps = do
   rv <- getRV
   withRVWidth rv $ runRVLog' (knownISetWithRepr rv) 0 steps
-
-----------------------------------------
--- Analysis
-
--- | Given a formula, constructs a list of all the tests that affect the execution of
--- that formula.
--- getTests :: Semantics (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
--- getTests formula = nub (concat $ getTestsStmt <$> formula ^. semStmts)
-
--- getTestsStmt :: Stmt (InstExpr fmt rv) rv -> [InstExpr fmt rv 1]
--- getTestsStmt (AssignStmt le e) = getTestsLocApp le ++ getTestsInstExpr e
--- getTestsStmt (BranchStmt t l r) =
---   t : concat ((toList $ getTestsStmt <$> l) ++ (toList $ getTestsStmt <$> r))
-
--- getTestsLocApp :: LocApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
--- getTestsLocApp (RegExpr   e) = getTestsInstExpr e
--- getTestsLocApp (FRegExpr  e) = getTestsInstExpr e
--- getTestsLocApp (MemExpr _ e) = getTestsInstExpr e
--- getTestsLocApp (ResExpr   e) = getTestsInstExpr e
--- getTestsLocApp (CSRExpr   e) = getTestsInstExpr e
--- getTestsLocApp _ = []
-
--- getTestsStateApp :: StateApp (InstExpr fmt rv) rv w -> [InstExpr fmt rv 1]
--- getTestsStateApp (LocApp e) = getTestsLocApp e
--- getTestsStateApp (AppExpr e) = getTestsBVApp e
-
--- getTestsInstExpr :: InstExpr fmt rv w -> [InstExpr fmt rv 1]
--- getTestsInstExpr (OperandExpr _) = []
--- getTestsInstExpr InstBytes = []
--- getTestsInstExpr InstWord = []
--- getTestsInstExpr (InstStateExpr e) = getTestsStateApp e
-
--- getTestsBVApp :: BVApp (InstExpr fmt rv) w -> [InstExpr fmt rv 1]
--- getTestsBVApp (IteApp t l r) = t : getTestsInstExpr l ++ getTestsInstExpr r
--- getTestsBVApp app = foldMapFC getTestsInstExpr app

@@ -33,7 +33,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE UndecidableInstances   #-}
 
 {-|
-Module      : RISCV.Types
+Module      : GRIFT.Types
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -57,7 +57,7 @@ Finally, we define 'Opcode', 'Operands', and 'Instruction', which encode our
 representation of a RISC-V instruction.
 -}
 
-module RISCV.Types
+module GRIFT.Types
   ( -- * RISC-V Configuration
     RV(..), type RVConfig
   , RVRepr(..)

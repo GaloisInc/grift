@@ -60,14 +60,14 @@ import           System.IO.Error
 import           Text.PrettyPrint.HughesPJClass
 import           Text.Read
 
-import           RISCV.Coverage
-import           RISCV.InstructionSet
-import           RISCV.InstructionSet.Known
-import           RISCV.InstructionSet.Utils
-import           RISCV.Types
-import           RISCV.Semantics
-import           RISCV.Simulation
-import           RISCV.Simulation.LogMachine
+import           GRIFT.Coverage
+import           GRIFT.InstructionSet
+import           GRIFT.InstructionSet.Known
+import           GRIFT.InstructionSet.Utils
+import           GRIFT.Types
+import           GRIFT.Semantics
+import           GRIFT.Simulation
+import           GRIFT.Simulation.LogMachine
 
 import Data.Coerce
 

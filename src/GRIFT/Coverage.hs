@@ -25,7 +25,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.Coverage
+Module      : GRIFT.Coverage
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -40,7 +40,7 @@ and the current machine state.
 This module is being actively developed, and has not been adequately documented.
 -}
 
-module RISCV.Coverage where
+module GRIFT.Coverage where
 
 import Data.BitVector.Sized.App
 import qualified Data.Parameterized.Map as Map
@@ -48,8 +48,8 @@ import Data.Parameterized
 import Data.Parameterized.List
 import GHC.TypeLits
 
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.Semantics
+import GRIFT.Types
 
 newtype InstExprList rv fmt = InstExprList [InstExpr fmt rv 1]
 

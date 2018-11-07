@@ -27,7 +27,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators       #-}
 
 {-|
-Module      : RISCV.InstructionSet.Utils
+Module      : GRIFT.InstructionSet.Utils
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -38,7 +38,7 @@ Portability : portable
 Helper functions for defining instruction semantics.
 -}
 
-module RISCV.InstructionSet.Utils
+module GRIFT.InstructionSet.Utils
   ( -- * General
     getArchWidth
   , incrPC
@@ -71,8 +71,8 @@ import Data.Map (Map)
 import Data.Parameterized
 import GHC.TypeLits
 
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
 -- should probably be generalized when we fully implement the privileged architecture.

@@ -20,7 +20,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies          #-}
 
 {-|
-Module      : RISCV.InstructionSet.Known
+Module      : GRIFT.InstructionSet.Known
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -33,7 +33,7 @@ encoding/decoding information and semantics, from a particular RISC-V configurat
 (a data kind of kind RV).
 -}
 
-module RISCV.InstructionSet.Known
+module GRIFT.InstructionSet.Known
   ( -- * RISC-V Base ISA and extensions
     knownISet
   , knownISetWithRepr
@@ -41,13 +41,13 @@ module RISCV.InstructionSet.Known
 
 import Data.Parameterized
 
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Base
-import RISCV.InstructionSet.A
-import RISCV.InstructionSet.FD
-import RISCV.InstructionSet.M
-import RISCV.InstructionSet.Priv
-import RISCV.Types
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Base
+import GRIFT.InstructionSet.A
+import GRIFT.InstructionSet.FD
+import GRIFT.InstructionSet.M
+import GRIFT.InstructionSet.Priv
+import GRIFT.Types
 
 -- | Infer the current instruction set.
 knownISet :: forall rv . KnownRV rv => InstructionSet rv

@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.InstructionSet.Priv
+Module      : GRIFT.InstructionSet.Priv
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,7 +35,7 @@ Portability : portable
 RISC-V Privileged architecture extensions
 -}
 
-module RISCV.InstructionSet.Priv
+module GRIFT.InstructionSet.Priv
   ( privmFromRepr
   ) where
 
@@ -44,10 +44,10 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Utils
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Utils
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- | Get the privileged instruction set from an explicit 'RVRepr'.
 privmFromRepr :: RVRepr rv -> InstructionSet rv

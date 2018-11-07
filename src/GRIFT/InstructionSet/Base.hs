@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.InstructionSet.Base
+Module      : GRIFT.InstructionSet.Base
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,7 +35,7 @@ Portability : portable
 RV32I/RV64I base ISA; encoding and semantics.
 -}
 
-module RISCV.InstructionSet.Base
+module GRIFT.InstructionSet.Base
   ( baseFromRepr
   )
   where
@@ -46,10 +46,10 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.InstructionSet.Utils
-import RISCV.InstructionSet
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.InstructionSet.Utils
+import GRIFT.InstructionSet
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- | Get the I instruction from an explicit 'RVRepr'.
 baseFromRepr :: RVRepr rv -> InstructionSet rv

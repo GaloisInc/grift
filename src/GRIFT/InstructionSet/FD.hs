@@ -24,7 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators    #-}
 
 {-|
-Module      : RISCV.InstructionSet.FD
+Module      : GRIFT.InstructionSet.FD
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -35,7 +35,7 @@ Portability : portable
 F and D extensions for RV32 and RV64.
 -}
 
-module RISCV.InstructionSet.FD
+module GRIFT.InstructionSet.FD
   ( fdFromRepr
   ) where
 
@@ -45,10 +45,10 @@ import qualified Data.Parameterized.Map as Map
 import Data.Parameterized
 import Data.Parameterized.List
 
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Utils
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Utils
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- | Get the F/D instruction set from an explicit 'RVRepr'.
 fdFromRepr :: RVRepr rv -> InstructionSet rv

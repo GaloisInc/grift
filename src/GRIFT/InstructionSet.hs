@@ -20,7 +20,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE PolyKinds      #-}
 
 {-|
-Module      : RISCV.Instruction
+Module      : GRIFT.Instruction
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -31,7 +31,7 @@ Portability : portable
 Instruction sets
 -}
 
-module RISCV.InstructionSet
+module GRIFT.InstructionSet
   ( -- * Instruction sets
     InstructionSet(..)
   , instructionSet
@@ -47,8 +47,8 @@ import Data.Parameterized
 import qualified Data.Parameterized.Map as Map
 import Data.Parameterized.Map (MapF)
 
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- | Instruction encoding, mapping each opcode to its associated 'OpBits', the bits
 -- it fixes in an instruction word.

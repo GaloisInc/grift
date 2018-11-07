@@ -31,7 +31,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE UndecidableInstances #-}
 
 {-|
-Module      : RISCV.Simulation.LogMachine
+Module      : GRIFT.Simulation.LogMachine
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -48,7 +48,7 @@ This variant of LogMachine runs slower because it also logs coverage statistics.
 
 -- TODO: Abstract out instruction logging mechanism to be user-supplied.
 
-module RISCV.Simulation.LogMachine
+module GRIFT.Simulation.LogMachine
   ( LogMachine(..)
   , mkLogMachine
   , LogMachineM
@@ -81,12 +81,12 @@ import           GHC.TypeLits
 import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
 
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Known
-import RISCV.InstructionSet.Utils
-import RISCV.Types
-import RISCV.Semantics
-import RISCV.Simulation
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Known
+import GRIFT.InstructionSet.Utils
+import GRIFT.Types
+import GRIFT.Semantics
+import GRIFT.Simulation
 
 import Debug.Trace (traceM)
 

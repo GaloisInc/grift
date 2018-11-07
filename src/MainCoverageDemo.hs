@@ -15,10 +15,10 @@ import Data.Parameterized.TraversableFC
 import GHC.TypeLits
 import Text.PrettyPrint.HughesPJClass
 
-import RISCV.InstructionSet
-import RISCV.InstructionSet.Known
-import RISCV.Semantics
-import RISCV.Types
+import GRIFT.InstructionSet
+import GRIFT.InstructionSet.Known
+import GRIFT.Semantics
+import GRIFT.Types
 
 -- | A 'CTNode' contains an expression and a flag indicating whether or not that
 -- expression has been evaluated.
