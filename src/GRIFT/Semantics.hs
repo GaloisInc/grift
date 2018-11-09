@@ -136,6 +136,7 @@ import Data.Parameterized.List
 import qualified Data.Sequence as Seq
 import           Data.Sequence (Seq)
 import GHC.TypeLits
+import qualified GHC.TypeLits as T
 import Prelude hiding ((<>), (!!))
 import Text.PrettyPrint.HughesPJClass
 
@@ -150,7 +151,7 @@ data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   PCExpr   :: LocApp expr rv (RVWidth rv)
   RegExpr  :: expr 5 -> LocApp expr rv (RVWidth rv)
   FRegExpr :: FExt << rv => expr 5 -> LocApp expr rv (RVFloatWidth rv)
-  MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8*bytes)
+  MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
   ResExpr  :: expr (RVWidth rv) -> LocApp expr rv 1
   CSRExpr  :: expr 12 -> LocApp expr rv (RVWidth rv)
   PrivExpr :: LocApp expr rv 2
@@ -352,7 +353,7 @@ readFReg ridE = stateExpr (LocApp (FRegExpr ridE))
 readMem :: StateExpr expr
         => NatRepr bytes
         -> expr rv (RVWidth rv)
-        -> expr rv (8*bytes)
+        -> expr rv (8 T.* bytes)
 readMem bytes addr = stateExpr (LocApp (MemExpr bytes addr))
 
 -- | Read a value from a CSR.
@@ -392,7 +393,7 @@ assignFReg r e = addStmt (AssignStmt (FRegExpr r) e)
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
 assignMem :: NatRepr bytes
           -> expr rv (RVWidth rv)
-          -> expr rv (8*bytes)
+          -> expr rv (8 T.* bytes)
           -> SemanticsM (expr rv) rv ()
 assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
 
