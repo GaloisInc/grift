@@ -61,6 +61,7 @@ import Data.Foldable
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
+import qualified GHC.TypeLits as T
 import Prelude hiding ((!!))
 
 import GRIFT.Decode
@@ -86,7 +87,7 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   -- class.
   getReg  :: BitVector 5 -> m (BitVector (RVWidth rv))
   -- | Read some number of bytes from memory.
-  getMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> m (BitVector (8*bytes))
+  getMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> m (BitVector (8 T.* bytes))
   -- | Get the value of a CSR.
   getCSR  :: BitVector 12 -> m (BitVector (RVWidth rv))
   -- | Get the current privilege level.
@@ -99,7 +100,7 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   -- | Write to a register.
   setReg  :: BitVector 5 -> BitVector (RVWidth rv) -> m ()
   -- | Write a single byte to memory.
-  setMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> BitVector (8*bytes) -> m ()
+  setMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> BitVector (8 T.* bytes) -> m ()
   -- | Write to a CSR.
   setCSR  :: BitVector 12 -> BitVector (RVWidth rv) -> m ()
   -- | Set the privilege level.
@@ -162,7 +163,7 @@ data Loc rv w where
   PC :: Loc rv (RVWidth rv)
   Reg :: BitVector 5 -> Loc rv (RVWidth rv)
   FReg :: FExt << rv => BitVector 5 -> Loc rv (RVFloatWidth rv)
-  Mem :: NatRepr bytes -> BitVector (RVWidth rv) -> Loc rv (8*bytes)
+  Mem :: NatRepr bytes -> BitVector (RVWidth rv) -> Loc rv (8 T.* bytes)
   Res :: BitVector (RVWidth rv) -> Loc rv 1
   CSR :: BitVector 12 -> Loc rv (RVWidth rv)
   Priv :: Loc rv 2

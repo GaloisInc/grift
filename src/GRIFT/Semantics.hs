@@ -127,6 +127,7 @@ module GRIFT.Semantics
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
+import Control.Monad.Fail
 import Control.Monad.State
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float.App
@@ -266,6 +267,9 @@ newtype SemanticsM (expr :: Nat -> *) (rv :: RV) a =
             Applicative,
             Monad,
             MonadState (Semantics expr rv))
+
+instance MonadFail (SemanticsM expr rv) where
+  fail = error
 
 -- | Get the operands for a particular known format.
 operandEs :: forall rv fmt . (KnownRepr FormatRepr fmt)
