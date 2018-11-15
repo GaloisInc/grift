@@ -72,18 +72,18 @@ module GRIFT.Types
   , withRVFloatWidth
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
-  , RV32I
-  , RV32IM
-  , RV32IMA
-  , RV32IMAF
-  , RV32G
-  , RV32GC
-  , RV64I
-  , RV64IM
-  , RV64IMA
-  , RV64IMAF
-  , RV64G
-  , RV64GC
+  , RV32I, rv32IRepr
+  , RV32IM, rv32IMRepr
+  , RV32IMA, rv32IMARepr
+  , RV32IMAF, rv32IMAFRepr
+  , RV32G, rv32GRepr
+  , RV32GC, rv32GCRepr
+  , RV64I, rv64IRepr
+  , RV64IM, rv64IMRepr
+  , RV64IMA, rv64IMARepr
+  , RV64IMAF, rv64IMAFRepr
+  , RV64G, rv64GRepr
+  , RV64GC, rv64GCRepr
   -- * Base architecture
   , BaseArch(..), type RV32, type RV64, type RV128
   , ArchWidth
@@ -386,6 +386,42 @@ type RV64IMA   = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDNo,    CNo))
 type RV64IMAF  = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FYesDNo, CNo))
 type RV64G     = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes,   CNo))
 type RV64GC    = RVConfig '(RV64, Exts '(PrivM, MYes, AYes, FDYes,   CYes))
+
+rv32IRepr :: RVRepr RV32I
+rv32IRepr = RVRepr RV32Repr (ExtensionsRepr PrivMRepr MNoRepr ANoRepr FDNoRepr CNoRepr)
+
+rv32IMRepr :: RVRepr RV32IM
+rv32IMRepr = RVRepr RV32Repr (ExtensionsRepr PrivMRepr MYesRepr ANoRepr FDNoRepr CNoRepr)
+
+rv32IMARepr :: RVRepr RV32IMA
+rv32IMARepr = RVRepr RV32Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FDNoRepr CNoRepr)
+
+rv32IMAFRepr :: RVRepr RV32IMAF
+rv32IMAFRepr = RVRepr RV32Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FYesDNoRepr CNoRepr)
+
+rv32GRepr :: RVRepr RV32G
+rv32GRepr = RVRepr RV32Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FDYesRepr CNoRepr)
+
+rv32GCRepr :: RVRepr RV32GC
+rv32GCRepr = RVRepr RV32Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FDYesRepr CYesRepr)
+
+rv64IRepr :: RVRepr RV64I
+rv64IRepr = RVRepr RV64Repr (ExtensionsRepr PrivMRepr MNoRepr ANoRepr FDNoRepr CNoRepr)
+
+rv64IMRepr :: RVRepr RV64IM
+rv64IMRepr = RVRepr RV64Repr (ExtensionsRepr PrivMRepr MYesRepr ANoRepr FDNoRepr CNoRepr)
+
+rv64IMARepr :: RVRepr RV64IMA
+rv64IMARepr = RVRepr RV64Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FDNoRepr CNoRepr)
+
+rv64IMAFRepr :: RVRepr RV64IMAF
+rv64IMAFRepr = RVRepr RV64Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FYesDNoRepr CNoRepr)
+
+rv64GRepr :: RVRepr RV64G
+rv64GRepr = RVRepr RV64Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FDYesRepr CNoRepr)
+
+rv64GCRepr :: RVRepr RV64GC
+rv64GCRepr = RVRepr RV64Repr (ExtensionsRepr PrivMRepr MYesRepr AYesRepr FDYesRepr CYesRepr)
 
 ----------------------------------------
 -- Formats

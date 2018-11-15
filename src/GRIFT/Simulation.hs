@@ -49,6 +49,8 @@ module GRIFT.Simulation
   , Assignment(..)
   , execAssignment
   , execSemantics
+  , stepRV
+  , stepRVLog
   , runRV
   , runRVLog
   ) where
