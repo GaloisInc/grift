@@ -302,10 +302,6 @@ evalInstCT iset inst iw (InstCT ct) = do
   ct' <- evalCT iset inst iw ct
   return (InstCT ct')
 
-color1 :: Bool -> Doc -> Doc
-color1 True = green
-color1 False = red
-
 color2 :: Bool -> Bool -> Doc -> Doc
 color2 True True = green
 color2 True False = cyan
