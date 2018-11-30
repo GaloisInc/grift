@@ -72,19 +72,31 @@ module GRIFT.Types
   , withRVFloatWidth
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
-  , RV32I, rv32IRepr
-  , RV32IM, rv32IMRepr
-  , RV32IMA, rv32IMARepr
-  , RV32IMAF, rv32IMAFRepr
-  , RV32G, rv32GRepr
-  , RV32GC, rv32GCRepr
-  , RV64I, rv64IRepr
-  , RV64IM, rv64IMRepr
-  , RV64IMA, rv64IMARepr
-  , RV64IMAF, rv64IMAFRepr
-  , RV64G, rv64GRepr
-  , RV64GC, rv64GCRepr
-  -- * Base architecture
+  , RV32I
+  , RV32IM
+  , RV32IMA
+  , RV32IMAF
+  , RV32G
+  , RV32GC
+  , RV64I
+  , RV64IM
+  , RV64IMA
+  , RV64IMAF
+  , RV64G
+  , RV64GC
+  , rv32IRepr
+  , rv32IMRepr
+  , rv32IMARepr
+  , rv32IMAFRepr
+  , rv32GRepr
+  , rv32GCRepr
+  , rv64IRepr
+  , rv64IMRepr
+  , rv64IMARepr
+  , rv64IMAFRepr
+  , rv64GRepr
+  , rv64GCRepr
+    -- * Base architecture
   , BaseArch(..), type RV32, type RV64, type RV128
   , ArchWidth
   , BaseArchRepr(..)
