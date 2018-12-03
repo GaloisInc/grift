@@ -8,3 +8,4 @@ build/
 *.text
 *.dot
 *.out
+dist-newstyle

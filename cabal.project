@@ -1,0 +1,6 @@
+packages: deps/parameterized-utils
+          deps/elf-edit
+          deps/bv-sized
+          deps/bv-sized-float
+          deps/softfloat-hs
+          grift
