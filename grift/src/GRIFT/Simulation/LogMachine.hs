@@ -97,7 +97,8 @@ data LogMachine (rv :: RV) = LogMachine
   , lmPC         :: IORef (BitVector (RVWidth rv))
   , lmRegisters  :: IOArray (BitVector 5) (BitVector (RVWidth rv))
   , lmFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
-  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
+  , lmMemory     :: IORef (Map (BitVector (RVWidth rv)) (BitVector 8))
+--  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
   , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
   , lmPriv       :: IORef (BitVector 2)
   , lmMaxAddr    :: BitVector (RVWidth rv)
@@ -106,13 +107,17 @@ data LogMachine (rv :: RV) = LogMachine
 
 newtype InstCTList rv fmt = InstCTList [InstCT rv fmt]
 
-writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IOArray i (BitVector 8) -> IO ()
-writeBS ix bs arr = do
+writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IORef (Map i (BitVector 8)) -> IO ()
+writeBS ix bs mapRef = do
   case BS.null bs of
     True -> return ()
     _    -> do
-      writeArray arr ix (fromIntegral (BS.head bs))
-      writeBS (ix+1) (BS.tail bs) arr
+      m <- readIORef mapRef
+      let m' = Map.insert ix (fromIntegral (BS.head bs)) m
+      writeIORef mapRef m'
+      writeBS (ix+1) (BS.tail bs) mapRef
+--      writeArray arr ix (fromIntegral (BS.head bs))
+--      writeBS (ix+1) (BS.tail bs) arr
 
 -- | Construct a 'LogMachine'.
 mkLogMachine :: RVRepr rv
@@ -126,7 +131,7 @@ mkLogMachine rvRepr maxAddr entryPoint sp byteStrings covOpcode = do
   pc         <- newIORef entryPoint
   registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
-  memory     <- withRVWidth rvRepr $ newArray (0, maxAddr) 0
+  memory     <- newIORef $ Map.fromList [ ] -- withRVWidth rvRepr $ newArray (0, maxAddr) 0
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
   cov        <- newIORef $ case covOpcode of
@@ -167,14 +172,15 @@ instance RVStateM (LogMachineM rv) rv where
     regVal   <- liftIO $ readArray regArray rid
     return regVal
   getMem bytes addr = do
-    memArray <- lmMemory <$> ask
+    memRef <- lmMemory <$> ask
+    m <- liftIO $ readIORef memRef
     maxAddr  <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
     withRVWidth rv $
       case addr + fromIntegral (natValue bytes) < maxAddr of
         True -> do
-          val <- liftIO $
-            for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
+          let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
+            -- for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
           return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
         False -> do
           -- TODO: We need to handle this in the semantics and provide an interface
@@ -212,16 +218,22 @@ instance RVStateM (LogMachineM rv) rv where
     regArray <- lmFRegisters <$> ask
     liftIO $ writeArray regArray rid regVal
   setMem bytes addr val = do
-    memArray <- lmMemory <$> ask
+    memRef <- lmMemory <$> ask
+    m <- liftIO $ readIORef memRef
     maxAddr <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
     withRVWidth rv $
       case addr < maxAddr of
-        True -> liftIO $
-          for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
-          where addrValPairs = zip
-                  [addr..addr+(fromIntegral (natValue bytes-1))]
-                  (bvGetBytesU (fromIntegral (natValue bytes)) val)
+        True -> --liftIO $
+          let addrValPairs = zip
+                [addr..addr+(fromIntegral (natValue bytes-1))]
+                (bvGetBytesU (fromIntegral (natValue bytes)) val)
+              m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
+          in liftIO $ writeIORef memRef m'
+              -- for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
+          -- where addrValPairs = zip
+          --         [addr..addr+(fromIntegral (natValue bytes-1))]
+          --         (bvGetBytesU (fromIntegral (natValue bytes)) val)
         False -> do
           traceM $ "Tried to write to memory location " ++ show addr
           csrsRef <- lmCSRs <$> ask
