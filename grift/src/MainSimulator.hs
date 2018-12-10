@@ -187,7 +187,6 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
   let byteStrings = elfBytes e
   m <- mkLogMachine
        rvRepr
-       0x1000000
        (fromIntegral $ elfEntry e)
        0x10000
        byteStrings

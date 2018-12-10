@@ -101,7 +101,7 @@ data LogMachine (rv :: RV) = LogMachine
 --  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
   , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
   , lmPriv       :: IORef (BitVector 2)
-  , lmMaxAddr    :: BitVector (RVWidth rv)
+--  , lmMaxAddr    :: BitVector (RVWidth rv)
   , lmCov        :: IORef (Maybe (Pair (Opcode rv) (InstCTList rv)))
   }
 
@@ -123,11 +123,11 @@ writeBS ix bs mapRef = do
 mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
-             -> BitVector (RVWidth rv)
+--             -> BitVector (RVWidth rv)
              -> [(BitVector (RVWidth rv), BS.ByteString)]
              -> Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
-mkLogMachine rvRepr maxAddr entryPoint sp byteStrings covOpcode = do
+mkLogMachine rvRepr entryPoint sp byteStrings covOpcode = do
   pc         <- newIORef entryPoint
   registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
@@ -143,7 +143,7 @@ mkLogMachine rvRepr maxAddr entryPoint sp byteStrings covOpcode = do
 
   forM_ byteStrings $ \(addr, bs) ->
     withRVWidth rvRepr $ writeBS addr bs memory
-  return (LogMachine rvRepr pc registers fregisters memory csrs priv maxAddr cov)
+  return (LogMachine rvRepr pc registers fregisters memory csrs priv cov)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -174,27 +174,24 @@ instance RVStateM (LogMachineM rv) rv where
   getMem bytes addr = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
-    maxAddr  <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
-    withRVWidth rv $
-      case addr + fromIntegral (natValue bytes) < maxAddr of
-        True -> do
-          let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
+    withRVWidth rv $ do
+      let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
             -- for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
-          return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
-        False -> do
-          -- TODO: We need to handle this in the semantics and provide an interface
-          -- via the 'Simulation' type class. Currently, even when there is an access
-          -- fault, the entire instruction still gets executed; really what should
-          -- happen is there should be an implicit branch every time we access a
-          -- memory location.
-          traceM $ "Tried to read from memory location " ++ show addr
-          csrsRef <- lmCSRs <$> ask
-          csrMap  <- liftIO $ readIORef csrsRef
-          liftIO $ writeIORef csrsRef (Map.insert
-                                       (encodeCSR MCause)
-                                       (getMCause StoreAccessFault) csrMap)
-          return (BV ((knownNat @8) `natMultiply` bytes) 0)
+      return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
+        -- False -> do
+        --   -- TODO: We need to handle this in the semantics and provide an interface
+        --   -- via the 'Simulation' type class. Currently, even when there is an access
+        --   -- fault, the entire instruction still gets executed; really what should
+        --   -- happen is there should be an implicit branch every time we access a
+        --   -- memory location.
+        --   traceM $ "Tried to read from memory location " ++ show addr
+        --   csrsRef <- lmCSRs <$> ask
+        --   csrMap  <- liftIO $ readIORef csrsRef
+        --   liftIO $ writeIORef csrsRef (Map.insert
+        --                                (encodeCSR MCause)
+        --                                (getMCause StoreAccessFault) csrMap)
+        --   return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef
@@ -220,25 +217,23 @@ instance RVStateM (LogMachineM rv) rv where
   setMem bytes addr val = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
-    maxAddr <- lmMaxAddr <$> ask
+--    maxAddr <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
     withRVWidth rv $
-      case addr < maxAddr of
-        True -> --liftIO $
-          let addrValPairs = zip
-                [addr..addr+(fromIntegral (natValue bytes-1))]
-                (bvGetBytesU (fromIntegral (natValue bytes)) val)
-              m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
-          in liftIO $ writeIORef memRef m'
+      let addrValPairs = zip
+            [addr..addr+(fromIntegral (natValue bytes-1))]
+            (bvGetBytesU (fromIntegral (natValue bytes)) val)
+          m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
+      in liftIO $ writeIORef memRef m'
               -- for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
           -- where addrValPairs = zip
           --         [addr..addr+(fromIntegral (natValue bytes-1))]
           --         (bvGetBytesU (fromIntegral (natValue bytes)) val)
-        False -> do
-          traceM $ "Tried to write to memory location " ++ show addr
-          csrsRef <- lmCSRs <$> ask
-          csrMap  <- liftIO $ readIORef csrsRef
-          liftIO $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
+        -- False -> do
+        --   traceM $ "Tried to write to memory location " ++ show addr
+        --   csrsRef <- lmCSRs <$> ask
+        --   csrMap  <- liftIO $ readIORef csrsRef
+        --   liftIO $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
   setCSR csr csrVal = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef
