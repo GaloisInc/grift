@@ -18,17 +18,17 @@ design decisions. Its primary use is as a library, providing mechanisms for the
 encoding/decoding of instructions, as well as running RISC-V programs in
 simulation. However, the semantics of the instructions themselves are
 represented, not as Haskell functions on a RISC-V machine state (registers, PC,
-memory, etc.), but as symbolic expressions in a general-purpose bitvector
-expression language. This extra layer of representation, while sub-optimal for
-fast simulation, facilitates the library's use as a general-purpose encoding of
-the semantics, and makes *GRIFT* a general-purpose, "golden reference" model
-that can be easily translated into the syntax of other tools by providing
-minimal pretty printers, written in Haskell, for the underlying bitvector
-expression language. Having explicit semantic data for each instruction also
-facilitates the library's incorporation with other Haskell-based tooling, such
-as coverage analysis (where a notion of coverage is encoded in the same
-bitvector language as the semantics), binary analysis, and verification, both
-within and without the Haskell programming environment.
+memory, etc.), but as symbolic expressions in a bitvector expression
+language. This extra layer of representation, while sub-optimal for fast
+simulation, facilitates the library's use as a general-purpose encoding of the
+semantics, and makes *GRIFT* a general-purpose, "golden reference" model that
+can be easily translated into the syntax of other tools by providing minimal
+pretty printers, written in Haskell, for the underlying bitvector expression
+language. Having explicit semantic data for each instruction also facilitates
+the library's incorporation with other Haskell-based tooling, such as coverage
+analysis (where a notion of coverage is encoded in the same bitvector language
+as the semantics), binary analysis, and verification, both within and without
+the Haskell programming environment.
 
 Build instructions
 ===
@@ -41,25 +41,23 @@ $ git submodule update --init --recursive
 ```
 
 GRIFT depends on softfloat-hs, which in turn depends on the softfloat
-library. To install it on OSX, run:
+library. To install it on Linux of OSX, run:
 ```shell
-$ ./install-softfloat-osx.sh
-```
-If you are not on OSX, you will have to modify the above script. We recommend
-linking softfloat dynamically.
-
-Finally, build GRIFT using stack:
-```shell
-$ stack build
+$ cd deps/softfloat-hs
+$ make
+$ sudo make install
 ```
 
-You can now run GRIFT in this directory using the stack command `stack exec
-grift-sim`. 
+Finally, build GRIFT using cabal new-build:
+```shell
+$ cabal new-build grift
+```
 
 Running
 ===
 
-Type `grift-sim --help` for a full list of invocation instructions.
+Type `cabal new-run grift-sim -- --help` for a full list of invocation
+instructions.
 
 Requirements
 ===
