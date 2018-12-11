@@ -468,7 +468,7 @@ baseSemantics = Map.fromList
   , Pair Ebreak $ instSemantics Nil $ do
       comment "Makes a request to the debugger."
 
-      raiseException EnvironmentCall (litBV 0x0) -- TODO: change this
+      raiseException Breakpoint (litBV 0x0) -- TODO: change this
 
   -- TODO: Fence instructions.
   , Pair Fence $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
