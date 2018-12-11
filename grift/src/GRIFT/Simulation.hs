@@ -300,8 +300,8 @@ stepRVLog iset = do
 isHalted :: (KnownRVWidth rv, RVStateM m rv) => m Bool
 isHalted = do
   mcause <- getCSR (encodeCSR MCause)
-  return (mcause == 2 || mcause == 3 || mcause == 5 ||
-          mcause == 7 || mcause == 8 || mcause == 11)
+  return (mcause == 2 || mcause == 5 ||
+          mcause == 7 || mcause == 11)
 
 runRV' :: forall m rv . (RVStateM m rv, KnownRVWidth rv) => InstructionSet rv -> Int -> Int -> m Int
 runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
