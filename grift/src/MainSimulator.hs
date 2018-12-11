@@ -40,6 +40,7 @@ module Main where
 import           Control.Lens ( (^..), (^.) )
 import           Control.Monad
 import           Data.Array.IArray
+import           Data.Bits
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.Foldable
@@ -49,10 +50,12 @@ import           Data.Maybe (fromJust)
 import           Data.Parameterized
 import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
+import           Data.Word
 import           System.Environment
 import           System.Exit
 import           Data.ElfEdit
 import           GHC.TypeLits
+import           Numeric (showHex)
 import           System.Console.GetOpt
 import           System.FilePath.Posix
 import           System.IO
@@ -92,6 +95,8 @@ data SimOpts rv = SimOpts
   , simRV :: RVRepr rv
 --  , simCovFile :: Maybe String
   , simOpcodeCov :: Maybe (Some (Opcode rv))
+  , simMemDumpStart :: Word64
+  , simMemDumpEnd :: Word64
   }
 
 defaultSimOpts :: SimOpts RV64GC
@@ -100,6 +105,8 @@ defaultSimOpts = SimOpts
   , simRV = knownRepr :: RVRepr RV64GC
 --  , simCovFile = Nothing
   , simOpcodeCov = Nothing
+  , simMemDumpStart = 0x0
+  , simMemDumpEnd = 0x0
   }
 
 -- TODO: Idea -- if the opcode does not belong to the current instruction set,
@@ -116,7 +123,9 @@ options =
     (ReqArg (\rvStr (Some opts) -> case rvReprFromString rvStr of
                 Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
                 Just (Some rv) -> case simOpcodeCov opts of
-                  Nothing -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing }
+                  Nothing -> return $ Some $ opts { simRV = rv
+                                                  , simOpcodeCov = Nothing
+                                                  }
                   Just (Some oc) -> case opcodeCast rv oc of
                     Just oc' -> return $ Some $ opts { simRV = rv, simOpcodeCov = Just (Some oc') }
                     Nothing  -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing } )
@@ -138,6 +147,20 @@ options =
                     Just oc' -> return $ Some $ opts { simOpcodeCov = Just (Some oc') } )
       "OPCODE")
     "display semantic coverage of a particular instruction"
+  , Option [] ["mem-dump-start"]
+    (ReqArg (\addrStr (Some opts) -> case readMaybe addrStr of
+                Nothing -> exitWithUsage $ "Invalid --mem-dump-start value: " ++ addrStr ++ "\n"
+                Just addr ->
+                  return $ Some $ opts { simMemDumpStart = addr } )
+      "START_ADDR")
+    ("start address of post-simulation memory dump (default = " ++ show (simMemDumpStart defaultSimOpts) ++ ")")
+  , Option [] ["mem-dump-end"]
+    (ReqArg (\lenStr (Some opts) -> case readMaybe lenStr of
+                Nothing -> exitWithUsage $ "Invalid --mem-dump-end value: " ++ lenStr ++ "\n"
+                Just len ->
+                  return $ Some $ opts { simMemDumpEnd = len } )
+      "END_ADDR")
+    ("end address of post-simulation memory dump (default = " ++ show (simMemDumpEnd defaultSimOpts) ++ ")")
   ]
 
 header :: String
@@ -183,7 +206,7 @@ runElf :: ElfWidthConstraints (RVWidth rv)
        => SimOpts rv
        -> Elf (RVWidth rv)
        -> IO ()
-runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
+runElf (SimOpts stepsToRun rvRepr covOpcode memDumpStart memDumpEnd) e = withRVWidth rvRepr $ do
   let byteStrings = elfBytes e
   m <- mkLogMachine
        rvRepr
@@ -197,13 +220,21 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
     Just _  -> runLogMachineLog stepsToRun m
 
   pc         <- readIORef (lmPC m)
+  mem        <- readIORef (lmMemory m)
   registers  <- freezeRegisters m
   fregisters <- freezeFRegisters m
   csrs       <- readIORef (lmCSRs m)
   cov        <- readIORef (lmCov m)
 
-  case cov of
-    Nothing -> do
+  case (cov, memDumpEnd > memDumpStart) of
+    (_, True) -> do
+      forM_ (enumFromThenTo memDumpStart (memDumpStart+4) memDumpEnd) $ \addr -> do
+        let [byte0, byte1, byte2, byte3] = fmap
+              (\a -> (fromIntegral $ bvIntegerU (Map.findWithDefault 0 (bitVector $ fromIntegral a) mem) :: Word32))
+              [addr, addr+1, addr+2, addr+3]
+            val = (byte3 `shiftL` 24 .|. byte2 `shiftL` 16 .|. byte1 `shiftL` 8 .|. byte0)
+        putStrLn $ pad8 (showHex val "")
+    (Nothing, _) -> do
       putStrLn $ "MInstRet = " ++
         show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
       putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
@@ -217,7 +248,7 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
       putStrLn "Final FP register state:"
       forM_ (assocs fregisters) $ \(r, v) ->
         putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-    Just (Pair opcode covTrees) -> do
+    (Just (Pair opcode covTrees), _) -> do
       -- the pattern match below should never fail
       let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
       putStrLn "Instruction semantics"
@@ -229,6 +260,9 @@ runElf (SimOpts stepsToRun rvRepr covOpcode) e = withRVWidth rvRepr $ do
       traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
 
       putStrLn "\n(green = fully covered, red = not covered, cyan = covered true, yellow = covered false)"
+
+  where pad8 :: String -> String
+        pad8 s = replicate (8 - length s) '0' ++ s
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
