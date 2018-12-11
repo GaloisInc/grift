@@ -129,7 +129,7 @@ baseEncode = Map.fromList
 
   -- P type
   , Pair Ecall  (OpBits PRepr (0b00000000000000000000000001110011 :< Nil))
-  , Pair Ebreak (OpBits PRepr (0b00000000000000010000000001110011 :< Nil))
+  , Pair Ebreak (OpBits PRepr (0b00000000000100000000000001110011 :< Nil))
 
   -- X type
   , Pair Illegal (OpBits XRepr Nil)
