@@ -102,6 +102,7 @@ data LogMachine (rv :: RV) = LogMachine
   , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
   , lmPriv       :: IORef (BitVector 2)
 --  , lmMaxAddr    :: BitVector (RVWidth rv)
+  , lmHaltPC     :: IORef (Maybe (BitVector (RVWidth rv)))
   , lmCov        :: IORef (Maybe (Pair (Opcode rv) (InstCTList rv)))
   }
 
@@ -125,15 +126,17 @@ mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
 --             -> BitVector (RVWidth rv)
              -> [(BitVector (RVWidth rv), BS.ByteString)]
+             -> Maybe (BitVector (RVWidth rv))
              -> Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
-mkLogMachine rvRepr entryPoint sp byteStrings covOpcode = do
+mkLogMachine rvRepr entryPoint sp byteStrings haltPC covOpcode = do
   pc         <- newIORef entryPoint
   registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
   memory     <- newIORef $ Map.fromList [ ] -- withRVWidth rvRepr $ newArray (0, maxAddr) 0
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
+  haltPCRef  <- newIORef haltPC
   cov        <- newIORef $ case covOpcode of
                              Nothing -> Nothing
                              Just (Some oc) -> Just (Pair oc (coverageTreeOpcode rvRepr oc))
@@ -143,7 +146,7 @@ mkLogMachine rvRepr entryPoint sp byteStrings covOpcode = do
 
   forM_ byteStrings $ \(addr, bs) ->
     withRVWidth rvRepr $ writeBS addr bs memory
-  return (LogMachine rvRepr pc registers fregisters memory csrs priv cov)
+  return (LogMachine rvRepr pc registers fregisters memory csrs priv haltPCRef cov)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -157,7 +160,7 @@ newtype LogMachineM (rv :: RV) a =
            , MonadIO
            )
 
-instance RVStateM (LogMachineM rv) rv where
+instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   getRV = lmRV <$> ask
   getPC = do
     pcRef <- lmPC <$> ask
@@ -245,6 +248,17 @@ instance RVStateM (LogMachineM rv) rv where
     privRef <- lmPriv <$> ask
     liftIO $ writeIORef privRef privVal
 
+  isHalted = do
+    haltPCRef <- lmHaltPC <$> ask
+    haltPC <- liftIO $ readIORef haltPCRef
+    case haltPC of
+      Nothing -> do
+        mcause <- getCSR (encodeCSR MCause)
+        return (mcause == 11)
+      Just addr -> do
+        pc <- getPC
+        return (pc == addr)
+
   logInstruction iset inst@(Inst opcode _) iw = do
     mCovRef <- lmCov <$> ask
     mCov <- liftIO $ readIORef mCovRef
@@ -268,11 +282,11 @@ freezeFRegisters :: LogMachine rv
 freezeFRegisters = freeze . lmFRegisters
 
 -- | Run the simulator for a given number of steps.
-runLogMachine :: Int -> LogMachine rv -> IO Int
+runLogMachine :: KnownRVWidth rv => Int -> LogMachine rv -> IO Int
 runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps
 
 -- | Like runLogMachine, but log each instruction.
-runLogMachineLog :: Int -> LogMachine rv -> IO Int
+runLogMachineLog :: KnownRVWidth rv => Int -> LogMachine rv -> IO Int
 runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
 
 -- | A 'CTNode' contains an expression and a flag indicating whether or not that

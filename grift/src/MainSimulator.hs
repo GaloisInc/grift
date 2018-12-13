@@ -95,6 +95,7 @@ data SimOpts rv = SimOpts
   , simRV :: RVRepr rv
 --  , simCovFile :: Maybe String
   , simOpcodeCov :: Maybe (Some (Opcode rv))
+  , simHaltPC :: Maybe Word64
   , simMemDumpStart :: Word64
   , simMemDumpEnd :: Word64
   }
@@ -105,6 +106,7 @@ defaultSimOpts = SimOpts
   , simRV = knownRepr :: RVRepr RV64GC
 --  , simCovFile = Nothing
   , simOpcodeCov = Nothing
+  , simHaltPC = Nothing
   , simMemDumpStart = 0x0
   , simMemDumpEnd = 0x0
   }
@@ -147,19 +149,26 @@ options =
                     Just oc' -> return $ Some $ opts { simOpcodeCov = Just (Some oc') } )
       "OPCODE")
     "display semantic coverage of a particular instruction"
+  , Option [] ["halt-pc"]
+    (ReqArg (\addrStr (Some opts) -> case readMaybe addrStr of
+                Nothing -> exitWithUsage $ "Invalid --halt-pc value: " ++ addrStr ++ "\n"
+                Just addr ->
+                  return $ Some $ opts { simHaltPC = Just addr }  )
+     "ADDR")
+    ("address of PC to trigger a halt (default = none)")
   , Option [] ["mem-dump-start"]
     (ReqArg (\addrStr (Some opts) -> case readMaybe addrStr of
                 Nothing -> exitWithUsage $ "Invalid --mem-dump-start value: " ++ addrStr ++ "\n"
                 Just addr ->
                   return $ Some $ opts { simMemDumpStart = addr } )
-      "START_ADDR")
+      "ADDR")
     ("start address of post-simulation memory dump (default = " ++ show (simMemDumpStart defaultSimOpts) ++ ")")
   , Option [] ["mem-dump-end"]
     (ReqArg (\lenStr (Some opts) -> case readMaybe lenStr of
                 Nothing -> exitWithUsage $ "Invalid --mem-dump-end value: " ++ lenStr ++ "\n"
                 Just len ->
                   return $ Some $ opts { simMemDumpEnd = len } )
-      "END_ADDR")
+      "ADDR")
     ("end address of post-simulation memory dump (default = " ++ show (simMemDumpEnd defaultSimOpts) ++ ")")
   ]
 
@@ -206,13 +215,14 @@ runElf :: ElfWidthConstraints (RVWidth rv)
        => SimOpts rv
        -> Elf (RVWidth rv)
        -> IO ()
-runElf (SimOpts stepsToRun rvRepr covOpcode memDumpStart memDumpEnd) e = withRVWidth rvRepr $ do
+runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = withRVWidth rvRepr $ do
   let byteStrings = elfBytes e
   m <- mkLogMachine
        rvRepr
        (fromIntegral $ elfEntry e)
        0x10000
        byteStrings
+       (bitVector <$> fromIntegral <$> haltPC)
        covOpcode
 
   case covOpcode of

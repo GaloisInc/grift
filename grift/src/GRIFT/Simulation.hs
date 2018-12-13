@@ -110,6 +110,8 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   -- | Set the value of a floating point register.
   setFReg :: FExt << rv => BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
 
+  -- | Condition for halting simulation.
+  isHalted :: m Bool
   -- | Log the execution of a particular instruction.
   logInstruction :: InstructionSet rv -> Instruction rv fmt -> Integer -> m ()
 
@@ -295,13 +297,6 @@ stepRVLog iset = do
     execSemantics evalPureStateExpr $ getSemantics $ do
       let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
       assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
-
--- | Check whether the machine has halted.
-isHalted :: (KnownRVWidth rv, RVStateM m rv) => m Bool
-isHalted = do
-  mcause <- getCSR (encodeCSR MCause)
-  return (mcause == 2 || mcause == 5 ||
-          mcause == 7 || mcause == 11)
 
 runRV' :: forall m rv . (RVStateM m rv, KnownRVWidth rv) => InstructionSet rv -> Int -> Int -> m Int
 runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
