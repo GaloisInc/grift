@@ -61,15 +61,17 @@ module GRIFT.Types
   ( -- * RISC-V Configuration
     RV(..), type RVConfig
   , RVRepr(..)
-  , RVWidth, RVFloatWidth, type (<<)
+  , RVWidth, RVFloatWidth, RVCConfig, type (<<)
   , FDFloatWidth
   , RVFloatType
   , KnownRVWidth
   , KnownRVFloatWidth
   , KnownRVFloatType
+  , KnownRVCConfig
   , KnownRV
   , withRVWidth
   , withRVFloatWidth
+  , withRVCConfig
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
   , RV32I
@@ -339,6 +341,7 @@ data RVRepr :: RV -> * where
 instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(arch, exts)) where
   knownRepr = RVRepr knownRepr knownRepr
 
+-- TODO: Clean this up and better document what is going on here.
 -- | The width of the GPRs are known at compile time.
 type KnownRVWidth rv = KnownNat (RVWidth rv)
 
@@ -346,6 +349,8 @@ type KnownRVWidth rv = KnownNat (RVWidth rv)
 type KnownRVFloatWidth rv = KnownNat (RVFloatWidth rv)
 
 type KnownRVFloatType rv = KnownRepr FDConfigRepr (RVFloatType rv)
+
+type KnownRVCConfig rv = KnownRepr CConfigRepr (RVCConfig rv)
 
 -- | Everything we need to know about an 'RV' at compile time.
 type KnownRV rv = ( KnownRepr RVRepr rv
@@ -369,10 +374,16 @@ type family RVFloatWidth (rv :: RV) :: Nat where
 type family RVFloatType (rv :: RV) :: FDConfig where
   RVFloatType (RVConfig '(_, Exts '(_, _, _, fd, _))) = fd
 
+-- | Maps a RISC-V configuration to its C configuration.
+type family RVCConfig (rv :: RV) :: CConfig where
+  RVCConfig (RVConfig '(_, Exts '(_, _, _, _, c))) = c
+
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
 
+-- TODO: The reason we don't have a 'withRV' function is that it would
+-- be a MASSIVE, quadratic case split.
 -- | Satisfy a 'KnownRVWidth' constraint from an explicit 'RVRepr'.
 withRVWidth :: RVRepr rv -> (KnownRVWidth rv => b) -> b
 withRVWidth (RVRepr RV32Repr _) b = b
@@ -384,6 +395,11 @@ withRVFloatWidth :: RVRepr rv -> (KnownRVFloatWidth rv => b) -> b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDNoRepr _)) b = b
+
+-- | Satisfy a 'KnownRVCConfig' constraint from an explicit 'RVRepr'.
+withRVCConfig :: RVRepr rv -> (KnownRVCConfig rv => b) -> b
+withRVCConfig (RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr)) b = b
+withRVCConfig (RVRepr _ (ExtensionsRepr _ _ _ _ CNoRepr)) b = b
 
 -- type synonyms for common RVConfigs.
 type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo,    CNo))

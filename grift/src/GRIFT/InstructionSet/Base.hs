@@ -53,16 +53,16 @@ import GRIFT.Types
 
 -- | Get the I instruction from an explicit 'RVRepr'.
 baseFromRepr :: RVRepr rv -> InstructionSet rv
-baseFromRepr (RVRepr RV32Repr _) = base32
-baseFromRepr (RVRepr RV64Repr _) = base64
+baseFromRepr rv@(RVRepr RV32Repr _) = withRVCConfig rv $ base32
+baseFromRepr rv@(RVRepr RV64Repr _) = withRVCConfig rv $ base64
 baseFromRepr (RVRepr RV128Repr _) = error "RV128 not supported"
 
 -- | RV32I/E base instruction set.
-base32 :: KnownRVWidth rv => InstructionSet rv
+base32 :: (KnownRVWidth rv, KnownRVCConfig rv) => InstructionSet rv
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 :: (KnownRVWidth rv, 64 <= RVWidth rv) => InstructionSet rv
+base64 :: (KnownRVWidth rv, 64 <= RVWidth rv, KnownRVCConfig rv) => InstructionSet rv
 base64 = base32 <> instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap rv
@@ -135,7 +135,7 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: forall rv . KnownRVWidth rv => SemanticsMap rv
+baseSemantics :: forall rv . (KnownRVWidth rv, KnownRVCConfig rv) => SemanticsMap rv
 baseSemantics = Map.fromList
   [ Pair Add $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -278,7 +278,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readReg rs1
 
       assignReg rd $ pc `addE` zextE ib
-      assignPC $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
+      jump $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
   , Pair Lb $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
@@ -286,7 +286,8 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let mVal  = readMem (knownNat @1) (x_rs1 `addE` sextE offset)
+      let addr  = x_rs1 `addE` sextE offset
+      let mVal  = readMem (knownNat @1) addr
 
       assignReg rd (sextE mVal)
       incrPC
@@ -297,7 +298,8 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let mVal  = readMem (knownNat @2) (x_rs1 `addE` sextE offset)
+      let addr  = x_rs1 `addE` sextE offset
+      let mVal  = readMem (knownNat @2) addr
 
       assignReg rd (sextE mVal)
       incrPC
@@ -308,7 +310,8 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let mVal  = readMem (knownNat @4) (x_rs1 `addE` sextE offset)
+      let addr  = x_rs1 `addE` sextE offset
+      let mVal  = readMem (knownNat @4) addr
 
       assignReg rd (sextE mVal)
       incrPC
@@ -319,7 +322,8 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let mVal  = readMem (knownNat @1) (x_rs1 `addE` sextE offset)
+      let addr  = x_rs1 `addE` sextE offset
+      let mVal  = readMem (knownNat @1) addr
 
       assignReg rd (zextE mVal)
       incrPC
@@ -330,7 +334,8 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readReg rs1
-      let mVal  = readMem (knownNat @2) (x_rs1 `addE` sextE offset)
+      let addr = x_rs1 `addE` sextE offset
+      let mVal  = readMem (knownNat @2) addr
 
       assignReg rd (zextE mVal)
       incrPC
@@ -564,8 +569,9 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let addr = x_rs1 `addE` sextE offset
 
-      assignMem (knownNat @1) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      assignMem (knownNat @1) addr (extractE 0 x_rs2)
       incrPC
   , Pair Sh $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Computes the least-significant half-word in register x[rs2]."
@@ -575,8 +581,9 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let addr  = x_rs1 `addE` sextE offset
 
-      assignMem (knownNat @2) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      assignMem (knownNat @2) addr (extractE 0 x_rs2)
       incrPC
   , Pair Sw $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Computes the least-significant word in register x[rs2]."
@@ -586,8 +593,9 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let addr  = x_rs1 `addE` sextE offset
 
-      assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 x_rs2)
+      assignMem (knownNat @4) addr (extractE 0 x_rs2)
       incrPC
   -- B type
   , Pair Beq $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -602,7 +610,7 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-      assignPC (iteE (x_rs1 `eqE` x_rs2)
+      jump (iteE (x_rs1 `eqE` x_rs2)
                 (pc `addE` branchOffset)
                 (pc `addE` zextE ib))
   , Pair Bne $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -617,7 +625,7 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-      assignPC (iteE (notE (x_rs1 `eqE` x_rs2))
+      jump (iteE (notE (x_rs1 `eqE` x_rs2))
                 (pc `addE` branchOffset)
                 (pc `addE` zextE ib))
   , Pair Blt $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -632,7 +640,7 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-      assignPC (iteE (x_rs1 `ltsE` x_rs2)
+      jump (iteE (x_rs1 `ltsE` x_rs2)
                 (pc `addE` branchOffset)
                 (pc `addE` zextE ib))
   , Pair Bge $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -647,7 +655,7 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-      assignPC (iteE (notE (x_rs1 `ltsE` x_rs2))
+      jump (iteE (notE (x_rs1 `ltsE` x_rs2))
                 (pc `addE` branchOffset)
                 (pc `addE` zextE ib))
   , Pair Bltu $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -662,7 +670,7 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-      assignPC (iteE (x_rs1 `ltuE` x_rs2)
+      jump (iteE (x_rs1 `ltuE` x_rs2)
                 (pc `addE` branchOffset)
                 (pc `addE` zextE ib))
   , Pair Bgeu $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -677,7 +685,7 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
 
-      assignPC (iteE (notE (x_rs1 `ltuE` x_rs2))
+      jump (iteE (notE (x_rs1 `ltuE` x_rs2))
                 (pc `addE` branchOffset)
                 (pc `addE` zextE ib))
 
@@ -710,7 +718,7 @@ baseSemantics = Map.fromList
       let pc = readPC
 
       assignReg rd $ pc `addE` zextE ib
-      assignPC $ pc `addE` sextE (imm20 `sllE` litBV 1)
+      jump $ pc `addE` sextE (imm20 `sllE` litBV 1)
 
   -- X type
   , Pair Illegal $ instSemantics (Imm32 :< Nil) $ do
@@ -736,7 +744,7 @@ base64Encode = Map.fromList
   , Pair Sd    (OpBits SRepr (0b0100011 :< 0b011 :< Nil))
   ]
 
-base64Semantics :: (KnownRVWidth rv, 64 <= RVWidth rv) => SemanticsMap rv
+base64Semantics :: (KnownRVWidth rv, 64 <= RVWidth rv, KnownRVCConfig rv) => SemanticsMap rv
 base64Semantics = Map.fromList
   [ Pair Addw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."

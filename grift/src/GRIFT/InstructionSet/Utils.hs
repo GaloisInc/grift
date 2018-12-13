@@ -42,6 +42,7 @@ module GRIFT.InstructionSet.Utils
   ( -- * General
     getArchWidth
   , incrPC
+  , jump
   , nanBox32
   , unBox32
   , cases
@@ -85,6 +86,20 @@ incrPC = do
   ib <- instBytes
   let pc = readPC
   assignPC $ pc `addE` ib
+
+-- | Semantics for setting the PC. This adds a "wrapper" expression around 'assignPC'
+-- that raises a misaligned exception if the C extension is not present, and the jump
+-- destination is not 4-byte-aligned.
+jump :: forall expr rv . (BVExpr (expr rv), StateExpr expr, KnownRVCConfig rv, KnownRVWidth rv)
+     => expr rv (RVWidth rv) -- ^ address of the jump target
+     -> SemanticsM (expr rv) rv ()
+jump pc = case knownRepr :: CConfigRepr (RVCConfig rv) of
+  CYesRepr -> assignPC pc
+  CNoRepr -> do
+    let addrValid = (pc `andE` litBV 0b11) `eqE` litBV 0
+    branch addrValid
+      $> assignPC pc
+      $> raiseException InstructionAddressMisaligned pc
 
 -- | NaN-box a 32-bit expression to fit in a floating point register.
 nanBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
@@ -191,17 +206,19 @@ writeCSR csr val = branches
 data Exception = EnvironmentCall
                | Breakpoint
                | IllegalInstruction
+               | InstructionAddressMisaligned
                | LoadAccessFault
                | StoreAccessFault
   deriving (Show)
 
 -- | Map an 'Exception' to its 'BitVector' representation.
 getMCause :: KnownNat w => Exception -> BitVector w
-getMCause IllegalInstruction = 2
-getMCause Breakpoint         = 3
-getMCause LoadAccessFault    = 5
-getMCause StoreAccessFault   = 7
-getMCause EnvironmentCall    = 11 -- This is only true for M mode.
+getMCause InstructionAddressMisaligned = 0
+getMCause IllegalInstruction           = 2
+getMCause Breakpoint                   = 3
+getMCause LoadAccessFault              = 5
+getMCause StoreAccessFault             = 7
+getMCause EnvironmentCall              = 11 -- This is only true for M mode.
 
 -- | Abstract datatype for CSR.
 data CSR = MVendorID

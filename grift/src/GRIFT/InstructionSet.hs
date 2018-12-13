@@ -98,4 +98,3 @@ opcodeFromOpBits is opBits =
 semanticsFromOpcode :: InstructionSet rv -> Opcode rv fmt -> InstSemantics rv fmt
 semanticsFromOpcode is opcode = fromMaybe (error msg) $ Map.lookup opcode (isSemanticsMap is)
   where msg = "Opcode " ++ show opcode ++ " does not have corresponding semantics defined."
-

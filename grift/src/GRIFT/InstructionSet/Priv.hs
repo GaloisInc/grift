@@ -51,12 +51,12 @@ import GRIFT.Types
 
 -- | Get the privileged instruction set from an explicit 'RVRepr'.
 privmFromRepr :: RVRepr rv -> InstructionSet rv
-privmFromRepr (RVRepr RV32Repr _) = privm
-privmFromRepr (RVRepr RV64Repr _) = privm
+privmFromRepr rv@(RVRepr RV32Repr _) = withRVCConfig rv $ privm
+privmFromRepr rv@(RVRepr RV64Repr _) = withRVCConfig rv $ privm
 privmFromRepr _ = mempty
 
 -- | Instruction set for machine-mode privileged architecture.
-privm :: KnownRVWidth rv => InstructionSet rv
+privm :: (KnownRVWidth rv, KnownRVCConfig rv) => InstructionSet rv
 privm = instructionSet privmEncode privmSemantics
 
 privmEncode :: EncodeMap rv
@@ -65,7 +65,7 @@ privmEncode = Map.fromList
   , Pair Wfi  (OpBits PRepr (0b00010000010100000000000001110011 :< Nil))
   ]
 
-privmSemantics :: KnownRVWidth rv => SemanticsMap rv
+privmSemantics :: (KnownRVWidth rv, KnownRVCConfig rv) => SemanticsMap rv
 privmSemantics = Map.fromList
   [ Pair Mret $ instSemantics Nil $ do
       comment "Returns from a machine-mode exception handler."
@@ -73,7 +73,7 @@ privmSemantics = Map.fromList
       -- TODO: Need to add the rest of the behavior here.
       let mepc = rawReadCSR (litBV $ encodeCSR MEPC)
 
-      assignPC mepc
+      jump mepc
   , Pair Wfi $ instSemantics Nil $ do
       comment ""
 

@@ -57,7 +57,7 @@ knownISet = knownISetWithRepr knownRepr
 knownISetWithRepr :: RVRepr rv -> InstructionSet rv
 knownISetWithRepr rvRepr =
   let baseset = baseFromRepr rvRepr
-      privset = privmFromRepr rvRepr -- TODO
+      privset = privmFromRepr rvRepr
       mset = mFromRepr rvRepr
       aset = aFromRepr rvRepr
       fset = fdFromRepr rvRepr
