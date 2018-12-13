@@ -9,3 +9,4 @@ build/
 *.dot
 *.out
 dist-newstyle
+.ghc.environment.*

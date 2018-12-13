@@ -4,3 +4,4 @@ packages: deps/parameterized-utils
           deps/bv-sized-float
           deps/softfloat-hs
           grift
+          grift-sim
