@@ -287,9 +287,8 @@ runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = 
       let covTrees = MapF.elems covMap
           treeCounts = viewSome countInstCTList <$> covTrees
           (hitBranches, totalBranches) = foldl (\(a,b) (c,d) -> (a+c,b+d)) (0,0) treeCounts
-      print $ length covTrees
       putStrLn $ "Covered " ++ show hitBranches ++ " of " ++
-        show totalBranches ++ " total branches."
+        show totalBranches ++ " total branches in the instruction set."
 
   where pad8 :: String -> String
         pad8 s = replicate (8 - length s) '0' ++ s

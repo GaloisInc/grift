@@ -126,6 +126,15 @@ writeBS ix bs mapRef = do
 --      writeArray arr ix (fromIntegral (BS.head bs))
 --      writeBS (ix+1) (BS.tail bs) arr
 
+-- | Construct a complete, unvisited coverage map from an 'RVRepr'.
+buildCTMap :: forall rv . RVRepr rv -> MapF (Opcode rv) (InstCTList rv)
+buildCTMap rvRepr =
+  let (InstructionSet _ _ semanticsMap) = knownISetWithRepr rvRepr
+  in MapF.fromList (pairWithCT <$> MapF.keys semanticsMap)
+  where
+    pairWithCT :: Some (Opcode rv) -> Pair (Opcode rv) (InstCTList rv)
+    pairWithCT (Some opcode) = Pair opcode (coverageTreeOpcode rvRepr opcode)
+
 -- | Construct a 'LogMachine'.
 mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
@@ -143,7 +152,7 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
   priv       <- newIORef 0b11 -- M mode by default.
   haltPCRef  <- newIORef haltPC
   opcodeRef  <- newIORef opcodeCov
-  covMapRef  <- newIORef MapF.empty
+  covMapRef  <- newIORef (buildCTMap rvRepr)
 
   -- set up stack pointer
   writeArray registers 2 sp
