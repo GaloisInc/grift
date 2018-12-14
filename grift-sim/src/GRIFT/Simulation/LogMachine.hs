@@ -52,12 +52,14 @@ module GRIFT.Simulation.LogMachine
   ( LogMachine(..)
   , mkLogMachine
   , LogMachineM
+  , TrackedOpcode(..)
   , freezeRegisters
   , freezeFRegisters
   , runLogMachine
   , runLogMachineLog
   , InstCTList
   , pPrintInstCTList
+  , countInstCTList
   ) where
 
 import           Control.Lens ((^.))
@@ -76,6 +78,7 @@ import           Data.Map.Strict (Map)
 import           Data.Parameterized
 import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
+import           Data.Parameterized.Map (MapF)
 import           Data.Traversable (for)
 import           GHC.TypeLits
 import           Prelude hiding ((<>))
@@ -88,7 +91,9 @@ import GRIFT.Types
 import GRIFT.Semantics
 import GRIFT.Simulation
 
-import Debug.Trace (traceM)
+import Debug.Trace (traceM, trace)
+
+data TrackedOpcode rv = NoOpcode | AllOpcodes | SomeOpcode (Some (Opcode rv))
 
 -- TODO: get rid of unused IORefs
 -- | IO-based machine state.
@@ -103,7 +108,8 @@ data LogMachine (rv :: RV) = LogMachine
   , lmPriv       :: IORef (BitVector 2)
 --  , lmMaxAddr    :: BitVector (RVWidth rv)
   , lmHaltPC     :: IORef (Maybe (BitVector (RVWidth rv)))
-  , lmCov        :: IORef (Maybe (Pair (Opcode rv) (InstCTList rv)))
+  , lmTrackedOpcode  :: IORef (TrackedOpcode rv)
+  , lmCovMap     :: IORef (MapF (Opcode rv) (InstCTList rv))
   }
 
 newtype InstCTList rv fmt = InstCTList [InstCT rv fmt]
@@ -124,12 +130,11 @@ writeBS ix bs mapRef = do
 mkLogMachine :: RVRepr rv
              -> BitVector (RVWidth rv)
              -> BitVector (RVWidth rv)
---             -> BitVector (RVWidth rv)
              -> [(BitVector (RVWidth rv), BS.ByteString)]
              -> Maybe (BitVector (RVWidth rv))
-             -> Maybe (Some (Opcode rv))
+             -> TrackedOpcode rv --Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
-mkLogMachine rvRepr entryPoint sp byteStrings haltPC covOpcode = do
+mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
   pc         <- newIORef entryPoint
   registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
   fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
@@ -137,16 +142,17 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC covOpcode = do
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
   haltPCRef  <- newIORef haltPC
-  cov        <- newIORef $ case covOpcode of
-                             Nothing -> Nothing
-                             Just (Some oc) -> Just (Pair oc (coverageTreeOpcode rvRepr oc))
+  opcodeRef  <- newIORef opcodeCov
+  covMapRef  <- newIORef MapF.empty
 
   -- set up stack pointer
   writeArray registers 2 sp
 
   forM_ byteStrings $ \(addr, bs) ->
     withRVWidth rvRepr $ writeBS addr bs memory
-  return (LogMachine rvRepr pc registers fregisters memory csrs priv haltPCRef cov)
+  return (LogMachine
+           rvRepr pc registers fregisters memory csrs
+           priv haltPCRef opcodeRef covMapRef)
 
 -- | The 'LogMachineM' monad instantiates the 'RVState' monad type class, tying the
 -- 'RVState' interface functions to actual transformations on the underlying mutable
@@ -180,21 +186,7 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     rv <- lmRV <$> ask
     withRVWidth rv $ do
       let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
-            -- for [addr..addr+(fromIntegral (natValue bytes-1))] $ \a -> readArray memArray a
       return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
-        -- False -> do
-        --   -- TODO: We need to handle this in the semantics and provide an interface
-        --   -- via the 'Simulation' type class. Currently, even when there is an access
-        --   -- fault, the entire instruction still gets executed; really what should
-        --   -- happen is there should be an implicit branch every time we access a
-        --   -- memory location.
-        --   traceM $ "Tried to read from memory location " ++ show addr
-        --   csrsRef <- lmCSRs <$> ask
-        --   csrMap  <- liftIO $ readIORef csrsRef
-        --   liftIO $ writeIORef csrsRef (Map.insert
-        --                                (encodeCSR MCause)
-        --                                (getMCause StoreAccessFault) csrMap)
-        --   return (BV ((knownNat @8) `natMultiply` bytes) 0)
   getCSR csr = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef
@@ -220,7 +212,6 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   setMem bytes addr val = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
---    maxAddr <- lmMaxAddr <$> ask
     rv <- lmRV <$> ask
     withRVWidth rv $
       let addrValPairs = zip
@@ -228,15 +219,6 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
             (bvGetBytesU (fromIntegral (natValue bytes)) val)
           m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
       in liftIO $ writeIORef memRef m'
-              -- for_ addrValPairs $ \(a, byte) -> writeArray memArray a byte
-          -- where addrValPairs = zip
-          --         [addr..addr+(fromIntegral (natValue bytes-1))]
-          --         (bvGetBytesU (fromIntegral (natValue bytes)) val)
-        -- False -> do
-        --   traceM $ "Tried to write to memory location " ++ show addr
-        --   csrsRef <- lmCSRs <$> ask
-        --   csrMap  <- liftIO $ readIORef csrsRef
-        --   liftIO $ writeIORef csrsRef (Map.insert (encodeCSR MCause) (getMCause StoreAccessFault) csrMap)
   setCSR csr csrVal = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef
@@ -254,20 +236,30 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     case haltPC of
       Nothing -> do
         mcause <- getCSR (encodeCSR MCause)
-        return (mcause == 11)
+        return (mcause == 11) -- halt on M-mode ecall by default
       Just addr -> do
         pc <- getPC
         return (pc == addr)
 
   logInstruction iset inst@(Inst opcode _) iw = do
-    mCovRef <- lmCov <$> ask
-    mCov <- liftIO $ readIORef mCovRef
-    case mCov of
-      Just (Pair covOpcode (InstCTList covTrees)) -> case covOpcode `testEquality` opcode of
-        Just Refl ->  do
+    mCovMapRef <- lmCovMap <$> ask
+    mCovMap <- liftIO $ readIORef mCovMapRef
+    mTrackedOpcodeRef <- lmTrackedOpcode <$> ask
+    mTrackedOpcode <- liftIO $ readIORef mTrackedOpcodeRef
+    rvRepr <- lmRV <$> ask
+    let InstCTList covTrees = case MapF.lookup opcode mCovMap of
+          Just covTrees' -> covTrees'
+          _ -> coverageTreeOpcode rvRepr opcode
+    case mTrackedOpcode of
+      AllOpcodes -> do
+        covTrees' <- traverse (evalInstCT iset inst iw) covTrees
+        liftIO $ writeIORef mCovMapRef
+          (MapF.insert opcode (InstCTList covTrees') mCovMap)
+      SomeOpcode (Some covOpcode) -> case covOpcode `testEquality` opcode of
+        Just Refl -> do
           covTrees' <- traverse (evalInstCT iset inst iw) covTrees
-          liftIO $ writeIORef mCovRef (Just (Pair covOpcode (InstCTList covTrees')))
-          return ()
+          liftIO $ writeIORef mCovMapRef
+            (MapF.insert opcode (InstCTList covTrees') mCovMap)
         _ -> return ()
       _ -> return ()
 
@@ -294,6 +286,13 @@ runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
 data CTNode (expr :: Nat -> *) (w :: Nat) = CTNode Bool Bool (expr w)
 
 data CT (expr :: Nat -> *) = CT (CTNode expr 1) [CT expr] [CT expr] [CT expr]
+
+sumPair (a, b) (c, d) = (a+c, b+d)
+
+countCT :: CT expr -> (Int, Int)
+countCT (CT (CTNode tTaken fTaken _) testCTs tCTs fCTs) =
+  let ctsHit = testCTs ++ tCTs ++ fCTs
+  in foldl sumPair ((if tTaken then 1 else 0) + (if fTaken then 1 else 0),2) (countCT <$> ctsHit)
 
 -- | Evaluate a coverage tree and recursively flag all evaluated nodes.
 evalCT :: RVStateM m rv
@@ -409,3 +408,6 @@ coverageTreeOpcode rvRepr opcode =
     Nothing -> InstCTList []
     Just sem -> InstCTList (coverageTreeSemantics sem)
 
+countInstCTList :: InstCTList rv fmt -> (Int, Int)
+countInstCTList (InstCTList covTrees) = foldl sumPair (0,0) (countInstCT <$> covTrees)
+  where countInstCT (InstCT ct) = countCT ct

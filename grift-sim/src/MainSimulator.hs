@@ -43,6 +43,7 @@ import           Data.Array.IArray
 import           Data.Bits
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
+import           Data.Char (toUpper)
 import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map as Map
@@ -63,7 +64,6 @@ import           System.IO.Error
 import           Text.PrettyPrint.HughesPJClass
 import           Text.Read
 
-import           GRIFT.Coverage
 import           GRIFT.InstructionSet
 import           GRIFT.InstructionSet.Known
 import           GRIFT.InstructionSet.Utils
@@ -94,7 +94,7 @@ data SimOpts rv = SimOpts
   { simSteps :: Int
   , simRV :: RVRepr rv
 --  , simCovFile :: Maybe String
-  , simOpcodeCov :: Maybe (Some (Opcode rv))
+  , simTrackedOpcode :: TrackedOpcode rv -- Maybe (Some (Opcode rv))
   , simHaltPC :: Maybe Word64
   , simMemDumpStart :: Word64
   , simMemDumpEnd :: Word64
@@ -105,7 +105,7 @@ defaultSimOpts = SimOpts
   { simSteps = 10000
   , simRV = knownRepr :: RVRepr RV64GC
 --  , simCovFile = Nothing
-  , simOpcodeCov = Nothing
+  , simTrackedOpcode = NoOpcode
   , simHaltPC = Nothing
   , simMemDumpStart = 0x0
   , simMemDumpEnd = 0x0
@@ -124,13 +124,14 @@ options =
   , Option ['a'] ["arch"]
     (ReqArg (\rvStr (Some opts) -> case rvReprFromString rvStr of
                 Nothing    -> exitWithUsage $ "Unrecognized --arch value: " ++ rvStr ++ "\n"
-                Just (Some rv) -> case simOpcodeCov opts of
-                  Nothing -> return $ Some $ opts { simRV = rv
-                                                  , simOpcodeCov = Nothing
-                                                  }
-                  Just (Some oc) -> case opcodeCast rv oc of
-                    Just oc' -> return $ Some $ opts { simRV = rv, simOpcodeCov = Just (Some oc') }
-                    Nothing  -> return $ Some $ opts { simRV = rv, simOpcodeCov = Nothing } )
+                Just (Some rv) -> case simTrackedOpcode opts of
+                  NoOpcode -> return $ Some $ opts { simRV = rv
+                                                   , simTrackedOpcode = NoOpcode
+                                                   }
+                  SomeOpcode (Some oc) -> case opcodeCast rv oc of
+                    Just oc' -> return $ Some $ opts { simRV = rv
+                                                     , simTrackedOpcode = SomeOpcode (Some oc') }
+                    Nothing  -> return $ Some $ opts { simRV = rv, simTrackedOpcode = NoOpcode } )
      "ARCH")
     ("RISC-V arch configuration (default = RV64GC)")
   -- , Option ['c'] ["coverage"]
@@ -141,14 +142,20 @@ options =
     (NoArg (\_ -> exitWithUsage ""))
     ("display help message")
   , Option [] ["inst-coverage"]
-    (ReqArg (\ocStr (Some opts) -> case readOpcode ocStr of
-                Nothing -> exitWithUsage $ "Unrecognized --inst-coverage value: " ++ ocStr ++ "\n"
-                Just (Some oc) ->
-                  case opcodeCast (simRV opts) oc of
-                    Nothing -> exitWithUsage $ "Opcode " ++ ocStr ++ " is not in specified instruction set"
-                    Just oc' -> return $ Some $ opts { simOpcodeCov = Just (Some oc') } )
-      "OPCODE")
-    "display semantic coverage of a particular instruction"
+    (ReqArg (\ocStr (Some opts) ->
+               case (toUpper <$> ocStr) of
+                 "ALL" -> return $ Some $ opts { simTrackedOpcode = AllOpcodes }
+                 _ -> case readOpcode ocStr of
+                   Nothing -> exitWithUsage $ "Unrecognized --inst-coverage value: " ++ ocStr ++ "\n"
+                   Just (Some oc) ->
+                     case opcodeCast (simRV opts) oc of
+                       Nothing ->
+                         exitWithUsage $ "Opcode " ++ ocStr ++ " is not in specified instruction set"
+                       Just oc' ->
+                         return $ Some $ opts { simTrackedOpcode = SomeOpcode (Some oc') } )
+         "OPCODE")
+    ("display semantic coverage of a particular instruction\n" ++
+     "(\"all\" to print total coverage over all instructions)")
   , Option [] ["halt-pc"]
     (ReqArg (\addrStr (Some opts) -> case readMaybe addrStr of
                 Nothing -> exitWithUsage $ "Invalid --halt-pc value: " ++ addrStr ++ "\n"
@@ -226,17 +233,17 @@ runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = 
        covOpcode
 
   case covOpcode of
-    Nothing -> runLogMachine stepsToRun m
-    Just _  -> runLogMachineLog stepsToRun m
+    NoOpcode -> runLogMachine stepsToRun m
+    _ -> runLogMachineLog stepsToRun m
 
   pc         <- readIORef (lmPC m)
   mem        <- readIORef (lmMemory m)
   registers  <- freezeRegisters m
   fregisters <- freezeFRegisters m
   csrs       <- readIORef (lmCSRs m)
-  cov        <- readIORef (lmCov m)
+  covMap     <- readIORef (lmCovMap m)
 
-  case (cov, memDumpEnd > memDumpStart) of
+  case (covOpcode, memDumpEnd > memDumpStart) of
     (_, True) -> do
       forM_ (enumFromThenTo memDumpStart (memDumpStart+4) memDumpEnd) $ \addr -> do
         let [byte0, byte1, byte2, byte3] = fmap
@@ -244,7 +251,7 @@ runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = 
               [addr, addr+1, addr+2, addr+3]
             val = (byte3 `shiftL` 24 .|. byte2 `shiftL` 16 .|. byte1 `shiftL` 8 .|. byte0)
         putStrLn $ pad8 (showHex val "")
-    (Nothing, _) -> do
+    (NoOpcode, _) -> do
       putStrLn $ "MInstRet = " ++
         show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
       putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
@@ -258,7 +265,7 @@ runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = 
       putStrLn "Final FP register state:"
       forM_ (assocs fregisters) $ \(r, v) ->
         putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-    (Just (Pair opcode covTrees), _) -> do
+    (SomeOpcode (Some opcode), _) -> do
       -- the pattern match below should never fail
       let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
       putStrLn "Instruction semantics"
@@ -267,9 +274,22 @@ runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = 
       putStrLn ""
       putStrLn "Instruction coverage"
       putStrLn "===================="
-      traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
+      case MapF.lookup opcode covMap of
+        Just covTrees -> do
+          traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
+          let (hitBranches, totalBranches) = countInstCTList covTrees
+          putStrLn $ "Covered " ++ show hitBranches ++ " of " ++ show totalBranches ++
+            " total branches."
+        Nothing -> putStrLn $ "Instruction never encountered."
 
       putStrLn "\n(green = fully covered, red = not covered, cyan = covered true, yellow = covered false)"
+    (AllOpcodes, _) -> do
+      let covTrees = MapF.elems covMap
+          treeCounts = viewSome countInstCTList <$> covTrees
+          (hitBranches, totalBranches) = foldl (\(a,b) (c,d) -> (a+c,b+d)) (0,0) treeCounts
+      print $ length covTrees
+      putStrLn $ "Covered " ++ show hitBranches ++ " of " ++
+        show totalBranches ++ " total branches."
 
   where pad8 :: String -> String
         pad8 s = replicate (8 - length s) '0' ++ s
