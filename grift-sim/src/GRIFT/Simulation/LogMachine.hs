@@ -51,6 +51,8 @@ This variant of LogMachine runs slower because it also logs coverage statistics.
 module GRIFT.Simulation.LogMachine
   ( LogMachine(..)
   , mkLogMachine
+  , mkLogMachineWithCovMap
+  , buildCTMap
   , LogMachineM
   , TrackedOpcode(..)
   , freezeRegisters
@@ -153,6 +155,34 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
   haltPCRef  <- newIORef haltPC
   opcodeRef  <- newIORef opcodeCov
   covMapRef  <- newIORef (buildCTMap rvRepr)
+
+  -- set up stack pointer
+  writeArray registers 2 sp
+
+  forM_ byteStrings $ \(addr, bs) ->
+    withRVWidth rvRepr $ writeBS addr bs memory
+  return (LogMachine
+           rvRepr pc registers fregisters memory csrs
+           priv haltPCRef opcodeRef covMapRef)
+
+-- | Construct a 'LogMachine' with a given coverage map.
+mkLogMachineWithCovMap :: RVRepr rv
+                       -> BitVector (RVWidth rv)
+                       -> BitVector (RVWidth rv)
+                       -> [(BitVector (RVWidth rv), BS.ByteString)]
+                       -> Maybe (BitVector (RVWidth rv))
+                       -> TrackedOpcode rv --Maybe (Some (Opcode rv))
+                       -> IORef (MapF (Opcode rv) (InstCTList rv))
+                       -> IO (LogMachine rv)
+mkLogMachineWithCovMap rvRepr entryPoint sp byteStrings haltPC opcodeCov covMapRef = do
+  pc         <- newIORef entryPoint
+  registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
+  fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
+  memory     <- newIORef $ Map.fromList [ ] -- withRVWidth rvRepr $ newArray (0, maxAddr) 0
+  csrs       <- newIORef $ Map.fromList [ ]
+  priv       <- newIORef 0b11 -- M mode by default.
+  haltPCRef  <- newIORef haltPC
+  opcodeRef  <- newIORef opcodeCov
 
   -- set up stack pointer
   writeArray registers 2 sp
@@ -417,6 +447,8 @@ coverageTreeOpcode rvRepr opcode =
     Nothing -> InstCTList []
     Just sem -> InstCTList (coverageTreeSemantics sem)
 
+countInstCT :: InstCT rv fmt -> (Int, Int)
+countInstCT (InstCT ct) = countCT ct
+
 countInstCTList :: InstCTList rv fmt -> (Int, Int)
 countInstCTList (InstCTList covTrees) = foldl sumPair (0,0) (countInstCT <$> covTrees)
-  where countInstCT (InstCT ct) = countCT ct

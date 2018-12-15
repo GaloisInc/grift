@@ -39,6 +39,8 @@ module Main where
 
 import           Control.Lens ( (^..), (^.) )
 import           Control.Monad
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.State
 import           Data.Array.IArray
 import           Data.Bits
 import           Data.BitVector.Sized
@@ -47,10 +49,13 @@ import           Data.Char (toUpper)
 import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map as Map
+import           Data.Map (Map)
 import           Data.Maybe (fromJust)
 import           Data.Parameterized
 import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
+import           Data.Parameterized.Map (MapF)
+import           Data.Traversable (for)
 import           Data.Word
 import           System.Environment
 import           System.Exit
@@ -90,6 +95,9 @@ rvReprFromString s = case s of
   "RV64GC" -> Just $ Some (knownRepr :: RVRepr RV64GC)
   _ -> Nothing
 
+-- TODO: Generalize simTrackedOpcode to simAction, which is a single "action" that we
+-- are doing after simulation -- generating a report of some kind (coverage, mem
+-- dump, register dump, or some combination thereof
 data SimOpts rv = SimOpts
   { simSteps :: Int
   , simRV :: RVRepr rv
@@ -202,55 +210,50 @@ main = do
   -- Next build up the options, potentially exiting early
   Some opts <- foldl (>>=) (return (Some defaultSimOpts)) actions
 
-  -- Next check that there is exactly one argument, a path to an elf file
-  fileName <- case nonOptions of
-    [s] -> return s
-    _ -> exitWithUsage $ "error: provide a path to an elf file to simulate\n"
+  fileNames <- case nonOptions of
+    [] -> exitWithUsage $ "error: provide a path to an elf file to simulate\n"
+    fns -> return fns
 
-  -- Next check that the file actually exists
-  fileBS <- catchIOError (BS.readFile fileName) $ \_ ->
-    exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
+  case simRV opts of
+    RVRepr RV32Repr _ -> do
+      covMapRef <- newIORef (buildCTMap (simRV opts))
+      ms <- for fileNames $ \fileName -> do
+        fileBS <- catchIOError (BS.readFile fileName) $ \_ ->
+          exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
+        case parseElf fileBS of
+          Elf32Res _ e -> runElf opts e covMapRef
+          _ -> exitWithUsage $
+             "Error: expected 32-bit elf file, but " ++ fileName ++ " is not"
+      covMap <- readIORef covMapRef
+      report opts covMap (last ms)
+    RVRepr RV64Repr _ -> do
+      covMapRef <- newIORef (buildCTMap (simRV opts))
+      ms <- for fileNames $ \fileName -> do
+        fileBS <- catchIOError (BS.readFile fileName) $ \_ ->
+          exitWithUsage $ "error: file \"" ++ fileName ++ "\" does not exist\n"
+        case parseElf fileBS of
+          Elf64Res _ e -> runElf opts e covMapRef
+          _ -> exitWithUsage $
+             "Error: expected 64-bit elf file, but " ++ fileName ++ " is not"
+      covMap <- readIORef covMapRef
+      report opts covMap (last ms)
+    _ -> return ()
 
-  case (simRV opts, parseElf fileBS) of
-    (rvRepr@(RVRepr RV32Repr _), Elf32Res _ e) ->
-      runElf opts e
-    (rvRepr@(RVRepr RV64Repr _), Elf64Res _ e) ->
-      runElf opts e
-    _ -> exitWithUsage $ "Error: bad object file\n"
-
-runElf :: ElfWidthConstraints (RVWidth rv)
+report :: KnownRVWidth rv
        => SimOpts rv
-       -> Elf (RVWidth rv)
+       -> MapF (Opcode rv) (InstCTList rv)
+       -> LogMachine rv
        -> IO ()
-runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = withRVWidth rvRepr $ do
-  let byteStrings = elfBytes e
-  m <- mkLogMachine
-       rvRepr
-       (fromIntegral $ elfEntry e)
-       0x10000
-       byteStrings
-       (bitVector <$> fromIntegral <$> haltPC)
-       covOpcode
-
-  case covOpcode of
-    NoOpcode -> runLogMachine stepsToRun m
-    _ -> runLogMachineLog stepsToRun m
+report (SimOpts _ rvRepr trackedOpcode _ memDumpStart memDumpEnd) covMap m = do
 
   pc         <- readIORef (lmPC m)
   mem        <- readIORef (lmMemory m)
   registers  <- freezeRegisters m
   fregisters <- freezeFRegisters m
   csrs       <- readIORef (lmCSRs m)
-  covMap     <- readIORef (lmCovMap m)
 
-  case (covOpcode, memDumpEnd > memDumpStart) of
-    (_, True) -> do
-      forM_ (enumFromThenTo memDumpStart (memDumpStart+4) memDumpEnd) $ \addr -> do
-        let [byte0, byte1, byte2, byte3] = fmap
-              (\a -> (fromIntegral $ bvIntegerU (Map.findWithDefault 0 (bitVector $ fromIntegral a) mem) :: Word32))
-              [addr, addr+1, addr+2, addr+3]
-            val = (byte3 `shiftL` 24 .|. byte2 `shiftL` 16 .|. byte1 `shiftL` 8 .|. byte0)
-        putStrLn $ pad8 (showHex val "")
+  case (trackedOpcode, memDumpEnd > memDumpStart) of
+    (_, True) -> reportMemDump rvRepr memDumpStart memDumpEnd mem
     (NoOpcode, _) -> do
       putStrLn $ "MInstRet = " ++
         show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
@@ -265,33 +268,82 @@ runElf (SimOpts stepsToRun rvRepr covOpcode haltPC memDumpStart memDumpEnd) e = 
       putStrLn "Final FP register state:"
       forM_ (assocs fregisters) $ \(r, v) ->
         putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
-    (SomeOpcode (Some opcode), _) -> do
-      -- the pattern match below should never fail
-      let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
-      putStrLn "Instruction semantics"
-      putStrLn "====================="
-      print $ pPrintInstSemantics sem
-      putStrLn ""
-      putStrLn "Instruction coverage"
-      putStrLn "===================="
-      case MapF.lookup opcode covMap of
-        Just covTrees -> do
-          traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
-          let (hitBranches, totalBranches) = countInstCTList covTrees
-          putStrLn $ "Covered " ++ show hitBranches ++ " of " ++ show totalBranches ++
-            " total branches."
-        Nothing -> putStrLn $ "Instruction never encountered."
+    (SomeOpcode (Some opcode), _) -> reportInstCoverage rvRepr covMap opcode
+    (AllOpcodes, _) -> reportCovMap covMap
 
-      putStrLn "\n(green = fully covered, red = not covered, cyan = covered true, yellow = covered false)"
-    (AllOpcodes, _) -> do
-      let covTrees = MapF.elems covMap
-          treeCounts = viewSome countInstCTList <$> covTrees
-          (hitBranches, totalBranches) = foldl (\(a,b) (c,d) -> (a+c,b+d)) (0,0) treeCounts
-      putStrLn $ "Covered " ++ show hitBranches ++ " of " ++
-        show totalBranches ++ " total branches in the instruction set."
+-- | Run a single Elf file in simulation, using a coverage map given to us in simulation.
+runElf :: ElfWidthConstraints (RVWidth rv)
+       => SimOpts rv
+       -> Elf (RVWidth rv)
+       -> IORef (MapF (Opcode rv) (InstCTList rv))
+       -> IO (LogMachine rv)
+runElf (SimOpts stepsToRun rvRepr trackedOpcode haltPC _ _) e covMapRef =
+  withRVWidth rvRepr $ do
+    let byteStrings = elfBytes e
+    m <- mkLogMachineWithCovMap
+         rvRepr
+         (fromIntegral $ elfEntry e)
+         0x10000
+         byteStrings
+         (bitVector <$> fromIntegral <$> haltPC)
+         trackedOpcode
+         covMapRef
+
+    case trackedOpcode of
+      NoOpcode -> runLogMachine stepsToRun m
+      _ -> runLogMachineLog stepsToRun m
+
+    return m
+
+reportMemDump :: (KnownRVWidth rv)
+              => RVRepr rv
+              -> Word64
+              -> Word64
+              -> Map (BitVector (RVWidth rv)) (BitVector 8)
+              -> IO ()
+reportMemDump rvRepr memDumpStart memDumpEnd mem =
+  forM_ (enumFromThenTo memDumpStart (memDumpStart+4) memDumpEnd) $ \addr -> do
+    let [byte0, byte1, byte2, byte3] = fmap
+          (\a -> (fromIntegral $ bvIntegerU (Map.findWithDefault 0 (bitVector $ fromIntegral a) mem) :: Word32))
+          [addr, addr+1, addr+2, addr+3]
+        val = (byte3 `shiftL` 24 .|. byte2 `shiftL` 16 .|. byte1 `shiftL` 8 .|. byte0)
+    putStrLn $ pad8 (showHex val "")
 
   where pad8 :: String -> String
         pad8 s = replicate (8 - length s) '0' ++ s
+
+reportInstCoverage :: RVRepr rv -> MapF (Opcode rv) (InstCTList rv) -> Opcode rv fmt -> IO ()
+reportInstCoverage rvRepr covMap opcode = do
+  -- the pattern match below should never fail
+  let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
+  putStrLn "Instruction semantics"
+  putStrLn "====================="
+  print $ pPrintInstSemantics sem
+  putStrLn ""
+  putStrLn "Instruction coverage"
+  putStrLn "===================="
+  case MapF.lookup opcode covMap of
+    Just covTrees -> do
+      traverse_ print (pPrintInstCTList rvRepr opcode covTrees)
+      let (hitBranches, totalBranches) = countInstCTList covTrees
+      putStrLn $ "Covered " ++ show hitBranches ++ " of " ++ show totalBranches ++
+        " total branches."
+    Nothing -> putStrLn $ "Instruction never encountered."
+
+  putStrLn "\n(green = fully covered, red = not covered, cyan = covered true, yellow = covered false)"
+
+
+reportCovMap :: MapF (Opcode rv) (InstCTList rv) -> IO ()
+reportCovMap covMap = do
+  let covTrees = MapF.elems covMap
+      treeCounts = viewSome countInstCTList <$> covTrees
+      (hitBranches, totalBranches) = foldl (\(a,b) (c,d) -> (a+c,b+d)) (0,0) treeCounts
+  for_ (MapF.toList covMap) $ \(Pair opcode ct) -> do
+    let (opcodeHitBranches, opcodeTotalBranches) = countInstCTList ct
+    putStrLn $ show (pPrint opcode) ++ ": " ++ show opcodeHitBranches ++ "/" ++
+      show opcodeTotalBranches ++ " branches covered"
+  putStrLn $ "Covered " ++ show hitBranches ++ " of " ++
+    show totalBranches ++ " total branches in the instruction set."
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
