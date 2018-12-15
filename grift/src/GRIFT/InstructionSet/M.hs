@@ -235,10 +235,12 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
+      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `quotsE` x_rs2))
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `quotsE` dividend))
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      assignReg rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
       incrPC
   , Pair Divuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as unsigned integers."
@@ -248,10 +250,12 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
+      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `quotuE` x_rs2))
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `quotuE` dividend))
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      assignReg rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
       incrPC
   , Pair Remw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
@@ -261,10 +265,12 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
+      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `remsE` x_rs2))
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `remsE` dividend))
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      assignReg rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
       incrPC
   , Pair Remuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
@@ -274,9 +280,11 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
+      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
+      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `remuE` x_rs2))
+      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `remuE` dividend))
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      assignReg rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
       incrPC
   ]
