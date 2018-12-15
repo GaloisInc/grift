@@ -141,6 +141,13 @@ do not support an option in grift-sim to specify exactly what kind of coverage t
 keep track of. This is an area of active development, and we are open to suggestions
 on this.
 
+Known issues
+===
+Building softfloat on Darwin currently has some issues -- for whatever reason, some
+of the conversion functions to not work correctly in some of the corner
+cases. Therefore, some of GRIFT's behavior may not be entirely correct unless it is
+run in Linux. We are investigating this issue.
+
 Other information
 ===
 

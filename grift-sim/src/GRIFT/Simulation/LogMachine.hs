@@ -97,7 +97,8 @@ import Debug.Trace (traceM, trace)
 
 data TrackedOpcode rv = NoOpcode | AllOpcodes | SomeOpcode (Some (Opcode rv))
 
--- TODO: get rid of unused IORefs
+-- TODO: Coverage map should also contain a single bit for each opcode tracking
+-- whether that opcode was ever encountered at all.
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
   { lmRV         :: RVRepr rv
