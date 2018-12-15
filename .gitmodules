@@ -1,20 +1,20 @@
-[submodule "submodules/bv-sized"]
-	path = submodules/bv-sized
+[submodule "deps/bv-sized"]
+	path = deps/bv-sized
 	url = git@github.com:GaloisInc/bv-sized.git
-[submodule "submodules/elf-edit"]
-	path = submodules/elf-edit
+[submodule "deps/elf-edit"]
+	path = deps/elf-edit
 	url = git@github.com:GaloisInc/elf-edit.git
-[submodule "submodules/parameterized-utils"]
-	path = submodules/parameterized-utils
+[submodule "deps/parameterized-utils"]
+	path = deps/parameterized-utils
 	url = git@github.com:GaloisInc/parameterized-utils.git
-[submodule "submodules/softfloat-hs"]
-	path = submodules/softfloat-hs
+[submodule "deps/softfloat-hs"]
+	path = deps/softfloat-hs
 	url = git@github.com:GaloisInc/softfloat-hs.git
-[submodule "submodules/bv-sized-float"]
-	path = submodules/bv-sized-float
+[submodule "deps/bv-sized-float"]
+	path = deps/bv-sized-float
 	url = git@github.com:GaloisInc/bv-sized-float.git
-[submodule "submodules/berkeley-softfloat-3"]
-	path = submodules/berkeley-softfloat-3
+[submodule "deps/berkeley-softfloat-3"]
+	path = deps/berkeley-softfloat-3
 	url = git@github.com:ucb-bar/berkeley-softfloat-3.git
 [submodule "test/riscv-tests"]
 	path = test/riscv-tests
