@@ -415,6 +415,7 @@ coverageTreeLocApp _ = []
 coverageTreeStateApp :: StateApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
 coverageTreeStateApp (LocApp e) = coverageTreeLocApp e
 coverageTreeStateApp (AppExpr e) = coverageTreeBVApp e
+coverageTreeStateApp (FloatAppExpr e) = coverageTreeBVFloatApp e
 
 coverageTreeInstExpr :: InstExpr fmt rv w -> [CT (InstExpr fmt rv)]
 coverageTreeInstExpr (InstStateExpr e) = coverageTreeStateApp e
@@ -424,6 +425,9 @@ coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVApp (IteApp t l r) =
   [CT (CTNode False False t) (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
 coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
+
+coverageTreeBVFloatApp :: BVFloatApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
+coverageTreeBVFloatApp app = foldMapFC coverageTreeInstExpr app
 
 coverageTreeStmt :: Stmt (InstExpr fmt rv) rv -> [CT (InstExpr fmt rv)]
 coverageTreeStmt (AssignStmt loc e) = coverageTreeLocApp loc ++ coverageTreeInstExpr e

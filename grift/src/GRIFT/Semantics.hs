@@ -496,6 +496,7 @@ pPrintStateApp :: (forall w' . Bool -> expr w' -> Doc)
                -> Doc
 pPrintStateApp ppExpr top (LocApp loc) = pPrintLocApp ppExpr top loc
 pPrintStateApp ppExpr top (AppExpr app) = pPrintBVApp ppExpr top app
+pPrintStateApp ppExpr top (FloatAppExpr app) = pPrintBVFloatApp ppExpr top app
 
 pPrintBVApp :: (forall w' . Bool -> expr w' -> Doc)
             -> Bool
@@ -534,6 +535,13 @@ pPrintBVApp ppExpr _ (IteApp e1 e2 e3) =
   text "if" <+> ppExpr True e1 <+>
   text "then" <+> ppExpr True e2 <+>
   text "else" <+> ppExpr True e3
+
+-- TODO: Write this out nicely
+pPrintBVFloatApp :: (forall w' . Bool -> expr w' -> Doc)
+            -> Bool
+            -> BVFloatApp expr w
+            -> Doc
+pPrintBVFloatApp _ _ _ = text "<float op>"
 
 pPrintStmt :: (forall w' . Bool -> expr w' -> Doc)
        -> Stmt expr rv
