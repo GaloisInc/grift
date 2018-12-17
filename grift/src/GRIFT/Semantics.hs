@@ -23,6 +23,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures             #-}
 {-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE QuantifiedConstraints      #-}
 {-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE StandaloneDeriving         #-}
@@ -204,7 +205,7 @@ instance FExt << rv =>  BVFloatExpr (InstExpr fmt rv) where
 -- here
 -- | A type class for expression languages that can refer to arbitrary pieces of
 -- RISC-V machine state.
-class StateExpr (expr :: RV -> Nat -> *) where
+class (forall arch . BVExpr (expr arch)) => StateExpr expr where
   stateExpr :: StateApp (expr rv) rv w -> expr rv w
 
 instance StateExpr PureStateExpr where
@@ -343,11 +344,13 @@ readPC :: StateExpr expr => expr rv (RVWidth rv)
 readPC = stateExpr (LocApp PCExpr)
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
-readReg :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
+readReg :: (StateExpr expr, KnownRVWidth rv)
+        => expr rv 5
+        -> expr rv (RVWidth rv)
 readReg ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (RegExpr ridE)))
 
 -- | Read a value from a floating point register.
-readFReg :: (BVExpr (expr rv), StateExpr expr, FExt << rv)
+readFReg :: (StateExpr expr, FExt << rv)
          => expr rv 5
          -> expr rv (RVFloatWidth rv)
 readFReg ridE = stateExpr (LocApp (FRegExpr ridE))

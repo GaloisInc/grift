@@ -90,7 +90,7 @@ incrPC = do
 -- | Semantics for setting the PC. This adds a "wrapper" expression around 'assignPC'
 -- that raises a misaligned exception if the C extension is not present, and the jump
 -- destination is not 4-byte-aligned.
-jump :: forall expr rv . (BVExpr (expr rv), StateExpr expr, KnownRVCConfig rv, KnownRVWidth rv)
+jump :: forall expr rv . (StateExpr expr, KnownRVCConfig rv, KnownRVWidth rv)
      => expr rv (RVWidth rv) -- ^ address of the jump target
      -> SemanticsM (expr rv) rv ()
 jump pc = case knownRepr :: CConfigRepr (RVCConfig rv) of
@@ -156,8 +156,7 @@ checkCSR write csr rst = do
 
 -- | Maps each CSR to an expression representing what value is returned when software
 -- attempts to read it.
-readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
-        => expr rv 12 -> expr rv (RVWidth rv)
+readCSR :: (StateExpr expr, KnownRVWidth rv) => expr rv 12 -> expr rv (RVWidth rv)
 readCSR csr = cases
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
     , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
@@ -180,8 +179,10 @@ readCSR csr = cases
 -- At the moment, this function is little more than an alias for
 -- 'assignCSR', with a few aliasing cases (like for fflags and frm, as well as the
 -- various aliased registers in S- and U-mode of M-mode registers).
-writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
-              => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
+writeCSR :: (StateExpr expr, KnownRVWidth rv)
+         => expr rv 12
+         -> expr rv (RVWidth rv)
+         -> SemanticsM (expr rv) rv ()
 writeCSR csr val = branches
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
     , do let val' = extractEWithRepr (knownNat @5) 0 val
@@ -306,7 +307,7 @@ getPrivCode SPriv = 1
 getPrivCode UPriv = 0
 
 -- | Semantics for raising an exception.
-raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
+raiseException :: (StateExpr expr, KnownRVWidth rv)
                => Exception -- ^ The exception to raise
                -> expr rv (RVWidth rv) -- ^ the value for MTVal
                -> SemanticsM (expr rv) rv ()
@@ -337,14 +338,14 @@ raiseException e info = do
 
 -- | Raise floating point exceptions. This ORs the current fflags with the supplied
 -- 5-bit value.
-raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
+raiseFPExceptions :: (StateExpr expr, KnownRVWidth rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM (expr rv) rv ()
 raiseFPExceptions flags = do
   let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
 
-dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 3
+dynamicRM :: (StateExpr expr, KnownRVWidth rv) => expr rv 3
 dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
             in extractE 5 fcsr
 
