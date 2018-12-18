@@ -16,6 +16,3 @@
 [submodule "deps/berkeley-softfloat-3"]
 	path = deps/berkeley-softfloat-3
 	url = git@github.com:ucb-bar/berkeley-softfloat-3.git
-[submodule "test/riscv-tests"]
-	path = test/riscv-tests
-	url = git@github.com:riscv/riscv-tests.git
