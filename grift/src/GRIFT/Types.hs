@@ -136,8 +136,6 @@ module GRIFT.Types
   , mkInst
   , opcodeCast
   , readOpcode
-  -- * Utils
-  , PrettyF(..)
   ) where
 
 import Control.Monad
@@ -150,9 +148,6 @@ import GHC.TypeLits
 import Numeric
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJClass
-
-class PrettyF (a :: k -> *) where
-  pPrintF :: a tp -> Doc
 
 ----------------------------------------
 -- Architecture types
@@ -588,33 +583,33 @@ commas = hcat . punctuate (comma <> space)
 
 -- TODO: Change pretty printing for addresses to use offset(reg). This involves
 -- dealing with individual instructions (yuck).
-instance PrettyF Operands where
-  pPrintF (Operands RRepr (rd :< rs1 :< rs2 :< Nil)) =
+instance Pretty (Operands fmt) where
+  pPrint (Operands RRepr (rd :< rs1 :< rs2 :< Nil)) =
     commas [prettyReg rd, prettyReg rs1, prettyReg rs2]
-  pPrintF (Operands IRepr (rd :< rs1 :< imm :< Nil)) =
+  pPrint (Operands IRepr (rd :< rs1 :< imm :< Nil)) =
     commas [prettyReg rd, prettyReg rs1, prettyImm imm]
-  pPrintF (Operands SRepr (rs1 :< rs2 :< imm :< Nil)) =
+  pPrint (Operands SRepr (rs1 :< rs2 :< imm :< Nil)) =
     commas [prettyReg rs2, prettyImm imm, parens (prettyReg rs1)]
-  pPrintF (Operands BRepr (rs1 :< rs2 :< imm :< Nil)) =
+  pPrint (Operands BRepr (rs1 :< rs2 :< imm :< Nil)) =
     commas [prettyReg rs1, prettyReg rs2, comma <+> prettyImm imm]
-  pPrintF (Operands URepr (rd :< imm :< Nil)) =
+  pPrint (Operands URepr (rd :< imm :< Nil)) =
     commas [prettyReg rd, prettyImm imm]
-  pPrintF (Operands JRepr (rd :< imm :< Nil)) =
+  pPrint (Operands JRepr (rd :< imm :< Nil)) =
     commas [prettyReg rd, prettyImm imm]
-  pPrintF (Operands HRepr (rd :< rs1 :< imm :< Nil)) =
+  pPrint (Operands HRepr (rd :< rs1 :< imm :< Nil)) =
     commas [prettyReg rd, prettyReg rs1, prettyImm imm]
-  pPrintF (Operands PRepr _) = empty
-  pPrintF (Operands ARepr (rd :< rs1 :< rs2 :< _rl :< _aq :< Nil)) =
+  pPrint (Operands PRepr _) = empty
+  pPrint (Operands ARepr (rd :< rs1 :< rs2 :< _rl :< _aq :< Nil)) =
     commas [prettyReg rd, prettyReg rs2, parens (prettyReg rs1)]
-  pPrintF (Operands R2Repr (rd :< _rm :< rs1 :< Nil)) =
+  pPrint (Operands R2Repr (rd :< _rm :< rs1 :< Nil)) =
     commas [prettyReg rd, prettyReg rs1]
-  pPrintF (Operands R3Repr (rd :< _rm :< rs1 :< rs2 :< Nil)) =
+  pPrint (Operands R3Repr (rd :< _rm :< rs1 :< rs2 :< Nil)) =
     commas [prettyReg rd, prettyReg rs1, prettyReg rs2]
-  pPrintF (Operands R4Repr (rd :< _rm :< rs1 :< rs2 :< rs3 :< Nil)) =
+  pPrint (Operands R4Repr (rd :< _rm :< rs1 :< rs2 :< rs3 :< Nil)) =
     commas [prettyReg rd, prettyReg rs1, prettyReg rs2, prettyReg rs3]
-  pPrintF (Operands RXRepr (rd :< rs1 :< Nil)) =
+  pPrint (Operands RXRepr (rd :< rs1 :< Nil)) =
     commas [prettyReg rd, prettyReg rs1]
-  pPrintF (Operands XRepr (ill :< Nil)) = text (show ill)
+  pPrint (Operands XRepr (ill :< Nil)) = text (show ill)
 
 $(return [])
 deriving instance Show (Operands k)
@@ -1436,6 +1431,7 @@ instance Pretty (Opcode rv fmt) where
 data Instruction (rv :: RV) (fmt :: Format) =
   Inst (Opcode rv fmt) (Operands fmt)
 
+-- | Create a new instruction with an associated operand list.
 mkInst :: KnownRepr FormatRepr fmt => Opcode rv fmt -> List BitVector (OperandTypes fmt) -> Instruction rv fmt
 mkInst opcode operands = Inst opcode (Operands knownRepr operands)
 
@@ -1444,5 +1440,5 @@ $(return [])
 instance Show (Instruction rv fmt) where
   show (Inst opcode operands) = show opcode ++ " " ++ show operands
 instance ShowF (Instruction rv)
-instance PrettyF (Instruction rv) where
-  pPrintF (Inst opcode operands) = pPrint opcode <+> pPrintF operands
+instance Pretty (Instruction rv fmt) where
+  pPrint (Inst opcode operands) = pPrint opcode <+> pPrint operands

@@ -216,7 +216,9 @@ instance StateExpr (InstExpr fmt) where
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to an expression of the
--- appropriate width.
+-- appropriate width ('AssignStmt'). There is also 'BranchStmt', which represents a
+-- conditional execution of one of two blocks of 'Stmt's, depending on whether the
+-- condition evaluates to true or false.
 data Stmt (expr :: Nat -> *) (rv :: RV) where
   -- | Assign a piece of state to a value.
   AssignStmt :: !(LocApp expr rv w) -> !(expr w) -> Stmt expr rv
@@ -235,7 +237,8 @@ data Semantics (expr :: Nat -> *) (rv :: RV)
 
 -- | A wrapper for 'Semantics's over 'InstExpr's with the 'Format' type parameter
 -- appearing last, for the purposes of associating with an corresponding 'Opcode' of
--- the same format.
+-- the same format. We also associate the `OperandTypes` of the `Format` with a
+-- particular list of `OperandName`s for pretty printing purposes.
 data InstSemantics (rv :: RV) (fmt :: Format)
   = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv
                   , getOperandNames :: List OperandName (OperandTypes fmt)
@@ -539,12 +542,166 @@ pPrintBVApp ppExpr _ (IteApp e1 e2 e3) =
   text "then" <+> ppExpr True e2 <+>
   text "else" <+> ppExpr True e3
 
--- TODO: Write this out nicely
 pPrintBVFloatApp :: (forall w' . Bool -> expr w' -> Doc)
             -> Bool
             -> BVFloatApp expr w
             -> Doc
-pPrintBVFloatApp _ _ _ = text "<float op>"
+
+pPrintBVFloatApp ppExpr _ (Ui32ToF16App rm e) =
+  text "ui32ToF16(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (Ui32ToF32App rm e) =
+  text "ui32ToF32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (Ui32ToF64App rm e) =
+  text "ui32ToF64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (I32ToF16App rm e) =
+  text "i32ToF16(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (I32ToF32App rm e) =
+  text "i32ToF32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (I32ToF64App rm e) =
+  text "i32ToF64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (Ui64ToF16App rm e) =
+  text "ui64ToF16(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (Ui64ToF32App rm e) =
+  text "ui64ToF32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (Ui64ToF64App rm e) =
+  text "ui64ToF64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (I64ToF16App rm e) =
+  text "i64ToF16(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (I64ToF32App rm e) =
+  text "i64ToF32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (I64ToF64App rm e) =
+  text "i64ToF64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+
+pPrintBVFloatApp ppExpr _ (F16ToUi32App rm e) =
+  text "f16ToUi32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16ToUi64App rm e) =
+  text "f16ToUi64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16ToI32App rm e) =
+  text "f16ToI32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16ToI64App rm e) =
+  text "f16ToI64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32ToUi32App rm e) =
+  text "f32ToUi32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32ToUi64App rm e) =
+  text "f32ToUi64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32ToI32App rm e) =
+  text "f32ToI32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32ToI64App rm e) =
+  text "f32ToI64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64ToUi32App rm e) =
+  text "f64ToUi32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64ToUi64App rm e) =
+  text "f64ToUi64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64ToI32App rm e) =
+  text "f64ToI32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64ToI64App rm e) =
+  text "f64ToI64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+
+pPrintBVFloatApp ppExpr _ (F16ToF32App rm e) =
+  text "f16ToF32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16ToF64App rm e) =
+  text "f16ToF64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32ToF16App rm e) =
+  text "f32ToF16(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32ToF64App rm e) =
+  text "f32ToF64(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64ToF16App rm e) =
+  text "f64ToF16(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64ToF32App rm e) =
+  text "f64ToF32(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+
+pPrintBVFloatApp ppExpr _ (F16RoundToIntApp rm e) =
+  text "f16RoundToInt(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16AddApp rm x y) =
+  text "f16Add(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16SubApp rm x y) =
+  text "f16Sub(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16MulApp rm x y) =
+  text "f16Mul(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16MulAddApp rm x y z) =
+  text "f16MulAdd(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", " <> ppExpr True z <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16DivApp rm x y) =
+  text "f16Div(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16RemApp rm x y) =
+  text "f16Rem(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16SqrtApp rm e) =
+  text "f16Sqrt(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F16EqApp x y) =
+  text "f16Eq(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F16LeApp x y) =
+  text "f16Le(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F16LtApp x y) =
+  text "f16Lt(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F16EqSignalingApp x y) =
+  text "f16EqSignaling(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F16LeQuietApp x y) =
+  text "f16LeQuiet(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F16LtQuietApp x y) =
+  text "f16LtQuiet(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F16IsSignalingNaNApp x) =
+  text "f16IsSignalingNaN(" <> ppExpr True x <>  text ")"
+
+pPrintBVFloatApp ppExpr _ (F32RoundToIntApp rm e) =
+  text "f32RoundToInt(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32AddApp rm x y) =
+  text "f32Add(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32SubApp rm x y) =
+  text "f32Sub(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32MulApp rm x y) =
+  text "f32Mul(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32MulAddApp rm x y z) =
+  text "f32MulAdd(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", " <> ppExpr True z <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32DivApp rm x y) =
+  text "f32Div(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32RemApp rm x y) =
+  text "f32Rem(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32SqrtApp rm e) =
+  text "f32Sqrt(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F32EqApp x y) =
+  text "f32Eq(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F32LeApp x y) =
+  text "f32Le(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F32LtApp x y) =
+  text "f32Lt(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F32EqSignalingApp x y) =
+  text "f32EqSignaling(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F32LeQuietApp x y) =
+  text "f32LeQuiet(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F32LtQuietApp x y) =
+  text "f32LtQuiet(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F32IsSignalingNaNApp x) =
+  text "f32IsSignalingNaN(" <> ppExpr True x <>  text ")"
+
+pPrintBVFloatApp ppExpr _ (F64RoundToIntApp rm e) =
+  text "f64RoundToInt(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64AddApp rm x y) =
+  text "f64Add(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64SubApp rm x y) =
+  text "f64Sub(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64MulApp rm x y) =
+  text "f64Mul(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64MulAddApp rm x y z) =
+  text "f64MulAdd(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", " <> ppExpr True z <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64DivApp rm x y) =
+  text "f64Div(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64RemApp rm x y) =
+  text "f64Rem(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64SqrtApp rm e) =
+  text "f64Sqrt(" <> ppExpr True e <> text ", RM=" <> ppExpr True rm <> text ")"
+pPrintBVFloatApp ppExpr _ (F64EqApp x y) =
+  text "f64Eq(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F64LeApp x y) =
+  text "f64Le(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F64LtApp x y) =
+  text "f64Lt(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F64EqSignalingApp x y) =
+  text "f64EqSignaling(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F64LeQuietApp x y) =
+  text "f64LeQuiet(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F64LtQuietApp x y) =
+  text "f64LtQuiet(" <> ppExpr True x <> text ", " <> ppExpr True y <> text ")"
+pPrintBVFloatApp ppExpr _ (F64IsSignalingNaNApp x) =
+  text "f64IsSignalingNaN(" <> ppExpr True x <>  text ")"
 
 pPrintStmt :: (forall w' . Bool -> expr w' -> Doc)
        -> Stmt expr rv

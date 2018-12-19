@@ -463,8 +463,6 @@ baseSemantics = Map.fromList
         $> do assignReg rd $ x_rs1 `sraE` zextE shamt
               incrPC
 
-  -- TODO: in the case where the immediate operand is equal to 1, we need to raise an
-  -- EnvironmentBreak exception.
   , Pair Ecall $ instSemantics Nil $ do
       comment "Makes a request of the execution environment."
 
@@ -473,7 +471,7 @@ baseSemantics = Map.fromList
   , Pair Ebreak $ instSemantics Nil $ do
       comment "Makes a request to the debugger."
 
-      raiseException Breakpoint (litBV 0x0) -- TODO: change this
+      raiseException Breakpoint (litBV 0x0)
 
   -- TODO: Fence instructions.
   , Pair Fence $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
@@ -773,7 +771,6 @@ base64Semantics = Map.fromList
       assignReg rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
       incrPC
 
-  -- TODO: Correct this
   , Pair Sllw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."
@@ -787,7 +784,6 @@ base64Semantics = Map.fromList
 
       assignReg rd $ sextE (x_rs1' `sllE` zextE shamt)
       incrPC
-
 
   , Pair Srlw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
