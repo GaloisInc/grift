@@ -215,7 +215,9 @@ instance StateExpr (InstExpr fmt) where
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to an expression of the
--- appropriate width.
+-- appropriate width ('AssignStmt'). There is also 'BranchStmt', which represents a
+-- conditional execution of one of two blocks of 'Stmt's, depending on whether the
+-- condition evaluates to true or false.
 data Stmt (expr :: Nat -> *) (rv :: RV) where
   -- | Assign a piece of state to a value.
   AssignStmt :: !(LocApp expr rv w) -> !(expr w) -> Stmt expr rv
@@ -234,7 +236,8 @@ data Semantics (expr :: Nat -> *) (rv :: RV)
 
 -- | A wrapper for 'Semantics's over 'InstExpr's with the 'Format' type parameter
 -- appearing last, for the purposes of associating with an corresponding 'Opcode' of
--- the same format.
+-- the same format. We also associate the `OperandTypes` of the `Format` with a
+-- particular list of `OperandName`s for pretty printing purposes.
 data InstSemantics (rv :: RV) (fmt :: Format)
   = InstSemantics { getInstSemantics :: Semantics (InstExpr fmt rv) rv
                   , getOperandNames :: List OperandName (OperandTypes fmt)

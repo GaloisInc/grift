@@ -250,7 +250,6 @@ data CSR = MVendorID
          | FRm
          | FFlags
          | FCSR
-         -- TODO: special semantics handling for FFlags, FRm
   deriving (Eq, Ord, Bounded, Enum)
 
 -- | Translate a CSR to its 'BitVector' code.
@@ -297,14 +296,13 @@ resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
   -- TODO: Finish this.
   ]
 
--- TODO: It is actually an optional architectural feature to propagate certain values
--- through to mtval, so this should be a configurable option at the type level.
-
 getPrivCode :: Privilege -> BitVector 2
 getPrivCode MPriv = 3
 getPrivCode SPriv = 1
 getPrivCode UPriv = 0
 
+-- TODO: It is actually an optional architectural feature to propagate certain values
+-- through to mtval, so this should be a configurable option at the type level.
 -- | Semantics for raising an exception.
 raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
                => Exception -- ^ The exception to raise
