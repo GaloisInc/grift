@@ -171,7 +171,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readReg rs1
       let x_rs2 = readReg rs2
-      let res = x_rs1 `sllE` (x_rs2 `andE` litBV (bitVector (fromIntegral (natValue archWidth) - 1)))
+      let res = x_rs1 `sllE` (x_rs2 `andE` litBV (bitVector (natValue archWidth) - 1))
 
       assignReg rd res
       incrPC
