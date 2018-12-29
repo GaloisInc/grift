@@ -73,6 +73,7 @@ import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
+import           Data.Char (chr)
 import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map.Strict as Map
@@ -249,6 +250,9 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   setFReg rid regVal = do
     regArray <- lmFRegisters <$> ask
     liftIO $ writeArray regArray rid regVal
+  setMem bytes addr val
+    | addr == 100 && natValue bytes == 1 = do
+        liftIO $ putChar (chr $ fromIntegral $ bvIntegerU val)
   setMem bytes addr val = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
@@ -274,9 +278,9 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     haltPCRef <- lmHaltPC <$> ask
     haltPC <- liftIO $ readIORef haltPCRef
     case haltPC of
-      Nothing -> do
-        mcause <- getCSR (encodeCSR MCause)
-        return (mcause == 11) -- halt on M-mode ecall by default
+      Nothing -> return False
+        -- mcause <- getCSR (encodeCSR MCause)
+        -- return (mcause == 11) -- halt on M-mode ecall by default
       Just addr -> do
         pc <- getPC
         return (pc == addr)

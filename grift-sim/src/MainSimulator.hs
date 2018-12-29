@@ -101,7 +101,6 @@ rvReprFromString s = case s of
 data SimOpts rv = SimOpts
   { simSteps :: Int
   , simRV :: RVRepr rv
---  , simCovFile :: Maybe String
   , simTrackedOpcode :: TrackedOpcode rv -- Maybe (Some (Opcode rv))
   , simHaltPC :: Maybe Word64
   , simMemDumpStart :: Word64
@@ -112,7 +111,6 @@ defaultSimOpts :: SimOpts RV64GC
 defaultSimOpts = SimOpts
   { simSteps = 10000
   , simRV = knownRepr :: RVRepr RV64GC
---  , simCovFile = Nothing
   , simTrackedOpcode = NoOpcode
   , simHaltPC = Nothing
   , simMemDumpStart = 0x0
