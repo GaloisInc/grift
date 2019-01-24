@@ -72,7 +72,7 @@ of two distinct sets of statements based on a test condition.
 
 Finally, we can combine 'Stmt's to create 'Semantics's, which are simply sequences of
 statements. We export a monad, 'SemanticsM', to facilitate straightforward
-definitions of these assignments, and a number of functions ('assignPC', 'assignReg',
+definitions of these assignments, and a number of functions ('assignPC', 'assignGPR',
 etc.) that can be used within this monad. To see examples of its use, take a look at
 'GRIFT.Extensions.Base', which contains the base RISC-V ISA instruction definitions,
 defined using 'SemanticsBuilder'.
@@ -91,8 +91,8 @@ module GRIFT.Semantics
   , InstExpr(..)
     -- ** Access to state
   , readPC
-  , readReg
-  , readFReg
+  , readGPR
+  , readFPR
   , readMem
   , rawReadCSR
   , readPriv
@@ -113,8 +113,8 @@ module GRIFT.Semantics
   , instWord
     -- ** State actions
   , assignPC
-  , assignReg
-  , assignFReg
+  , assignGPR
+  , assignFPR
   , assignMem
   , assignCSR
   , assignPriv
@@ -150,8 +150,8 @@ import GRIFT.Types
 -- come from an arbitrary expression language @expr@.
 data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   PCExpr   :: LocApp expr rv (RVWidth rv)
-  RegExpr  :: expr 5 -> LocApp expr rv (RVWidth rv)
-  FRegExpr :: FExt << rv => expr 5 -> LocApp expr rv (RVFloatWidth rv)
+  GPRExpr  :: expr 5 -> LocApp expr rv (RVWidth rv)
+  FPRExpr :: FExt << rv => expr 5 -> LocApp expr rv (RVFloatWidth rv)
   MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
   ResExpr  :: expr (RVWidth rv) -> LocApp expr rv 1
   CSRExpr  :: expr 12 -> LocApp expr rv (RVWidth rv)
@@ -345,15 +345,15 @@ instWord = return InstWord
 readPC :: StateExpr expr => expr rv (RVWidth rv)
 readPC = stateExpr (LocApp PCExpr)
 
--- | Read a value from a register. Register x0 is hardwired to 0.
-readReg :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
-readReg ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (RegExpr ridE)))
+-- | Read a value from a register. GPRister x0 is hardwired to 0.
+readGPR :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
+readGPR ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (GPRExpr ridE)))
 
 -- | Read a value from a floating point register.
-readFReg :: (BVExpr (expr rv), StateExpr expr, FExt << rv)
+readFPR :: (BVExpr (expr rv), StateExpr expr, FExt << rv)
          => expr rv 5
          -> expr rv (RVFloatWidth rv)
-readFReg ridE = stateExpr (LocApp (FRegExpr ridE))
+readFPR ridE = stateExpr (LocApp (FPRExpr ridE))
 
 -- TODO: We need a wrapper around this to handle access faults.
 -- | Read a variable number of bytes from memory, with an explicit width argument.
@@ -380,21 +380,21 @@ assignPC :: expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
 assignPC pc = addStmt (AssignStmt PCExpr pc)
 
 -- | Add a register assignment to the semantics.
-assignReg :: BVExpr (expr rv)
+assignGPR :: BVExpr (expr rv)
           => expr rv 5
           -> expr rv (RVWidth rv)
           -> SemanticsM (expr rv) rv ()
-assignReg r e = addStmt $
+assignGPR r e = addStmt $
   BranchStmt (r `eqE` litBV 0)
   $> Seq.empty
-  $> Seq.singleton (AssignStmt (RegExpr r) e)
+  $> Seq.singleton (AssignStmt (GPRExpr r) e)
 
 -- | Add a register assignment to the semantics.
-assignFReg :: (BVExpr (expr rv), FExt << rv)
+assignFPR :: (BVExpr (expr rv), FExt << rv)
            => expr rv 5
            -> expr rv (RVFloatWidth rv)
            -> SemanticsM (expr rv) rv ()
-assignFReg r e = addStmt (AssignStmt (FRegExpr r) e)
+assignFPR r e = addStmt (AssignStmt (FPRExpr r) e)
 
 -- TODO: We need a wrapper around this to handle access faults.
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
@@ -441,7 +441,7 @@ branch e fbTrue fbFalse = do
 
 instance TestEquality expr => TestEquality (LocApp expr rv) where
   PCExpr `testEquality` PCExpr = Just Refl
-  RegExpr e1 `testEquality` RegExpr e2 = case e1 `testEquality` e2 of
+  GPRExpr e1 `testEquality` GPRExpr e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
   MemExpr b1 e1 `testEquality` MemExpr b2 e2 = case (b1 `testEquality` b2, e1 `testEquality` e2) of
@@ -486,8 +486,8 @@ pPrintLocApp :: (forall w' . Bool -> expr w' -> Doc)
              -> LocApp expr rv w
              -> Doc
 pPrintLocApp _ _ PCExpr = text "pc"
-pPrintLocApp ppExpr top (RegExpr e) = text "x[" <> ppExpr top e <> text "]"
-pPrintLocApp ppExpr top (FRegExpr e) = text "f[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (GPRExpr e) = text "x[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (FPRExpr e) = text "f[" <> ppExpr top e <> text "]"
 pPrintLocApp ppExpr top (MemExpr bytes e) = text "M[" <> ppExpr top e <> text "]_" <> pPrint (natValue bytes)
 pPrintLocApp ppExpr top (ResExpr e) = text "MReserved[" <> ppExpr top e <> text "]"
 pPrintLocApp ppExpr top (CSRExpr e) = text "CSR[" <> ppExpr top e <> text "]"

@@ -42,8 +42,7 @@ those hand-written tests. The GRIFT library will also be used for custom
 correctness test generation, based on a particular RISC-V platform
 configuration, as well as tandem verification, in joint work with Bluespec.
 
-## Motivation (a few sentences explaining for what the authors have
-developed this spec)
+## Motivation (a few sentences explaining for what the authors have developed this spec)
 
 Goals that drove the development of the GRIFT RISC-V specification:
 - Written in a practical programming language capable of providing a strong
@@ -55,8 +54,8 @@ theoretical foundation (Haskell)
 language (DSL)
 - Designed to be highly compatible with existing tools and frameworks
 
-## Current functional coverage (what's modelled now, in RISC-V code
-and in English)
+## Current functional coverage (what's modelled now, in RISC-V code and in
+   English)
 
 - RV32/64GC
 - Instruction encodings
@@ -92,8 +91,7 @@ Floating point operations are represented in our DSL as symbolic operations on
 bitvectors (F32Add, F64Sqrt, etc.), and are interpreted in simulation foreign
 function calls to the Berkeley Softfloat library (referenced above).
 
-## Current capabilities (what the specification and associated tooling
-generates and enables)
+## Current capabilities (what the specification and associated tooling generates and enables)
 
 ### Emulation
 
@@ -172,6 +170,7 @@ We pass all the standard tests in Berkeley's riscv-tests suite.
 - Integration with HDLs (e.g., emit verilog code from semantics)
 - Concurrency -- nondeterminism in simulation in combination with precise
   specification of RISC-V memory model
+- Linux/FreeRTOS boot
 
 ## Plans for long-term access, maintenance, etc.
 
@@ -183,10 +182,20 @@ We pass all the standard tests in Berkeley's riscv-tests suite.
 
 ## Example instructions
 
-### ITYPE (or ADDI)
+### ADDI
 
-### SRET
+```
+comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
+comment "Arithmetic overflow is ignored."
 
+rd :< rs1 :< imm12 :< Nil <- operandEs
+
+let x_rs1 = readReg rs1
+let res   = x_rs1 `addE` (sextE imm12)
+
+assignReg rd res
+incrPC
+```
 
 ## Documentation for model and tools
 

@@ -140,10 +140,6 @@ options =
                     Nothing  -> return $ Some $ opts { simRV = rv, simTrackedOpcode = NoOpcode } )
      "ARCH")
     ("RISC-V arch configuration (default = RV64GC)")
-  -- , Option ['c'] ["coverage"]
-  --   (ReqArg (\covStr (Some opts) -> return $ Some $ opts { simCovFile = Just covStr })
-  --    "FILE")
-  --   ("Print coverage analysis to file")
   , Option ['h'] ["help"]
     (NoArg (\_ -> exitWithUsage ""))
     ("display help message")

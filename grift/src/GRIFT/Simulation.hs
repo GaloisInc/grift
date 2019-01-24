@@ -87,7 +87,7 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   -- | Get the value of a register. This function shouldn't ever be called with an
   -- argument of 0, so there is no need to hardwire it to 0 in an instance of this
   -- class.
-  getReg  :: BitVector 5 -> m (BitVector (RVWidth rv))
+  getGPR  :: BitVector 5 -> m (BitVector (RVWidth rv))
   -- | Read some number of bytes from memory.
   getMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> m (BitVector (8 T.* bytes))
   -- | Get the value of a CSR.
@@ -95,12 +95,12 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   -- | Get the current privilege level.
   getPriv :: m (BitVector 2)
   -- | Get the value of a floating point register.
-  getFReg :: FExt << rv => BitVector 5 -> m (BitVector (RVFloatWidth rv))
+  getFPR :: FExt << rv => BitVector 5 -> m (BitVector (RVFloatWidth rv))
 
   -- | Set the PC.
   setPC   :: BitVector (RVWidth rv) -> m ()
   -- | Write to a register.
-  setReg  :: BitVector 5 -> BitVector (RVWidth rv) -> m ()
+  setGPR  :: BitVector 5 -> BitVector (RVWidth rv) -> m ()
   -- | Write a single byte to memory.
   setMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> BitVector (8 T.* bytes) -> m ()
   -- | Write to a CSR.
@@ -108,7 +108,7 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   -- | Set the privilege level.
   setPriv :: BitVector 2 -> m ()
   -- | Set the value of a floating point register.
-  setFReg :: FExt << rv => BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
+  setFPR :: FExt << rv => BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
 
   -- | Condition for halting simulation.
   isHalted :: m Bool
@@ -122,8 +122,8 @@ evalLocApp :: forall m expr rv w . (RVStateM m rv)
            -> LocApp expr rv w
            -> m (BitVector w)
 evalLocApp _ PCExpr = getPC
-evalLocApp eval (RegExpr ridE) = eval ridE >>= getReg
-evalLocApp eval (FRegExpr ridE) = eval ridE >>= getFReg
+evalLocApp eval (GPRExpr ridE) = eval ridE >>= getGPR
+evalLocApp eval (FPRExpr ridE) = eval ridE >>= getFPR
 evalLocApp eval (MemExpr bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
 evalLocApp _ (ResExpr _) = return 1
@@ -165,8 +165,8 @@ evalInstExpr iset inst ib (InstStateExpr e) = evalStateApp (evalInstExpr iset in
 -- the right-hand side of an assignment, only the left-hand side.
 data Loc rv w where
   PC :: Loc rv (RVWidth rv)
-  Reg :: BitVector 5 -> Loc rv (RVWidth rv)
-  FReg :: FExt << rv => BitVector 5 -> Loc rv (RVFloatWidth rv)
+  GPR :: BitVector 5 -> Loc rv (RVWidth rv)
+  FPR :: FExt << rv => BitVector 5 -> Loc rv (RVFloatWidth rv)
   Mem :: NatRepr bytes -> BitVector (RVWidth rv) -> Loc rv (8 T.* bytes)
   Res :: BitVector (RVWidth rv) -> Loc rv 1
   CSR :: BitVector 12 -> Loc rv (RVWidth rv)
@@ -185,14 +185,14 @@ buildAssignment :: (RVStateM m rv)
 buildAssignment eval (AssignStmt PCExpr pcE) = do
   pcVal <- eval pcE
   return [Assignment PC pcVal]
-buildAssignment eval (AssignStmt (RegExpr ridE) e) = do
+buildAssignment eval (AssignStmt (GPRExpr ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
-  return [Assignment (Reg rid) eVal]
-buildAssignment eval (AssignStmt (FRegExpr ridE) e) = do
+  return [Assignment (GPR rid) eVal]
+buildAssignment eval (AssignStmt (FPRExpr ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
-  return [Assignment (FReg rid) eVal]
+  return [Assignment (FPR rid) eVal]
 buildAssignment eval (AssignStmt (MemExpr bytes addrE) e) = do
   addr <- eval addrE
   eVal <- eval e
@@ -219,8 +219,8 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
 -- | Execute an assignment.
 execAssignment :: RVStateM m rv => Assignment rv -> m ()
 execAssignment (Assignment PC val) = setPC val
-execAssignment (Assignment (Reg rid) val) = setReg rid val
-execAssignment (Assignment (FReg rid) val) = setFReg rid val
+execAssignment (Assignment (GPR rid) val) = setGPR rid val
+execAssignment (Assignment (FPR rid) val) = setFPR rid val
 execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
 -- TODO: When we do SMP, implement memory reservations.
 execAssignment (Assignment (Res _) _) = return ()
