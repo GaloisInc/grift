@@ -151,12 +151,15 @@ main = do
         putStrLn ""
         putStrLn $ show (pPrint opcode) ++ " encoding"
         putStrLn "====================="
+        putStrLn ""
+        putStrLn $ pPrintPHList placeholders
         putStrLn "instruction bit : value"
         forM_ placeholders $ \(i, ph) -> do
           putStrLn $ padSpaceEnd 16 (show i) ++ ": " ++ pPrintPH ph
         putStrLn ""
         putStrLn $ show (pPrint opcode) ++ " semantics"
         putStrLn "====================="
+        putStrLn ""
         print $ pPrintInstSemantics sem
 
 listSome :: List l sh -> [Some l]
@@ -189,3 +192,8 @@ opbitsPlaceholderList ixs sbv = zip ixs (bphFromChar <$> viewSome pPrintBinary s
 operandsPlaceholderList :: [Int] -> Some OperandName -> [(Int, BitPlaceHolder)]
 operandsPlaceholderList ixs on = zip ixs (bphFromIx <$> [0..])
   where bphFromIx n = BPOperand on n
+
+pPrintPHList :: [(Int, BitPlaceHolder)] -> String
+pPrintPHList [] = ""
+pPrintPHList ((_,BPOperand _ _):rst) = 'x' : pPrintPHList rst
+pPrintPHList ((_,ph):rst) = pPrintPH ph ++ pPrintPHList rst
