@@ -135,8 +135,8 @@ options =
                                                    , simTrackedOpcode = NoOpcode
                                                    }
                   SomeOpcode (Some oc) -> case opcodeCast rv oc of
-                    Just oc' -> return $ Some $ opts { simRV = rv
-                                                     , simTrackedOpcode = SomeOpcode (Some oc') }
+                    Just (oc',_) -> return $ Some $ opts { simRV = rv
+                                                         , simTrackedOpcode = SomeOpcode (Some oc') }
                     Nothing  -> return $ Some $ opts { simRV = rv, simTrackedOpcode = NoOpcode } )
      "ARCH")
     ("RISC-V arch configuration (default = RV64GC)")

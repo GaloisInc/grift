@@ -24,6 +24,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE GADTs                  #-}
 {-# LANGUAGE KindSignatures         #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE PolyKinds              #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE StandaloneDeriving     #-}
@@ -555,6 +556,27 @@ data OperandName :: Nat -> * where
   Imm20  :: OperandName 20
   Imm32  :: OperandName 32
 
+deriving instance Show (OperandName w)
+
+instance ShowF OperandName where
+  showF x = show x
+
+instance Pretty (OperandName w) where
+  pPrint Aq = "aq"
+  pPrint Rl = "rl"
+  pPrint Rm = "rm"
+  pPrint Rd = "rd"
+  pPrint Rs1 = "rs1"
+  pPrint Rs2 = "rs2"
+  pPrint Rs3 = "rs3"
+  pPrint Imm5 = "imm5"
+  pPrint Shamt5 = "shamt5"
+  pPrint Shamt7 = "shamt7"
+  pPrint Imm12 = "imm12"
+  pPrint Csr = "csr"
+  pPrint Imm20 = "imm20"
+  pPrint Imm32 = "imm32"
+
 -- | An 'OperandID is just an index into a particular format's 'OperandTypes' list.
 newtype OperandID (fmt :: Format) (w :: Nat) = OperandID { unOperandID :: Index (OperandTypes fmt) w }
   deriving Eq
@@ -1052,175 +1074,175 @@ readOpcode str = case (toLower <$> str) of
 
   _ -> Nothing
 
-opcodeCast :: RVRepr rv -> Opcode rv' fmt -> Maybe (Opcode rv fmt)
-opcodeCast _ Add = Just Add
-opcodeCast _ Sub = Just Sub
-opcodeCast _ Sll = Just Sll
-opcodeCast _ Slt = Just Slt
-opcodeCast _ Sltu = Just Sltu
-opcodeCast _ Xor = Just Xor
-opcodeCast _ Srl = Just Srl
-opcodeCast _ Sra = Just Sra
-opcodeCast _ Or  = Just Or
-opcodeCast _ And = Just And
-opcodeCast _ Jalr   = Just Jalr
-opcodeCast _ Lb     = Just Lb
-opcodeCast _ Lh     = Just Lh
-opcodeCast _ Lw     = Just Lw
-opcodeCast _ Lbu    = Just Lbu
-opcodeCast _ Lhu    = Just Lhu
-opcodeCast _ Addi   = Just Addi
-opcodeCast _ Slti   = Just Slti
-opcodeCast _ Sltiu  = Just Sltiu
-opcodeCast _ Xori   = Just Xori
-opcodeCast _ Ori    = Just Ori
-opcodeCast _ Andi   = Just Andi
-opcodeCast _ Fence  = Just Fence
-opcodeCast _ FenceI = Just FenceI
-opcodeCast _ Csrrw  = Just Csrrw
-opcodeCast _ Csrrs  = Just Csrrs
-opcodeCast _ Csrrc  = Just Csrrc
-opcodeCast _ Csrrwi = Just Csrrwi
-opcodeCast _ Csrrsi = Just Csrrsi
-opcodeCast _ Csrrci = Just Csrrci
-opcodeCast _ Slli   = Just Slli
-opcodeCast _ Srli   = Just Srli
-opcodeCast _ Srai   = Just Srai
-opcodeCast _ Ecall  = Just Ecall
-opcodeCast _ Ebreak = Just Ebreak
-opcodeCast _ Sb = Just Sb
-opcodeCast _ Sh = Just Sh
-opcodeCast _ Sw = Just Sw
-opcodeCast _ Beq = Just Beq
-opcodeCast _ Bne = Just Bne
-opcodeCast _ Blt = Just Blt
-opcodeCast _ Bge = Just Bge
-opcodeCast _ Bltu = Just Bltu
-opcodeCast _ Bgeu = Just Bgeu
-opcodeCast _ Lui  = Just Lui
-opcodeCast _ Auipc = Just Auipc
-opcodeCast _ Jal = Just Jal
-opcodeCast _ Illegal = Just Illegal
-opcodeCast _ Mret = Just Mret
-opcodeCast _ Wfi = Just Wfi
+opcodeCast :: RVRepr rv -> Opcode rv' fmt -> Maybe (Opcode rv fmt, FormatRepr fmt)
+opcodeCast _ Add = Just (Add, knownRepr)
+opcodeCast _ Sub = Just (Sub, knownRepr)
+opcodeCast _ Sll = Just (Sll, knownRepr)
+opcodeCast _ Slt = Just (Slt, knownRepr)
+opcodeCast _ Sltu = Just (Sltu, knownRepr)
+opcodeCast _ Xor = Just (Xor, knownRepr)
+opcodeCast _ Srl = Just (Srl, knownRepr)
+opcodeCast _ Sra = Just (Sra, knownRepr)
+opcodeCast _ Or  = Just (Or, knownRepr)
+opcodeCast _ And = Just (And, knownRepr)
+opcodeCast _ Jalr   = Just (Jalr, knownRepr)
+opcodeCast _ Lb     = Just (Lb, knownRepr)
+opcodeCast _ Lh     = Just (Lh, knownRepr)
+opcodeCast _ Lw     = Just (Lw, knownRepr)
+opcodeCast _ Lbu    = Just (Lbu, knownRepr)
+opcodeCast _ Lhu    = Just (Lhu, knownRepr)
+opcodeCast _ Addi   = Just (Addi, knownRepr)
+opcodeCast _ Slti   = Just (Slti, knownRepr)
+opcodeCast _ Sltiu  = Just (Sltiu, knownRepr)
+opcodeCast _ Xori   = Just (Xori, knownRepr)
+opcodeCast _ Ori    = Just (Ori, knownRepr)
+opcodeCast _ Andi   = Just (Andi, knownRepr)
+opcodeCast _ Fence  = Just (Fence, knownRepr)
+opcodeCast _ FenceI = Just (FenceI, knownRepr)
+opcodeCast _ Csrrw  = Just (Csrrw, knownRepr)
+opcodeCast _ Csrrs  = Just (Csrrs, knownRepr)
+opcodeCast _ Csrrc  = Just (Csrrc, knownRepr)
+opcodeCast _ Csrrwi = Just (Csrrwi, knownRepr)
+opcodeCast _ Csrrsi = Just (Csrrsi, knownRepr)
+opcodeCast _ Csrrci = Just (Csrrci, knownRepr)
+opcodeCast _ Slli   = Just (Slli, knownRepr)
+opcodeCast _ Srli   = Just (Srli, knownRepr)
+opcodeCast _ Srai   = Just (Srai, knownRepr)
+opcodeCast _ Ecall  = Just (Ecall, knownRepr)
+opcodeCast _ Ebreak = Just (Ebreak, knownRepr)
+opcodeCast _ Sb = Just (Sb, knownRepr)
+opcodeCast _ Sh = Just (Sh, knownRepr)
+opcodeCast _ Sw = Just (Sw, knownRepr)
+opcodeCast _ Beq = Just (Beq, knownRepr)
+opcodeCast _ Bne = Just (Bne, knownRepr)
+opcodeCast _ Blt = Just (Blt, knownRepr)
+opcodeCast _ Bge = Just (Bge, knownRepr)
+opcodeCast _ Bltu = Just (Bltu, knownRepr)
+opcodeCast _ Bgeu = Just (Bgeu, knownRepr)
+opcodeCast _ Lui  = Just (Lui, knownRepr)
+opcodeCast _ Auipc = Just (Auipc, knownRepr)
+opcodeCast _ Jal = Just (Jal, knownRepr)
+opcodeCast _ Illegal = Just (Illegal, knownRepr)
+opcodeCast _ Mret = Just (Mret, knownRepr)
+opcodeCast _ Wfi = Just (Wfi, knownRepr)
 
-opcodeCast rv Addw = withRV64 rv Addw
-opcodeCast rv Subw = withRV64 rv Subw
-opcodeCast rv Sllw = withRV64 rv Sllw
-opcodeCast rv Srlw = withRV64 rv Srlw
-opcodeCast rv Sraw = withRV64 rv Sraw
-opcodeCast rv Slliw = withRV64 rv Slliw
-opcodeCast rv Srliw = withRV64 rv Srliw
-opcodeCast rv Sraiw = withRV64 rv Sraiw
-opcodeCast rv Lwu = withRV64 rv Lwu
-opcodeCast rv Ld = withRV64 rv Ld
-opcodeCast rv Addiw = withRV64 rv Addiw
-opcodeCast rv Sd = withRV64 rv Sd
+opcodeCast rv Addw = withRV64 rv (Addw, knownRepr)
+opcodeCast rv Subw = withRV64 rv (Subw, knownRepr)
+opcodeCast rv Sllw = withRV64 rv (Sllw, knownRepr)
+opcodeCast rv Srlw = withRV64 rv (Srlw, knownRepr)
+opcodeCast rv Sraw = withRV64 rv (Sraw, knownRepr)
+opcodeCast rv Slliw = withRV64 rv (Slliw, knownRepr)
+opcodeCast rv Srliw = withRV64 rv (Srliw, knownRepr)
+opcodeCast rv Sraiw = withRV64 rv (Sraiw, knownRepr)
+opcodeCast rv Lwu = withRV64 rv (Lwu, knownRepr)
+opcodeCast rv Ld = withRV64 rv (Ld, knownRepr)
+opcodeCast rv Addiw = withRV64 rv (Addiw, knownRepr)
+opcodeCast rv Sd = withRV64 rv (Sd, knownRepr)
 
-opcodeCast rv Mul = withM rv Mul
-opcodeCast rv Mulh = withM rv Mulh
-opcodeCast rv Mulhsu = withM rv Mulhsu
-opcodeCast rv Mulhu = withM rv Mulhu
-opcodeCast rv Div = withM rv Div
-opcodeCast rv Divu = withM rv Divu
-opcodeCast rv Rem = withM rv Rem
-opcodeCast rv Remu = withM rv Remu
+opcodeCast rv Mul = withM rv (Mul, knownRepr)
+opcodeCast rv Mulh = withM rv (Mulh, knownRepr)
+opcodeCast rv Mulhsu = withM rv (Mulhsu, knownRepr)
+opcodeCast rv Mulhu = withM rv (Mulhu, knownRepr)
+opcodeCast rv Div = withM rv (Div, knownRepr)
+opcodeCast rv Divu = withM rv (Divu, knownRepr)
+opcodeCast rv Rem = withM rv (Rem, knownRepr)
+opcodeCast rv Remu = withM rv (Remu, knownRepr)
 
-opcodeCast rv Mulw = join (withRV64 rv (withM rv Mulw))
-opcodeCast rv Divw = join (withRV64 rv (withM rv Divw))
-opcodeCast rv Divuw = join (withRV64 rv (withM rv Divuw))
-opcodeCast rv Remw = join (withRV64 rv (withM rv Remw))
-opcodeCast rv Remuw = join (withRV64 rv (withM rv Remuw))
+opcodeCast rv Mulw = join (withRV64 rv (withM rv (Mulw, knownRepr)))
+opcodeCast rv Divw = join (withRV64 rv (withM rv (Divw, knownRepr)))
+opcodeCast rv Divuw = join (withRV64 rv (withM rv (Divuw, knownRepr)))
+opcodeCast rv Remw = join (withRV64 rv (withM rv (Remw, knownRepr)))
+opcodeCast rv Remuw = join (withRV64 rv (withM rv (Remuw, knownRepr)))
 
-opcodeCast rv Lrw = withA rv Lrw
-opcodeCast rv Scw = withA rv Scw
-opcodeCast rv Amoswapw = withA rv Amoswapw
-opcodeCast rv Amoaddw = withA rv Amoaddw
-opcodeCast rv Amoxorw = withA rv Amoxorw
-opcodeCast rv Amoandw = withA rv Amoandw
-opcodeCast rv Amoorw = withA rv Amoorw
-opcodeCast rv Amominw = withA rv Amominw
-opcodeCast rv Amomaxw = withA rv Amomaxw
-opcodeCast rv Amominuw = withA rv Amominuw
-opcodeCast rv Amomaxuw = withA rv Amomaxuw
+opcodeCast rv Lrw = withA rv (Lrw, knownRepr)
+opcodeCast rv Scw = withA rv (Scw, knownRepr)
+opcodeCast rv Amoswapw = withA rv (Amoswapw, knownRepr)
+opcodeCast rv Amoaddw = withA rv (Amoaddw, knownRepr)
+opcodeCast rv Amoxorw = withA rv (Amoxorw, knownRepr)
+opcodeCast rv Amoandw = withA rv (Amoandw, knownRepr)
+opcodeCast rv Amoorw = withA rv (Amoorw, knownRepr)
+opcodeCast rv Amominw = withA rv (Amominw, knownRepr)
+opcodeCast rv Amomaxw = withA rv (Amomaxw, knownRepr)
+opcodeCast rv Amominuw = withA rv (Amominuw, knownRepr)
+opcodeCast rv Amomaxuw = withA rv (Amomaxuw, knownRepr)
 
-opcodeCast rv Lrd = join (withRV64 rv (withA rv Lrd))
-opcodeCast rv Scd = join (withRV64 rv (withA rv Scd))
-opcodeCast rv Amoswapd = join (withRV64 rv (withA rv Amoswapd))
-opcodeCast rv Amoaddd = join (withRV64 rv (withA rv Amoaddd))
-opcodeCast rv Amoxord = join (withRV64 rv (withA rv Amoxord))
-opcodeCast rv Amoandd = join (withRV64 rv (withA rv Amoandd))
-opcodeCast rv Amoord = join (withRV64 rv (withA rv Amoord))
-opcodeCast rv Amomind = join (withRV64 rv (withA rv Amomind))
-opcodeCast rv Amomaxd = join (withRV64 rv (withA rv Amomaxd))
-opcodeCast rv Amominud = join (withRV64 rv (withA rv Amominud))
-opcodeCast rv Amomaxud = join (withRV64 rv (withA rv Amomaxud))
+opcodeCast rv Lrd = join (withRV64 rv (withA rv (Lrd, knownRepr)))
+opcodeCast rv Scd = join (withRV64 rv (withA rv (Scd, knownRepr)))
+opcodeCast rv Amoswapd = join (withRV64 rv (withA rv (Amoswapd, knownRepr)))
+opcodeCast rv Amoaddd = join (withRV64 rv (withA rv (Amoaddd, knownRepr)))
+opcodeCast rv Amoxord = join (withRV64 rv (withA rv (Amoxord, knownRepr)))
+opcodeCast rv Amoandd = join (withRV64 rv (withA rv (Amoandd, knownRepr)))
+opcodeCast rv Amoord = join (withRV64 rv (withA rv (Amoord, knownRepr)))
+opcodeCast rv Amomind = join (withRV64 rv (withA rv (Amomind, knownRepr)))
+opcodeCast rv Amomaxd = join (withRV64 rv (withA rv (Amomaxd, knownRepr)))
+opcodeCast rv Amominud = join (withRV64 rv (withA rv (Amominud, knownRepr)))
+opcodeCast rv Amomaxud = join (withRV64 rv (withA rv (Amomaxud, knownRepr)))
 
-opcodeCast rv Flw = withF rv Flw
-opcodeCast rv Fsw = withF rv Fsw
-opcodeCast rv Fmadd_s = withF rv Fmadd_s
-opcodeCast rv Fmsub_s = withF rv Fmsub_s
-opcodeCast rv Fnmsub_s = withF rv Fnmsub_s
-opcodeCast rv Fnmadd_s = withF rv Fnmadd_s
-opcodeCast rv Fadd_s = withF rv Fadd_s
-opcodeCast rv Fsub_s = withF rv Fsub_s
-opcodeCast rv Fmul_s = withF rv Fmul_s
-opcodeCast rv Fdiv_s = withF rv Fdiv_s
-opcodeCast rv Fsqrt_s = withF rv Fsqrt_s
-opcodeCast rv Fsgnj_s = withF rv Fsgnj_s
-opcodeCast rv Fsgnjn_s = withF rv Fsgnjn_s
-opcodeCast rv Fsgnjx_s = withF rv Fsgnjx_s
-opcodeCast rv Fmin_s = withF rv Fmin_s
-opcodeCast rv Fmax_s = withF rv Fmax_s
-opcodeCast rv Fcvt_w_s = withF rv Fcvt_w_s
-opcodeCast rv Fcvt_wu_s = withF rv Fcvt_wu_s
-opcodeCast rv Fmv_x_w = withF rv Fmv_x_w
-opcodeCast rv Feq_s = withF rv Feq_s
-opcodeCast rv Flt_s = withF rv Flt_s
-opcodeCast rv Fle_s = withF rv Fle_s
-opcodeCast rv Fclass_s = withF rv Fclass_s
-opcodeCast rv Fcvt_s_w = withF rv Fcvt_s_w
-opcodeCast rv Fcvt_s_wu = withF rv Fcvt_s_wu
-opcodeCast rv Fmv_w_x = withF rv Fmv_w_x
+opcodeCast rv Flw = withF rv (Flw, knownRepr)
+opcodeCast rv Fsw = withF rv (Fsw, knownRepr)
+opcodeCast rv Fmadd_s = withF rv (Fmadd_s, knownRepr)
+opcodeCast rv Fmsub_s = withF rv (Fmsub_s, knownRepr)
+opcodeCast rv Fnmsub_s = withF rv (Fnmsub_s, knownRepr)
+opcodeCast rv Fnmadd_s = withF rv (Fnmadd_s, knownRepr)
+opcodeCast rv Fadd_s = withF rv (Fadd_s, knownRepr)
+opcodeCast rv Fsub_s = withF rv (Fsub_s, knownRepr)
+opcodeCast rv Fmul_s = withF rv (Fmul_s, knownRepr)
+opcodeCast rv Fdiv_s = withF rv (Fdiv_s, knownRepr)
+opcodeCast rv Fsqrt_s = withF rv (Fsqrt_s, knownRepr)
+opcodeCast rv Fsgnj_s = withF rv (Fsgnj_s, knownRepr)
+opcodeCast rv Fsgnjn_s = withF rv (Fsgnjn_s, knownRepr)
+opcodeCast rv Fsgnjx_s = withF rv (Fsgnjx_s, knownRepr)
+opcodeCast rv Fmin_s = withF rv (Fmin_s, knownRepr)
+opcodeCast rv Fmax_s = withF rv (Fmax_s, knownRepr)
+opcodeCast rv Fcvt_w_s = withF rv (Fcvt_w_s, knownRepr)
+opcodeCast rv Fcvt_wu_s = withF rv (Fcvt_wu_s, knownRepr)
+opcodeCast rv Fmv_x_w = withF rv (Fmv_x_w, knownRepr)
+opcodeCast rv Feq_s = withF rv (Feq_s, knownRepr)
+opcodeCast rv Flt_s = withF rv (Flt_s, knownRepr)
+opcodeCast rv Fle_s = withF rv (Fle_s, knownRepr)
+opcodeCast rv Fclass_s = withF rv (Fclass_s, knownRepr)
+opcodeCast rv Fcvt_s_w = withF rv (Fcvt_s_w, knownRepr)
+opcodeCast rv Fcvt_s_wu = withF rv (Fcvt_s_wu, knownRepr)
+opcodeCast rv Fmv_w_x = withF rv (Fmv_w_x, knownRepr)
 
-opcodeCast rv Fcvt_l_s = join (withRV64 rv (withF rv Fcvt_l_s))
-opcodeCast rv Fcvt_lu_s = join (withRV64 rv (withF rv Fcvt_lu_s))
-opcodeCast rv Fcvt_s_l = join (withRV64 rv (withF rv Fcvt_s_l))
-opcodeCast rv Fcvt_s_lu = join (withRV64 rv (withF rv Fcvt_s_lu))
+opcodeCast rv Fcvt_l_s = join (withRV64 rv (withF rv (Fcvt_l_s, knownRepr)))
+opcodeCast rv Fcvt_lu_s = join (withRV64 rv (withF rv (Fcvt_lu_s, knownRepr)))
+opcodeCast rv Fcvt_s_l = join (withRV64 rv (withF rv (Fcvt_s_l, knownRepr)))
+opcodeCast rv Fcvt_s_lu = join (withRV64 rv (withF rv (Fcvt_s_lu, knownRepr)))
 
-opcodeCast rv Fld = withD rv Fld
-opcodeCast rv Fsd = withD rv Fsd
-opcodeCast rv Fmadd_d = withD rv Fmadd_d
-opcodeCast rv Fmsub_d = withD rv Fmsub_d
-opcodeCast rv Fnmsub_d = withD rv Fnmsub_d
-opcodeCast rv Fnmadd_d = withD rv Fnmadd_d
-opcodeCast rv Fadd_d = withD rv Fadd_d
-opcodeCast rv Fsub_d = withD rv Fsub_d
-opcodeCast rv Fmul_d = withD rv Fmul_d
-opcodeCast rv Fdiv_d = withD rv Fdiv_d
-opcodeCast rv Fsqrt_d = withD rv Fsqrt_d
-opcodeCast rv Fsgnj_d = withD rv Fsgnj_d
-opcodeCast rv Fsgnjn_d = withD rv Fsgnjn_d
-opcodeCast rv Fsgnjx_d = withD rv Fsgnjx_d
-opcodeCast rv Fmin_d = withD rv Fmin_d
-opcodeCast rv Fmax_d = withD rv Fmax_d
-opcodeCast rv Fcvt_s_d = withD rv Fcvt_s_d
-opcodeCast rv Fcvt_d_s = withD rv Fcvt_d_s
-opcodeCast rv Feq_d = withD rv Feq_d
-opcodeCast rv Flt_d = withD rv Flt_d
-opcodeCast rv Fle_d = withD rv Fle_d
-opcodeCast rv Fclass_d = withD rv Fclass_d
-opcodeCast rv Fcvt_w_d = withD rv Fcvt_w_d
-opcodeCast rv Fcvt_wu_d = withD rv Fcvt_wu_d
-opcodeCast rv Fcvt_d_w = withD rv Fcvt_d_w
-opcodeCast rv Fcvt_d_wu = withD rv Fcvt_d_wu
+opcodeCast rv Fld = withD rv (Fld, knownRepr)
+opcodeCast rv Fsd = withD rv (Fsd, knownRepr)
+opcodeCast rv Fmadd_d = withD rv (Fmadd_d, knownRepr)
+opcodeCast rv Fmsub_d = withD rv (Fmsub_d, knownRepr)
+opcodeCast rv Fnmsub_d = withD rv (Fnmsub_d, knownRepr)
+opcodeCast rv Fnmadd_d = withD rv (Fnmadd_d, knownRepr)
+opcodeCast rv Fadd_d = withD rv (Fadd_d, knownRepr)
+opcodeCast rv Fsub_d = withD rv (Fsub_d, knownRepr)
+opcodeCast rv Fmul_d = withD rv (Fmul_d, knownRepr)
+opcodeCast rv Fdiv_d = withD rv (Fdiv_d, knownRepr)
+opcodeCast rv Fsqrt_d = withD rv (Fsqrt_d, knownRepr)
+opcodeCast rv Fsgnj_d = withD rv (Fsgnj_d, knownRepr)
+opcodeCast rv Fsgnjn_d = withD rv (Fsgnjn_d, knownRepr)
+opcodeCast rv Fsgnjx_d = withD rv (Fsgnjx_d, knownRepr)
+opcodeCast rv Fmin_d = withD rv (Fmin_d, knownRepr)
+opcodeCast rv Fmax_d = withD rv (Fmax_d, knownRepr)
+opcodeCast rv Fcvt_s_d = withD rv (Fcvt_s_d, knownRepr)
+opcodeCast rv Fcvt_d_s = withD rv (Fcvt_d_s, knownRepr)
+opcodeCast rv Feq_d = withD rv (Feq_d, knownRepr)
+opcodeCast rv Flt_d = withD rv (Flt_d, knownRepr)
+opcodeCast rv Fle_d = withD rv (Fle_d, knownRepr)
+opcodeCast rv Fclass_d = withD rv (Fclass_d, knownRepr)
+opcodeCast rv Fcvt_w_d = withD rv (Fcvt_w_d, knownRepr)
+opcodeCast rv Fcvt_wu_d = withD rv (Fcvt_wu_d, knownRepr)
+opcodeCast rv Fcvt_d_w = withD rv (Fcvt_d_w, knownRepr)
+opcodeCast rv Fcvt_d_wu = withD rv (Fcvt_d_wu, knownRepr)
 
-opcodeCast rv Fcvt_l_d = join (withRV64 rv (withD rv Fcvt_l_d))
-opcodeCast rv Fcvt_lu_d = join (withRV64 rv (withD rv Fcvt_lu_d))
-opcodeCast rv Fmv_x_d = join (withRV64 rv (withD rv Fmv_x_d))
-opcodeCast rv Fcvt_d_l = join (withRV64 rv (withD rv Fcvt_d_l))
-opcodeCast rv Fcvt_d_lu = join (withRV64 rv (withD rv Fcvt_d_lu))
-opcodeCast rv Fmv_d_x = join (withRV64 rv (withD rv Fmv_d_x))
+opcodeCast rv Fcvt_l_d = join (withRV64 rv (withD rv (Fcvt_l_d, knownRepr)))
+opcodeCast rv Fcvt_lu_d = join (withRV64 rv (withD rv (Fcvt_lu_d, knownRepr)))
+opcodeCast rv Fmv_x_d = join (withRV64 rv (withD rv (Fmv_x_d, knownRepr)))
+opcodeCast rv Fcvt_d_l = join (withRV64 rv (withD rv (Fcvt_d_l, knownRepr)))
+opcodeCast rv Fcvt_d_lu = join (withRV64 rv (withD rv (Fcvt_d_lu, knownRepr)))
+opcodeCast rv Fmv_d_x = join (withRV64 rv (withD rv (Fmv_d_x, knownRepr)))
 
 -- Instances
 $(return [])
@@ -1236,193 +1258,193 @@ instance OrdF (Opcode rv) where
 
 instance Pretty (Opcode rv fmt) where
 
-  pPrint Add  = text "add"
-  pPrint Sub  = text "sub"
-  pPrint Sll  = text "sll"
-  pPrint Slt  = text "slt"
-  pPrint Sltu = text "sltu"
-  pPrint Xor  = text "xor"
-  pPrint Srl  = text "srl"
-  pPrint Sra  = text "sra"
-  pPrint Or   = text "or"
-  pPrint And  = text "and"
+  pPrint Add  = "add"
+  pPrint Sub  = "sub"
+  pPrint Sll  = "sll"
+  pPrint Slt  = "slt"
+  pPrint Sltu = "sltu"
+  pPrint Xor  = "xor"
+  pPrint Srl  = "srl"
+  pPrint Sra  = "sra"
+  pPrint Or   = "or"
+  pPrint And  = "and"
 
-  pPrint Jalr   = text "jalr"
-  pPrint Lb     = text "lb"
-  pPrint Lh     = text "lh"
-  pPrint Lw     = text "lw"
-  pPrint Lbu    = text "lbu"
-  pPrint Lhu    = text "lhu"
-  pPrint Addi   = text "addi"
-  pPrint Slti   = text "slti"
-  pPrint Sltiu  = text "sltiu"
-  pPrint Xori   = text "xori"
-  pPrint Ori    = text "ori"
-  pPrint Andi   = text "andi"
-  pPrint Fence  = text "fence"
-  pPrint FenceI = text "fencei"
-  pPrint Csrrw  = text "csrrw"
-  pPrint Csrrs  = text "csrrs"
-  pPrint Csrrc  = text "csrrc"
-  pPrint Csrrwi = text "csrrwi"
-  pPrint Csrrsi = text "csrrsi"
-  pPrint Csrrci = text "csrrci"
+  pPrint Jalr   = "jalr"
+  pPrint Lb     = "lb"
+  pPrint Lh     = "lh"
+  pPrint Lw     = "lw"
+  pPrint Lbu    = "lbu"
+  pPrint Lhu    = "lhu"
+  pPrint Addi   = "addi"
+  pPrint Slti   = "slti"
+  pPrint Sltiu  = "sltiu"
+  pPrint Xori   = "xori"
+  pPrint Ori    = "ori"
+  pPrint Andi   = "andi"
+  pPrint Fence  = "fence"
+  pPrint FenceI = "fencei"
+  pPrint Csrrw  = "csrrw"
+  pPrint Csrrs  = "csrrs"
+  pPrint Csrrc  = "csrrc"
+  pPrint Csrrwi = "csrrwi"
+  pPrint Csrrsi = "csrrsi"
+  pPrint Csrrci = "csrrci"
 
-  pPrint Slli   = text "slli"
-  pPrint Srli   = text "srli"
-  pPrint Srai   = text "srai"
+  pPrint Slli   = "slli"
+  pPrint Srli   = "srli"
+  pPrint Srai   = "srai"
 
-  pPrint Ecall  = text "ecall"
-  pPrint Ebreak = text "ebreak"
+  pPrint Ecall  = "ecall"
+  pPrint Ebreak = "ebreak"
 
-  pPrint Sb     = text "sb"
-  pPrint Sh     = text "sh"
-  pPrint Sw     = text "sw"
+  pPrint Sb     = "sb"
+  pPrint Sh     = "sh"
+  pPrint Sw     = "sw"
 
-  pPrint Beq    = text "beq"
-  pPrint Bne    = text "bne"
-  pPrint Blt    = text "blt"
-  pPrint Bge    = text "bge"
-  pPrint Bltu = text "bltu"
-  pPrint Bgeu   = text "bgeu"
+  pPrint Beq    = "beq"
+  pPrint Bne    = "bne"
+  pPrint Blt    = "blt"
+  pPrint Bge    = "bge"
+  pPrint Bltu = "bltu"
+  pPrint Bgeu   = "bgeu"
 
-  pPrint Lui   = text "lui"
-  pPrint Auipc = text "auipc"
+  pPrint Lui   = "lui"
+  pPrint Auipc = "auipc"
 
-  pPrint Jal = text "jal"
+  pPrint Jal = "jal"
 
-  pPrint Illegal = text "illegal"
+  pPrint Illegal = "illegal"
 
   -- RV64
-  pPrint Addw = text "addw"
-  pPrint Subw = text "subw"
-  pPrint Sllw = text "sllw"
-  pPrint Srlw = text "srlw"
-  pPrint Sraw = text "sraw"
-  pPrint Slliw = text "slliw"
-  pPrint Srliw = text "srliw"
-  pPrint Sraiw = text "sraiw"
-  pPrint Lwu = text "lwu"
-  pPrint Ld = text "ld"
-  pPrint Addiw = text "addiw"
-  pPrint Sd = text "sd"
+  pPrint Addw = "addw"
+  pPrint Subw = "subw"
+  pPrint Sllw = "sllw"
+  pPrint Srlw = "srlw"
+  pPrint Sraw = "sraw"
+  pPrint Slliw = "slliw"
+  pPrint Srliw = "srliw"
+  pPrint Sraiw = "sraiw"
+  pPrint Lwu = "lwu"
+  pPrint Ld = "ld"
+  pPrint Addiw = "addiw"
+  pPrint Sd = "sd"
 
   -- M privileged instructions
-  pPrint Mret = text "mret"
-  pPrint Wfi = text "wfi"
+  pPrint Mret = "mret"
+  pPrint Wfi = "wfi"
 
   -- RV32M
-  pPrint Mul = text "mul"
-  pPrint Mulh = text "mulh"
-  pPrint Mulhsu = text "mulhsu"
-  pPrint Mulhu = text "mulhu"
-  pPrint Div = text "div"
-  pPrint Divu = text "divu"
-  pPrint Rem = text "rem"
-  pPrint Remu = text "remu"
+  pPrint Mul = "mul"
+  pPrint Mulh = "mulh"
+  pPrint Mulhsu = "mulhsu"
+  pPrint Mulhu = "mulhu"
+  pPrint Div = "div"
+  pPrint Divu = "divu"
+  pPrint Rem = "rem"
+  pPrint Remu = "remu"
 
   -- RV64M
-  pPrint Mulw = text "mulw"
-  pPrint Divw = text "divw"
-  pPrint Divuw = text "divuw"
-  pPrint Remw = text "remw"
-  pPrint Remuw = text "remuw"
+  pPrint Mulw = "mulw"
+  pPrint Divw = "divw"
+  pPrint Divuw = "divuw"
+  pPrint Remw = "remw"
+  pPrint Remuw = "remuw"
 
   -- RV32A
-  pPrint Lrw = text "lrw"
-  pPrint Scw = text "scw"
-  pPrint Amoswapw = text "amoswapw"
-  pPrint Amoaddw = text "amoaddw"
-  pPrint Amoxorw = text "amoxorw"
-  pPrint Amoandw = text "amoandw"
-  pPrint Amoorw = text "amoorw"
-  pPrint Amominw = text "amominw"
-  pPrint Amomaxw = text "amomaxw"
-  pPrint Amominuw = text "amominuw"
-  pPrint Amomaxuw = text "amomaxuw"
+  pPrint Lrw = "lrw"
+  pPrint Scw = "scw"
+  pPrint Amoswapw = "amoswapw"
+  pPrint Amoaddw = "amoaddw"
+  pPrint Amoxorw = "amoxorw"
+  pPrint Amoandw = "amoandw"
+  pPrint Amoorw = "amoorw"
+  pPrint Amominw = "amominw"
+  pPrint Amomaxw = "amomaxw"
+  pPrint Amominuw = "amominuw"
+  pPrint Amomaxuw = "amomaxuw"
 
   -- RV64A
-  pPrint Lrd = text "lrd"
-  pPrint Scd = text "scd"
-  pPrint Amoswapd = text "amoswapd"
-  pPrint Amoaddd = text "amoaddd"
-  pPrint Amoxord = text "amoxord"
-  pPrint Amoandd = text "amoandd"
-  pPrint Amoord = text "amoord"
-  pPrint Amomind = text "amomind"
-  pPrint Amomaxd = text "amomaxd"
-  pPrint Amominud = text "amominud"
-  pPrint Amomaxud = text "amomaxud"
+  pPrint Lrd = "lrd"
+  pPrint Scd = "scd"
+  pPrint Amoswapd = "amoswapd"
+  pPrint Amoaddd = "amoaddd"
+  pPrint Amoxord = "amoxord"
+  pPrint Amoandd = "amoandd"
+  pPrint Amoord = "amoord"
+  pPrint Amomind = "amomind"
+  pPrint Amomaxd = "amomaxd"
+  pPrint Amominud = "amominud"
+  pPrint Amomaxud = "amomaxud"
 
   -- RV32F
-  pPrint Flw = text "flw"
-  pPrint Fsw = text "fsw"
-  pPrint Fmadd_s = text "fmadd_s"
-  pPrint Fmsub_s = text "fmsub_s"
-  pPrint Fnmsub_s = text "fnmsub_s"
-  pPrint Fnmadd_s = text "fnmadd_s"
-  pPrint Fadd_s = text "fadd_s"
-  pPrint Fsub_s = text "fsub_s"
-  pPrint Fmul_s = text "fmul_s"
-  pPrint Fdiv_s = text "fdiv_s"
-  pPrint Fsqrt_s = text "fsqrt_s"
-  pPrint Fsgnj_s = text "fsgnj_s"
-  pPrint Fsgnjn_s = text "fsgnjn_s"
-  pPrint Fsgnjx_s = text "fsgnjx_s"
-  pPrint Fmin_s = text "fmin_s"
-  pPrint Fmax_s = text "fmax_s"
-  pPrint Fcvt_w_s = text "fcvt_w_s"
-  pPrint Fcvt_wu_s = text "fcvt_wu_s"
-  pPrint Fmv_x_w = text "fmv_x_w"
-  pPrint Feq_s = text "feq_s"
-  pPrint Flt_s = text "flt_s"
-  pPrint Fle_s = text "fle_s"
-  pPrint Fclass_s = text "fclass_s"
-  pPrint Fcvt_s_w = text "fcvt_s_w"
-  pPrint Fcvt_s_wu = text "fcvt_s_wu"
-  pPrint Fmv_w_x = text "fmv_w_x"
+  pPrint Flw = "flw"
+  pPrint Fsw = "fsw"
+  pPrint Fmadd_s = "fmadd_s"
+  pPrint Fmsub_s = "fmsub_s"
+  pPrint Fnmsub_s = "fnmsub_s"
+  pPrint Fnmadd_s = "fnmadd_s"
+  pPrint Fadd_s = "fadd_s"
+  pPrint Fsub_s = "fsub_s"
+  pPrint Fmul_s = "fmul_s"
+  pPrint Fdiv_s = "fdiv_s"
+  pPrint Fsqrt_s = "fsqrt_s"
+  pPrint Fsgnj_s = "fsgnj_s"
+  pPrint Fsgnjn_s = "fsgnjn_s"
+  pPrint Fsgnjx_s = "fsgnjx_s"
+  pPrint Fmin_s = "fmin_s"
+  pPrint Fmax_s = "fmax_s"
+  pPrint Fcvt_w_s = "fcvt_w_s"
+  pPrint Fcvt_wu_s = "fcvt_wu_s"
+  pPrint Fmv_x_w = "fmv_x_w"
+  pPrint Feq_s = "feq_s"
+  pPrint Flt_s = "flt_s"
+  pPrint Fle_s = "fle_s"
+  pPrint Fclass_s = "fclass_s"
+  pPrint Fcvt_s_w = "fcvt_s_w"
+  pPrint Fcvt_s_wu = "fcvt_s_wu"
+  pPrint Fmv_w_x = "fmv_w_x"
 
   -- RV64F
-  pPrint Fcvt_l_s = text "fcvt_l_s"
-  pPrint Fcvt_lu_s = text "fcvt_lu_s"
-  pPrint Fcvt_s_l = text "fcvt_s_l"
-  pPrint Fcvt_s_lu = text "fcvt_s_lu"
+  pPrint Fcvt_l_s = "fcvt_l_s"
+  pPrint Fcvt_lu_s = "fcvt_lu_s"
+  pPrint Fcvt_s_l = "fcvt_s_l"
+  pPrint Fcvt_s_lu = "fcvt_s_lu"
 
   -- RV32D
-  pPrint Fld = text "fld"
-  pPrint Fsd = text "fsd"
-  pPrint Fmadd_d = text "fmadd_d"
-  pPrint Fmsub_d = text "fmsub_d"
-  pPrint Fnmsub_d = text "fnmsub_d"
-  pPrint Fnmadd_d = text "fnmadd_d"
-  pPrint Fadd_d = text "fadd_d"
-  pPrint Fsub_d = text "fsub_d"
-  pPrint Fmul_d = text "fmul_d"
-  pPrint Fdiv_d = text "fdiv_d"
-  pPrint Fsqrt_d = text "fsqrt_d"
-  pPrint Fsgnj_d = text "fsgnj_d"
-  pPrint Fsgnjn_d = text "fsgnjn_d"
-  pPrint Fsgnjx_d = text "fsgnjx_d"
-  pPrint Fmin_d = text "fmin_d"
-  pPrint Fmax_d = text "fmax_d"
-  pPrint Fcvt_s_d = text "fcvt_s_d"
-  pPrint Fcvt_d_s = text "fcvt_d_s"
-  pPrint Feq_d = text "feq_d"
-  pPrint Flt_d = text "flt_d"
-  pPrint Fle_d = text "fle_d"
-  pPrint Fclass_d = text "fclass_d"
-  pPrint Fcvt_w_d = text "fcvt_w_d"
-  pPrint Fcvt_wu_d = text "fcvt_wu_d"
-  pPrint Fcvt_d_w = text "fcvt_d_w"
-  pPrint Fcvt_d_wu = text "fcvt_d_wu"
+  pPrint Fld = "fld"
+  pPrint Fsd = "fsd"
+  pPrint Fmadd_d = "fmadd_d"
+  pPrint Fmsub_d = "fmsub_d"
+  pPrint Fnmsub_d = "fnmsub_d"
+  pPrint Fnmadd_d = "fnmadd_d"
+  pPrint Fadd_d = "fadd_d"
+  pPrint Fsub_d = "fsub_d"
+  pPrint Fmul_d = "fmul_d"
+  pPrint Fdiv_d = "fdiv_d"
+  pPrint Fsqrt_d = "fsqrt_d"
+  pPrint Fsgnj_d = "fsgnj_d"
+  pPrint Fsgnjn_d = "fsgnjn_d"
+  pPrint Fsgnjx_d = "fsgnjx_d"
+  pPrint Fmin_d = "fmin_d"
+  pPrint Fmax_d = "fmax_d"
+  pPrint Fcvt_s_d = "fcvt_s_d"
+  pPrint Fcvt_d_s = "fcvt_d_s"
+  pPrint Feq_d = "feq_d"
+  pPrint Flt_d = "flt_d"
+  pPrint Fle_d = "fle_d"
+  pPrint Fclass_d = "fclass_d"
+  pPrint Fcvt_w_d = "fcvt_w_d"
+  pPrint Fcvt_wu_d = "fcvt_wu_d"
+  pPrint Fcvt_d_w = "fcvt_d_w"
+  pPrint Fcvt_d_wu = "fcvt_d_wu"
 
   -- RV64D
-  pPrint Fcvt_l_d = text "fcvt_l_d"
-  pPrint Fcvt_lu_d = text "fcvt_lu_d"
-  pPrint Fmv_x_d = text "fmv_x_d"
-  pPrint Fcvt_d_l = text "fcvt_d_l"
-  pPrint Fcvt_d_lu = text "fcvt_d_lu"
-  pPrint Fmv_d_x = text "fmv_d_x"
+  pPrint Fcvt_l_d = "fcvt_l_d"
+  pPrint Fcvt_lu_d = "fcvt_lu_d"
+  pPrint Fmv_x_d = "fmv_x_d"
+  pPrint Fcvt_d_l = "fcvt_d_l"
+  pPrint Fcvt_d_lu = "fcvt_d_lu"
+  pPrint Fmv_d_x = "fmv_d_x"
 
 ----------------------------------------
 -- Instructions

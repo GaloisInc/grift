@@ -124,6 +124,7 @@ module GRIFT.Semantics
     -- ** Pretty printing
   , pPrintInstExpr
   , pPrintInstSemantics
+  , pPrintOperandName
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
@@ -715,7 +716,7 @@ pPrintSemantics :: (forall w' . Bool -> expr w' -> Doc)
                 -> Semantics expr rv
                 -> Doc
 pPrintSemantics ppExpr semantics = (vcat $ text <$> toList (semantics ^. semComments)) $$
-                               (vcat $ pPrintStmt ppExpr <$> toList (semantics ^. semStmts))
+                                   (vcat $ pPrintStmt ppExpr <$> toList (semantics ^. semStmts))
 
 pPrintOperandName :: OperandName w -> Doc
 pPrintOperandName Aq = text "aq"
