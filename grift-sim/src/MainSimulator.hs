@@ -153,7 +153,7 @@ options =
                      case opcodeCast (simRV opts) oc of
                        Nothing ->
                          exitWithUsage $ "Opcode " ++ ocStr ++ " is not in specified instruction set"
-                       Just oc' ->
+                       Just (oc', _) ->
                          return $ Some $ opts { simTrackedOpcode = SomeOpcode (Some oc') } )
          "OPCODE")
     ("display semantic coverage of a particular instruction\n" ++
@@ -242,8 +242,8 @@ report (SimOpts _ rvRepr trackedOpcode _ memDumpStart memDumpEnd) covMap m = do
 
   pc         <- readIORef (lmPC m)
   mem        <- readIORef (lmMemory m)
-  registers  <- freezeRegisters m
-  fregisters <- freezeFRegisters m
+  registers  <- freezeGPRs m
+  fregisters <- freezeFPRs m
   csrs       <- readIORef (lmCSRs m)
 
   case (trackedOpcode, memDumpEnd > memDumpStart) of
