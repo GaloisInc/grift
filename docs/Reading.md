@@ -12,9 +12,9 @@ operations and manipulation, along with constructs for accessing RISC-V machine 
 
 There are two methods for ``reading'' GRIFT as an ISA manual -- reading the
 pretty-printed GRIFT DSL specification of a particular instruction using the
-`grift-sim` tool, and reading the source code itself. We outline both these methods
+`grift-doc` tool, and reading the source code itself. We outline both these methods
 below.
 
-## Reading instruction semantics with `grift-sim`
+## Reading instruction encoding & semantics with `grift-doc`
 
-## Reading instruction semantics directly from source
+## Reading instruction encoding & semantics directly from source

@@ -152,7 +152,7 @@ main = do
         putStrLn $ show (pPrint opcode) ++ " encoding"
         putStrLn "====================="
         putStrLn ""
-        putStrLn $ pPrintPHList placeholders
+        putStrLn $ reverse $ pPrintPHList placeholders
         putStrLn "instruction bit : value"
         forM_ placeholders $ \(i, ph) -> do
           putStrLn $ padSpaceEnd 16 (show i) ++ ": " ++ pPrintPH ph
