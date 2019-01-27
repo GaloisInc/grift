@@ -55,8 +55,8 @@ module GRIFT.Simulation.LogMachine
   , buildCTMap
   , LogMachineM
   , TrackedOpcode(..)
-  , freezeRegisters
-  , freezeFRegisters
+  , freezeGPRs
+  , freezeFPRs
   , runLogMachine
   , runLogMachineLog
   , InstCTList
@@ -73,6 +73,7 @@ import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
+import           Data.Char (chr)
 import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map.Strict as Map
@@ -103,8 +104,8 @@ data TrackedOpcode rv = NoOpcode | AllOpcodes | SomeOpcode (Some (Opcode rv))
 data LogMachine (rv :: RV) = LogMachine
   { lmRV         :: RVRepr rv
   , lmPC         :: IORef (BitVector (RVWidth rv))
-  , lmRegisters  :: IOArray (BitVector 5) (BitVector (RVWidth rv))
-  , lmFRegisters :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
+  , lmGPRs  :: IOArray (BitVector 5) (BitVector (RVWidth rv))
+  , lmFPRs :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
   , lmMemory     :: IORef (Map (BitVector (RVWidth rv)) (BitVector 8))
 --  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
   , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
@@ -212,12 +213,12 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     pcRef <- lmPC <$> ask
     pcVal <- liftIO $ readIORef pcRef
     return pcVal
-  getReg rid = do
-    regArray <- lmRegisters <$> ask
+  getGPR rid = do
+    regArray <- lmGPRs <$> ask
     regVal   <- liftIO $ readArray regArray rid
     return regVal
-  getFReg rid = do
-    regArray <- lmFRegisters <$> ask
+  getFPR rid = do
+    regArray <- lmFPRs <$> ask
     regVal   <- liftIO $ readArray regArray rid
     return regVal
   getMem bytes addr = do
@@ -243,12 +244,15 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
   setPC pcVal = do
     pcRef <- lmPC <$> ask
     liftIO $ writeIORef pcRef pcVal
-  setReg rid regVal = do
-    regArray <- lmRegisters <$> ask
+  setGPR rid regVal = do
+    regArray <- lmGPRs <$> ask
     liftIO $ writeArray regArray rid regVal
-  setFReg rid regVal = do
-    regArray <- lmFRegisters <$> ask
+  setFPR rid regVal = do
+    regArray <- lmFPRs <$> ask
     liftIO $ writeArray regArray rid regVal
+  setMem bytes addr val
+    | addr == 100 && natValue bytes == 1 = do
+        liftIO $ putChar (chr $ fromIntegral $ bvIntegerU val)
   setMem bytes addr val = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
@@ -274,9 +278,9 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     haltPCRef <- lmHaltPC <$> ask
     haltPC <- liftIO $ readIORef haltPCRef
     case haltPC of
-      Nothing -> do
-        mcause <- getCSR (encodeCSR MCause)
-        return (mcause == 11) -- halt on M-mode ecall by default
+      Nothing -> return False
+        -- mcause <- getCSR (encodeCSR MCause)
+        -- return (mcause == 11) -- halt on M-mode ecall by default
       Just addr -> do
         pc <- getPC
         return (pc == addr)
@@ -304,14 +308,14 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
       _ -> return ()
 
 -- | Create an immutable copy of the register file.
-freezeRegisters :: LogMachine rv
+freezeGPRs :: LogMachine rv
                 -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
-freezeRegisters = freeze . lmRegisters
+freezeGPRs = freeze . lmGPRs
 
 -- | Create an immutable copy of the floating point register file.
-freezeFRegisters :: LogMachine rv
+freezeFPRs :: LogMachine rv
                  -> IO (Array (BitVector 5) (BitVector (RVFloatWidth rv)))
-freezeFRegisters = freeze . lmFRegisters
+freezeFPRs = freeze . lmFPRs
 
 -- | Run the simulator for a given number of steps.
 runLogMachine :: KnownRVWidth rv => Int -> LogMachine rv -> IO Int
@@ -405,8 +409,8 @@ pPrintInstCTList rvRepr opcode (InstCTList instCTs) =
 
 -- Semantic coverage
 coverageTreeLocApp :: LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
-coverageTreeLocApp (RegExpr e) = coverageTreeInstExpr e
-coverageTreeLocApp (FRegExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (GPRExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (FPRExpr e) = coverageTreeInstExpr e
 coverageTreeLocApp (MemExpr _ e) = coverageTreeInstExpr e
 coverageTreeLocApp (ResExpr e) = coverageTreeInstExpr e
 coverageTreeLocApp (CSRExpr e) = coverageTreeInstExpr e

@@ -98,20 +98,20 @@ aSemantics = Map.fromList
   [ Pair Lrw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the four bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
-      comment "Registers a reservation on that memory word."
+      comment "GPRisters a reservation on that memory word."
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       -- Check that rs2 is zero
       let illegal = notE (rs2 `eqE` litBV 0)
 
-      let x_rs1 = readReg rs1
+      let x_rs1 = readGPR rs1
       let mVal  = readMem (knownNat @4) x_rs1
 
       branch illegal
         $> do iw <- instWord
               raiseException IllegalInstruction iw
-        $> do assignReg rd (sextE mVal)
+        $> do assignGPR rd (sextE mVal)
               reserve x_rs1
               incrPC
 
@@ -122,16 +122,16 @@ aSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       let reserved = checkReserved x_rs1
 
       branch reserved
         $> do assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2)
-              assignReg rd (litBV 0)
+              assignGPR rd (litBV 0)
               incrPC
-        $> do assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
+        $> do assignGPR rd (litBV 1) -- TODO: this could be any nonzero value.
               incrPC
   , Pair Amoswapw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
@@ -186,12 +186,12 @@ amoOp32 :: KnownRVWidth rv
 amoOp32 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
       let mVal  = readMem (knownNat @4) x_rs1
 
       assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2 `op` mVal)
-      assignReg rd (sextE mVal)
+      assignGPR rd (sextE mVal)
 
       incrPC
 
@@ -201,20 +201,20 @@ a64Semantics = Map.fromList
   [ Pair Lrd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
-      comment "Registers a reservation on that memory word."
+      comment "GPRisters a reservation on that memory word."
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       -- Check that rs2 is zero
       let illegal = notE (rs2 `eqE` litBV 0)
 
-      let x_rs1 = readReg rs1
+      let x_rs1 = readGPR rs1
       let mVal  = readMem (knownNat @8) x_rs1
 
       branch illegal
         $> do iw <- instWord
               raiseException IllegalInstruction iw
-        $> do assignReg rd (sextE mVal)
+        $> do assignGPR rd (sextE mVal)
               reserve x_rs1
 
   , Pair Scd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
@@ -224,15 +224,15 @@ a64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       let reserved = checkReserved x_rs1
 
       branch reserved
         $> do assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2)
-              assignReg rd (litBV 0)
-        $> assignReg rd (litBV 1) -- TODO: this could be any nonzero value.
+              assignGPR rd (litBV 0)
+        $> assignGPR rd (litBV 1) -- TODO: this could be any nonzero value.
   , Pair Amoswapd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
@@ -286,11 +286,11 @@ amoOp64 :: KnownRVWidth rv
 amoOp64 op = do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
       let mVal  = readMem (knownNat @8) x_rs1
 
       assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2 `op` mVal)
-      assignReg rd (sextE mVal)
+      assignGPR rd (sextE mVal)
 
       incrPC

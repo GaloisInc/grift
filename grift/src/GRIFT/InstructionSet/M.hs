@@ -92,10 +92,10 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
-      assignReg rd (x_rs1 `mulE` x_rs2)
+      assignGPR rd (x_rs1 `mulE` x_rs2)
       incrPC
 
   , Pair Mulh $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -104,8 +104,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       archWidth <- getArchWidth
 
@@ -114,7 +114,7 @@ mSemantics = Map.fromList
           sext_x_rs2 = sextEWithRepr mulWidth x_rs2
           prod = sext_x_rs1 `mulE` sext_x_rs2
 
-      assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
+      assignGPR rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
   , Pair Mulhsu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -124,8 +124,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       archWidth <- getArchWidth
 
@@ -134,7 +134,7 @@ mSemantics = Map.fromList
           zext_x_rs2 = zextEWithRepr mulWidth x_rs2
           prod = sext_x_rs1 `mulE` zext_x_rs2
 
-      assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
+      assignGPR rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
   , Pair Mulhu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -143,8 +143,8 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       archWidth <- getArchWidth
 
@@ -153,7 +153,7 @@ mSemantics = Map.fromList
           zext_x_rs2 = zextEWithRepr mulWidth x_rs2
           prod = zext_x_rs1 `mulE` zext_x_rs2
 
-      assignReg rd $ extractE (fromIntegral $ natValue archWidth) prod
+      assignGPR rd $ extractE (fromIntegral $ natValue archWidth) prod
       incrPC
 
   , Pair Div $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -162,12 +162,12 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       let q = x_rs1 `quotsE` x_rs2
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
 
   , Pair Divu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -176,12 +176,12 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       let q = x_rs1 `quotuE` x_rs2
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
       incrPC
 
   , Pair Rem $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -190,12 +190,12 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       let q = x_rs1 `remsE` x_rs2
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
       incrPC
 
   , Pair Remu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -204,12 +204,12 @@ mSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
       let q = x_rs1 `remuE` x_rs2
 
-      assignReg rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
       incrPC
 
   ]
@@ -222,10 +222,10 @@ m64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
 
-      assignReg rd (sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `mulE` x_rs2)))
+      assignGPR rd (sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `mulE` x_rs2)))
       incrPC
   , Pair Divw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as signed integers."
@@ -233,14 +233,14 @@ m64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
       let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
       let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
       let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `quotsE` dividend))
 
-      assignReg rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
       incrPC
   , Pair Divuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as unsigned integers."
@@ -248,14 +248,14 @@ m64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
       let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
       let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
       let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `quotuE` dividend))
 
-      assignReg rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
       incrPC
   , Pair Remw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
@@ -263,14 +263,14 @@ m64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
       let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
       let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
       let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `remsE` dividend))
 
-      assignReg rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
+      assignGPR rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
       incrPC
   , Pair Remuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
@@ -278,13 +278,13 @@ m64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1 = readReg rs1
-      let x_rs2 = readReg rs2
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
       let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
       let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
 
       let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `remuE` dividend))
 
-      assignReg rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
+      assignGPR rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
       incrPC
   ]

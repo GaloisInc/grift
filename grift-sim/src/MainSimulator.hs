@@ -101,7 +101,6 @@ rvReprFromString s = case s of
 data SimOpts rv = SimOpts
   { simSteps :: Int
   , simRV :: RVRepr rv
---  , simCovFile :: Maybe String
   , simTrackedOpcode :: TrackedOpcode rv -- Maybe (Some (Opcode rv))
   , simHaltPC :: Maybe Word64
   , simMemDumpStart :: Word64
@@ -112,7 +111,6 @@ defaultSimOpts :: SimOpts RV64GC
 defaultSimOpts = SimOpts
   { simSteps = 10000
   , simRV = knownRepr :: RVRepr RV64GC
---  , simCovFile = Nothing
   , simTrackedOpcode = NoOpcode
   , simHaltPC = Nothing
   , simMemDumpStart = 0x0
@@ -137,15 +135,11 @@ options =
                                                    , simTrackedOpcode = NoOpcode
                                                    }
                   SomeOpcode (Some oc) -> case opcodeCast rv oc of
-                    Just oc' -> return $ Some $ opts { simRV = rv
-                                                     , simTrackedOpcode = SomeOpcode (Some oc') }
+                    Just (oc',_) -> return $ Some $ opts { simRV = rv
+                                                         , simTrackedOpcode = SomeOpcode (Some oc') }
                     Nothing  -> return $ Some $ opts { simRV = rv, simTrackedOpcode = NoOpcode } )
      "ARCH")
     ("RISC-V arch configuration (default = RV64GC)")
-  -- , Option ['c'] ["coverage"]
-  --   (ReqArg (\covStr (Some opts) -> return $ Some $ opts { simCovFile = Just covStr })
-  --    "FILE")
-  --   ("Print coverage analysis to file")
   , Option ['h'] ["help"]
     (NoArg (\_ -> exitWithUsage ""))
     ("display help message")
@@ -159,7 +153,7 @@ options =
                      case opcodeCast (simRV opts) oc of
                        Nothing ->
                          exitWithUsage $ "Opcode " ++ ocStr ++ " is not in specified instruction set"
-                       Just oc' ->
+                       Just (oc', _) ->
                          return $ Some $ opts { simTrackedOpcode = SomeOpcode (Some oc') } )
          "OPCODE")
     ("display semantic coverage of a particular instruction\n" ++
@@ -248,8 +242,8 @@ report (SimOpts _ rvRepr trackedOpcode _ memDumpStart memDumpEnd) covMap m = do
 
   pc         <- readIORef (lmPC m)
   mem        <- readIORef (lmMemory m)
-  registers  <- freezeRegisters m
-  fregisters <- freezeFRegisters m
+  registers  <- freezeGPRs m
+  fregisters <- freezeFPRs m
   csrs       <- readIORef (lmCSRs m)
 
   case (trackedOpcode, memDumpEnd > memDumpStart) of

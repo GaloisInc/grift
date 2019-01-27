@@ -43,6 +43,8 @@ module GRIFT.Decode
     decode
   , decodeC
   , encode
+  , opBitsLayouts, OpBitsLayout
+  , operandsLayouts, OperandsLayout
   ) where
 
 import Control.Lens hiding ( (:<), Index, op, iset )
