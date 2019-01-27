@@ -128,6 +128,12 @@ interested in.
 Type `cabal v2-run grift-sim -- --help` for a full list of invocation
 instructions.
 
+`grift-doc`
+===
+
+GRIFT also comes with the `grift-doc` executable, which is used to inspect the
+encoding and semantics of individual instructions.
+
 Requirements
 ===
 

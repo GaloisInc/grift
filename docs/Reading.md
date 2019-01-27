@@ -17,4 +17,18 @@ below.
 
 ## Reading instruction encoding & semantics with `grift-doc`
 
+To view the encoding and semantics of the `slli` instruction:
+
+```shell
+cabal v2-run grift-doc -- slli
+```
+
+For some instructions, the semantics are different depending on exactly which
+extensions are enabled and/or what the register width is, so we can set the RISC-V
+configuration with the `-a` option:
+
+```shell
+cabal v2-run grift-doc -- -a RV32I slli
+```
+
 ## Reading instruction encoding & semantics directly from source
