@@ -35,9 +35,8 @@ Build instructions
 
 ## 1. Setup
 We assume you have [ghc](https://www.haskell.org/ghc/download.html) version
-8.6.2 or greater, and [cabal](https://www.haskell.org/cabal/download.html)
-version 2.4.1.0 or greater. Earlier versions of cabal may work, but any GHC
-version prior to 8.6 will not. Run a `cabal update` before you begin.
+8.4.4 or greater, and [cabal](https://www.haskell.org/cabal/download.html)
+version 2.4.1.0 or greater. Run a `cabal update` before you begin.
 
 ## 2. Clone dependencies
 
@@ -55,6 +54,9 @@ $ make
 $ sudo make install
 ```
 
+The Makefile in `deps/softfloat-hs` should install the softfloat library and
+header files to the appropriate locations on both OSX and Linux.
+
 ## 4. Build GRIFT
 Finally, build GRIFT and all associated executables using cabal v2-build:
 ```shell
@@ -64,7 +66,64 @@ $ cabal v2-build all
 Running `grift-sim`
 ===
 
-`grift-sim` is the GRIFT simulation and coverage analysis tool.
+## Simulating a single ELF file
+
+`grift-sim` is the GRIFT simulation and coverage analysis tool. Try running it
+on the executable at `test/fib`:
+
+```shell
+cabal v2-run grift-sim -- --halt-pc=0 test/fib/fib
+```
+
+This will run the executable and dump the contents of some registers. You should
+be able to do this with any executable. If you compile your executable for a
+32-bit RISC-V program, you will need to use `-a RV32GC` to switch to 32-bit
+mode.
+
+The `--halt-pc=0` option tells `grift-sim` to stop simulating as soon as the
+program counter is equal to 0. You can change this value for your particular
+application. You can also limit the number of instructions executed in
+simulation by using the `--steps` option.
+
+If you want to view a region of memory after simulation instead of the register
+files, use the `--mem-dump-start` and `--mem-dump-end` options:
+
+```shell
+cabal v2-run grift-sim -- --halt-pc=0 --mem-dump-start=0x11c90 --mem-dump-end=0x11c93 test/fib/fib
+```
+
+This will dump the contents of the memory between those memory locations; each
+line will be 8 digits (four bytes).
+
+## Analyzing instruction coverage
+
+`grift-sim` can be used to inspect coverage of the RISC-V instruction set.
+
+```shell
+cabal v2-run grift-sim -- --halt-pc=0 --inst-coverage=add test/fib/fib
+```
+
+This will print out the semantic branching structure of the ADD instruction's
+semantics, and will highlight the various branch conditions with colors
+indicating the coverage of that instruction throughout execution. We can also
+track coverage of the entire instruction set by using `--inst-coverage=all`,
+which logs coverage of every instruction and prints out a report after the run.
+
+`grift-sim` can also be used to analyze coverage of an entire test suite. If
+`test-suite` is a directory containing only ELF files that we want to simulate,
+we can try
+
+```shell
+cabal v2-run grift-sim -- --halt-pc=0 --inst-coverage=all test-suite/*
+```
+
+which will track coverage of all instructions after running all the tests back
+to back. This is how we analyze coverage for the Compliance Working Group's test
+suite. Just as for a single ELF file, we can dive into coverage of a particular
+instruction by setting ``--inst-coverage=` for whichever instruction we are
+interested in.
+
+## Other
 
 Type `cabal v2-run grift-sim -- --help` for a full list of invocation
 instructions.
