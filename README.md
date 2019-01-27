@@ -33,30 +33,38 @@ the Haskell programming environment.
 Build instructions
 ===
 
-We assume you have the Haskell build tool stack installed on your system.
+** 1. Setup
+We assume you have [ghc](https://www.haskell.org/ghc/download.html) version
+8.6.2 or greater, and [cabal](https://www.haskell.org/cabal/download.html)
+version 2.4.1.0 or greater. Earlier versions of cabal may work, but any GHC
+version prior to 8.6 will not. Run a `cabal update` before you begin.
+
+** 2. Clone dependencies
 
 First, clone all the dependencies recursively:
 ```shell
 $ git submodule update --init --recursive
 ```
 
+** 3. Install softfloat
 GRIFT depends on softfloat-hs, which in turn depends on the softfloat
-library. To install it on Linux of OSX, run:
+library. To install it on Linux or OSX, run:
 ```shell
 $ cd deps/softfloat-hs
 $ make
 $ sudo make install
 ```
 
-Finally, build GRIFT using cabal new-build:
+** 4. Build GRIFT
+Finally, build GRIFT and all associated executables using cabal v2-build:
 ```shell
-$ cabal new-build grift
+$ cabal v2-build all
 ```
 
 Running
 ===
 
-Type `cabal new-run grift-sim -- --help` for a full list of invocation
+Type `cabal v2-run grift-sim -- --help` for a full list of invocation
 instructions.
 
 Requirements
@@ -75,6 +83,8 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
   feature model: register width and implemented extensions. To run in
   simulation, it should be enough to specify this information at the *type
   level*, and have the appropriate instance of RISC-V automatically.
+- Coverage analysis and test generation tooling for RISC-V Compliance Task
+  Group.
 
 ## RISC-V support
 
@@ -101,8 +111,6 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
 
 # Secondary Requirements
 
-- Coverage analysis and test generation tooling for RISC-V Compliance Task
-  Group.
 - Straightforward integration with other languages, tools, and frameworks (Coq,
   Verilog, ...)
 - Cabal-driven test suite incorporating riscv-tests and riscv-compliance test
