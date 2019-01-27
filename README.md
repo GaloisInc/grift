@@ -33,20 +33,20 @@ the Haskell programming environment.
 Build instructions
 ===
 
-** 1. Setup
+## 1. Setup
 We assume you have [ghc](https://www.haskell.org/ghc/download.html) version
 8.6.2 or greater, and [cabal](https://www.haskell.org/cabal/download.html)
 version 2.4.1.0 or greater. Earlier versions of cabal may work, but any GHC
 version prior to 8.6 will not. Run a `cabal update` before you begin.
 
-** 2. Clone dependencies
+## 2. Clone dependencies
 
 First, clone all the dependencies recursively:
 ```shell
 $ git submodule update --init --recursive
 ```
 
-** 3. Install softfloat
+## 3. Install softfloat
 GRIFT depends on softfloat-hs, which in turn depends on the softfloat
 library. To install it on Linux or OSX, run:
 ```shell
@@ -55,7 +55,7 @@ $ make
 $ sudo make install
 ```
 
-** 4. Build GRIFT
+## 4. Build GRIFT
 Finally, build GRIFT and all associated executables using cabal v2-build:
 ```shell
 $ cabal v2-build all
