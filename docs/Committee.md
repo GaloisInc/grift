@@ -193,18 +193,22 @@ rd :< rs1 :< imm12 :< Nil <- operandEs
 let x_rs1 = readReg rs1
 let res   = x_rs1 `addE` (sextE imm12)
 
-assignReg rd res
+assignGPR rd res
 incrPC
 ```
 
 ## Documentation for model and tools
 
-### snapshot of "Reading Guide", for those who just want to read it
-like an ISA manual
+### Reading Guide
 
-### snapshot of "How to Compile/Run Guide" for those who want to
-execute a model on programs (ISA tests, Compliance tests, other
-programs)
+See [docs/Reading.md](https://github.com/GaloisInc/grift/blob/master/docs/Reading.md)
+for a discussion of how to read GRIFT as an ISA manual..
 
-### snapshot of "How to Extend Guide" for those who want to extend the
-model to capture new ISA extensions/experiments.
+### Compiling/Running
+
+See [README.md](https://github.com/GaloisInc/grift/blob/master/README.md) for
+information on how to build and run GRIFT on your system.
+
+### Extending
+
+Coming soon...
