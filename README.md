@@ -61,8 +61,10 @@ Finally, build GRIFT and all associated executables using cabal v2-build:
 $ cabal v2-build all
 ```
 
-Running
+Running `grift-sim`
 ===
+
+`grift-sim` is the GRIFT simulation and coverage analysis tool.
 
 Type `cabal v2-run grift-sim -- --help` for a full list of invocation
 instructions.
