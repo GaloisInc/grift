@@ -42,7 +42,7 @@ those hand-written tests. The GRIFT library will also be used for custom
 correctness test generation, based on a particular RISC-V platform
 configuration, as well as tandem verification, in joint work with Bluespec.
 
-## Motivation (a few sentences explaining for what the authors have developed this spec)
+## Motivation
 
 Goals that drove the development of the GRIFT RISC-V specification:
 - Written in a practical programming language capable of providing a strong
@@ -54,8 +54,7 @@ theoretical foundation (Haskell)
 language (DSL)
 - Designed to be highly compatible with existing tools and frameworks
 
-## Current functional coverage (what's modelled now, in RISC-V code and in
-   English)
+## Current functional coverage
 
 - RV32/64GC
 - Instruction encodings
@@ -91,7 +90,12 @@ Floating point operations are represented in our DSL as symbolic operations on
 bitvectors (F32Add, F64Sqrt, etc.), and are interpreted in simulation foreign
 function calls to the Berkeley Softfloat library (referenced above).
 
-## Current capabilities (what the specification and associated tooling generates and enables)
+## Current capabilities
+
+- Haskell library with RISC-V base ISA and extensions, with all instruction encodings
+  and semantics for RV32/64GC
+- Command-line documentation tool (`grift-doc`)
+- Command-line simulation and coverage tool (`grift-sim`)
 
 ### Emulation
 
@@ -184,6 +188,7 @@ We pass all the standard tests in Berkeley's riscv-tests suite.
 
 ### ADDI
 
+Source code semantics:
 ```
 comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
 comment "Arithmetic overflow is ignored."
@@ -197,12 +202,26 @@ assignGPR rd res
 incrPC
 ```
 
+Semantics as displayed by `grift-doc` documentation tool:
+```
+add semantics
+=====================
+
+Adds register x[rs2] to register x[rs1] and writes the result to x[rd].
+Arithmetic overflow is ignored.
+IF rd == 0x0
+  THEN
+  ELSE
+    x[rd] := (if rs1 == 0x0 then 0x0 else x[rs1]) + (if rs2 == 0x0 then 0x0 else x[rs2])
+pc := pc + step
+```
+
 ## Documentation for model and tools
 
 ### Reading Guide
 
 See [docs/Reading.md](https://github.com/GaloisInc/grift/blob/master/docs/Reading.md)
-for a discussion of how to read GRIFT as an ISA manual..
+for a discussion of how to read GRIFT as an ISA manual.
 
 ### Compiling/Running
 
@@ -211,4 +230,5 @@ information on how to build and run GRIFT on your system.
 
 ### Extending
 
-Coming soon...
+See [docs/Extend.md](https://github.com/GaloisInc/grift/blob/master/docs/Extend.md)
+for a discussion of how to extend GRIFT with a new ISA extension.

@@ -32,3 +32,34 @@ cabal v2-run grift-doc -- -a RV32I slli
 ```
 
 ## Reading instruction encoding & semantics directly from source
+
+There are several spots in the code that contain information on the instruction
+encodings -- piecing the information together can be a bit confusing, which is why we
+recommend using the `grift-doc` tool for a quick visualization of how the
+instruction is encoded. If you need in-depth information on GRIFT's representation of
+instruction encodings, see the "How to Extend" guide in this directory.
+
+The semantics of the instructions are contained in various source files in the
+`grift/src/GRIFT/InstructionSet/` directory. There is one file per extension (plus
+one called `Known.hs` which you can ignore). For instance, to look up the semantics
+of the `DIV` instruction, we look at the file `M.hs` go to the definition of
+`mSemantics`, containing the semantics for the instructions in the 32-bit `M`
+extension. We find the following:
+
+```
+  , Pair Div $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
+      comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as two's complement numbers."
+      comment "Writes the quotient to r[d]."
+
+      rd :< rs1 :< rs2 :< Nil <- operandEs
+
+      let x_rs1 = readGPR rs1
+      let x_rs2 = readGPR rs2
+
+      let q = x_rs1 `quotsE` x_rs2
+
+      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      incrPC
+```
+
+The semantics should be self-explanatory for most of the instructions.
