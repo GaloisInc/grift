@@ -168,7 +168,7 @@ listSome = ifoldr (\_ layout rst -> Some layout : rst) []
 data InstructionChunk w = ConcreteBV (BitVector w) | OperandBV (OperandName w)
 
 pPrintBinary :: BitVector w -> String
-pPrintBinary (BV wRepr x) = pad0 (natValue wRepr) $ showIntAtBase 2 intToDigit x ""
+pPrintBinary (BitVector wRepr x) = pad0 (natValue wRepr) $ showIntAtBase 2 intToDigit x ""
 
 pad0 :: Integral a => a -> String -> String
 pad0 n s = replicate (fromIntegral n - length s) '0' ++ s
