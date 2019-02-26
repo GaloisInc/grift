@@ -346,7 +346,7 @@ instWord = return InstWord
 readPC :: StateExpr expr => expr rv (RVWidth rv)
 readPC = stateExpr (LocApp PCExpr)
 
--- | Read a value from a register. GPRister x0 is hardwired to 0.
+-- | Read a value from a register. Register x0 is hardwired to 0.
 readGPR :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
 readGPR ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (GPRExpr ridE)))
 

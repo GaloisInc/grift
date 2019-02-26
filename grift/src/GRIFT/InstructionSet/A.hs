@@ -98,7 +98,7 @@ aSemantics = Map.fromList
   [ Pair Lrw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the four bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
-      comment "GPRisters a reservation on that memory word."
+      comment "Registers a reservation on that memory word."
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
@@ -201,7 +201,7 @@ a64Semantics = Map.fromList
   [ Pair Lrd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
-      comment "GPRisters a reservation on that memory word."
+      comment "Registers a reservation on that memory word."
 
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
