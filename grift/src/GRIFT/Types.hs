@@ -301,7 +301,7 @@ type KnownExtensions exts = KnownRepr ExtensionsRepr exts
 -- | Type-level representation of a RISC-V extension.
 data Extension = AExt | DExt | FExt | MExt | CExt | SExt | UExt
 
-type AExt = 'MExt
+type AExt = 'AExt
 type DExt = 'DExt
 type FExt = 'FExt
 type MExt = 'MExt
