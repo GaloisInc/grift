@@ -190,6 +190,11 @@ instance KnownRepr BaseArchRepr RV32  where knownRepr = RV32Repr
 instance KnownRepr BaseArchRepr RV64  where knownRepr = RV64Repr
 instance KnownRepr BaseArchRepr RV128 where knownRepr = RV128Repr
 
+instance Pretty (BaseArchRepr rv) where
+  pPrint RV32Repr = text "RV32"
+  pPrint RV64Repr = text "RV64"
+  pPrint RV128Repr = text "RV128"
+
 ----------------------------------------
 -- Extension configurations
 
@@ -251,6 +256,13 @@ instance ( KnownRepr PrivConfigRepr priv
          ) => KnownRepr ExtensionsRepr (Exts '(priv, m, a, fd, c)) where
   knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr knownRepr knownRepr
 
+instance Pretty (ExtensionsRepr exts) where
+  pPrint (ExtensionsRepr _privRepr mRepr aRepr fdRepr cRepr) =
+    pPrint mRepr <>
+    pPrint aRepr <>
+    pPrint fdRepr <>
+    pPrint cRepr
+
 -- | A runtime representative for 'PrivConfig' for dependent typing.
 data PrivConfigRepr :: PrivConfig -> * where
   PrivMRepr   :: PrivConfigRepr PrivM
@@ -261,6 +273,10 @@ instance KnownRepr PrivConfigRepr PrivM   where knownRepr = PrivMRepr
 instance KnownRepr PrivConfigRepr PrivMU  where knownRepr = PrivMURepr
 instance KnownRepr PrivConfigRepr PrivMSU where knownRepr = PrivMSURepr
 
+-- For now, don't pretty print the supported privilege level
+instance Pretty (PrivConfigRepr pc) where
+  pPrint _ = text ""
+
 -- | A runtime representative for 'MConfig' for dependent typing.
 data MConfigRepr :: MConfig -> * where
   MYesRepr :: MConfigRepr MYes
@@ -269,6 +285,10 @@ data MConfigRepr :: MConfig -> * where
 instance KnownRepr MConfigRepr MYes where knownRepr = MYesRepr
 instance KnownRepr MConfigRepr MNo  where knownRepr = MNoRepr
 
+instance Pretty (MConfigRepr mc) where
+  pPrint MYesRepr = text "M"
+  pPrint _ = text ""
+
 -- | A runtime representative for 'AConfig' for dependent typing.
 data AConfigRepr :: AConfig -> * where
   AYesRepr :: AConfigRepr AYes
@@ -276,6 +296,10 @@ data AConfigRepr :: AConfig -> * where
 
 instance KnownRepr AConfigRepr AYes where knownRepr = AYesRepr
 instance KnownRepr AConfigRepr ANo  where knownRepr = ANoRepr
+
+instance Pretty (AConfigRepr ac) where
+  pPrint AYesRepr = text "A"
+  pPrint _ = text ""
 
 -- | A runtime representative for 'FDConfig' for dependent typing.
 data FDConfigRepr :: FDConfig -> * where
@@ -287,6 +311,11 @@ instance KnownRepr FDConfigRepr FDYes   where knownRepr = FDYesRepr
 instance KnownRepr FDConfigRepr FYesDNo where knownRepr = FYesDNoRepr
 instance KnownRepr FDConfigRepr FDNo    where knownRepr = FDNoRepr
 
+instance Pretty (FDConfigRepr fdc) where
+  pPrint FDYesRepr = text "FD"
+  pPrint FYesDNoRepr = text "F"
+  pPrint _ = text ""
+
 -- | A runtime representative for 'CConfig' for dependent typing.
 data CConfigRepr :: CConfig -> * where
   CYesRepr :: CConfigRepr CYes
@@ -294,6 +323,10 @@ data CConfigRepr :: CConfig -> * where
 
 instance KnownRepr CConfigRepr CYes where knownRepr = CYesRepr
 instance KnownRepr CConfigRepr CNo  where knownRepr = CNoRepr
+
+instance Pretty (CConfigRepr cc) where
+  pPrint CYesRepr = text "C"
+  pPrint _ = text ""
 
 -- | Everything we need to know about an 'Extensions' at compile time.
 type KnownExtensions exts = KnownRepr ExtensionsRepr exts
@@ -336,6 +369,9 @@ data RVRepr :: RV -> * where
 
 instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(arch, exts)) where
   knownRepr = RVRepr knownRepr knownRepr
+
+instance Pretty (RVRepr rv) where
+  pPrint (RVRepr baseRepr extsRepr) = pPrint baseRepr <> pPrint extsRepr
 
 -- TODO: Clean this up and better document what is going on here.
 -- | The width of the GPRs are known at compile time.

@@ -16,7 +16,7 @@ extra-source-files:  README.md
 executable grift-doc
   ghc-options:         -threaded
   hs-source-dirs:      src
-  main-is:             MainDoc.hs
+  main-is:             GriftDoc.hs
   default-language:    Haskell2010
   build-depends:       array >= 0.5 && < 0.6
                      , base >= 4.7 && < 5
@@ -29,6 +29,7 @@ executable grift-doc
                      , grift
                      , lens >= 4 && < 5
                      , mtl >= 2.2 && < 2.3
+                     , optparse-applicative
                      , parameterized-utils
                      , pretty
                      , softfloat-hs
