@@ -257,7 +257,10 @@ instance ( KnownRepr PrivConfigRepr priv
   knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr knownRepr knownRepr
 
 instance Pretty (ExtensionsRepr exts) where
+  pPrint (ExtensionsRepr _privRepr MYesRepr AYesRepr FDYesRepr cRepr) =
+    text "G" <> pPrint cRepr
   pPrint (ExtensionsRepr _privRepr mRepr aRepr fdRepr cRepr) =
+    text "I" <>
     pPrint mRepr <>
     pPrint aRepr <>
     pPrint fdRepr <>

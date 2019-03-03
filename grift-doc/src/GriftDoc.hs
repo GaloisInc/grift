@@ -96,9 +96,13 @@ rvReprParser = option (eitherReader rvReprFromString)
     <> showDefaultWith (const "RV64GC") )
 
 opcodeParser :: Parser (Some (Opcode RV64GC))
-opcodeParser = argument (maybeReader readOpcode)
+opcodeParser = argument (eitherReader readOpcodeEither)
   ( help "name of opcode"
     <> metavar "OPCODE")
+  where readOpcodeEither :: String -> Either String (Some (Opcode RV64GC))
+        readOpcodeEither s = case readOpcode s of
+          Nothing -> Left $ "Unknown opcode " ++ s
+          Just oc -> Right oc
 
 main = griftDoc =<< execParser opts
   where
