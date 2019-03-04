@@ -220,7 +220,6 @@ parseRVElf _ _ d _ = d
 griftSim :: SimCfg rv -> IO ()
 griftSim cfg = do
   covMapRef <- newIORef (buildCTMap (simRepr cfg))
-  print (simReportType cfg)
   ms <- for (simFilenames cfg) $ \filename -> do
     fileBS <- catchIOError (BS.readFile filename) $ \_ -> do
       putStrLn $ "error: file \"" ++ filename ++ "\" does not exist\n"
