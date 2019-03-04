@@ -120,7 +120,7 @@ cabal v2-run grift-sim -- --halt-pc=0 --inst-coverage=all test-suite/*
 which will track coverage of all instructions after running all the tests back
 to back. This is how we analyze coverage for the Compliance Working Group's test
 suite. Just as for a single ELF file, we can dive into coverage of a particular
-instruction by setting ``--inst-coverage=` for whichever instruction we are
+instruction by setting `--inst-coverage=` for whichever instruction we are
 interested in.
 
 ## Other

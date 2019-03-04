@@ -51,6 +51,7 @@ import Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
 import Numeric (showHex, showIntAtBase)
 import Options.Applicative
+import System.Exit (exitFailure)
 import Text.PrettyPrint.HughesPJClass hiding ((<>))
 
 import GRIFT.Decode
@@ -146,6 +147,7 @@ griftDoc (Opts (Some rvRepr) (Some opcode)) = case opcodeCast rvRepr opcode of
   where exitIncompatibleOpcode :: RVRepr rv -> Opcode rv' fmt -> IO ()
         exitIncompatibleOpcode rvRepr opcode = do
           putStrLn $ "Error: opcode " ++ show (pPrint opcode) ++ " not in " ++ show (pPrint rvRepr)
+          exitFailure
 
 listSome :: List l sh -> [Some l]
 listSome = ifoldr (\_ layout rst -> Some layout : rst) []

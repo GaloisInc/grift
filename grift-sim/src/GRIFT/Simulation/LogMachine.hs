@@ -26,6 +26,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -97,6 +98,11 @@ import GRIFT.Simulation
 import Debug.Trace (traceM, trace)
 
 data TrackedOpcode rv = NoOpcode | AllOpcodes | SomeOpcode (Some (Opcode rv))
+
+deriving instance Show (TrackedOpcode rv)
+
+instance ShowF TrackedOpcode where
+  showF = show
 
 -- TODO: Coverage map should also contain a single bit for each opcode tracking
 -- whether that opcode was ever encountered at all.
