@@ -233,7 +233,7 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     rv <- lmRV <$> ask
     withRVWidth rv $ do
       let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
-      return (bvConcatManyWithRepr ((knownNat @8) `natMultiply` bytes) val)
+      return (bvConcatMany' ((knownNat @8) `natMultiply` bytes) val)
   getCSR csr = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef

@@ -278,7 +278,7 @@ fSemantics = Map.fromList
       f_rs2 <- unBox32 (readFPR rs2)
 
       let res_sign = f32Sgn (extractE 0 f_rs2)
-      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res_rst  = extractE' (knownNat @31) 0 f_rs1
       let res' = res_sign `concatE` res_rst
       res <- nanBox32 res'
 
@@ -293,7 +293,7 @@ fSemantics = Map.fromList
       f_rs2 <- unBox32 (readFPR rs2)
 
       let res_sign = notE (f32Sgn (extractE 0 f_rs2))
-      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res_rst  = extractE' (knownNat @31) 0 f_rs1
       let res' = zextE (res_sign `concatE` res_rst)
       res <- nanBox32 res'
 
@@ -308,7 +308,7 @@ fSemantics = Map.fromList
       f_rs2 <- unBox32 (readFPR rs2)
 
       let res_sign = (f32Sgn (extractE 0 f_rs1) `xorE` f32Sgn (extractE 0 f_rs2))
-      let res_rst  = extractEWithRepr (knownNat @31) 0 f_rs1
+      let res_rst  = extractE' (knownNat @31) 0 f_rs1
       let res' = zextE (res_sign `concatE` res_rst)
       res <- nanBox32 res'
 
@@ -393,7 +393,7 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
       let f_rs1 = readFPR rs1
 
-      assignGPR rd (sextE (extractEWithRepr (knownNat @32) 0 f_rs1))
+      assignGPR rd (sextE (extractE' (knownNat @32) 0 f_rs1))
       incrPC
   , Pair Feq_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the single-precision float in f[rs1] equals f[rs2]."
@@ -489,7 +489,7 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      res <- nanBox32 (extractEWithRepr (knownNat @32) 0 x_rs1)
+      res <- nanBox32 (extractE' (knownNat @32) 0 x_rs1)
 
       assignFPR rd res
       incrPC
@@ -752,7 +752,7 @@ dSemantics = Map.fromList
       let f_rs2 = readFPR rs2
 
       let res_sign = f64Sgn (extractE 0 f_rs2)
-      let res_rst  = extractEWithRepr (knownNat @63) 0 f_rs1
+      let res_rst  = extractE' (knownNat @63) 0 f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFPR rd res
@@ -766,7 +766,7 @@ dSemantics = Map.fromList
       let f_rs2 = readFPR rs2
 
       let res_sign = notE (f64Sgn (extractE 0 f_rs2))
-      let res_rst  = extractEWithRepr (knownNat @63) 0 f_rs1
+      let res_rst  = extractE' (knownNat @63) 0 f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFPR rd res
@@ -780,7 +780,7 @@ dSemantics = Map.fromList
       let f_rs2 = readFPR rs2
 
       let res_sign = (f64Sgn (extractE 0 f_rs1) `xorE` f64Sgn (extractE 0 f_rs2))
-      let res_rst  = extractEWithRepr (knownNat @63) 0 f_rs1
+      let res_rst  = extractE' (knownNat @63) 0 f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFPR rd res
@@ -1011,7 +1011,7 @@ d64Semantics = Map.fromList
 
       let f_rs1 = readFPR rs1
 
-      assignGPR rd (sextE (extractEWithRepr (knownNat @64) 0 f_rs1))
+      assignGPR rd (sextE (extractE' (knownNat @64) 0 f_rs1))
       incrPC
   , Pair Fcvt_d_l $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit signed integer in x[rs1] to a double-precision float."
@@ -1045,6 +1045,6 @@ d64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
 
-      assignFPR rd (sextE (extractEWithRepr (knownNat @64) 0 x_rs1))
+      assignFPR rd (sextE (extractE' (knownNat @64) 0 x_rs1))
       incrPC
   ]

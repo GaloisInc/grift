@@ -117,7 +117,7 @@ unBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
         -> SemanticsM expr rv (expr 32)
 unBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
   FDYesRepr -> return $
-    iteE (extractEWithRepr (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
+    iteE (extractE' (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
   FYesDNoRepr -> return e
   FDNoRepr -> undefined
 
@@ -144,8 +144,8 @@ checkCSR :: KnownRVWidth rv
          -> SemanticsM (InstExpr fmt rv) rv ()
 checkCSR write csr rst = do
   let priv = readPriv
-  let csrRW = extractEWithRepr (knownNat @2) 10 csr
-  let csrPriv = extractEWithRepr (knownNat @2) 8 csr
+  let csrRW = extractE' (knownNat @2) 10 csr
+  let csrPriv = extractE' (knownNat @2) 8 csr
   let csrOK = (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
 
   iw <- instWord
@@ -161,12 +161,12 @@ readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
 readCSR csr = cases
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
     , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-          flags = extractEWithRepr (knownNat @5) 0 fcsr
+          flags = extractE' (knownNat @5) 0 fcsr
       in zextE flags
     )
   , (csr `eqE` (litBV $ encodeCSR FRm)
     , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-          rm = extractEWithRepr (knownNat @3) 5 fcsr
+          rm = extractE' (knownNat @3) 5 fcsr
       in zextE rm
     )
   ]
@@ -184,16 +184,16 @@ writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
               => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
 writeCSR csr val = branches
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
-    , do let val' = extractEWithRepr (knownNat @5) 0 val
+    , do let val' = extractE' (knownNat @5) 0 val
              fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-             writeVal = extractEWithRepr (knownNat @27) 5 fcsr `concatE` val'
+             writeVal = extractE' (knownNat @27) 5 fcsr `concatE` val'
          assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
   , (csr `eqE` (litBV $ encodeCSR FRm)
-    , do let val' = extractEWithRepr (knownNat @3) 0 val
+    , do let val' = extractE' (knownNat @3) 0 val
              fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-             writeVal = extractEWithRepr (knownNat @24) 8 fcsr `concatE`
+             writeVal = extractE' (knownNat @24) 8 fcsr `concatE`
                         val' `concatE`
-                        extractEWithRepr (knownNat @5) 0 fcsr
+                        extractE' (knownNat @5) 0 fcsr
          assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
   , (csr `eqE` (litBV $ encodeCSR FCSR)
     , do let writeVal = val `andE` (litBV 0xFF)

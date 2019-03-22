@@ -489,7 +489,7 @@ pPrintLocApp :: (forall w' . Bool -> expr w' -> Doc)
 pPrintLocApp _ _ PCExpr = text "pc"
 pPrintLocApp ppExpr top (GPRExpr e) = text "x[" <> ppExpr top e <> text "]"
 pPrintLocApp ppExpr top (FPRExpr e) = text "f[" <> ppExpr top e <> text "]"
-pPrintLocApp ppExpr top (MemExpr bytes e) = text "M[" <> ppExpr top e <> text "]_" <> pPrint (natValue bytes)
+pPrintLocApp ppExpr top (MemExpr bytes e) = text "M[" <> ppExpr top e <> text "]_" <> pPrint (intValue bytes)
 pPrintLocApp ppExpr top (ResExpr e) = text "MReserved[" <> ppExpr top e <> text "]"
 pPrintLocApp ppExpr top (CSRExpr e) = text "CSR[" <> ppExpr top e <> text "]"
 pPrintLocApp _ _ PrivExpr = text "current_priv"

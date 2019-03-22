@@ -165,8 +165,9 @@ data ReportType rv = MemDump MemDumpRange
 
 reportTypeParser :: Parser (ReportType RV64GC)
 reportTypeParser =
+  pure NoReport <|>
   (MemDump <$> memDumpRangeParser) <|>
-  (flag NoReport RegDump
+  (flag' RegDump
    ( help "post-simulation register file dump"
      <> long "reg-dump" ) ) <|>
   (CoverageReport <$>

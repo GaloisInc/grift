@@ -110,8 +110,8 @@ mSemantics = Map.fromList
       archWidth <- getArchWidth
 
       let mulWidth  = archWidth `addNat` archWidth
-          sext_x_rs1 = sextEWithRepr mulWidth x_rs1
-          sext_x_rs2 = sextEWithRepr mulWidth x_rs2
+          sext_x_rs1 = sextE' mulWidth x_rs1
+          sext_x_rs2 = sextE' mulWidth x_rs2
           prod = sext_x_rs1 `mulE` sext_x_rs2
 
       assignGPR rd $ extractE (fromIntegral $ natValue archWidth) prod
@@ -130,8 +130,8 @@ mSemantics = Map.fromList
       archWidth <- getArchWidth
 
       let mulWidth  = archWidth `addNat` archWidth
-          sext_x_rs1 = sextEWithRepr mulWidth x_rs1
-          zext_x_rs2 = zextEWithRepr mulWidth x_rs2
+          sext_x_rs1 = sextE' mulWidth x_rs1
+          zext_x_rs2 = zextE' mulWidth x_rs2
           prod = sext_x_rs1 `mulE` zext_x_rs2
 
       assignGPR rd $ extractE (fromIntegral $ natValue archWidth) prod
@@ -149,8 +149,8 @@ mSemantics = Map.fromList
       archWidth <- getArchWidth
 
       let mulWidth  = archWidth `addNat` archWidth
-          zext_x_rs1 = zextEWithRepr mulWidth x_rs1
-          zext_x_rs2 = zextEWithRepr mulWidth x_rs2
+          zext_x_rs1 = zextE' mulWidth x_rs1
+          zext_x_rs2 = zextE' mulWidth x_rs2
           prod = zext_x_rs1 `mulE` zext_x_rs2
 
       assignGPR rd $ extractE (fromIntegral $ natValue archWidth) prod
@@ -225,7 +225,7 @@ m64Semantics = Map.fromList
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
 
-      assignGPR rd (sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `mulE` x_rs2)))
+      assignGPR rd (sextE (extractE' (knownNat @32) 0 (x_rs1 `mulE` x_rs2)))
       incrPC
   , Pair Divw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as signed integers."
@@ -235,10 +235,10 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
-      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
+      let divisor = extractE' (knownNat @32) 0 x_rs1
+      let dividend = extractE' (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `quotsE` dividend))
+      let q = sextE (extractE' (knownNat @32) 0 (divisor `quotsE` dividend))
 
       assignGPR rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
       incrPC
@@ -250,10 +250,10 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
-      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
+      let divisor = extractE' (knownNat @32) 0 x_rs1
+      let dividend = extractE' (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `quotuE` dividend))
+      let q = sextE (extractE' (knownNat @32) 0 (divisor `quotuE` dividend))
 
       assignGPR rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
       incrPC
@@ -265,10 +265,10 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
-      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
+      let divisor = extractE' (knownNat @32) 0 x_rs1
+      let dividend = extractE' (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `remsE` dividend))
+      let q = sextE (extractE' (knownNat @32) 0 (divisor `remsE` dividend))
 
       assignGPR rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
       incrPC
@@ -280,10 +280,10 @@ m64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let divisor = extractEWithRepr (knownNat @32) 0 x_rs1
-      let dividend = extractEWithRepr (knownNat @32) 0 x_rs2
+      let divisor = extractE' (knownNat @32) 0 x_rs1
+      let dividend = extractE' (knownNat @32) 0 x_rs2
 
-      let q = sextE (extractEWithRepr (knownNat @32) 0 (divisor `remuE` dividend))
+      let q = sextE (extractE' (knownNat @32) 0 (divisor `remuE` dividend))
 
       assignGPR rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
       incrPC

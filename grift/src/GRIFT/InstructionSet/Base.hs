@@ -755,7 +755,7 @@ base64Semantics = Map.fromList
       let x_rs2 = readGPR rs2
       let res   = x_rs1 `addE` x_rs2
 
-      assignGPR rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
+      assignGPR rd $ sextE (extractE' (knownNat @32) 0 res)
       incrPC
   , Pair Subw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Subtracts x[rs2] from [rs1], truncating the result to 32 bits."
@@ -768,7 +768,7 @@ base64Semantics = Map.fromList
       let x_rs2 = readGPR rs2
       let res   = x_rs1 `subE` x_rs2
 
-      assignGPR rd $ sextE (extractEWithRepr (knownNat @32) 0 res)
+      assignGPR rd $ sextE (extractE' (knownNat @32) 0 res)
       incrPC
 
   , Pair Sllw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -778,9 +778,9 @@ base64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readGPR rs1)
+      let x_rs1'  = extractE' (knownNat @32) 0 (readGPR rs1)
       let x_rs2 = readGPR rs2
-      let shamt = extractEWithRepr (knownNat @5) 0 x_rs2
+      let shamt = extractE' (knownNat @5) 0 x_rs2
 
       assignGPR rd $ sextE (x_rs1' `sllE` zextE shamt)
       incrPC
@@ -792,9 +792,9 @@ base64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readGPR rs1)
+      let x_rs1'  = extractE' (knownNat @32) 0 (readGPR rs1)
       let x_rs2 = readGPR rs2
-      let shamt = extractEWithRepr (knownNat @5) 0 x_rs2
+      let shamt = extractE' (knownNat @5) 0 x_rs2
 
       assignGPR rd $ sextE (x_rs1' `srlE` zextE shamt)
       incrPC
@@ -806,9 +806,9 @@ base64Semantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readGPR rs1)
+      let x_rs1'  = extractE' (knownNat @32) 0 (readGPR rs1)
       let x_rs2 = readGPR rs2
-      let shamt = extractEWithRepr (knownNat @5) 0 x_rs2
+      let shamt = extractE' (knownNat @5) 0 x_rs2
 
       assignGPR rd $ sextE (x_rs1' `sraE` zextE shamt)
       incrPC
@@ -843,7 +843,7 @@ base64Semantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = sextE (extractEWithRepr (knownNat @32) 0 (x_rs1 `addE` (sextE imm12)))
+      let res   = sextE (extractE' (knownNat @32) 0 (x_rs1 `addE` (sextE imm12)))
 
       assignGPR rd res
       incrPC
@@ -853,14 +853,14 @@ base64Semantics = Map.fromList
       comment "The vacated bits are filled with zeros, and the sign-extended 32-bit result is written to x[rd]."
 
       rd :< rs1 :< shamt :< Nil <- operandEs
-      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readGPR rs1)
+      let x_rs1'  = extractE' (knownNat @32) 0 (readGPR rs1)
 
       assignGPR rd $ sextE (x_rs1' `sllE` zextE shamt)
       incrPC
 
   , Pair Srliw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
       rd :< rs1 :< shamt :< Nil <- operandEs
-      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readGPR rs1)
+      let x_rs1'  = extractE' (knownNat @32) 0 (readGPR rs1)
 
       assignGPR rd $ sextE (x_rs1' `srlE` zextE shamt)
       incrPC
@@ -868,7 +868,7 @@ base64Semantics = Map.fromList
   , Pair Sraiw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
 
       rd :< rs1 :< shamt :< Nil <- operandEs
-      let x_rs1'  = extractEWithRepr (knownNat @32) 0 (readGPR rs1)
+      let x_rs1'  = extractE' (knownNat @32) 0 (readGPR rs1)
 
       assignGPR rd $ sextE (x_rs1' `sraE` zextE shamt)
       incrPC
