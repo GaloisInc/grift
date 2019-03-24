@@ -626,6 +626,9 @@ instance TestEquality (OperandID fmt) where
                     [(AnyType `TypeApp` AnyType `TypeApp` AnyType, [|testEquality|])
                     ])
 
+instance OrdF (OperandID fmt) where
+  OperandID ix1 `compareF` OperandID ix2 = ix1 `compareF` ix2
+
 -- | RISC-V Operand lists, parameterized by format.
 data Operands :: Format -> * where
   Operands :: FormatRepr fmt -> List BitVector (OperandTypes fmt) -> Operands fmt
