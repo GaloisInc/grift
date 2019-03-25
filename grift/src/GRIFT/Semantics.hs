@@ -156,7 +156,7 @@ data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   GPRApp  :: NatRepr (RVWidth rv) -> expr 5 -> LocApp expr rv (RVWidth rv)
   FPRApp  :: FExt << rv => NatRepr (RVFloatWidth rv) -> expr 5 -> LocApp expr rv (RVFloatWidth rv)
   MemApp  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
-  ResApp  :: expr (RVWidth rv) -> LocApp expr rv 1
+  ResApp  :: AExt << rv => expr (RVWidth rv) -> LocApp expr rv 1
   CSRApp  :: NatRepr (RVWidth rv) -> expr 12 -> LocApp expr rv (RVWidth rv)
   PrivApp :: LocApp expr rv 2
 
@@ -451,11 +451,11 @@ assignPriv :: expr rv 2 -> SemanticsM (expr rv) rv ()
 assignPriv priv = addStmt (AssignStmt PrivApp priv)
 
 -- | Reserve a memory location.
-reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
+reserve :: (AExt << rv, BVExpr (expr rv)) => expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
 reserve addr = addStmt (AssignStmt (ResApp addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
-checkReserved :: StateExpr expr => expr rv (RVWidth rv) -> expr rv 1
+checkReserved :: (AExt << rv, StateExpr expr) => expr rv (RVWidth rv) -> expr rv 1
 checkReserved addr = stateExpr (LocApp (ResApp addr))
 
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
