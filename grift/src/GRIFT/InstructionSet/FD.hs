@@ -59,11 +59,11 @@ fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = f64 <> d64
 fdFromRepr _ = mempty
 
 -- | F extension (RV32)
-f32 :: (KnownRVWidth rv, KnownRVFloatType rv, FExt << rv) => InstructionSet rv
+f32 :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv) => InstructionSet rv
 f32 = instructionSet fEncode fSemantics
 
 -- | F extension (RV64)
-f64 :: (KnownRVWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+f64 :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => InstructionSet rv
 f64 = f32 <> instructionSet f64Encode f64Semantics
 
 -- | D extension (RV32)
@@ -104,7 +104,7 @@ fEncode = Map.fromList
   , Pair Fmv_w_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100000000 :< Nil))
   ]
 
-fSemantics :: forall rv . (KnownRVWidth rv, KnownRVFloatType rv, FExt << rv) => SemanticsMap rv
+fSemantics :: forall rv . (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv) => SemanticsMap rv
 fSemantics = Map.fromList
   [ Pair Flw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a single-precision float from memory address x[rs1] + sext(offset)."
@@ -503,7 +503,7 @@ f64Encode = Map.fromList
   , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110100000011 :< Nil))
   ]
 
-f64Semantics :: (KnownRVWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+f64Semantics :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 f64Semantics = Map.fromList
   [ Pair Fcvt_l_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 64-bit signed integer."

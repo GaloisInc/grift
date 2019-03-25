@@ -121,14 +121,14 @@ evalLocApp :: forall m expr rv w . (RVStateM m rv)
            => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
            -> LocApp expr rv w
            -> m (BitVector w)
-evalLocApp _ PCExpr = getPC
-evalLocApp eval (GPRExpr ridE) = eval ridE >>= getGPR
-evalLocApp eval (FPRExpr ridE) = eval ridE >>= getFPR
-evalLocApp eval (MemExpr bytes addrE) = eval addrE >>= getMem bytes
+evalLocApp _ (PCApp _) = getPC
+evalLocApp eval (GPRApp _ ridE) = eval ridE >>= getGPR
+evalLocApp eval (FPRApp _ ridE) = eval ridE >>= getFPR
+evalLocApp eval (MemApp bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
-evalLocApp _ (ResExpr _) = return 1
-evalLocApp eval (CSRExpr csrE) = eval csrE >>= getCSR
-evalLocApp _ PrivExpr = getPriv
+evalLocApp _ (ResApp _) = return 1
+evalLocApp eval (CSRApp _ csrE) = eval csrE >>= getCSR
+evalLocApp _ PrivApp = getPriv
 
 -- | Evaluate a 'StateApp', given an 'RVStateM' implementation.
 evalStateApp :: forall m expr rv w . (RVStateM m rv)
@@ -141,7 +141,8 @@ evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
 evalPureStateExpr :: forall m rv w . (RVStateM m rv) => PureStateExpr rv w -> m (BitVector w)
-evalPureStateExpr (PureStateExpr e) = evalStateApp evalPureStateExpr e
+evalPureStateExpr (PureStateLitBV bv) = return bv
+evalPureStateExpr (PureStateApp e) = evalStateApp evalPureStateExpr e
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m rv fmt w . RVStateM m rv
@@ -150,14 +151,15 @@ evalInstExpr :: forall m rv fmt w . RVStateM m rv
              -> Integer            -- ^ Instruction width (in bytes)
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
              -> m (BitVector w)
-evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr (OperandID p)) = return (operands !! p)
-evalInstExpr _ _ ib InstBytes = do
+evalInstExpr _ _ _ (InstLitBV bv) = return bv
+evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) = return (operands !! p)
+evalInstExpr _ _ ib (InstBytes _) = do
   rv <- getRV
   return $ withRVWidth rv $ bitVector ib
-evalInstExpr iset inst _ InstWord = do
+evalInstExpr iset inst _ (InstWord _) = do
   rv <- getRV
   return $ (withRVWidth rv $ bvZext $ encode iset inst)
-evalInstExpr iset inst ib (InstStateExpr e) = evalStateApp (evalInstExpr iset inst ib) e
+evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset inst ib) e
 
 -- | This type represents a concrete component of the global state, after all
 -- expressions have been evaluated. It is in direct correspondence with the 'LocApp'
@@ -182,30 +184,30 @@ buildAssignment :: (RVStateM m rv)
                      => (forall w . expr w -> m (BitVector w))
                      -> Stmt expr rv
                      -> m [Assignment rv]
-buildAssignment eval (AssignStmt PCExpr pcE) = do
+buildAssignment eval (AssignStmt (PCApp _) pcE) = do
   pcVal <- eval pcE
   return [Assignment PC pcVal]
-buildAssignment eval (AssignStmt (GPRExpr ridE) e) = do
+buildAssignment eval (AssignStmt (GPRApp _ ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
   return [Assignment (GPR rid) eVal]
-buildAssignment eval (AssignStmt (FPRExpr ridE) e) = do
+buildAssignment eval (AssignStmt (FPRApp _ ridE) e) = do
   rid  <- eval ridE
   eVal <- eval e
   return [Assignment (FPR rid) eVal]
-buildAssignment eval (AssignStmt (MemExpr bytes addrE) e) = do
+buildAssignment eval (AssignStmt (MemApp bytes addrE) e) = do
   addr <- eval addrE
   eVal <- eval e
   return [Assignment (Mem bytes addr) eVal]
-buildAssignment eval (AssignStmt (ResExpr addrE) e) = do
+buildAssignment eval (AssignStmt (ResApp addrE) e) = do
   addr <- eval addrE
   eVal <- eval e
   return [Assignment (Res addr) eVal]
-buildAssignment eval (AssignStmt (CSRExpr csrE) e) = do
+buildAssignment eval (AssignStmt (CSRApp _ csrE) e) = do
   csr  <- eval csrE
   eVal <- eval e
   return [Assignment (CSR csr) eVal]
-buildAssignment eval (AssignStmt PrivExpr privE) = do
+buildAssignment eval (AssignStmt PrivApp privE) = do
   privVal <- eval privE
   return [Assignment Priv privVal]
 buildAssignment eval (BranchStmt condE tStmts fStmts) = do

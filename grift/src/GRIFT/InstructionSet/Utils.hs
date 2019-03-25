@@ -81,7 +81,7 @@ getArchWidth :: forall rv fmt . KnownRVWidth rv => SemanticsM (InstExpr fmt rv) 
 getArchWidth = return (knownNat @(RVWidth rv))
 
 -- | Increment the PC
-incrPC :: SemanticsM (InstExpr fmt rv) rv ()
+incrPC :: KnownRVWidth rv => SemanticsM (InstExpr fmt rv) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC

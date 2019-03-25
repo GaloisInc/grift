@@ -415,11 +415,11 @@ pPrintInstCTList rvRepr opcode (InstCTList instCTs) =
 
 -- Semantic coverage
 coverageTreeLocApp :: LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
-coverageTreeLocApp (GPRExpr e) = coverageTreeInstExpr e
-coverageTreeLocApp (FPRExpr e) = coverageTreeInstExpr e
-coverageTreeLocApp (MemExpr _ e) = coverageTreeInstExpr e
-coverageTreeLocApp (ResExpr e) = coverageTreeInstExpr e
-coverageTreeLocApp (CSRExpr e) = coverageTreeInstExpr e
+coverageTreeLocApp (GPRApp _ e) = coverageTreeInstExpr e
+coverageTreeLocApp (FPRApp _ e) = coverageTreeInstExpr e
+coverageTreeLocApp (MemApp _ e) = coverageTreeInstExpr e
+coverageTreeLocApp (ResApp e) = coverageTreeInstExpr e
+coverageTreeLocApp (CSRApp _ e) = coverageTreeInstExpr e
 coverageTreeLocApp _ = []
 
 coverageTreeStateApp :: StateApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
@@ -428,11 +428,11 @@ coverageTreeStateApp (AppExpr e) = coverageTreeBVApp e
 coverageTreeStateApp (FloatAppExpr e) = coverageTreeBVFloatApp e
 
 coverageTreeInstExpr :: InstExpr fmt rv w -> [CT (InstExpr fmt rv)]
-coverageTreeInstExpr (InstStateExpr e) = coverageTreeStateApp e
+coverageTreeInstExpr (InstStateApp e) = coverageTreeStateApp e
 coverageTreeInstExpr _ = []
 
 coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
-coverageTreeBVApp (IteApp t l r) =
+coverageTreeBVApp (IteApp _ t l r) =
   [CT (CTNode False False t) (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
 coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 

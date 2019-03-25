@@ -81,7 +81,8 @@ defined using 'SemanticsBuilder'.
 
 module GRIFT.Semantics
   ( -- * 'BitVector' semantic expressions
-    module Data.BitVector.Sized.App
+    module Data.BitVector.Sized
+  , module Data.BitVector.Sized.App
   , module Data.BitVector.Sized.Float.App
     -- * RISC-V semantic expressions
   , LocApp(..)
@@ -130,6 +131,7 @@ module GRIFT.Semantics
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
 import Control.Monad.Fail
 import Control.Monad.State
+import Data.BitVector.Sized
 import Data.BitVector.Sized.App
 import Data.BitVector.Sized.Float.App
 import Data.Foldable
@@ -150,13 +152,22 @@ import GRIFT.Types
 -- | This type represents an abstract component of the global state. Sub-expressions
 -- come from an arbitrary expression language @expr@.
 data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
-  PCExpr   :: LocApp expr rv (RVWidth rv)
-  GPRExpr  :: expr 5 -> LocApp expr rv (RVWidth rv)
-  FPRExpr :: FExt << rv => expr 5 -> LocApp expr rv (RVFloatWidth rv)
-  MemExpr  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
-  ResExpr  :: expr (RVWidth rv) -> LocApp expr rv 1
-  CSRExpr  :: expr 12 -> LocApp expr rv (RVWidth rv)
-  PrivExpr :: LocApp expr rv 2
+  PCApp   :: NatRepr (RVWidth rv) -> LocApp expr rv (RVWidth rv)
+  GPRApp  :: NatRepr (RVWidth rv) -> expr 5 -> LocApp expr rv (RVWidth rv)
+  FPRApp  :: FExt << rv => NatRepr (RVFloatWidth rv) -> expr 5 -> LocApp expr rv (RVFloatWidth rv)
+  MemApp  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
+  ResApp  :: expr (RVWidth rv) -> LocApp expr rv 1
+  CSRApp  :: NatRepr (RVWidth rv) -> expr 12 -> LocApp expr rv (RVWidth rv)
+  PrivApp :: LocApp expr rv 2
+
+locAppWidth :: LocApp expr rv w -> NatRepr w
+locAppWidth (PCApp wRepr) = wRepr
+locAppWidth (GPRApp wRepr _) = wRepr
+locAppWidth (FPRApp wRepr _) = wRepr
+locAppWidth (MemApp bytesRepr _) = (knownNat @8) `natMultiply` bytesRepr
+locAppWidth (ResApp _) = knownNat
+locAppWidth (CSRApp wRepr _) = wRepr
+locAppWidth PrivApp = knownNat
 
 -- | Expressions for general computations over the RISC-V machine state -- we can
 -- access specific locations, and we can also build up compound expressions using the
@@ -172,34 +183,56 @@ data StateApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   -- | 'BVFloatApp' with 'StateApp' subexpressions
   FloatAppExpr :: FExt << rv => !(BVFloatApp expr w) -> StateApp expr rv w
 
+stateAppWidth :: StateApp expr rv w -> NatRepr w
+stateAppWidth (LocApp locApp) = locAppWidth locApp
+stateAppWidth (AppExpr bvApp) = bvAppWidth bvApp
+stateAppWidth (FloatAppExpr bvFloatApp) = bvFloatAppWidth bvFloatApp
+
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
-newtype PureStateExpr (rv :: RV) (w :: Nat) = PureStateExpr (StateApp (PureStateExpr rv) rv w)
+data PureStateExpr (rv :: RV) (w :: Nat)
+  = PureStateLitBV (BitVector w)
+  | PureStateApp (StateApp (PureStateExpr rv) rv w)
 
 instance BVExpr (PureStateExpr rv) where
-  appExpr = PureStateExpr . AppExpr
+  litBV = PureStateLitBV
+
+  exprWidth (PureStateLitBV (BitVector wRepr _)) = wRepr
+  exprWidth (PureStateApp bvApp) = stateAppWidth bvApp
+
+  appExpr bvApp = PureStateApp (AppExpr bvApp)
 
 instance FExt << rv => BVFloatExpr (PureStateExpr rv) where
-  floatAppExpr = PureStateExpr . FloatAppExpr
+  floatAppExpr = PureStateApp . FloatAppExpr
 
 -- | Expressions for computations over the RISC-V machine state, in the context of
 -- an executing instruction.
 data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
+  -- | Literal BitVector
+  InstLitBV :: !(BitVector w) -> InstExpr fmt rv w
   -- | Accessing the instruction operands
-  OperandExpr :: !(OperandID fmt w) -> InstExpr fmt rv w
+  OperandExpr :: !(NatRepr w) -> !(OperandID fmt w) -> InstExpr fmt rv w
   -- | Accessing the instruction width, in number of bytes
-  InstBytes :: InstExpr fmt rv (RVWidth rv)
+  InstBytes :: !(NatRepr (RVWidth rv)) -> InstExpr fmt rv (RVWidth rv)
   -- | Accessing the entire instruction word itself
-  InstWord :: InstExpr fmt rv (RVWidth rv)
+  InstWord :: !(NatRepr (RVWidth rv)) -> InstExpr fmt rv (RVWidth rv)
 
   -- | Accessing the machine state
-  InstStateExpr :: !(StateApp (InstExpr fmt rv) rv w) -> InstExpr fmt rv w
+  InstStateApp :: !(StateApp (InstExpr fmt rv) rv w) -> InstExpr fmt rv w
 
 instance BVExpr (InstExpr fmt rv) where
-  appExpr = InstStateExpr . AppExpr
+  litBV = InstLitBV
+
+  exprWidth (InstLitBV (BitVector wRepr _)) = wRepr
+  exprWidth (OperandExpr wRepr _) = wRepr
+  exprWidth (InstBytes wRepr) = wRepr
+  exprWidth (InstWord wRepr) = wRepr
+  exprWidth (InstStateApp stateApp) = stateAppWidth stateApp
+
+  appExpr = InstStateApp . AppExpr
 
 instance FExt << rv =>  BVFloatExpr (InstExpr fmt rv) where
-  floatAppExpr = InstStateExpr . FloatAppExpr
+  floatAppExpr = InstStateApp . FloatAppExpr
 
 -- TODO: When we get quantified constraints, put a forall arch. BVExpr (expr arch)
 -- here
@@ -209,10 +242,10 @@ class StateExpr (expr :: RV -> Nat -> *) where
   stateExpr :: StateApp (expr rv) rv w -> expr rv w
 
 instance StateExpr PureStateExpr where
-  stateExpr = PureStateExpr
+  stateExpr = PureStateApp
 
 instance StateExpr (InstExpr fmt) where
-  stateExpr = InstStateExpr
+  stateExpr = InstStateApp
 
 -- | A 'Stmt' represents an atomic state transformation -- typically, an assignment
 -- of a state component (register, memory location, etc.) to an expression of the
@@ -284,46 +317,46 @@ operandEs = return (operandEsWithRepr knownRepr)
 -- explicit argument.
 operandEsWithRepr :: FormatRepr fmt -> (List (InstExpr fmt rv) (OperandTypes fmt))
 operandEsWithRepr repr = case repr of
-  RRepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :<
-            OperandExpr (OperandID index2) :< Nil)
-  IRepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :<
-            OperandExpr (OperandID index2) :< Nil)
-  SRepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :<
-            OperandExpr (OperandID index2) :< Nil)
-  BRepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :<
-            OperandExpr (OperandID index2) :< Nil)
-  URepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :< Nil)
-  JRepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :< Nil)
-  HRepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :<
-            OperandExpr (OperandID index2) :< Nil)
+  RRepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :< Nil)
+  IRepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :< Nil)
+  SRepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :< Nil)
+  BRepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :< Nil)
+  URepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :< Nil)
+  JRepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :< Nil)
+  HRepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :< Nil)
   PRepr -> Nil
-  ARepr -> (OperandExpr (OperandID index0) :<
-            OperandExpr (OperandID index1) :<
-            OperandExpr (OperandID index2) :<
-            OperandExpr (OperandID index3) :<
-            OperandExpr (OperandID index4) :< Nil)
-  R2Repr -> (OperandExpr (OperandID index0) :<
-             OperandExpr (OperandID index1) :<
-             OperandExpr (OperandID index2) :< Nil)
-  R3Repr -> (OperandExpr (OperandID index0) :<
-             OperandExpr (OperandID index1) :<
-             OperandExpr (OperandID index2) :<
-             OperandExpr (OperandID index3) :< Nil)
-  R4Repr -> (OperandExpr (OperandID index0) :<
-             OperandExpr (OperandID index1) :<
-             OperandExpr (OperandID index2) :<
-             OperandExpr (OperandID index3) :<
-             OperandExpr (OperandID index4) :< Nil)
-  RXRepr -> (OperandExpr (OperandID index0) :<
-             OperandExpr (OperandID index1) :< Nil)
-  XRepr -> (OperandExpr (OperandID index0) :< Nil)
+  ARepr -> (OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :<
+            OperandExpr knownNat (OperandID index3) :<
+            OperandExpr knownNat (OperandID index4) :< Nil)
+  R2Repr -> (OperandExpr knownNat (OperandID index0) :<
+             OperandExpr knownNat (OperandID index1) :<
+             OperandExpr knownNat (OperandID index2) :< Nil)
+  R3Repr -> (OperandExpr knownNat (OperandID index0) :<
+             OperandExpr knownNat (OperandID index1) :<
+             OperandExpr knownNat (OperandID index2) :<
+             OperandExpr knownNat (OperandID index3) :< Nil)
+  R4Repr -> (OperandExpr knownNat (OperandID index0) :<
+             OperandExpr knownNat (OperandID index1) :<
+             OperandExpr knownNat (OperandID index2) :<
+             OperandExpr knownNat (OperandID index3) :<
+             OperandExpr knownNat (OperandID index4) :< Nil)
+  RXRepr -> (OperandExpr knownNat (OperandID index0) :<
+             OperandExpr knownNat (OperandID index1) :< Nil)
+  XRepr -> (OperandExpr knownNat (OperandID index0) :< Nil)
   where index4 = IndexThere index3
 
 -- | Obtain the semantics defined by a 'SemanticsM' action.
@@ -335,26 +368,26 @@ comment :: String -> SemanticsM expr rv ()
 comment c = semComments %= \cs -> cs Seq.|> c
 
 -- | Get the width of the instruction word
-instBytes :: SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
-instBytes = return InstBytes
+instBytes :: KnownRVWidth rv => SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
+instBytes = return (InstBytes knownNat)
 
 -- | Get the entire instruction word (useful for exceptions)
-instWord :: SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
-instWord = return InstWord
+instWord :: KnownRVWidth rv => SemanticsM (InstExpr fmt rv) rv (InstExpr fmt rv (RVWidth rv))
+instWord = return (InstWord knownNat)
 
 -- | Read the pc.
-readPC :: StateExpr expr => expr rv (RVWidth rv)
-readPC = stateExpr (LocApp PCExpr)
+readPC :: (StateExpr expr, KnownRVWidth rv) => expr rv (RVWidth rv)
+readPC = stateExpr (LocApp (PCApp knownNat))
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
 readGPR :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
-readGPR ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (GPRExpr ridE)))
+readGPR ridE = iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (GPRApp knownNat ridE)))
 
 -- | Read a value from a floating point register.
-readFPR :: (BVExpr (expr rv), StateExpr expr, FExt << rv)
+readFPR :: (BVExpr (expr rv), StateExpr expr, FExt << rv, KnownRVFloatWidth rv)
          => expr rv 5
          -> expr rv (RVFloatWidth rv)
-readFPR ridE = stateExpr (LocApp (FPRExpr ridE))
+readFPR ridE = stateExpr (LocApp (FPRApp knownNat ridE))
 
 -- TODO: We need a wrapper around this to handle access faults.
 -- | Read a variable number of bytes from memory, with an explicit width argument.
@@ -362,40 +395,41 @@ readMem :: StateExpr expr
         => NatRepr bytes
         -> expr rv (RVWidth rv)
         -> expr rv (8 T.* bytes)
-readMem bytes addr = stateExpr (LocApp (MemExpr bytes addr))
+readMem bytes addr = stateExpr (LocApp (MemApp bytes addr))
 
 -- | Read a value from a CSR.
 rawReadCSR :: (StateExpr expr, KnownRVWidth rv) => expr rv 12 -> expr rv (RVWidth rv)
-rawReadCSR csr = stateExpr (LocApp (CSRExpr csr))
+rawReadCSR csr = stateExpr (LocApp (CSRApp knownNat csr))
 
 -- | Read the current privilege level.
 readPriv :: StateExpr expr => expr rv 2
-readPriv = stateExpr (LocApp PrivExpr)
+readPriv = stateExpr (LocApp PrivApp)
 
 -- | Add a statement to the semantics.
 addStmt :: Stmt expr rv -> SemanticsM expr rv ()
 addStmt stmt = semStmts %= \stmts -> stmts Seq.|> stmt
 
 -- | Add a PC assignment to the semantics.
-assignPC :: expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
-assignPC pc = addStmt (AssignStmt PCExpr pc)
+assignPC :: KnownRVWidth rv => expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
+assignPC pc = addStmt (AssignStmt (PCApp knownNat) pc)
 
 -- | Add a register assignment to the semantics.
-assignGPR :: BVExpr (expr rv)
+assignGPR :: KnownRVWidth rv
+          => BVExpr (expr rv)
           => expr rv 5
           -> expr rv (RVWidth rv)
           -> SemanticsM (expr rv) rv ()
 assignGPR r e = addStmt $
   BranchStmt (r `eqE` litBV 0)
   $> Seq.empty
-  $> Seq.singleton (AssignStmt (GPRExpr r) e)
+  $> Seq.singleton (AssignStmt (GPRApp knownNat r) e)
 
 -- | Add a register assignment to the semantics.
-assignFPR :: (BVExpr (expr rv), FExt << rv)
+assignFPR :: (KnownRVFloatWidth rv, BVExpr (expr rv), FExt << rv)
            => expr rv 5
            -> expr rv (RVFloatWidth rv)
            -> SemanticsM (expr rv) rv ()
-assignFPR r e = addStmt (AssignStmt (FPRExpr r) e)
+assignFPR r e = addStmt (AssignStmt (FPRApp knownNat r) e)
 
 -- TODO: We need a wrapper around this to handle access faults.
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
@@ -403,25 +437,26 @@ assignMem :: NatRepr bytes
           -> expr rv (RVWidth rv)
           -> expr rv (8 T.* bytes)
           -> SemanticsM (expr rv) rv ()
-assignMem bytes addr val = addStmt (AssignStmt (MemExpr bytes addr) val)
+assignMem bytes addr val = addStmt (AssignStmt (MemApp bytes addr) val)
 
 -- | Add a CSR assignment to the semantics.
-assignCSR :: expr rv 12
+assignCSR :: KnownRVWidth rv
+          => expr rv 12
           -> expr rv (RVWidth rv)
           -> SemanticsM (expr rv) rv ()
-assignCSR csr val = addStmt (AssignStmt (CSRExpr csr) val)
+assignCSR csr val = addStmt (AssignStmt (CSRApp knownNat csr) val)
 
 -- | Add a privilege assignment to the semantics.
 assignPriv :: expr rv 2 -> SemanticsM (expr rv) rv ()
-assignPriv priv = addStmt (AssignStmt PrivExpr priv)
+assignPriv priv = addStmt (AssignStmt PrivApp priv)
 
 -- | Reserve a memory location.
 reserve :: BVExpr (expr rv) => expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
-reserve addr = addStmt (AssignStmt (ResExpr addr) (litBV 1))
+reserve addr = addStmt (AssignStmt (ResApp addr) (litBV 1))
 
 -- | Check that a memory location is reserved.
 checkReserved :: StateExpr expr => expr rv (RVWidth rv) -> expr rv 1
-checkReserved addr = stateExpr (LocApp (ResExpr addr))
+checkReserved addr = stateExpr (LocApp (ResApp addr))
 
 -- | Left-associative application (use with 'branch' to avoid parentheses around @do@
 -- notation)
@@ -441,20 +476,20 @@ branch e fbTrue fbFalse = do
 -- Class instances
 
 instance TestEquality expr => TestEquality (LocApp expr rv) where
-  PCExpr `testEquality` PCExpr = Just Refl
-  GPRExpr e1 `testEquality` GPRExpr e2 = case e1 `testEquality` e2 of
+  PCApp _ `testEquality` PCApp _ = Just Refl
+  GPRApp _ e1 `testEquality` GPRApp _ e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
-  MemExpr b1 e1 `testEquality` MemExpr b2 e2 = case (b1 `testEquality` b2, e1 `testEquality` e2) of
+  MemApp b1 e1 `testEquality` MemApp b2 e2 = case (b1 `testEquality` b2, e1 `testEquality` e2) of
     (Just Refl, Just Refl) -> Just Refl
     _ -> Nothing
-  ResExpr e1 `testEquality` ResExpr e2 = case e1 `testEquality` e2 of
+  ResApp e1 `testEquality` ResApp e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
-  CSRExpr e1 `testEquality` CSRExpr e2 = case e1 `testEquality` e2 of
+  CSRApp _ e1 `testEquality` CSRApp _ e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
-  PrivExpr `testEquality` PrivExpr = Just Refl
+  PrivApp `testEquality` PrivApp = Just Refl
   _ `testEquality` _ = Nothing
 
 instance TestEquality expr => TestEquality (StateApp expr rv) where
@@ -467,12 +502,13 @@ instance TestEquality expr => TestEquality (StateApp expr rv) where
   _ `testEquality` _ = Nothing
 
 instance TestEquality (InstExpr fmt rv) where
-  OperandExpr oid1 `testEquality` OperandExpr oid2 = case oid1 `testEquality` oid2 of
+  InstLitBV bv1 `testEquality` InstLitBV bv2 = bv1 `testEquality` bv2
+  OperandExpr _ oid1 `testEquality` OperandExpr _ oid2 = case oid1 `testEquality` oid2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
-  InstBytes `testEquality` InstBytes = Just Refl
-  InstWord `testEquality` InstWord = Just Refl
-  InstStateExpr e1 `testEquality` InstStateExpr e2 = case e1 `testEquality` e2 of
+  InstBytes _ `testEquality` InstBytes _ = Just Refl
+  InstWord _ `testEquality` InstWord _ = Just Refl
+  InstStateApp e1 `testEquality` InstStateApp e2 = case e1 `testEquality` e2 of
     Just Refl -> Just Refl
     Nothing -> Nothing
   _ `testEquality` _ = Nothing
@@ -486,13 +522,13 @@ pPrintLocApp :: (forall w' . Bool -> expr w' -> Doc)
              -> Bool
              -> LocApp expr rv w
              -> Doc
-pPrintLocApp _ _ PCExpr = text "pc"
-pPrintLocApp ppExpr top (GPRExpr e) = text "x[" <> ppExpr top e <> text "]"
-pPrintLocApp ppExpr top (FPRExpr e) = text "f[" <> ppExpr top e <> text "]"
-pPrintLocApp ppExpr top (MemExpr bytes e) = text "M[" <> ppExpr top e <> text "]_" <> pPrint (intValue bytes)
-pPrintLocApp ppExpr top (ResExpr e) = text "MReserved[" <> ppExpr top e <> text "]"
-pPrintLocApp ppExpr top (CSRExpr e) = text "CSR[" <> ppExpr top e <> text "]"
-pPrintLocApp _ _ PrivExpr = text "current_priv"
+pPrintLocApp _ _ (PCApp _) = text "pc"
+pPrintLocApp ppExpr top (GPRApp _ e) = text "x[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (FPRApp _ e) = text "f[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (MemApp bytes e) = text "M[" <> ppExpr top e <> text "]_" <> pPrint (intValue bytes)
+pPrintLocApp ppExpr top (ResApp e) = text "MReserved[" <> ppExpr top e <> text "]"
+pPrintLocApp ppExpr top (CSRApp _ e) = text "CSR[" <> ppExpr top e <> text "]"
+pPrintLocApp _ _ PrivApp = text "current_priv"
 
 pPrintStateApp :: (forall w' . Bool -> expr w' -> Doc)
                -> Bool
@@ -506,36 +542,35 @@ pPrintBVApp :: (forall w' . Bool -> expr w' -> Doc)
             -> Bool
             -> BVApp expr w
             -> Doc
-pPrintBVApp ppExpr _ (NotApp e) = text "!" <> ppExpr False e
-pPrintBVApp ppExpr _ (NegateApp e) = text "-" <> ppExpr False e
-pPrintBVApp _ _ (LitBVApp bv) = text $ show bv
-pPrintBVApp ppExpr _ (AbsApp e) = text "|" <> ppExpr True e <> text "|"
-pPrintBVApp ppExpr _ (SignumApp e) = text "signum(" <> ppExpr True e <> text ")"
+pPrintBVApp ppExpr _ (NotApp _ e) = text "!" <> ppExpr False e
+pPrintBVApp ppExpr _ (NegateApp _ e) = text "-" <> ppExpr False e
+pPrintBVApp ppExpr _ (AbsApp _ e) = text "|" <> ppExpr True e <> text "|"
+pPrintBVApp ppExpr _ (SignumApp _ e) = text "signum(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr _ (ZExtApp _ e) = text "zext(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr _ (SExtApp _ e) = text "sext(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr top (ExtractApp w ix e) =
   ppExpr top e <> text "[" <> pPrint ix <> text ":" <>
   pPrint (ix + fromIntegral (natValue w) - 1) <> text "]"
 pPrintBVApp ppExpr False e = parens (pPrintBVApp ppExpr True e)
-pPrintBVApp ppExpr _ (AndApp e1 e2) = ppExpr False e1 <+> text "&" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (OrApp  e1 e2) = ppExpr False e1 <+> text "|" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (XorApp e1 e2) = ppExpr False e1 <+> text "^" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (SllApp e1 e2) = ppExpr False e1 <+> text "<<" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (SrlApp e1 e2) = ppExpr False e1 <+> text ">l>" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (SraApp e1 e2) = ppExpr False e1 <+> text ">a>" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (AddApp e1 e2) = ppExpr False e1 <+> text "+" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (SubApp e1 e2) = ppExpr False e1 <+> text "-" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (MulApp e1 e2) = ppExpr False e1 <+> text "*" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (QuotUApp e1 e2) = ppExpr False e1 <+> text "/u" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (QuotSApp e1 e2) = ppExpr False e1 <+> text "/s" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (RemUApp e1 e2) = ppExpr False e1 <+> text "%u" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (RemSApp e1 e2) = ppExpr False e1 <+> text "%s" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (AndApp _ e1 e2) = ppExpr False e1 <+> text "&" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (OrApp _  e1 e2) = ppExpr False e1 <+> text "|" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (XorApp _ e1 e2) = ppExpr False e1 <+> text "^" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SllApp _ e1 e2) = ppExpr False e1 <+> text "<<" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SrlApp _ e1 e2) = ppExpr False e1 <+> text ">l>" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SraApp _ e1 e2) = ppExpr False e1 <+> text ">a>" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (AddApp _ e1 e2) = ppExpr False e1 <+> text "+" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (SubApp _ e1 e2) = ppExpr False e1 <+> text "-" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (MulApp _ e1 e2) = ppExpr False e1 <+> text "*" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (QuotUApp _ e1 e2) = ppExpr False e1 <+> text "/u" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (QuotSApp _ e1 e2) = ppExpr False e1 <+> text "/s" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (RemUApp _ e1 e2) = ppExpr False e1 <+> text "%u" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (RemSApp _ e1 e2) = ppExpr False e1 <+> text "%s" <+> ppExpr False e2
 pPrintBVApp ppExpr _ (EqApp  e1 e2) = ppExpr False e1 <+> text "==" <+> ppExpr False e2
 pPrintBVApp ppExpr _ (LtuApp e1 e2) = ppExpr False e1 <+> text "<u" <+> ppExpr False e2
 pPrintBVApp ppExpr _ (LtsApp e1 e2) = ppExpr False e1 <+> text "<s" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (ConcatApp e1 e2) =
+pPrintBVApp ppExpr _ (ConcatApp _ e1 e2) =
   text "{" <> ppExpr True e1 <> text ", " <> ppExpr True e2 <> text "}"
-pPrintBVApp ppExpr _ (IteApp e1 e2 e3) =
+pPrintBVApp ppExpr _ (IteApp _ e1 e2 e3) =
   text "if" <+> ppExpr True e1 <+>
   text "then" <+> ppExpr True e2 <+>
   text "else" <+> ppExpr True e3
@@ -738,10 +773,11 @@ pPrintInstExpr :: List OperandName (OperandTypes fmt)
                -> Bool
                -> InstExpr fmt rv w
                -> Doc
-pPrintInstExpr opNames _ (OperandExpr (OperandID oid)) = pPrintOperandName (opNames !! oid)
-pPrintInstExpr _ _ InstBytes = text "step"
-pPrintInstExpr _ _ InstWord = text "inst"
-pPrintInstExpr opNames top (InstStateExpr e) = pPrintStateApp (pPrintInstExpr opNames) top e
+pPrintInstExpr opNames _ (OperandExpr _ (OperandID oid)) = pPrintOperandName (opNames !! oid)
+pPrintInstExpr _ _ (InstLitBV bv) = pPrint bv
+pPrintInstExpr _ _ (InstBytes _) = text "step"
+pPrintInstExpr _ _ (InstWord _) = text "inst"
+pPrintInstExpr opNames top (InstStateApp e) = pPrintStateApp (pPrintInstExpr opNames) top e
 
 pPrintInstSemantics :: InstSemantics rv fmt -> Doc
 pPrintInstSemantics (InstSemantics semantics opNames) =
