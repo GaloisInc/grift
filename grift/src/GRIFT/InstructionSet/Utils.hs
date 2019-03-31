@@ -77,11 +77,11 @@ import GRIFT.Types
 
 -- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
 -- should probably be generalized when we fully implement the privileged architecture.
-getArchWidth :: forall rv fmt . KnownRVWidth rv => SemanticsM (InstExpr fmt rv) rv (NatRepr (RVWidth rv))
+getArchWidth :: forall rv fmt . KnownRVWidth rv => SemanticsM (InstExpr fmt) rv (NatRepr (RVWidth rv))
 getArchWidth = return (knownNat @(RVWidth rv))
 
 -- | Increment the PC
-incrPC :: KnownRVWidth rv => SemanticsM (InstExpr fmt rv) rv ()
+incrPC :: KnownRVWidth rv => SemanticsM (InstExpr fmt) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
@@ -92,7 +92,7 @@ incrPC = do
 -- destination is not 4-byte-aligned.
 jump :: forall expr rv . (BVExpr (expr rv), StateExpr expr, KnownRVCConfig rv, KnownRVWidth rv)
      => expr rv (RVWidth rv) -- ^ address of the jump target
-     -> SemanticsM (expr rv) rv ()
+     -> SemanticsM expr rv ()
 jump pc = case knownRepr :: CConfigRepr (RVCConfig rv) of
   CYesRepr -> assignPC pc
   CNoRepr -> do
@@ -102,19 +102,19 @@ jump pc = case knownRepr :: CConfigRepr (RVCConfig rv) of
       $> raiseException InstructionAddressMisaligned pc
 
 -- | NaN-box a 32-bit expression to fit in a floating point register.
-nanBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
-         => expr 32
-         -> SemanticsM expr rv (expr (RVFloatWidth rv))
+nanBox32 :: forall expr rv . (BVExpr (expr rv), KnownRVFloatType rv, FExt << rv)
+         => expr rv 32
+         -> SemanticsM expr rv (expr rv (RVFloatWidth rv))
 nanBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
-  FDYesRepr   -> return $ (litBV (-1) :: expr 32) `concatE` e
+  FDYesRepr   -> return $ (litBV (-1) :: expr rv 32) `concatE` e
   FYesDNoRepr -> return e
   FDNoRepr    -> undefined
 
 -- | Take a value from a floating-point register and get a 32-bit value, checking
 -- that the original value was properly NaN-boxed.
-unBox32 :: forall expr rv . (BVExpr expr, KnownRVFloatType rv, FExt << rv)
-        => expr (RVFloatWidth rv)
-        -> SemanticsM expr rv (expr 32)
+unBox32 :: forall expr rv . (BVExpr (expr rv), KnownRVFloatType rv, FExt << rv)
+        => expr rv (RVFloatWidth rv)
+        -> SemanticsM expr rv (expr rv 32)
 unBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
   FDYesRepr -> return $
     iteE (extractE' (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
@@ -130,7 +130,7 @@ cases cs d = foldr (uncurry iteE) d cs
 
 -- | Convenience function for creating a giant nested 'branch' in a semantics
 -- definition.
-branches :: [(expr 1, SemanticsM expr rv ())]
+branches :: [(expr rv 1, SemanticsM expr rv ())]
          -> SemanticsM expr rv ()
          -> SemanticsM expr rv ()
 branches cs d = foldr (uncurry branch) d cs
@@ -140,8 +140,8 @@ branches cs d = foldr (uncurry branch) d cs
 checkCSR :: KnownRVWidth rv
          => InstExpr fmt rv 1
          -> InstExpr fmt rv 12
-         -> SemanticsM (InstExpr fmt rv) rv ()
-         -> SemanticsM (InstExpr fmt rv) rv ()
+         -> SemanticsM (InstExpr fmt) rv ()
+         -> SemanticsM (InstExpr fmt) rv ()
 checkCSR write csr rst = do
   let priv = readPriv
   let csrRW = extractE' (knownNat @2) 10 csr
@@ -181,7 +181,7 @@ readCSR csr = cases
 -- 'assignCSR', with a few aliasing cases (like for fflags and frm, as well as the
 -- various aliased registers in S- and U-mode of M-mode registers).
 writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
-              => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM (expr rv) rv ()
+         => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM expr rv ()
 writeCSR csr val = branches
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
     , do let val' = extractE' (knownNat @5) 0 val
@@ -307,7 +307,7 @@ getPrivCode UPriv = 0
 raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
                => Exception -- ^ The exception to raise
                -> expr rv (RVWidth rv) -- ^ the value for MTVal
-               -> SemanticsM (expr rv) rv ()
+               -> SemanticsM expr rv ()
 raiseException e info = do
   -- Exception handling TODO:
   -- - For interrupts, PC should be incremented.
@@ -337,7 +337,7 @@ raiseException e info = do
 -- 5-bit value.
 raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
                   => expr rv 5 -- ^ The exception flags
-                  -> SemanticsM (expr rv) rv ()
+                  -> SemanticsM expr rv ()
 raiseFPExceptions flags = do
   let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
@@ -352,8 +352,8 @@ dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
 -- rounding mode in frm.
 withRM :: KnownRVWidth rv
        => InstExpr fmt rv 3
-       -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt rv) rv ())
-       -> SemanticsM (InstExpr fmt rv) rv ()
+       -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt) rv ())
+       -> SemanticsM (InstExpr fmt) rv ()
 withRM rm action = do
   let rm' = iteE (rm `eqE` litBV 0b111) dynamicRM rm
   branch ((rm' `eqE` litBV 0b101) `orE` (rm' `eqE` litBV 0b110))

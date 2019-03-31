@@ -439,7 +439,7 @@ coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 coverageTreeBVFloatApp :: BVFloatApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVFloatApp app = foldMapFC coverageTreeInstExpr app
 
-coverageTreeStmt :: Stmt (InstExpr fmt rv) rv -> [CT (InstExpr fmt rv)]
+coverageTreeStmt :: Stmt (InstExpr fmt) rv -> [CT (InstExpr fmt rv)]
 coverageTreeStmt (AssignStmt loc e) = coverageTreeLocApp loc ++ coverageTreeInstExpr e
 coverageTreeStmt (BranchStmt t l r) =
   let tTrees = coverageTreeInstExpr t

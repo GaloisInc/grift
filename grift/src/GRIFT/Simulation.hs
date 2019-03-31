@@ -143,6 +143,7 @@ evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
 evalPureStateExpr :: forall m rv w . (RVStateM m rv) => PureStateExpr rv w -> m (BitVector w)
 evalPureStateExpr (PureStateLitBV bv) = return bv
 evalPureStateExpr (PureStateApp e) = evalStateApp evalPureStateExpr e
+evalPureStateExpr (PureAbbrevApp abbrevApp) = evalPureStateExpr (expandAbbrevExpr abbrevApp)
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
 evalInstExpr :: forall m rv fmt w . RVStateM m rv
@@ -152,6 +153,7 @@ evalInstExpr :: forall m rv fmt w . RVStateM m rv
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
              -> m (BitVector w)
 evalInstExpr _ _ _ (InstLitBV bv) = return bv
+evalInstExpr iset inst ib (InstAbbrevApp abbrevApp) = evalInstExpr iset inst ib (expandAbbrevExpr abbrevApp)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) = return (operands !! p)
 evalInstExpr _ _ ib (InstBytes _) = do
   rv <- getRV
@@ -181,9 +183,9 @@ data Assignment (rv :: RV) where
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m rv)
-                     => (forall w . expr w -> m (BitVector w))
-                     -> Stmt expr rv
-                     -> m [Assignment rv]
+                => (forall w . expr rv w -> m (BitVector w))
+                -> Stmt expr rv
+                -> m [Assignment rv]
 buildAssignment eval (AssignStmt (PCApp _) pcE) = do
   pcVal <- eval pcE
   return [Assignment PC pcVal]
@@ -210,6 +212,7 @@ buildAssignment eval (AssignStmt (CSRApp _ csrE) e) = do
 buildAssignment eval (AssignStmt PrivApp privE) = do
   privVal <- eval privE
   return [Assignment Priv privVal]
+buildAssignment eval (AbbrevStmt abbrevStmt) = buildAssignment eval (expandAbbrevStmt abbrevStmt)
 buildAssignment eval (BranchStmt condE tStmts fStmts) = do
   condVal <- eval condE
   tAssignments <- traverse (buildAssignment eval) tStmts
@@ -232,7 +235,7 @@ execAssignment (Assignment Priv val) = setPriv val
 
 -- | Execute a formula, given an 'RVStateM' implementation.
 execSemantics :: forall m expr rv . (RVStateM m rv)
-             => (forall w . expr w -> m (BitVector w))
+             => (forall w . expr rv w -> m (BitVector w))
              -> Semantics expr rv
              -> m ()
 execSemantics eval f = do
