@@ -141,8 +141,11 @@ branches cs d = foldr (uncurry branch) d cs
 -- write access, False if we are accessing in a read-only fashion.
 checkCSR :: KnownRV rv
          => InstExpr fmt rv 1
+         -- ^ 1 if we are writing to a CSR, 0 otherwise.
          -> InstExpr fmt rv 12
+         -- ^ which CSR we are accessing.
          -> SemanticsM (InstExpr fmt) rv ()
+         -- ^ semantics action to execute if we have access to the CSR.
          -> SemanticsM (InstExpr fmt) rv ()
 checkCSR write csr rst = do
   let priv = readPriv
@@ -158,21 +161,9 @@ checkCSR write csr rst = do
 
 -- | Maps each CSR to an expression representing what value is returned when software
 -- attempts to read it.
-readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
+readCSR :: (StateExpr expr, BVExpr (expr rv), AbbrevExpr expr, KnownRV rv)
         => expr rv 12 -> expr rv (RVWidth rv)
-readCSR csr = cases
-  [ (csr `eqE` (litBV $ encodeCSR FFlags)
-    , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-          flags = extractE' (knownNat @5) 0 fcsr
-      in zextE flags
-    )
-  , (csr `eqE` (litBV $ encodeCSR FRm)
-    , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-          rm = extractE' (knownNat @3) 5 fcsr
-      in zextE rm
-    )
-  ]
-  (rawReadCSR csr)
+readCSR csr = abbrevExpr $ ReadCSRApp knownNat csr
 
 -- | Maps each CSR to a function taking a 'BVExpr' expression to a semantic action,
 -- determining what happens if you try to write a particular value to that CSR.  The
@@ -184,24 +175,7 @@ readCSR csr = cases
 -- various aliased registers in S- and U-mode of M-mode registers).
 writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
          => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM expr rv ()
-writeCSR csr val = branches
-  [ (csr `eqE` (litBV $ encodeCSR FFlags)
-    , do let val' = extractE' (knownNat @5) 0 val
-             fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-             writeVal = extractE' (knownNat @27) 5 fcsr `concatE` val'
-         assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
-  , (csr `eqE` (litBV $ encodeCSR FRm)
-    , do let val' = extractE' (knownNat @3) 0 val
-             fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-             writeVal = extractE' (knownNat @24) 8 fcsr `concatE`
-                        val' `concatE`
-                        extractE' (knownNat @5) 0 fcsr
-         assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
-  , (csr `eqE` (litBV $ encodeCSR FCSR)
-    , do let writeVal = val `andE` (litBV 0xFF)
-         assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
-  ]
-  (assignCSR csr val)
+writeCSR csr val = addStmt $ AbbrevStmt (WriteCSR csr val)
 
 -- TODO: Annotate appropriate exceptions with an Mcause.
 -- | Runtime exception. This is a convenience type for calls to 'raiseException'.

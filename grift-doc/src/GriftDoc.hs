@@ -58,6 +58,7 @@ import GRIFT.Decode
 import GRIFT.InstructionSet
 import GRIFT.InstructionSet.Known
 import GRIFT.Semantics
+import GRIFT.Semantics.Pretty
 import GRIFT.Types
 
 -- Utilities
@@ -79,12 +80,14 @@ rvReprFromString s = case s of
   str -> Left $ "Unknown configuration " ++ str
 
 data Opts = Opts { optsRepr :: Some RVRepr
+                 , optsAbbrev :: AbbrevLevel
                  , optsOpcode :: Some (Opcode RV64GC)
                  }
 
 optsParser :: Parser Opts
 optsParser = Opts
   <$> rvReprParser
+  <*> abbrevParser
   <*> opcodeParser
 
 rvReprParser :: Parser (Some RVRepr)
@@ -105,6 +108,12 @@ opcodeParser = argument (eitherReader readOpcodeEither)
           Nothing -> Left $ "Unknown opcode " ++ s
           Just oc -> Right oc
 
+abbrevParser :: Parser AbbrevLevel
+abbrevParser = flag Abbrev NoAbbrev
+  ( help "don't abbreviate semantics"
+    <> long "verbose"
+    <> short 'v' )
+
 main = griftDoc =<< execParser opts
   where
     opts = info (optsParser <**> helper)
@@ -113,7 +122,7 @@ main = griftDoc =<< execParser opts
              <> header "grift-doc -- RISC-V documentation tool" )
 
 griftDoc :: Opts -> IO ()
-griftDoc (Opts (Some rvRepr) (Some opcode)) = case opcodeCast rvRepr opcode of
+griftDoc (Opts (Some rvRepr) abbrevLevel (Some opcode)) = case opcodeCast rvRepr opcode of
   Nothing -> exitIncompatibleOpcode rvRepr opcode
   Just (opcode, fmtRepr) -> do
     let iset = knownISetWithRepr rvRepr
@@ -142,7 +151,7 @@ griftDoc (Opts (Some rvRepr) (Some opcode)) = case opcodeCast rvRepr opcode of
     putStrLn $ show (pPrint opcode) ++ " semantics"
     putStrLn "====================="
     putStrLn ""
-    print $ pPrintInstSemantics sem
+    print $ withRV rvRepr $ pPrintInstSemantics abbrevLevel sem
 
   where exitIncompatibleOpcode :: RVRepr rv -> Opcode rv' fmt -> IO ()
         exitIncompatibleOpcode rvRepr opcode = do

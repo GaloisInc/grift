@@ -141,13 +141,13 @@ evalStateApp eval (AppExpr e) = evalBVAppM eval e
 evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
-evalPureStateExpr :: forall m rv w . (RVStateM m rv) => PureStateExpr rv w -> m (BitVector w)
+evalPureStateExpr :: forall m rv w . (RVStateM m rv, KnownRV rv) => PureStateExpr rv w -> m (BitVector w)
 evalPureStateExpr (PureStateLitBV bv) = return bv
 evalPureStateExpr (PureStateApp e) = evalStateApp evalPureStateExpr e
 evalPureStateExpr (PureAbbrevApp abbrevApp) = evalPureStateExpr (expandAbbrevApp abbrevApp)
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
-evalInstExpr :: forall m rv fmt w . RVStateM m rv
+evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv)
              => InstructionSet rv
              -> Instruction rv fmt -- ^ instruction
              -> Integer            -- ^ Instruction width (in bytes)

@@ -74,6 +74,7 @@ import           GRIFT.InstructionSet
 import           GRIFT.InstructionSet.Known
 import           GRIFT.Types
 import           GRIFT.Semantics
+import           GRIFT.Semantics.Pretty
 import           GRIFT.Semantics.Utils
 import           GRIFT.Simulation
 import           GRIFT.Simulation.LogMachine
@@ -322,7 +323,7 @@ reportInstCoverage rvRepr covMap opcode = do
   let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
   putStrLn "Instruction semantics"
   putStrLn "====================="
-  print $ pPrintInstSemantics sem
+  print $ withRV rvRepr $ pPrintInstSemantics NoAbbrev sem
   putStrLn ""
   putStrLn "Instruction coverage"
   putStrLn "===================="

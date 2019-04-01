@@ -426,8 +426,6 @@ type KnownRVWidth rv = KnownNat (RVWidth rv)
 -- | The width of the floating point registers are known at compile time.
 type KnownRVFloatWidth rv = KnownNat (RVFloatWidth rv)
 
-type KnownRVCConfig rv = KnownRepr CConfigRepr (RVCConfig rv)
-
 -- | Everything we need to know about an 'RV' at compile time.
 type KnownRV rv = ( KnownRepr RVRepr rv
                   , KnownNat (RVWidth rv)

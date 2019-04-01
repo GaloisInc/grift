@@ -92,6 +92,8 @@ import GRIFT.InstructionSet
 import GRIFT.InstructionSet.Known
 import GRIFT.Types
 import GRIFT.Semantics
+import GRIFT.Semantics.Expand
+import GRIFT.Semantics.Pretty
 import GRIFT.Semantics.Utils
 import GRIFT.Simulation
 
@@ -345,7 +347,7 @@ countCT (CT (CTNode tTaken fTaken _) testCTs tCTs fCTs) =
   in foldl sumPair ((if tTaken then 1 else 0) + (if fTaken then 1 else 0),2) (countCT <$> ctsHit)
 
 -- | Evaluate a coverage tree and recursively flag all evaluated nodes.
-evalCT :: RVStateM m rv
+evalCT :: (RVStateM m rv, KnownRV rv)
        => InstructionSet rv
        -> Instruction rv fmt
        -> Integer
@@ -362,7 +364,7 @@ evalCT iset inst iw (CT (CTNode t f testExpr) testTrees trueTrees falseTrees) = 
       falseTrees' <- traverse (evalCT iset inst iw) falseTrees
       return $ CT (CTNode t True testExpr) testTrees' trueTrees falseTrees'
 
-evalInstCT :: RVStateM m rv
+evalInstCT :: (RVStateM m rv, KnownRV rv)
            => InstructionSet rv
            -> Instruction rv fmt
            -> Integer
@@ -390,16 +392,18 @@ yellow doc = text "\x1b[33m" <> doc <> text "\x1b[0m"
 green :: Doc -> Doc
 green doc = text "\x1b[32m" <> doc <> text "\x1b[0m"
 
-pPrintCT :: List OperandName (OperandTypes fmt)
+pPrintCT :: KnownRV rv
+         => List OperandName (OperandTypes fmt)
          -> CT (InstExpr fmt rv)
          -> Doc
-pPrintCT opNames (CT (CTNode t f e) [] [] []) = color2 t f (pPrintInstExpr opNames True e)
-pPrintCT opNames (CT (CTNode t f e) ts ls rs) = (color2 t f (pPrintInstExpr opNames True e))
+pPrintCT opNames (CT (CTNode t f e) [] [] []) = color2 t f (pPrintInstExpr opNames NoAbbrev True e)
+pPrintCT opNames (CT (CTNode t f e) ts ls rs) = (color2 t f (pPrintInstExpr opNames NoAbbrev True e))
   $$ nest 2 (text "?>" <+> vcat (pPrintCT opNames <$> ts))
   $$ nest 2 (text "t>" <+> vcat (pPrintCT opNames <$> ls))
   $$ nest 2 (text "f>" <+> vcat (pPrintCT opNames <$> rs))
 
-pPrintInstCT :: List OperandName (OperandTypes fmt)
+pPrintInstCT :: KnownRV rv
+             => List OperandName (OperandTypes fmt)
              -> InstCT rv fmt
              -> Doc
 pPrintInstCT opNames (InstCT ct) = pPrintCT opNames ct
@@ -411,10 +415,10 @@ pPrintInstCTList :: RVRepr rv
 pPrintInstCTList rvRepr opcode (InstCTList instCTs) =
   case MapF.lookup opcode (isSemanticsMap $ knownISetWithRepr rvRepr) of
     Nothing -> []
-    Just sem -> pPrintInstCT (getOperandNames sem) <$> instCTs
+    Just sem -> withRV rvRepr $ pPrintInstCT (getOperandNames sem) <$> instCTs
 
 -- Semantic coverage
-coverageTreeLocApp :: LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
+coverageTreeLocApp :: KnownRV rv => LocApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
 coverageTreeLocApp (GPRApp _ e) = coverageTreeInstExpr e
 coverageTreeLocApp (FPRApp _ e) = coverageTreeInstExpr e
 coverageTreeLocApp (MemApp _ e) = coverageTreeInstExpr e
@@ -422,25 +426,28 @@ coverageTreeLocApp (ResApp e) = coverageTreeInstExpr e
 coverageTreeLocApp (CSRApp _ e) = coverageTreeInstExpr e
 coverageTreeLocApp _ = []
 
-coverageTreeStateApp :: StateApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
+coverageTreeStateApp :: KnownRV rv => StateApp (InstExpr fmt rv) rv w -> [CT (InstExpr fmt rv)]
 coverageTreeStateApp (LocApp e) = coverageTreeLocApp e
 coverageTreeStateApp (AppExpr e) = coverageTreeBVApp e
 coverageTreeStateApp (FloatAppExpr e) = coverageTreeBVFloatApp e
 
-coverageTreeInstExpr :: InstExpr fmt rv w -> [CT (InstExpr fmt rv)]
+coverageTreeInstExpr :: KnownRV rv => InstExpr fmt rv w -> [CT (InstExpr fmt rv)]
 coverageTreeInstExpr (InstStateApp e) = coverageTreeStateApp e
+coverageTreeInstExpr (InstAbbrevApp abbrevApp) =
+  coverageTreeInstExpr (expandAbbrevApp abbrevApp)
 coverageTreeInstExpr _ = []
 
-coverageTreeBVApp :: BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
+coverageTreeBVApp :: KnownRV rv => BVApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVApp (IteApp _ t l r) =
   [CT (CTNode False False t) (coverageTreeInstExpr t) (coverageTreeInstExpr l) (coverageTreeInstExpr r)]
 coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 
-coverageTreeBVFloatApp :: BVFloatApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
+coverageTreeBVFloatApp :: KnownRV rv => BVFloatApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVFloatApp app = foldMapFC coverageTreeInstExpr app
 
-coverageTreeStmt :: Stmt (InstExpr fmt) rv -> [CT (InstExpr fmt rv)]
+coverageTreeStmt :: KnownRV rv => Stmt (InstExpr fmt) rv -> [CT (InstExpr fmt rv)]
 coverageTreeStmt (AssignStmt loc e) = coverageTreeLocApp loc ++ coverageTreeInstExpr e
+coverageTreeStmt (AbbrevStmt abbrevStmt) = coverageTreeStmt `concatMap` expandAbbrevStmt abbrevStmt
 coverageTreeStmt (BranchStmt t l r) =
   let tTrees = coverageTreeInstExpr t
       lTrees = concat $ toList $ coverageTreeStmt <$> l
@@ -449,7 +456,7 @@ coverageTreeStmt (BranchStmt t l r) =
 
 newtype InstCT rv fmt = InstCT (CT (InstExpr fmt rv))
 
-coverageTreeSemantics :: InstSemantics rv fmt -> [InstCT rv fmt]
+coverageTreeSemantics :: KnownRV rv => InstSemantics rv fmt -> [InstCT rv fmt]
 coverageTreeSemantics (InstSemantics sem _) =
   let stmts = sem ^. semStmts
       trees = concat $ toList $ coverageTreeStmt <$> stmts
@@ -460,7 +467,7 @@ coverageTreeOpcode rvRepr opcode =
   let iset = knownISetWithRepr rvRepr
   in case MapF.lookup opcode (isSemanticsMap iset) of
     Nothing -> InstCTList []
-    Just sem -> InstCTList (coverageTreeSemantics sem)
+    Just sem -> withRV rvRepr $ InstCTList (coverageTreeSemantics sem)
 
 countInstCT :: InstCT rv fmt -> (Int, Int)
 countInstCT (InstCT ct) = countCT ct

@@ -19,6 +19,7 @@ library
                      , GRIFT.InstructionSet
                      , GRIFT.Semantics
                      , GRIFT.Semantics.Expand
+                     , GRIFT.Semantics.Pretty
                      , GRIFT.Semantics.Utils
                      , GRIFT.Simulation
                      , GRIFT.Types
