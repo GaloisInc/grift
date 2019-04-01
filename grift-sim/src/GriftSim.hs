@@ -72,9 +72,9 @@ import           Text.Read
 
 import           GRIFT.InstructionSet
 import           GRIFT.InstructionSet.Known
-import           GRIFT.InstructionSet.Utils
 import           GRIFT.Types
 import           GRIFT.Semantics
+import           GRIFT.Semantics.Utils
 import           GRIFT.Simulation
 import           GRIFT.Simulation.LogMachine
 
@@ -234,7 +234,7 @@ report :: SimCfg rv
        -> MapF (Opcode rv) (InstCTList rv)
        -> LogMachine rv
        -> IO ()
-report cfg covMap m = withRVWidth (simRepr cfg) $ do
+report cfg covMap m = withRV (simRepr cfg) $ do
 
   pc   <- readIORef (lmPC m)
   mem  <- readIORef (lmMemory m)
@@ -257,7 +257,7 @@ runElf :: ElfWidthConstraints (RVWidth rv)
        -> IORef (MapF (Opcode rv) (InstCTList rv))
        -> IO (LogMachine rv)
 runElf cfg e covMapRef =
-  withRVWidth (simRepr cfg) $ do
+  withRV (simRepr cfg) $ do
     let byteStrings = elfBytes e
     let trackedOpcode = case simReportType cfg of
           CoverageReport toc -> toc
@@ -272,12 +272,12 @@ runElf cfg e covMapRef =
          covMapRef
 
     case trackedOpcode of
-      NoOpcode -> runLogMachine (simSteps cfg) m
-      _ -> runLogMachineLog (simSteps cfg) m
+      NoOpcode -> withRV (simRepr cfg) $ runLogMachine (simSteps cfg) m
+      _ -> withRV (simRepr cfg) $ runLogMachineLog (simSteps cfg) m
 
     return m
 
-reportRegDump :: (KnownRVWidth rv)
+reportRegDump :: (KnownRV rv)
               => RVRepr rv
               -> BitVector (RVWidth rv)
               -> Array (BitVector 5) (BitVector (RVWidth rv))
@@ -299,7 +299,7 @@ reportRegDump rvRepr pc gprs fprs csrs = do
   forM_ (assocs fprs) $ \(r, v) ->
     putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
 
-reportMemDump :: (KnownRVWidth rv)
+reportMemDump :: (KnownRV rv)
               => RVRepr rv
               -> Word64
               -> Word64

@@ -45,22 +45,22 @@ import Data.Parameterized
 import Data.Parameterized.List
 
 import GRIFT.InstructionSet
-import GRIFT.InstructionSet.Utils
 import GRIFT.Semantics
+import GRIFT.Semantics.Utils
 import GRIFT.Types
 
 -- | Get the A instruction set from an explicit 'RVRepr'.
 aFromRepr :: RVRepr rv -> InstructionSet rv
-aFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ AYesRepr _ _)) = a32
-aFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _ _)) = a64
+aFromRepr rv@(RVRepr RV32Repr (ExtensionsRepr _ _ AYesRepr _ _)) = withRV rv a32
+aFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _ _)) = withRV rv a64
 aFromRepr _ = mempty
 
 -- | A extension (RV32)
-a32 :: (KnownRVWidth rv, AExt << rv) => InstructionSet rv
+a32 :: (KnownRV rv, AExt << rv) => InstructionSet rv
 a32 = instructionSet aEncode aSemantics
 
 -- | A extension (RV64)
-a64 :: (KnownRVWidth rv, 64 <= RVWidth rv, AExt << rv) => InstructionSet rv
+a64 :: (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => InstructionSet rv
 a64 = a32 <> instructionSet a64Encode a64Semantics
 
 aEncode :: AExt << rv => EncodeMap rv
@@ -93,7 +93,7 @@ a64Encode = Map.fromList
   , Pair Amomaxud (OpBits ARepr (0b0101111 :< 0b011 :< 0b11100 :< Nil))
   ]
 
-aSemantics :: forall rv . (KnownRVWidth rv, AExt << rv) => SemanticsMap rv
+aSemantics :: forall rv . (KnownRV rv, AExt << rv) => SemanticsMap rv
 aSemantics = Map.fromList
   [ Pair Lrw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the four bytes from memory at address x[rs1]."
@@ -180,7 +180,7 @@ aSemantics = Map.fromList
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp32 :: KnownRVWidth rv
+amoOp32 :: KnownRV rv
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
         -> SemanticsM (InstExpr A) rv ()
 amoOp32 op = do
@@ -196,7 +196,7 @@ amoOp32 op = do
       incrPC
 
 
-a64Semantics :: forall rv . (KnownRVWidth rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
+a64Semantics :: forall rv . (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
 a64Semantics = Map.fromList
   [ Pair Lrd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
@@ -280,7 +280,7 @@ a64Semantics = Map.fromList
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp64 :: KnownRVWidth rv
+amoOp64 :: KnownRV rv
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
         -> SemanticsM (InstExpr A) rv ()
 amoOp64 op = do

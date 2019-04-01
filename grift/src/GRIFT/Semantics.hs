@@ -88,7 +88,7 @@ module GRIFT.Semantics
   , LocApp(..)
   , StateApp(..)
   , AbbrevApp(..)
-  , expandAbbrevExpr
+  , AbbrevExpr(..)
   , StateExpr(..)
   , PureStateExpr(..)
   , InstExpr(..)
@@ -102,7 +102,6 @@ module GRIFT.Semantics
   , checkReserved
     -- * RISC-V semantic statements and formulas
   , AbbrevStmt(..)
-  , expandAbbrevStmt
   , Stmt(..)
   , Semantics, semComments, semStmts
   , InstSemantics(..)
@@ -112,6 +111,7 @@ module GRIFT.Semantics
   , getSemantics
     -- * SemanticsM operations
     -- ** Auxiliary
+  , addStmt
   , comment
   , operandEs, operandEsWithRepr
   , instBytes
@@ -164,6 +164,7 @@ data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   CSRApp  :: NatRepr (RVWidth rv) -> expr 12 -> LocApp expr rv (RVWidth rv)
   PrivApp :: LocApp expr rv 2
 
+-- | Get the width of a 'LocApp'.
 locAppWidth :: LocApp expr rv w -> NatRepr w
 locAppWidth (PCApp wRepr) = wRepr
 locAppWidth (GPRApp wRepr _) = wRepr
@@ -187,6 +188,7 @@ data StateApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   -- | 'BVFloatApp' with 'StateApp' subexpressions
   FloatAppExpr :: FExt << rv => !(BVFloatApp expr w) -> StateApp expr rv w
 
+-- | Get the width of a 'StateApp'.
 stateAppWidth :: StateApp expr rv w -> NatRepr w
 stateAppWidth (LocApp locApp) = locAppWidth locApp
 stateAppWidth (AppExpr bvApp) = bvAppWidth bvApp
@@ -199,23 +201,19 @@ stateAppWidth (FloatAppExpr bvFloatApp) = bvFloatAppWidth bvFloatApp
 class StateExpr (expr :: RV -> Nat -> *) where
   stateExpr :: StateApp (expr rv) rv w -> expr rv w
 
--- | Constructed "abbreviated" expressions -- expressions that expand into a concrete
--- semantic meaning, but can be pretty-printed in a nice way without full expansion.
+-- | Abbreviated expressions. These expand into a concrete semantic meaning, but can
+-- be pretty-printed in a nice way without full expansion.
 data AbbrevApp (expr :: RV -> Nat -> *) (rv :: RV) (w :: Nat) where
   SafeGPRApp :: ( BVExpr (expr rv), StateExpr expr ) =>
                 NatRepr (RVWidth rv) -> expr rv 5 -> AbbrevApp expr rv (RVWidth rv)
 
+-- | A type class for expression languages that support 'AbbrevApp' embedding.
 class AbbrevExpr expr where
   abbrevExpr :: AbbrevApp expr rv w -> expr rv w
 
+-- | Get the width of an 'AbbrevApp'.
 abbrevAppWidth :: AbbrevApp expr rv w -> NatRepr w
 abbrevAppWidth (SafeGPRApp wRepr _) = wRepr
-
-expandAbbrevExpr :: AbbrevApp expr rv w -> expr rv w
-expandAbbrevExpr (SafeGPRApp wRepr ridE) = iteE
-  (ridE `eqE` litBV 0)
-  (litBV (bitVector' wRepr (0 :: Integer)))
-  (stateExpr (LocApp (GPRApp wRepr ridE)))
 
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
@@ -289,24 +287,24 @@ data Stmt (expr :: RV -> Nat -> *) (rv :: RV) where
   -- | Assign a piece of state to a value.
   AssignStmt :: !(LocApp (expr rv) rv w) -> !(expr rv w) -> Stmt expr rv
   -- | Abbreviated statement
-  AbbrevStmt :: !(AbbrevStmt expr rv w) -> Stmt expr rv
+  AbbrevStmt :: !(AbbrevStmt expr rv) -> Stmt expr rv
   -- | If-then-else branch statement.
   BranchStmt :: !(expr rv 1)
              -> !(Seq (Stmt expr rv))
              -> !(Seq (Stmt expr rv))
              -> Stmt expr rv
 
-data AbbrevStmt expr rv w where
+-- | An abbreviated statement. Expands into a larger 'Stmt' for simulation, but is a
+-- nice abstraction for pretty printing.
+data AbbrevStmt expr rv where
   SafeGPRAssign :: BVExpr (expr rv)
                 => !(expr rv 5)
                 -> !(expr rv (RVWidth rv))
-                -> AbbrevStmt expr rv w
-
-expandAbbrevStmt :: AbbrevStmt expr rv w -> Stmt expr rv
-expandAbbrevStmt (SafeGPRAssign ridE e) =
-  BranchStmt (ridE `eqE` litBV 0)
-  $> Seq.empty
-  $> Seq.singleton (AssignStmt (GPRApp (exprWidth e) ridE) e)
+                -> AbbrevStmt expr rv
+  RaiseException :: (BVExpr (expr rv), StateExpr expr)
+                 => !(BitVector 12)
+                 -> !(expr rv (RVWidth rv))
+                 -> AbbrevStmt expr rv
 
 -- | A 'Semantics' is simply a set of simultaneous 'Stmt's.
 data Semantics (expr :: RV -> Nat -> *) (rv :: RV)
@@ -415,24 +413,24 @@ comment :: String -> SemanticsM expr rv ()
 comment c = semComments %= \cs -> cs Seq.|> c
 
 -- | Get the width of the instruction word
-instBytes :: KnownRVWidth rv => SemanticsM (InstExpr fmt) rv (InstExpr fmt rv (RVWidth rv))
+instBytes :: KnownRV rv => SemanticsM (InstExpr fmt) rv (InstExpr fmt rv (RVWidth rv))
 instBytes = return (InstBytes knownNat)
 
 -- | Get the entire instruction word (useful for exceptions)
-instWord :: KnownRVWidth rv => SemanticsM (InstExpr fmt) rv (InstExpr fmt rv (RVWidth rv))
+instWord :: KnownRV rv => SemanticsM (InstExpr fmt) rv (InstExpr fmt rv (RVWidth rv))
 instWord = return (InstWord knownNat)
 
 -- | Read the pc.
-readPC :: (StateExpr expr, KnownRVWidth rv) => expr rv (RVWidth rv)
+readPC :: (StateExpr expr, KnownRV rv) => expr rv (RVWidth rv)
 readPC = stateExpr (LocApp (PCApp knownNat))
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
-readGPR :: (AbbrevExpr expr, BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 5 -> expr rv (RVWidth rv)
+readGPR :: (AbbrevExpr expr, BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 5 -> expr rv (RVWidth rv)
 readGPR ridE = abbrevExpr (SafeGPRApp knownNat ridE)
   -- iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (GPRApp knownNat ridE)))
 
 -- | Read a value from a floating point register.
-readFPR :: (BVExpr (expr rv), StateExpr expr, FExt << rv, KnownRVFloatWidth rv)
+readFPR :: (BVExpr (expr rv), StateExpr expr, FExt << rv, KnownRV rv)
          => expr rv 5
          -> expr rv (RVFloatWidth rv)
 readFPR ridE = stateExpr (LocApp (FPRApp knownNat ridE))
@@ -446,7 +444,7 @@ readMem :: StateExpr expr
 readMem bytes addr = stateExpr (LocApp (MemApp bytes addr))
 
 -- | Read a value from a CSR.
-rawReadCSR :: (StateExpr expr, KnownRVWidth rv) => expr rv 12 -> expr rv (RVWidth rv)
+rawReadCSR :: (StateExpr expr, KnownRV rv) => expr rv 12 -> expr rv (RVWidth rv)
 rawReadCSR csr = stateExpr (LocApp (CSRApp knownNat csr))
 
 -- | Read the current privilege level.
@@ -458,11 +456,11 @@ addStmt :: Stmt expr rv -> SemanticsM expr rv ()
 addStmt stmt = semStmts %= \stmts -> stmts Seq.|> stmt
 
 -- | Add a PC assignment to the semantics.
-assignPC :: KnownRVWidth rv => expr rv (RVWidth rv) -> SemanticsM expr rv ()
+assignPC :: KnownRV rv => expr rv (RVWidth rv) -> SemanticsM expr rv ()
 assignPC pc = addStmt (AssignStmt (PCApp knownNat) pc)
 
 -- | Add a register assignment to the semantics.
-assignGPR :: KnownRVWidth rv
+assignGPR :: KnownRV rv
           => BVExpr (expr rv)
           => expr rv 5
           -> expr rv (RVWidth rv)
@@ -470,7 +468,7 @@ assignGPR :: KnownRVWidth rv
 assignGPR r e = addStmt $ AbbrevStmt (SafeGPRAssign r e)
 
 -- | Add a register assignment to the semantics.
-assignFPR :: (KnownRVFloatWidth rv, BVExpr (expr rv), FExt << rv)
+assignFPR :: (KnownRV rv, BVExpr (expr rv), FExt << rv)
            => expr rv 5
            -> expr rv (RVFloatWidth rv)
            -> SemanticsM expr rv ()
@@ -485,7 +483,7 @@ assignMem :: NatRepr bytes
 assignMem bytes addr val = addStmt (AssignStmt (MemApp bytes addr) val)
 
 -- | Add a CSR assignment to the semantics.
-assignCSR :: KnownRVWidth rv
+assignCSR :: KnownRV rv
           => expr rv 12
           -> expr rv (RVWidth rv)
           -> SemanticsM expr rv ()
@@ -788,10 +786,12 @@ pPrintBVFloatApp ppExpr _ (F64IsSignalingNaNApp x) =
   text "f64IsSignalingNaN(" <> ppExpr True x <>  text ")"
 
 pPrintAbbrevStmt :: (forall w' . Bool -> expr rv w' -> Doc)
-                 -> AbbrevStmt expr rv w
+                 -> AbbrevStmt expr rv
                  -> Doc
 pPrintAbbrevStmt ppExpr (SafeGPRAssign ridE e) =
   text "x[" <> ppExpr True ridE <> text "] :=" <+> ppExpr True e
+pPrintAbbrevStmt ppExpr (RaiseException code info) =
+  text "raiseException(code = " <> pPrint code <> text ", info = " <> ppExpr True info <> text")"
 
 pPrintStmt :: (forall w' . Bool -> expr rv w' -> Doc)
            -> Stmt expr rv

@@ -62,17 +62,22 @@ module GRIFT.Types
   ( -- * RISC-V Configuration
     RV(..), type RVConfig
   , RVRepr(..)
-  , RVWidth, RVFloatWidth, RVCConfig, type (<<)
-  , FDFloatWidth
-  , RVFloatType
-  , KnownRVWidth
-  , KnownRVFloatWidth
-  , KnownRVFloatType
-  , KnownRVCConfig
+  , RVWidth, RVFloatWidth
+--  , RVCConfig
+  , type (<<)
+--  , FDFloatWidth
+--  , RVFloatType
+--  , KnownRVWidth
+--  , KnownRVFloatWidth
+--  , KnownRVFloatType
+--  , KnownRVCConfig
   , KnownRV
-  , withRVWidth
-  , withRVFloatWidth
-  , withRVCConfig
+--  , withRVWidth
+--  , withRVFloatWidth
+  , rvBaseArch, RVBaseArch
+  , rvExts, RVExts
+  , withRV
+--  , withRVC
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
   , RV32I
@@ -117,6 +122,11 @@ module GRIFT.Types
   , AConfigRepr(..)
   , FDConfigRepr(..)
   , CConfigRepr(..)
+  , extsPriv, ExtsPriv
+  , extsM, ExtsM
+  , extsA, ExtsA
+  , extsFD, ExtsFD
+  , extsC, ExtsC
   , KnownExtensions
   , Extension(..), type AExt, type DExt, type FExt, type MExt, type CExt, type SExt, type UExt
   , ExtensionsContains
@@ -256,6 +266,36 @@ instance ( KnownRepr PrivConfigRepr priv
          ) => KnownRepr ExtensionsRepr (Exts '(priv, m, a, fd, c)) where
   knownRepr = ExtensionsRepr knownRepr knownRepr knownRepr knownRepr knownRepr
 
+type family ExtsPriv (exts :: Extensions) :: PrivConfig where
+  ExtsPriv (Exts '(priv, _, _, _, _)) = priv
+
+type family ExtsM (exts :: Extensions) :: MConfig where
+  ExtsM (Exts '(_, m, _, _, _)) = m
+
+type family ExtsA (exts :: Extensions) :: AConfig where
+  ExtsA (Exts '(_, _, a, _, _)) = a
+
+type family ExtsFD (exts :: Extensions) :: FDConfig where
+  ExtsFD (Exts '(_, _, _, fd, _)) = fd
+
+type family ExtsC (exts :: Extensions) :: CConfig where
+  ExtsC (Exts '(_, _, _, _, c)) = c
+
+extsPriv :: ExtensionsRepr exts -> PrivConfigRepr (ExtsPriv exts)
+extsPriv (ExtensionsRepr privRepr _ _ _ _) = privRepr
+
+extsM :: ExtensionsRepr exts -> MConfigRepr (ExtsM exts)
+extsM (ExtensionsRepr _ mRepr _ _ _) = mRepr
+
+extsA :: ExtensionsRepr exts -> AConfigRepr (ExtsA exts)
+extsA (ExtensionsRepr _ _ aRepr _ _) = aRepr
+
+extsFD :: ExtensionsRepr exts -> FDConfigRepr (ExtsFD exts)
+extsFD (ExtensionsRepr _ _ _ fdRepr _) = fdRepr
+
+extsC :: ExtensionsRepr exts -> CConfigRepr (ExtsC exts)
+extsC (ExtensionsRepr _ _ _ _ cRepr) = cRepr
+
 instance Pretty (ExtensionsRepr exts) where
   pPrint (ExtensionsRepr _privRepr MYesRepr AYesRepr FDYesRepr cRepr) =
     text "G" <> pPrint cRepr
@@ -370,20 +410,29 @@ type RVConfig = 'RVConfig
 data RVRepr :: RV -> * where
   RVRepr :: BaseArchRepr arch -> ExtensionsRepr exts -> RVRepr (RVConfig '(arch, exts))
 
+type family RVBaseArch (rv :: RV) :: BaseArch where
+  RVBaseArch (RVConfig '(arch, _)) = arch
+
+type family RVExts (rv :: RV) :: Extensions where
+  RVExts (RVConfig '(_, exts)) = exts
+
+rvBaseArch :: RVRepr rv -> BaseArchRepr (RVBaseArch rv)
+rvBaseArch (RVRepr archRepr _) = archRepr
+
+rvExts :: RVRepr rv -> ExtensionsRepr (RVExts rv)
+rvExts (RVRepr _ extsRepr) = extsRepr
+
 instance (KnownArch arch, KnownExtensions exts) => KnownRepr RVRepr (RVConfig '(arch, exts)) where
   knownRepr = RVRepr knownRepr knownRepr
 
 instance Pretty (RVRepr rv) where
   pPrint (RVRepr baseRepr extsRepr) = pPrint baseRepr <> pPrint extsRepr
 
--- TODO: Clean this up and better document what is going on here.
 -- | The width of the GPRs are known at compile time.
 type KnownRVWidth rv = KnownNat (RVWidth rv)
 
 -- | The width of the floating point registers are known at compile time.
 type KnownRVFloatWidth rv = KnownNat (RVFloatWidth rv)
-
-type KnownRVFloatType rv = KnownRepr FDConfigRepr (RVFloatType rv)
 
 type KnownRVCConfig rv = KnownRepr CConfigRepr (RVCConfig rv)
 
@@ -394,7 +443,7 @@ type KnownRV rv = ( KnownRepr RVRepr rv
 
 -- | Maps a RISC-V configuration to its register width.
 type family RVWidth (rv :: RV) :: Nat where
-  RVWidth (RVConfig '(arch, _)) = ArchWidth arch
+  RVWidth rv = ArchWidth (RVBaseArch rv)
 
 -- | Maps a 'FDConfig' to its corresponding floating point register width.
 type family FDFloatWidth (fd :: FDConfig) :: Nat where
@@ -403,7 +452,7 @@ type family FDFloatWidth (fd :: FDConfig) :: Nat where
 
 -- | Maps a RISC-V configuration to its floating point register width.
 type family RVFloatWidth (rv :: RV) :: Nat where
-  RVFloatWidth rv = FDFloatWidth (RVFloatType rv)
+  RVFloatWidth rv = FDFloatWidth (ExtsFD (RVExts rv))
 
 -- | Maps a RISC-V configuration to its 'FDConfig'.
 type family RVFloatType (rv :: RV) :: FDConfig where
@@ -417,8 +466,41 @@ type family RVCConfig (rv :: RV) :: CConfig where
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
 
--- TODO: The reason we don't have a 'withRV' function is that it would
--- be a MASSIVE, quadratic case split.
+withBase :: BaseArchRepr arch -> (KnownRepr BaseArchRepr arch => b) -> b
+withBase RV32Repr b = b
+withBase RV64Repr b = b
+withBase RV128Repr b = b
+
+withPriv :: PrivConfigRepr priv -> (KnownRepr PrivConfigRepr priv => b) -> b
+withPriv PrivMRepr b = b
+withPriv PrivMURepr b = b
+withPriv PrivMSURepr b = b
+
+withM :: MConfigRepr m -> (KnownRepr MConfigRepr m => b) -> b
+withM MYesRepr b = b
+withM MNoRepr b = b
+
+withA :: AConfigRepr a -> (KnownRepr AConfigRepr a => b) -> b
+withA AYesRepr b = b
+withA ANoRepr b = b
+
+withFD :: FDConfigRepr fd -> (KnownRepr FDConfigRepr fd => b) -> b
+withFD FDYesRepr b = b
+withFD FYesDNoRepr b = b
+withFD FDNoRepr b = b
+
+withC :: CConfigRepr c -> (KnownRepr CConfigRepr c => b) -> b
+withC CYesRepr b = b
+withC CNoRepr b = b
+
+withExts :: ExtensionsRepr exts -> (KnownRepr ExtensionsRepr exts => b) -> b
+withExts (ExtensionsRepr priv m a fd c) b =
+  withPriv priv $
+  withM m $
+  withA a $
+  withFD fd $
+  withC c b
+
 -- | Satisfy a 'KnownRVWidth' constraint from an explicit 'RVRepr'.
 withRVWidth :: RVRepr rv -> (KnownRVWidth rv => b) -> b
 withRVWidth (RVRepr RV32Repr _) b = b
@@ -431,10 +513,39 @@ withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDNoRepr _)) b = b
 
+withRV :: RVRepr rv -> (KnownRV rv => b) -> b
+withRV rvRepr@(RVRepr baseRepr extsRepr) b =
+  withBase baseRepr $
+  withExts extsRepr $
+  withRVWidth rvRepr $
+  withRVFloatWidth rvRepr b
+
 -- | Satisfy a 'KnownRVCConfig' constraint from an explicit 'RVRepr'.
-withRVCConfig :: RVRepr rv -> (KnownRVCConfig rv => b) -> b
-withRVCConfig (RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr)) b = b
-withRVCConfig (RVRepr _ (ExtensionsRepr _ _ _ _ CNoRepr)) b = b
+withRVC :: RVRepr rv -> (KnownRVCConfig rv => b) -> b
+withRVC (RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr)) b = b
+withRVC (RVRepr _ (ExtensionsRepr _ _ _ _ CNoRepr)) b = b
+
+needsRV64 :: RVRepr rv -> ((64 <= RVWidth rv) => a) -> Maybe a
+needsRV64 (RVRepr RV64Repr _) a = Just a
+needsRV64 (RVRepr RV128Repr _) a = Just a
+needsRV64 _ _ = Nothing
+
+needsM :: RVRepr rv -> ((MExt << rv) => a) -> Maybe a
+needsM (RVRepr _ (ExtensionsRepr _ MYesRepr _ _ _)) a = Just a
+needsM _ _ = Nothing
+
+needsA :: RVRepr rv -> ((AExt << rv) => a) -> Maybe a
+needsA (RVRepr _ (ExtensionsRepr _ _ AYesRepr _ _)) a = Just a
+needsA _ _ = Nothing
+
+needsF :: RVRepr rv -> ((FExt << rv) => a) -> Maybe a
+needsF (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) a = Just a
+needsF (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) a = Just a
+needsF _ _ = Nothing
+
+needsD :: RVRepr rv -> ((DExt << rv) => a) -> Maybe a
+needsD (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) a = Just a
+needsD _ _ = Nothing
 
 -- type synonyms for common RVConfigs.
 type RV32I     = RVConfig '(RV32, Exts '(PrivM, MNo,  ANo,  FDNo,    CNo))
@@ -911,28 +1022,6 @@ data Opcode :: RV -> Format -> * where
   Fcvt_d_lu :: (64 <= RVWidth rv, DExt << rv) => Opcode rv R2
   Fmv_d_x   :: (64 <= RVWidth rv, DExt << rv) => Opcode rv RX
 
-withRV64 :: RVRepr rv -> ((64 <= RVWidth rv) => a) -> Maybe a
-withRV64 (RVRepr RV64Repr _) a = Just a
-withRV64 (RVRepr RV128Repr _) a = Just a
-withRV64 _ _ = Nothing
-
-withM :: RVRepr rv -> ((MExt << rv) => a) -> Maybe a
-withM (RVRepr _ (ExtensionsRepr _ MYesRepr _ _ _)) a = Just a
-withM _ _ = Nothing
-
-withA :: RVRepr rv -> ((AExt << rv) => a) -> Maybe a
-withA (RVRepr _ (ExtensionsRepr _ _ AYesRepr _ _)) a = Just a
-withA _ _ = Nothing
-
-withF :: RVRepr rv -> ((FExt << rv) => a) -> Maybe a
-withF (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) a = Just a
-withF (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) a = Just a
-withF _ _ = Nothing
-
-withD :: RVRepr rv -> ((DExt << rv) => a) -> Maybe a
-withD (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) a = Just a
-withD _ _ = Nothing
-
 -- TODO: Create invertible parser for instructions.
 readOpcode :: String -> Maybe (Some (Opcode RV64GC))
 readOpcode str = case (toLower <$> str) of
@@ -1168,123 +1257,123 @@ opcodeCast _ Illegal = Just (Illegal, knownRepr)
 opcodeCast _ Mret = Just (Mret, knownRepr)
 opcodeCast _ Wfi = Just (Wfi, knownRepr)
 
-opcodeCast rv Addw = withRV64 rv (Addw, knownRepr)
-opcodeCast rv Subw = withRV64 rv (Subw, knownRepr)
-opcodeCast rv Sllw = withRV64 rv (Sllw, knownRepr)
-opcodeCast rv Srlw = withRV64 rv (Srlw, knownRepr)
-opcodeCast rv Sraw = withRV64 rv (Sraw, knownRepr)
-opcodeCast rv Slliw = withRV64 rv (Slliw, knownRepr)
-opcodeCast rv Srliw = withRV64 rv (Srliw, knownRepr)
-opcodeCast rv Sraiw = withRV64 rv (Sraiw, knownRepr)
-opcodeCast rv Lwu = withRV64 rv (Lwu, knownRepr)
-opcodeCast rv Ld = withRV64 rv (Ld, knownRepr)
-opcodeCast rv Addiw = withRV64 rv (Addiw, knownRepr)
-opcodeCast rv Sd = withRV64 rv (Sd, knownRepr)
+opcodeCast rv Addw = needsRV64 rv (Addw, knownRepr)
+opcodeCast rv Subw = needsRV64 rv (Subw, knownRepr)
+opcodeCast rv Sllw = needsRV64 rv (Sllw, knownRepr)
+opcodeCast rv Srlw = needsRV64 rv (Srlw, knownRepr)
+opcodeCast rv Sraw = needsRV64 rv (Sraw, knownRepr)
+opcodeCast rv Slliw = needsRV64 rv (Slliw, knownRepr)
+opcodeCast rv Srliw = needsRV64 rv (Srliw, knownRepr)
+opcodeCast rv Sraiw = needsRV64 rv (Sraiw, knownRepr)
+opcodeCast rv Lwu = needsRV64 rv (Lwu, knownRepr)
+opcodeCast rv Ld = needsRV64 rv (Ld, knownRepr)
+opcodeCast rv Addiw = needsRV64 rv (Addiw, knownRepr)
+opcodeCast rv Sd = needsRV64 rv (Sd, knownRepr)
 
-opcodeCast rv Mul = withM rv (Mul, knownRepr)
-opcodeCast rv Mulh = withM rv (Mulh, knownRepr)
-opcodeCast rv Mulhsu = withM rv (Mulhsu, knownRepr)
-opcodeCast rv Mulhu = withM rv (Mulhu, knownRepr)
-opcodeCast rv Div = withM rv (Div, knownRepr)
-opcodeCast rv Divu = withM rv (Divu, knownRepr)
-opcodeCast rv Rem = withM rv (Rem, knownRepr)
-opcodeCast rv Remu = withM rv (Remu, knownRepr)
+opcodeCast rv Mul = needsM rv (Mul, knownRepr)
+opcodeCast rv Mulh = needsM rv (Mulh, knownRepr)
+opcodeCast rv Mulhsu = needsM rv (Mulhsu, knownRepr)
+opcodeCast rv Mulhu = needsM rv (Mulhu, knownRepr)
+opcodeCast rv Div = needsM rv (Div, knownRepr)
+opcodeCast rv Divu = needsM rv (Divu, knownRepr)
+opcodeCast rv Rem = needsM rv (Rem, knownRepr)
+opcodeCast rv Remu = needsM rv (Remu, knownRepr)
 
-opcodeCast rv Mulw = join (withRV64 rv (withM rv (Mulw, knownRepr)))
-opcodeCast rv Divw = join (withRV64 rv (withM rv (Divw, knownRepr)))
-opcodeCast rv Divuw = join (withRV64 rv (withM rv (Divuw, knownRepr)))
-opcodeCast rv Remw = join (withRV64 rv (withM rv (Remw, knownRepr)))
-opcodeCast rv Remuw = join (withRV64 rv (withM rv (Remuw, knownRepr)))
+opcodeCast rv Mulw = join (needsRV64 rv (needsM rv (Mulw, knownRepr)))
+opcodeCast rv Divw = join (needsRV64 rv (needsM rv (Divw, knownRepr)))
+opcodeCast rv Divuw = join (needsRV64 rv (needsM rv (Divuw, knownRepr)))
+opcodeCast rv Remw = join (needsRV64 rv (needsM rv (Remw, knownRepr)))
+opcodeCast rv Remuw = join (needsRV64 rv (needsM rv (Remuw, knownRepr)))
 
-opcodeCast rv Lrw = withA rv (Lrw, knownRepr)
-opcodeCast rv Scw = withA rv (Scw, knownRepr)
-opcodeCast rv Amoswapw = withA rv (Amoswapw, knownRepr)
-opcodeCast rv Amoaddw = withA rv (Amoaddw, knownRepr)
-opcodeCast rv Amoxorw = withA rv (Amoxorw, knownRepr)
-opcodeCast rv Amoandw = withA rv (Amoandw, knownRepr)
-opcodeCast rv Amoorw = withA rv (Amoorw, knownRepr)
-opcodeCast rv Amominw = withA rv (Amominw, knownRepr)
-opcodeCast rv Amomaxw = withA rv (Amomaxw, knownRepr)
-opcodeCast rv Amominuw = withA rv (Amominuw, knownRepr)
-opcodeCast rv Amomaxuw = withA rv (Amomaxuw, knownRepr)
+opcodeCast rv Lrw = needsA rv (Lrw, knownRepr)
+opcodeCast rv Scw = needsA rv (Scw, knownRepr)
+opcodeCast rv Amoswapw = needsA rv (Amoswapw, knownRepr)
+opcodeCast rv Amoaddw = needsA rv (Amoaddw, knownRepr)
+opcodeCast rv Amoxorw = needsA rv (Amoxorw, knownRepr)
+opcodeCast rv Amoandw = needsA rv (Amoandw, knownRepr)
+opcodeCast rv Amoorw = needsA rv (Amoorw, knownRepr)
+opcodeCast rv Amominw = needsA rv (Amominw, knownRepr)
+opcodeCast rv Amomaxw = needsA rv (Amomaxw, knownRepr)
+opcodeCast rv Amominuw = needsA rv (Amominuw, knownRepr)
+opcodeCast rv Amomaxuw = needsA rv (Amomaxuw, knownRepr)
 
-opcodeCast rv Lrd = join (withRV64 rv (withA rv (Lrd, knownRepr)))
-opcodeCast rv Scd = join (withRV64 rv (withA rv (Scd, knownRepr)))
-opcodeCast rv Amoswapd = join (withRV64 rv (withA rv (Amoswapd, knownRepr)))
-opcodeCast rv Amoaddd = join (withRV64 rv (withA rv (Amoaddd, knownRepr)))
-opcodeCast rv Amoxord = join (withRV64 rv (withA rv (Amoxord, knownRepr)))
-opcodeCast rv Amoandd = join (withRV64 rv (withA rv (Amoandd, knownRepr)))
-opcodeCast rv Amoord = join (withRV64 rv (withA rv (Amoord, knownRepr)))
-opcodeCast rv Amomind = join (withRV64 rv (withA rv (Amomind, knownRepr)))
-opcodeCast rv Amomaxd = join (withRV64 rv (withA rv (Amomaxd, knownRepr)))
-opcodeCast rv Amominud = join (withRV64 rv (withA rv (Amominud, knownRepr)))
-opcodeCast rv Amomaxud = join (withRV64 rv (withA rv (Amomaxud, knownRepr)))
+opcodeCast rv Lrd = join (needsRV64 rv (needsA rv (Lrd, knownRepr)))
+opcodeCast rv Scd = join (needsRV64 rv (needsA rv (Scd, knownRepr)))
+opcodeCast rv Amoswapd = join (needsRV64 rv (needsA rv (Amoswapd, knownRepr)))
+opcodeCast rv Amoaddd = join (needsRV64 rv (needsA rv (Amoaddd, knownRepr)))
+opcodeCast rv Amoxord = join (needsRV64 rv (needsA rv (Amoxord, knownRepr)))
+opcodeCast rv Amoandd = join (needsRV64 rv (needsA rv (Amoandd, knownRepr)))
+opcodeCast rv Amoord = join (needsRV64 rv (needsA rv (Amoord, knownRepr)))
+opcodeCast rv Amomind = join (needsRV64 rv (needsA rv (Amomind, knownRepr)))
+opcodeCast rv Amomaxd = join (needsRV64 rv (needsA rv (Amomaxd, knownRepr)))
+opcodeCast rv Amominud = join (needsRV64 rv (needsA rv (Amominud, knownRepr)))
+opcodeCast rv Amomaxud = join (needsRV64 rv (needsA rv (Amomaxud, knownRepr)))
 
-opcodeCast rv Flw = withF rv (Flw, knownRepr)
-opcodeCast rv Fsw = withF rv (Fsw, knownRepr)
-opcodeCast rv Fmadd_s = withF rv (Fmadd_s, knownRepr)
-opcodeCast rv Fmsub_s = withF rv (Fmsub_s, knownRepr)
-opcodeCast rv Fnmsub_s = withF rv (Fnmsub_s, knownRepr)
-opcodeCast rv Fnmadd_s = withF rv (Fnmadd_s, knownRepr)
-opcodeCast rv Fadd_s = withF rv (Fadd_s, knownRepr)
-opcodeCast rv Fsub_s = withF rv (Fsub_s, knownRepr)
-opcodeCast rv Fmul_s = withF rv (Fmul_s, knownRepr)
-opcodeCast rv Fdiv_s = withF rv (Fdiv_s, knownRepr)
-opcodeCast rv Fsqrt_s = withF rv (Fsqrt_s, knownRepr)
-opcodeCast rv Fsgnj_s = withF rv (Fsgnj_s, knownRepr)
-opcodeCast rv Fsgnjn_s = withF rv (Fsgnjn_s, knownRepr)
-opcodeCast rv Fsgnjx_s = withF rv (Fsgnjx_s, knownRepr)
-opcodeCast rv Fmin_s = withF rv (Fmin_s, knownRepr)
-opcodeCast rv Fmax_s = withF rv (Fmax_s, knownRepr)
-opcodeCast rv Fcvt_w_s = withF rv (Fcvt_w_s, knownRepr)
-opcodeCast rv Fcvt_wu_s = withF rv (Fcvt_wu_s, knownRepr)
-opcodeCast rv Fmv_x_w = withF rv (Fmv_x_w, knownRepr)
-opcodeCast rv Feq_s = withF rv (Feq_s, knownRepr)
-opcodeCast rv Flt_s = withF rv (Flt_s, knownRepr)
-opcodeCast rv Fle_s = withF rv (Fle_s, knownRepr)
-opcodeCast rv Fclass_s = withF rv (Fclass_s, knownRepr)
-opcodeCast rv Fcvt_s_w = withF rv (Fcvt_s_w, knownRepr)
-opcodeCast rv Fcvt_s_wu = withF rv (Fcvt_s_wu, knownRepr)
-opcodeCast rv Fmv_w_x = withF rv (Fmv_w_x, knownRepr)
+opcodeCast rv Flw = needsF rv (Flw, knownRepr)
+opcodeCast rv Fsw = needsF rv (Fsw, knownRepr)
+opcodeCast rv Fmadd_s = needsF rv (Fmadd_s, knownRepr)
+opcodeCast rv Fmsub_s = needsF rv (Fmsub_s, knownRepr)
+opcodeCast rv Fnmsub_s = needsF rv (Fnmsub_s, knownRepr)
+opcodeCast rv Fnmadd_s = needsF rv (Fnmadd_s, knownRepr)
+opcodeCast rv Fadd_s = needsF rv (Fadd_s, knownRepr)
+opcodeCast rv Fsub_s = needsF rv (Fsub_s, knownRepr)
+opcodeCast rv Fmul_s = needsF rv (Fmul_s, knownRepr)
+opcodeCast rv Fdiv_s = needsF rv (Fdiv_s, knownRepr)
+opcodeCast rv Fsqrt_s = needsF rv (Fsqrt_s, knownRepr)
+opcodeCast rv Fsgnj_s = needsF rv (Fsgnj_s, knownRepr)
+opcodeCast rv Fsgnjn_s = needsF rv (Fsgnjn_s, knownRepr)
+opcodeCast rv Fsgnjx_s = needsF rv (Fsgnjx_s, knownRepr)
+opcodeCast rv Fmin_s = needsF rv (Fmin_s, knownRepr)
+opcodeCast rv Fmax_s = needsF rv (Fmax_s, knownRepr)
+opcodeCast rv Fcvt_w_s = needsF rv (Fcvt_w_s, knownRepr)
+opcodeCast rv Fcvt_wu_s = needsF rv (Fcvt_wu_s, knownRepr)
+opcodeCast rv Fmv_x_w = needsF rv (Fmv_x_w, knownRepr)
+opcodeCast rv Feq_s = needsF rv (Feq_s, knownRepr)
+opcodeCast rv Flt_s = needsF rv (Flt_s, knownRepr)
+opcodeCast rv Fle_s = needsF rv (Fle_s, knownRepr)
+opcodeCast rv Fclass_s = needsF rv (Fclass_s, knownRepr)
+opcodeCast rv Fcvt_s_w = needsF rv (Fcvt_s_w, knownRepr)
+opcodeCast rv Fcvt_s_wu = needsF rv (Fcvt_s_wu, knownRepr)
+opcodeCast rv Fmv_w_x = needsF rv (Fmv_w_x, knownRepr)
 
-opcodeCast rv Fcvt_l_s = join (withRV64 rv (withF rv (Fcvt_l_s, knownRepr)))
-opcodeCast rv Fcvt_lu_s = join (withRV64 rv (withF rv (Fcvt_lu_s, knownRepr)))
-opcodeCast rv Fcvt_s_l = join (withRV64 rv (withF rv (Fcvt_s_l, knownRepr)))
-opcodeCast rv Fcvt_s_lu = join (withRV64 rv (withF rv (Fcvt_s_lu, knownRepr)))
+opcodeCast rv Fcvt_l_s = join (needsRV64 rv (needsF rv (Fcvt_l_s, knownRepr)))
+opcodeCast rv Fcvt_lu_s = join (needsRV64 rv (needsF rv (Fcvt_lu_s, knownRepr)))
+opcodeCast rv Fcvt_s_l = join (needsRV64 rv (needsF rv (Fcvt_s_l, knownRepr)))
+opcodeCast rv Fcvt_s_lu = join (needsRV64 rv (needsF rv (Fcvt_s_lu, knownRepr)))
 
-opcodeCast rv Fld = withD rv (Fld, knownRepr)
-opcodeCast rv Fsd = withD rv (Fsd, knownRepr)
-opcodeCast rv Fmadd_d = withD rv (Fmadd_d, knownRepr)
-opcodeCast rv Fmsub_d = withD rv (Fmsub_d, knownRepr)
-opcodeCast rv Fnmsub_d = withD rv (Fnmsub_d, knownRepr)
-opcodeCast rv Fnmadd_d = withD rv (Fnmadd_d, knownRepr)
-opcodeCast rv Fadd_d = withD rv (Fadd_d, knownRepr)
-opcodeCast rv Fsub_d = withD rv (Fsub_d, knownRepr)
-opcodeCast rv Fmul_d = withD rv (Fmul_d, knownRepr)
-opcodeCast rv Fdiv_d = withD rv (Fdiv_d, knownRepr)
-opcodeCast rv Fsqrt_d = withD rv (Fsqrt_d, knownRepr)
-opcodeCast rv Fsgnj_d = withD rv (Fsgnj_d, knownRepr)
-opcodeCast rv Fsgnjn_d = withD rv (Fsgnjn_d, knownRepr)
-opcodeCast rv Fsgnjx_d = withD rv (Fsgnjx_d, knownRepr)
-opcodeCast rv Fmin_d = withD rv (Fmin_d, knownRepr)
-opcodeCast rv Fmax_d = withD rv (Fmax_d, knownRepr)
-opcodeCast rv Fcvt_s_d = withD rv (Fcvt_s_d, knownRepr)
-opcodeCast rv Fcvt_d_s = withD rv (Fcvt_d_s, knownRepr)
-opcodeCast rv Feq_d = withD rv (Feq_d, knownRepr)
-opcodeCast rv Flt_d = withD rv (Flt_d, knownRepr)
-opcodeCast rv Fle_d = withD rv (Fle_d, knownRepr)
-opcodeCast rv Fclass_d = withD rv (Fclass_d, knownRepr)
-opcodeCast rv Fcvt_w_d = withD rv (Fcvt_w_d, knownRepr)
-opcodeCast rv Fcvt_wu_d = withD rv (Fcvt_wu_d, knownRepr)
-opcodeCast rv Fcvt_d_w = withD rv (Fcvt_d_w, knownRepr)
-opcodeCast rv Fcvt_d_wu = withD rv (Fcvt_d_wu, knownRepr)
+opcodeCast rv Fld = needsD rv (Fld, knownRepr)
+opcodeCast rv Fsd = needsD rv (Fsd, knownRepr)
+opcodeCast rv Fmadd_d = needsD rv (Fmadd_d, knownRepr)
+opcodeCast rv Fmsub_d = needsD rv (Fmsub_d, knownRepr)
+opcodeCast rv Fnmsub_d = needsD rv (Fnmsub_d, knownRepr)
+opcodeCast rv Fnmadd_d = needsD rv (Fnmadd_d, knownRepr)
+opcodeCast rv Fadd_d = needsD rv (Fadd_d, knownRepr)
+opcodeCast rv Fsub_d = needsD rv (Fsub_d, knownRepr)
+opcodeCast rv Fmul_d = needsD rv (Fmul_d, knownRepr)
+opcodeCast rv Fdiv_d = needsD rv (Fdiv_d, knownRepr)
+opcodeCast rv Fsqrt_d = needsD rv (Fsqrt_d, knownRepr)
+opcodeCast rv Fsgnj_d = needsD rv (Fsgnj_d, knownRepr)
+opcodeCast rv Fsgnjn_d = needsD rv (Fsgnjn_d, knownRepr)
+opcodeCast rv Fsgnjx_d = needsD rv (Fsgnjx_d, knownRepr)
+opcodeCast rv Fmin_d = needsD rv (Fmin_d, knownRepr)
+opcodeCast rv Fmax_d = needsD rv (Fmax_d, knownRepr)
+opcodeCast rv Fcvt_s_d = needsD rv (Fcvt_s_d, knownRepr)
+opcodeCast rv Fcvt_d_s = needsD rv (Fcvt_d_s, knownRepr)
+opcodeCast rv Feq_d = needsD rv (Feq_d, knownRepr)
+opcodeCast rv Flt_d = needsD rv (Flt_d, knownRepr)
+opcodeCast rv Fle_d = needsD rv (Fle_d, knownRepr)
+opcodeCast rv Fclass_d = needsD rv (Fclass_d, knownRepr)
+opcodeCast rv Fcvt_w_d = needsD rv (Fcvt_w_d, knownRepr)
+opcodeCast rv Fcvt_wu_d = needsD rv (Fcvt_wu_d, knownRepr)
+opcodeCast rv Fcvt_d_w = needsD rv (Fcvt_d_w, knownRepr)
+opcodeCast rv Fcvt_d_wu = needsD rv (Fcvt_d_wu, knownRepr)
 
-opcodeCast rv Fcvt_l_d = join (withRV64 rv (withD rv (Fcvt_l_d, knownRepr)))
-opcodeCast rv Fcvt_lu_d = join (withRV64 rv (withD rv (Fcvt_lu_d, knownRepr)))
-opcodeCast rv Fmv_x_d = join (withRV64 rv (withD rv (Fmv_x_d, knownRepr)))
-opcodeCast rv Fcvt_d_l = join (withRV64 rv (withD rv (Fcvt_d_l, knownRepr)))
-opcodeCast rv Fcvt_d_lu = join (withRV64 rv (withD rv (Fcvt_d_lu, knownRepr)))
-opcodeCast rv Fmv_d_x = join (withRV64 rv (withD rv (Fmv_d_x, knownRepr)))
+opcodeCast rv Fcvt_l_d = join (needsRV64 rv (needsD rv (Fcvt_l_d, knownRepr)))
+opcodeCast rv Fcvt_lu_d = join (needsRV64 rv (needsD rv (Fcvt_lu_d, knownRepr)))
+opcodeCast rv Fmv_x_d = join (needsRV64 rv (needsD rv (Fmv_x_d, knownRepr)))
+opcodeCast rv Fcvt_d_l = join (needsRV64 rv (needsD rv (Fcvt_d_l, knownRepr)))
+opcodeCast rv Fcvt_d_lu = join (needsRV64 rv (needsD rv (Fcvt_d_lu, knownRepr)))
+opcodeCast rv Fmv_d_x = join (needsRV64 rv (needsD rv (Fmv_d_x, knownRepr)))
 
 -- Instances
 $(return [])

@@ -90,9 +90,9 @@ import           Text.PrettyPrint.HughesPJ
 
 import GRIFT.InstructionSet
 import GRIFT.InstructionSet.Known
-import GRIFT.InstructionSet.Utils
 import GRIFT.Types
 import GRIFT.Semantics
+import GRIFT.Semantics.Utils
 import GRIFT.Simulation
 
 import Debug.Trace (traceM, trace)
@@ -155,9 +155,9 @@ mkLogMachine :: RVRepr rv
              -> IO (LogMachine rv)
 mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
   pc         <- newIORef entryPoint
-  registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
-  fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
-  memory     <- newIORef $ Map.fromList [ ] -- withRVWidth rvRepr $ newArray (0, maxAddr) 0
+  registers  <- withRV rvRepr $ newArray (1, 31) 0
+  fregisters <- withRV rvRepr $ newArray (0, 31) 0
+  memory     <- newIORef $ Map.fromList [ ] -- withRV rvRepr $ newArray (0, maxAddr) 0
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
   haltPCRef  <- newIORef haltPC
@@ -168,7 +168,7 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
   writeArray registers 2 sp
 
   forM_ byteStrings $ \(addr, bs) ->
-    withRVWidth rvRepr $ writeBS addr bs memory
+    withRV rvRepr $ writeBS addr bs memory
   return (LogMachine
            rvRepr pc registers fregisters memory csrs
            priv haltPCRef opcodeRef covMapRef)
@@ -184,9 +184,9 @@ mkLogMachineWithCovMap :: RVRepr rv
                        -> IO (LogMachine rv)
 mkLogMachineWithCovMap rvRepr entryPoint sp byteStrings haltPC opcodeCov covMapRef = do
   pc         <- newIORef entryPoint
-  registers  <- withRVWidth rvRepr $ newArray (1, 31) 0
-  fregisters <- withRVFloatWidth rvRepr $ newArray (0, 31) 0
-  memory     <- newIORef $ Map.fromList [ ] -- withRVWidth rvRepr $ newArray (0, maxAddr) 0
+  registers  <- withRV rvRepr $ newArray (1, 31) 0
+  fregisters <- withRV rvRepr $ newArray (0, 31) 0
+  memory     <- newIORef $ Map.fromList [ ] -- withRV rvRepr $ newArray (0, maxAddr) 0
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
   haltPCRef  <- newIORef haltPC
@@ -196,7 +196,7 @@ mkLogMachineWithCovMap rvRepr entryPoint sp byteStrings haltPC opcodeCov covMapR
   writeArray registers 2 sp
 
   forM_ byteStrings $ \(addr, bs) ->
-    withRVWidth rvRepr $ writeBS addr bs memory
+    withRV rvRepr $ writeBS addr bs memory
   return (LogMachine
            rvRepr pc registers fregisters memory csrs
            priv haltPCRef opcodeRef covMapRef)
@@ -213,7 +213,7 @@ newtype LogMachineM (rv :: RV) a =
            , MonadIO
            )
 
-instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
+instance KnownRV rv => RVStateM (LogMachineM rv) rv where
   getRV = lmRV <$> ask
   getPC = do
     pcRef <- lmPC <$> ask
@@ -231,7 +231,7 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
     rv <- lmRV <$> ask
-    withRVWidth rv $ do
+    withRV rv $ do
       let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
       return (bvConcatMany' ((knownNat @8) `natMultiply` bytes) val)
   getCSR csr = do
@@ -240,7 +240,7 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     rv <- lmRV <$> ask
     let csrVal = case Map.lookup csr csrMap of
           Just val -> val
-          Nothing  -> withRVWidth rv 0 -- TODO: throw exception?
+          Nothing  -> withRV rv 0 -- TODO: throw exception?
     return csrVal
   getPriv = LogMachineM $ do
     privRef <- lmPriv <$> ask
@@ -263,7 +263,7 @@ instance KnownRVWidth rv => RVStateM (LogMachineM rv) rv where
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
     rv <- lmRV <$> ask
-    withRVWidth rv $
+    withRV rv $
       let addrValPairs = zip
             [addr..addr+(fromIntegral (natValue bytes-1))]
             (bvGetBytesU (fromIntegral (natValue bytes)) val)
@@ -324,11 +324,11 @@ freezeFPRs :: LogMachine rv
 freezeFPRs = freeze . lmFPRs
 
 -- | Run the simulator for a given number of steps.
-runLogMachine :: KnownRVWidth rv => Int -> LogMachine rv -> IO Int
+runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps
 
 -- | Like runLogMachine, but log each instruction.
-runLogMachineLog :: KnownRVWidth rv => Int -> LogMachine rv -> IO Int
+runLogMachineLog :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
 
 -- | A 'CTNode' contains an expression and a flag indicating whether or not that

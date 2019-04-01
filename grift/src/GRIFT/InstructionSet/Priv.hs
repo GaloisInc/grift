@@ -45,18 +45,18 @@ import Data.Parameterized
 import Data.Parameterized.List
 
 import GRIFT.InstructionSet
-import GRIFT.InstructionSet.Utils
 import GRIFT.Semantics
+import GRIFT.Semantics.Utils
 import GRIFT.Types
 
 -- | Get the privileged instruction set from an explicit 'RVRepr'.
 privmFromRepr :: RVRepr rv -> InstructionSet rv
-privmFromRepr rv@(RVRepr RV32Repr _) = withRVCConfig rv $ privm
-privmFromRepr rv@(RVRepr RV64Repr _) = withRVCConfig rv $ privm
+privmFromRepr rv@(RVRepr RV32Repr _) = withRV rv privm
+privmFromRepr rv@(RVRepr RV64Repr _) = withRV rv privm
 privmFromRepr _ = mempty
 
 -- | Instruction set for machine-mode privileged architecture.
-privm :: (KnownRVWidth rv, KnownRVCConfig rv) => InstructionSet rv
+privm :: KnownRV rv => InstructionSet rv
 privm = instructionSet privmEncode privmSemantics
 
 privmEncode :: EncodeMap rv
@@ -65,7 +65,7 @@ privmEncode = Map.fromList
   , Pair Wfi  (OpBits PRepr (0b00010000010100000000000001110011 :< Nil))
   ]
 
-privmSemantics :: (KnownRVWidth rv, KnownRVCConfig rv) => SemanticsMap rv
+privmSemantics :: KnownRV rv => SemanticsMap rv
 privmSemantics = Map.fromList
   [ Pair Mret $ instSemantics Nil $ do
       comment "Returns from a machine-mode exception handler."

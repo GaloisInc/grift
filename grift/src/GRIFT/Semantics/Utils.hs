@@ -27,7 +27,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeOperators       #-}
 
 {-|
-Module      : GRIFT.InstructionSet.Utils
+Module      : GRIFT.Semantics.Utils
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : AGPLv3
@@ -38,7 +38,7 @@ Portability : portable
 Helper functions for defining instruction semantics.
 -}
 
-module GRIFT.InstructionSet.Utils
+module GRIFT.Semantics.Utils
   ( -- * General
     getArchWidth
   , incrPC
@@ -50,6 +50,7 @@ module GRIFT.InstructionSet.Utils
     -- * CSRs and Exceptions
   , CSR(..)
   , Exception(..)
+  , Privilege(..)
   , encodeCSR
   , resetCSRs
   , checkCSR
@@ -57,6 +58,7 @@ module GRIFT.InstructionSet.Utils
   , writeCSR
   , raiseException
   , getMCause
+  , getPrivCode
     -- * Floating point
   , raiseFPExceptions
   , withRM
@@ -77,11 +79,11 @@ import GRIFT.Types
 
 -- | Recover the architecture width as a 'Nat' from the type context. The 'InstExpr'
 -- should probably be generalized when we fully implement the privileged architecture.
-getArchWidth :: forall rv fmt . KnownRVWidth rv => SemanticsM (InstExpr fmt) rv (NatRepr (RVWidth rv))
+getArchWidth :: forall rv fmt . KnownRV rv => SemanticsM (InstExpr fmt) rv (NatRepr (RVWidth rv))
 getArchWidth = return (knownNat @(RVWidth rv))
 
 -- | Increment the PC
-incrPC :: KnownRVWidth rv => SemanticsM (InstExpr fmt) rv ()
+incrPC :: KnownRV rv => SemanticsM (InstExpr fmt) rv ()
 incrPC = do
   ib <- instBytes
   let pc = readPC
@@ -90,10 +92,10 @@ incrPC = do
 -- | Semantics for setting the PC. This adds a "wrapper" expression around 'assignPC'
 -- that raises a misaligned exception if the C extension is not present, and the jump
 -- destination is not 4-byte-aligned.
-jump :: forall expr rv . (BVExpr (expr rv), StateExpr expr, KnownRVCConfig rv, KnownRVWidth rv)
+jump :: forall expr rv . (BVExpr (expr rv), StateExpr expr, KnownRV rv)
      => expr rv (RVWidth rv) -- ^ address of the jump target
      -> SemanticsM expr rv ()
-jump pc = case knownRepr :: CConfigRepr (RVCConfig rv) of
+jump pc = case extsC (rvExts (knownRepr :: RVRepr rv)) of
   CYesRepr -> assignPC pc
   CNoRepr -> do
     let addrValid = (pc `andE` litBV 0b11) `eqE` litBV 0
@@ -102,20 +104,20 @@ jump pc = case knownRepr :: CConfigRepr (RVCConfig rv) of
       $> raiseException InstructionAddressMisaligned pc
 
 -- | NaN-box a 32-bit expression to fit in a floating point register.
-nanBox32 :: forall expr rv . (BVExpr (expr rv), KnownRVFloatType rv, FExt << rv)
+nanBox32 :: forall expr rv . (BVExpr (expr rv), KnownRV rv, FExt << rv)
          => expr rv 32
          -> SemanticsM expr rv (expr rv (RVFloatWidth rv))
-nanBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
+nanBox32 e = case extsFD (rvExts (knownRepr :: RVRepr rv)) of
   FDYesRepr   -> return $ (litBV (-1) :: expr rv 32) `concatE` e
   FYesDNoRepr -> return e
   FDNoRepr    -> undefined
 
 -- | Take a value from a floating-point register and get a 32-bit value, checking
 -- that the original value was properly NaN-boxed.
-unBox32 :: forall expr rv . (BVExpr (expr rv), KnownRVFloatType rv, FExt << rv)
+unBox32 :: forall expr rv . (BVExpr (expr rv), KnownRV rv, FExt << rv)
         => expr rv (RVFloatWidth rv)
         -> SemanticsM expr rv (expr rv 32)
-unBox32 e = case knownRepr :: FDConfigRepr (RVFloatType rv) of
+unBox32 e = case extsFD (rvExts (knownRepr :: RVRepr rv)) of
   FDYesRepr -> return $
     iteE (extractE' (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
   FYesDNoRepr -> return e
@@ -137,7 +139,7 @@ branches cs d = foldr (uncurry branch) d cs
 
 -- | Check if a csr is accessible. The Boolean argument should be true if we need
 -- write access, False if we are accessing in a read-only fashion.
-checkCSR :: KnownRVWidth rv
+checkCSR :: KnownRV rv
          => InstExpr fmt rv 1
          -> InstExpr fmt rv 12
          -> SemanticsM (InstExpr fmt) rv ()
@@ -156,7 +158,7 @@ checkCSR write csr rst = do
 
 -- | Maps each CSR to an expression representing what value is returned when software
 -- attempts to read it.
-readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
+readCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
         => expr rv 12 -> expr rv (RVWidth rv)
 readCSR csr = cases
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
@@ -180,7 +182,7 @@ readCSR csr = cases
 -- At the moment, this function is little more than an alias for
 -- 'assignCSR', with a few aliasing cases (like for fflags and frm, as well as the
 -- various aliased registers in S- and U-mode of M-mode registers).
-writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRVWidth rv)
+writeCSR :: (StateExpr expr, BVExpr (expr rv), KnownRV rv)
          => expr rv 12 -> expr rv (RVWidth rv) -> SemanticsM expr rv ()
 writeCSR csr val = branches
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
@@ -304,11 +306,11 @@ getPrivCode UPriv = 0
 -- TODO: It is actually an optional architectural feature to propagate certain values
 -- through to mtval, so this should be a configurable option at the type level.
 -- | Semantics for raising an exception.
-raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
+raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
                => Exception -- ^ The exception to raise
                -> expr rv (RVWidth rv) -- ^ the value for MTVal
                -> SemanticsM expr rv ()
-raiseException e info = do
+raiseException e info = addStmt $ AbbrevStmt (RaiseException (getMCause e) info)
   -- Exception handling TODO:
   -- - For interrupts, PC should be incremented.
   -- - mtval should be an argument to this function based on the exception
@@ -317,32 +319,32 @@ raiseException e info = do
   -- - MPP (don't need this until we have other privilege modes)
   -- - We are assuming we do not have supervisor mode
 
-  let pc      = readPC
-  let priv    = readPriv
-  let mtVec   = rawReadCSR (litBV $ encodeCSR MTVec)
-  let mstatus = rawReadCSR (litBV $ encodeCSR MStatus)
+  -- let pc      = readPC
+  -- let priv    = readPriv
+  -- let mtVec   = rawReadCSR (litBV $ encodeCSR MTVec)
+  -- let mstatus = rawReadCSR (litBV $ encodeCSR MStatus)
 
-  let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
-      mcause = getMCause e
+  -- let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
+  --     mcause = getMCause e
 
-  assignPriv (litBV $ getPrivCode MPriv)
-  assignCSR (litBV $ encodeCSR MTVal)   info -- TODO: actually thread info in here
-  assignCSR (litBV $ encodeCSR MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
-  assignCSR (litBV $ encodeCSR MEPC)    pc
-  assignCSR (litBV $ encodeCSR MCause)  (litBV mcause)
+  -- assignPriv (litBV $ getPrivCode MPriv)
+  -- assignCSR (litBV $ encodeCSR MTVal)   info -- TODO: actually thread info in here
+  -- assignCSR (litBV $ encodeCSR MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
+  -- assignCSR (litBV $ encodeCSR MEPC)    pc
+  -- assignCSR (litBV $ encodeCSR MCause)  (litBV mcause)
 
-  assignPC mtVecBase
+  -- assignPC mtVecBase
 
 -- | Raise floating point exceptions. This ORs the current fflags with the supplied
 -- 5-bit value.
-raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv)
+raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM expr rv ()
 raiseFPExceptions flags = do
   let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
   assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
 
-dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRVWidth rv) => expr rv 3
+dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 3
 dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
             in extractE 5 fcsr
 
@@ -350,7 +352,7 @@ dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
 -- mode. This handles the situation where the rounding mode is invalid or dynamic; in
 -- the former case an illegal instruction is raised, and in the latter, we select the
 -- rounding mode in frm.
-withRM :: KnownRVWidth rv
+withRM :: KnownRV rv
        => InstExpr fmt rv 3
        -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt) rv ())
        -> SemanticsM (InstExpr fmt) rv ()

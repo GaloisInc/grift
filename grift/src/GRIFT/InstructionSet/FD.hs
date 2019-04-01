@@ -46,32 +46,32 @@ import Data.Parameterized
 import Data.Parameterized.List
 
 import GRIFT.InstructionSet
-import GRIFT.InstructionSet.Utils
 import GRIFT.Semantics
+import GRIFT.Semantics.Utils
 import GRIFT.Types
 
 -- | Get the F/D instruction set from an explicit 'RVRepr'.
 fdFromRepr :: RVRepr rv -> InstructionSet rv
-fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FYesDNoRepr _)) = f32
-fdFromRepr (RVRepr RV32Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = f32 <> d32
-fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FYesDNoRepr _)) = f64
-fdFromRepr (RVRepr RV64Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = f64 <> d64
+fdFromRepr rv@(RVRepr RV32Repr (ExtensionsRepr _ _ _ FYesDNoRepr _)) = withRV rv f32
+fdFromRepr rv@(RVRepr RV32Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = withRV rv $ f32 <> d32
+fdFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ _ _ FYesDNoRepr _)) = withRV rv f64
+fdFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = withRV rv $ f64 <> d64
 fdFromRepr _ = mempty
 
 -- | F extension (RV32)
-f32 :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv) => InstructionSet rv
+f32 :: (KnownRV rv, FExt << rv) => InstructionSet rv
 f32 = instructionSet fEncode fSemantics
 
 -- | F extension (RV64)
-f64 :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+f64 :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => InstructionSet rv
 f64 = f32 <> instructionSet f64Encode f64Semantics
 
 -- | D extension (RV32)
-d32 :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, DExt << rv) => InstructionSet rv
+d32 :: (KnownRV rv, FExt << rv, DExt << rv) => InstructionSet rv
 d32 = instructionSet dEncode dSemantics
 
 -- | D extension (RV64)
-d64 :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+d64 :: (KnownRV rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => InstructionSet rv
 d64 = d32 <> instructionSet d64Encode d64Semantics
 
 fEncode :: FExt << rv => EncodeMap rv
@@ -104,7 +104,7 @@ fEncode = Map.fromList
   , Pair Fmv_w_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100000000 :< Nil))
   ]
 
-fSemantics :: forall rv . (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv) => SemanticsMap rv
+fSemantics :: forall rv . (KnownRV rv, FExt << rv) => SemanticsMap rv
 fSemantics = Map.fromList
   [ Pair Flw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a single-precision float from memory address x[rs1] + sext(offset)."
@@ -503,7 +503,7 @@ f64Encode = Map.fromList
   , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110100000011 :< Nil))
   ]
 
-f64Semantics :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+f64Semantics :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 f64Semantics = Map.fromList
   [ Pair Fcvt_l_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 64-bit signed integer."
@@ -587,7 +587,7 @@ dEncode = Map.fromList
   , Pair Fcvt_d_wu (OpBits R2Repr (0b1010011 :< 0b110100100001 :< Nil))
   ]
 
-dSemantics :: (KnownRVWidth rv, KnownRVFloatType rv, KnownRVFloatWidth rv, FExt << rv, DExt << rv) => SemanticsMap rv
+dSemantics :: (KnownRV rv, FExt << rv, DExt << rv) => SemanticsMap rv
 dSemantics = Map.fromList
   [ Pair Fld $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a double-precision float from memory address x[rs1] + sext(offset)."
@@ -977,7 +977,7 @@ d64Encode = Map.fromList
   , Pair Fmv_d_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100100000 :< Nil))
   ]
 
-d64Semantics :: (KnownRVWidth rv, KnownRVFloatWidth rv, KnownRVFloatType rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+d64Semantics :: (KnownRV rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
 d64Semantics = Map.fromList
   [ Pair Fcvt_l_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 64-bit signed integer."

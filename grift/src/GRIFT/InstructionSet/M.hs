@@ -45,22 +45,22 @@ import Data.Parameterized
 import Data.Parameterized.List
 
 import GRIFT.InstructionSet
-import GRIFT.InstructionSet.Utils
 import GRIFT.Semantics
+import GRIFT.Semantics.Utils
 import GRIFT.Types
 
 -- | Get the M instruction set from an explicit 'RVRepr'.
 mFromRepr :: RVRepr rv -> InstructionSet rv
-mFromRepr (RVRepr RV32Repr (ExtensionsRepr _ MYesRepr _ _ _)) = m32
-mFromRepr (RVRepr RV64Repr (ExtensionsRepr _ MYesRepr _ _ _)) = m64
+mFromRepr rv@(RVRepr RV32Repr (ExtensionsRepr _ MYesRepr _ _ _)) = withRV rv m32
+mFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ MYesRepr _ _ _)) = withRV rv m64
 mFromRepr _ = mempty
 
 -- | M extension (RV32)
-m32 :: (KnownRVWidth rv, MExt << rv) => InstructionSet rv
+m32 :: (KnownRV rv, MExt << rv) => InstructionSet rv
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownRVWidth rv, 64 <= RVWidth rv, MExt << rv) => InstructionSet rv
+m64 :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => InstructionSet rv
 m64 = m32 <> instructionSet m64Encode m64Semantics
 
 mEncode :: MExt << rv => EncodeMap rv
@@ -84,7 +84,7 @@ m64Encode = Map.fromList
   , Pair Remuw (OpBits RRepr (0b0111011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
-mSemantics :: forall rv . (KnownRVWidth rv, MExt << rv) => SemanticsMap rv
+mSemantics :: forall rv . (KnownRV rv, MExt << rv) => SemanticsMap rv
 mSemantics = Map.fromList
   [ Pair Mul $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
@@ -214,7 +214,7 @@ mSemantics = Map.fromList
 
   ]
 
-m64Semantics :: (KnownRVWidth rv, 64 <= RVWidth rv, MExt << rv) => SemanticsMap rv
+m64Semantics :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => SemanticsMap rv
 m64Semantics = Map.fromList
   [ Pair Mulw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."

@@ -18,6 +18,8 @@ library
                      , GRIFT.InstructionSet.Known
                      , GRIFT.InstructionSet
                      , GRIFT.Semantics
+                     , GRIFT.Semantics.Expand
+                     , GRIFT.Semantics.Utils
                      , GRIFT.Simulation
                      , GRIFT.Types
                      , GRIFT.InstructionSet.A
@@ -25,7 +27,6 @@ library
                      , GRIFT.InstructionSet.FD
                      , GRIFT.InstructionSet.M
                      , GRIFT.InstructionSet.Priv
-                     , GRIFT.InstructionSet.Utils
   build-depends:       array >= 0.5 && < 0.6
                      , base >= 4.7 && < 5
                      , bv-sized >= 0.6 && < 0.7
