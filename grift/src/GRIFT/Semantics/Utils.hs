@@ -311,29 +311,6 @@ raiseException :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
                -> expr rv (RVWidth rv) -- ^ the value for MTVal
                -> SemanticsM expr rv ()
 raiseException e info = addStmt $ AbbrevStmt (RaiseException (getMCause e) info)
-  -- Exception handling TODO:
-  -- - For interrupts, PC should be incremented.
-  -- - mtval should be an argument to this function based on the exception
-  -- - MIE and MPIE need to be set appropriately, but we are not worrying about this
-  --   for now
-  -- - MPP (don't need this until we have other privilege modes)
-  -- - We are assuming we do not have supervisor mode
-
-  -- let pc      = readPC
-  -- let priv    = readPriv
-  -- let mtVec   = rawReadCSR (litBV $ encodeCSR MTVec)
-  -- let mstatus = rawReadCSR (litBV $ encodeCSR MStatus)
-
-  -- let mtVecBase = (mtVec `srlE` litBV 2) `sllE` litBV 2 -- ignore mode for now
-  --     mcause = getMCause e
-
-  -- assignPriv (litBV $ getPrivCode MPriv)
-  -- assignCSR (litBV $ encodeCSR MTVal)   info -- TODO: actually thread info in here
-  -- assignCSR (litBV $ encodeCSR MStatus) (mstatus `orE` sllE (zextE priv) (litBV 11))
-  -- assignCSR (litBV $ encodeCSR MEPC)    pc
-  -- assignCSR (litBV $ encodeCSR MCause)  (litBV mcause)
-
-  -- assignPC mtVecBase
 
 -- | Raise floating point exceptions. This ORs the current fflags with the supplied
 -- 5-bit value.

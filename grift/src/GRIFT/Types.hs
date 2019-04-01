@@ -63,21 +63,11 @@ module GRIFT.Types
     RV(..), type RVConfig
   , RVRepr(..)
   , RVWidth, RVFloatWidth
---  , RVCConfig
   , type (<<)
---  , FDFloatWidth
---  , RVFloatType
---  , KnownRVWidth
---  , KnownRVFloatWidth
---  , KnownRVFloatType
---  , KnownRVCConfig
   , KnownRV
---  , withRVWidth
---  , withRVFloatWidth
   , rvBaseArch, RVBaseArch
   , rvExts, RVExts
   , withRV
---  , withRVC
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
   , RV32I
@@ -416,9 +406,11 @@ type family RVBaseArch (rv :: RV) :: BaseArch where
 type family RVExts (rv :: RV) :: Extensions where
   RVExts (RVConfig '(_, exts)) = exts
 
+-- | Get a 'BaseArchRepr' from an 'RVRepr'.
 rvBaseArch :: RVRepr rv -> BaseArchRepr (RVBaseArch rv)
 rvBaseArch (RVRepr archRepr _) = archRepr
 
+-- | Get an 'ExtensionsRepr' from an 'RVRepr'.
 rvExts :: RVRepr rv -> ExtensionsRepr (RVExts rv)
 rvExts (RVRepr _ extsRepr) = extsRepr
 
@@ -466,10 +458,10 @@ type family RVCConfig (rv :: RV) :: CConfig where
 type family (<<) (e :: Extension) (rv :: RV) where
   e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
 
-withBase :: BaseArchRepr arch -> (KnownRepr BaseArchRepr arch => b) -> b
-withBase RV32Repr b = b
-withBase RV64Repr b = b
-withBase RV128Repr b = b
+withBaseArch :: BaseArchRepr arch -> (KnownRepr BaseArchRepr arch => b) -> b
+withBaseArch RV32Repr b = b
+withBaseArch RV64Repr b = b
+withBaseArch RV128Repr b = b
 
 withPriv :: PrivConfigRepr priv -> (KnownRepr PrivConfigRepr priv => b) -> b
 withPriv PrivMRepr b = b
@@ -513,17 +505,13 @@ withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDYesRepr _)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FYesDNoRepr _)) b = b
 withRVFloatWidth (RVRepr _ (ExtensionsRepr _ _ _ FDNoRepr _)) b = b
 
+-- | Satisfy a 'KnownRV' constraint from an explicit 'RVRepr'.
 withRV :: RVRepr rv -> (KnownRV rv => b) -> b
 withRV rvRepr@(RVRepr baseRepr extsRepr) b =
-  withBase baseRepr $
+  withBaseArch baseRepr $
   withExts extsRepr $
   withRVWidth rvRepr $
   withRVFloatWidth rvRepr b
-
--- | Satisfy a 'KnownRVCConfig' constraint from an explicit 'RVRepr'.
-withRVC :: RVRepr rv -> (KnownRVCConfig rv => b) -> b
-withRVC (RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr)) b = b
-withRVC (RVRepr _ (ExtensionsRepr _ _ _ _ CNoRepr)) b = b
 
 needsRV64 :: RVRepr rv -> ((64 <= RVWidth rv) => a) -> Maybe a
 needsRV64 (RVRepr RV64Repr _) a = Just a

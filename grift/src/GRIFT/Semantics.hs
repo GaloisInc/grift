@@ -791,7 +791,7 @@ pPrintAbbrevStmt :: (forall w' . Bool -> expr rv w' -> Doc)
 pPrintAbbrevStmt ppExpr (SafeGPRAssign ridE e) =
   text "x[" <> ppExpr True ridE <> text "] :=" <+> ppExpr True e
 pPrintAbbrevStmt ppExpr (RaiseException code info) =
-  text "raiseException(code = " <> pPrint code <> text ", info = " <> ppExpr True info <> text")"
+  text "raiseException(code = " <> text (show code) <> text ", info = " <> ppExpr True info <> text")"
 
 pPrintStmt :: (forall w' . Bool -> expr rv w' -> Doc)
            -> Stmt expr rv
@@ -832,7 +832,7 @@ pPrintInstExpr :: List OperandName (OperandTypes fmt)
                -> InstExpr fmt rv w
                -> Doc
 pPrintInstExpr opNames _ (OperandExpr _ (OperandID oid)) = pPrintOperandName (opNames !! oid)
-pPrintInstExpr _ _ (InstLitBV bv) = pPrint bv
+pPrintInstExpr _ _ (InstLitBV bv) = text (show bv)
 pPrintInstExpr opNames top (InstAbbrevApp abbrevApp) = pPrintAbbrevApp (pPrintInstExpr opNames) top abbrevApp
 pPrintInstExpr _ _ (InstBytes _) = text "step"
 pPrintInstExpr _ _ (InstWord _) = text "inst"
