@@ -187,7 +187,7 @@ data Addr = ConcreteAddr Word64
 memDumpRangeParser :: Parser MemDumpRange
 memDumpRangeParser = MemDumpRange
   <$> addrParser "mem-dump-begin" "beginning address/symbol of memory dump"
-  <*> addrParser "mem-dump-end" "end address/symbol of memory dump"
+  <*> addrParser "mem-dump-end" "end address/symbol of memory dump (non-inclusive)"
 
 addrParser :: String -> String -> Parser Addr
 addrParser longText helpText =
@@ -337,7 +337,7 @@ reportMemDump :: (KnownRV rv)
               -> Map (BitVector (RVWidth rv)) (BitVector 8)
               -> IO ()
 reportMemDump rvRepr memDumpStart memDumpEnd mem =
-  forM_ (enumFromThenTo memDumpStart (memDumpStart+4) memDumpEnd) $ \addr -> do
+  forM_ (enumFromThenTo memDumpStart (memDumpStart+4) (memDumpEnd-4)) $ \addr -> do
     let [byte0, byte1, byte2, byte3] = fmap
           (\a -> (fromIntegral $ bvIntegerU (Map.findWithDefault 0 (bitVector $ fromIntegral a) mem) :: Word32))
           [addr, addr+1, addr+2, addr+3]
