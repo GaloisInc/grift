@@ -41,8 +41,9 @@ pPrintAbbrevApp :: KnownRV rv
                 -> Bool
                 -> AbbrevApp expr rv w
                 -> Doc
-pPrintAbbrevApp ppExpr top (SafeGPRApp _ e) = text "x[" <> ppExpr top e <> text "]"
-pPrintAbbrevApp ppExpr top (ReadCSRApp _ e) = text "CSR[" <> ppExpr top e <> text "]"
+pPrintAbbrevApp ppExpr _ (SafeGPRApp _ e) = text "x[" <> ppExpr True e <> text "]"
+pPrintAbbrevApp ppExpr _ (ReadCSRApp _ e) = text "CSR[" <> ppExpr True e <> text "]"
+pPrintAbbrevApp ppExpr _ (NanBox32App _ e) = text "NaNBox32(" <> ppExpr True e <> text ")"
 
 pPrintStateApp :: (forall w' . Bool -> expr w' -> Doc)
                -> Bool

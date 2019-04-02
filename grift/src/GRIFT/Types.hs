@@ -1035,7 +1035,7 @@ readOpcode str = case (toLower <$> str) of
   "ori" -> Just (Some Ori)
   "andi" -> Just (Some Andi)
   "fence" -> Just (Some Fence)
-  "fencei" -> Just (Some FenceI)
+  "fence.i" -> Just (Some FenceI)
   "csrrw" -> Just (Some Csrrw)
   "csrrs" -> Just (Some Csrrs)
   "csrrc" -> Just (Some Csrrc)
@@ -1098,96 +1098,96 @@ readOpcode str = case (toLower <$> str) of
   "remw" -> Just (Some Remw)
   "remuw" -> Just (Some Remuw)
 
-  "lrw" -> Just (Some Lrw)
-  "scw" -> Just (Some Scw)
-  "amoswapw" -> Just (Some Amoswapw)
-  "amoaddw" -> Just (Some Amoaddw)
-  "amoxorw" -> Just (Some Amoxorw)
-  "amoandw" -> Just (Some Amoandw)
-  "amoorw" -> Just (Some Amoorw)
-  "amominw" -> Just (Some Amominw)
-  "amomaxw" -> Just (Some Amomaxw)
-  "amominuw" -> Just (Some Amominuw)
-  "amomaxuw" -> Just (Some Amomaxuw)
+  "lr.w" -> Just (Some Lrw)
+  "sc.w" -> Just (Some Scw)
+  "amoswap.w" -> Just (Some Amoswapw)
+  "amoadd.w" -> Just (Some Amoaddw)
+  "amoxor.w" -> Just (Some Amoxorw)
+  "amoand.w" -> Just (Some Amoandw)
+  "amoor.w" -> Just (Some Amoorw)
+  "amomin.w" -> Just (Some Amominw)
+  "amomax.w" -> Just (Some Amomaxw)
+  "amominu.w" -> Just (Some Amominuw)
+  "amomaxu.w" -> Just (Some Amomaxuw)
 
-  "lrd" -> Just (Some Lrd)
-  "scd" -> Just (Some Scd)
-  "amoswapd" -> Just (Some Amoswapd)
-  "amoaddd" -> Just (Some Amoaddd)
-  "amoxord" -> Just (Some Amoxord)
-  "amoandd" -> Just (Some Amoandd)
-  "amoord" -> Just (Some Amoord)
-  "amomind" -> Just (Some Amomind)
-  "amomaxd" -> Just (Some Amomaxd)
-  "amominud" -> Just (Some Amominud)
-  "amomaxud" -> Just (Some Amomaxud)
+  "lr.d" -> Just (Some Lrd)
+  "sc.d" -> Just (Some Scd)
+  "amoswap.d" -> Just (Some Amoswapd)
+  "amoadd.d" -> Just (Some Amoaddd)
+  "amoxor.d" -> Just (Some Amoxord)
+  "amoand.d" -> Just (Some Amoandd)
+  "amoor.d" -> Just (Some Amoord)
+  "amomin.d" -> Just (Some Amomind)
+  "amomax.d" -> Just (Some Amomaxd)
+  "amominu.d" -> Just (Some Amominud)
+  "amomaxu.d" -> Just (Some Amomaxud)
 
   -- RV32F
   "flw" -> Just (Some Flw)
   "fsw" -> Just (Some Fsw)
-  "fmadd_s" -> Just (Some Fmadd_s)
-  "fmsub_s" -> Just (Some Fmsub_s)
-  "fnmsub_s" -> Just (Some Fnmsub_s)
-  "fnmadd_s" -> Just (Some Fnmadd_s)
-  "fadd_s" -> Just (Some Fadd_s)
-  "fsub_s" -> Just (Some Fsub_s)
-  "fmul_s" -> Just (Some Fmul_s)
-  "fdiv_s" -> Just (Some Fdiv_s)
-  "fsqrt_s" -> Just (Some Fsqrt_s)
-  "fsgnj_s" -> Just (Some Fsgnj_s)
-  "fsgnjn_s" -> Just (Some Fsgnjn_s)
-  "fsgnjx_s" -> Just (Some Fsgnjx_s)
-  "fmin_s" -> Just (Some Fmin_s)
-  "fmax_s" -> Just (Some Fmax_s)
-  "fcvt_w_s" -> Just (Some Fcvt_w_s)
-  "fcvt_wu_s" -> Just (Some Fcvt_wu_s)
-  "fmv_x_w" -> Just (Some Fmv_x_w)
-  "feq_s" -> Just (Some Feq_s)
-  "flt_s" -> Just (Some Flt_s)
-  "fle_s" -> Just (Some Fle_s)
-  "fclass_s" -> Just (Some Fclass_s)
-  "fcvt_s_w" -> Just (Some Fcvt_s_w)
-  "fcvt_s_wu" -> Just (Some Fcvt_s_wu)
-  "fmv_w_x" -> Just (Some Fmv_w_x)
+  "fmadd.s" -> Just (Some Fmadd_s)
+  "fmsub.s" -> Just (Some Fmsub_s)
+  "fnmsub.s" -> Just (Some Fnmsub_s)
+  "fnmadd.s" -> Just (Some Fnmadd_s)
+  "fadd.s" -> Just (Some Fadd_s)
+  "fsub.s" -> Just (Some Fsub_s)
+  "fmul.s" -> Just (Some Fmul_s)
+  "fdiv.s" -> Just (Some Fdiv_s)
+  "fsqrt.s" -> Just (Some Fsqrt_s)
+  "fsgnj.s" -> Just (Some Fsgnj_s)
+  "fsgnjn.s" -> Just (Some Fsgnjn_s)
+  "fsgnjx.s" -> Just (Some Fsgnjx_s)
+  "fmin.s" -> Just (Some Fmin_s)
+  "fmax.s" -> Just (Some Fmax_s)
+  "fcvt.w.s" -> Just (Some Fcvt_w_s)
+  "fcvt.wu.s" -> Just (Some Fcvt_wu_s)
+  "fmv.x.w" -> Just (Some Fmv_x_w)
+  "feq.s" -> Just (Some Feq_s)
+  "flt.s" -> Just (Some Flt_s)
+  "fle.s" -> Just (Some Fle_s)
+  "fclass.s" -> Just (Some Fclass_s)
+  "fcvt.s.w" -> Just (Some Fcvt_s_w)
+  "fcvt.s.wu" -> Just (Some Fcvt_s_wu)
+  "fmv.w.x" -> Just (Some Fmv_w_x)
 
-  "fcvt_l_s" -> Just (Some Fcvt_l_s)
-  "fcvt_lu_s" -> Just (Some Fcvt_lu_s)
-  "fcvt_s_l" -> Just (Some Fcvt_s_l)
-  "fcvt_s_lu" -> Just (Some Fcvt_s_lu)
+  "fcvt.l.s" -> Just (Some Fcvt_l_s)
+  "fcvt.lu.s" -> Just (Some Fcvt_lu_s)
+  "fcvt.s.l" -> Just (Some Fcvt_s_l)
+  "fcvt.s.lu" -> Just (Some Fcvt_s_lu)
 
   "fld" -> Just (Some Fld)
   "fsd" -> Just (Some Fsd)
-  "fmadd_d" -> Just (Some Fmadd_d)
-  "fmsub_d" -> Just (Some Fmsub_d)
-  "fnmsub_d" -> Just (Some Fnmsub_d)
-  "fnmadd_d" -> Just (Some Fnmadd_d)
-  "fadd_d" -> Just (Some Fadd_d)
-  "fsub_d" -> Just (Some Fsub_d)
-  "fmul_d" -> Just (Some Fmul_d)
-  "fdiv_d" -> Just (Some Fdiv_d)
-  "fsqrt_d" -> Just (Some Fsqrt_d)
-  "fsgnj_d" -> Just (Some Fsgnj_d)
-  "fsgnjn_d" -> Just (Some Fsgnjn_d)
-  "fsgnjx_d" -> Just (Some Fsgnjx_d)
-  "fmin_d" -> Just (Some Fmin_d)
-  "fmax_d" -> Just (Some Fmax_d)
-  "fcvt_s_d" -> Just (Some Fcvt_s_d)
-  "fcvt_d_s" -> Just (Some Fcvt_d_s)
-  "feq_d" -> Just (Some Feq_d)
-  "flt_d" -> Just (Some Flt_d)
-  "fle_d" -> Just (Some Fle_d)
-  "fclass_d" -> Just (Some Fclass_d)
-  "fcvt_w_d" -> Just (Some Fcvt_w_d)
-  "fcvt_wu_d" -> Just (Some Fcvt_wu_d)
-  "fcvt_d_w" -> Just (Some Fcvt_d_w)
-  "fcvt_d_wu" -> Just (Some Fcvt_d_wu)
+  "fmadd.d" -> Just (Some Fmadd_d)
+  "fmsub.d" -> Just (Some Fmsub_d)
+  "fnmsub.d" -> Just (Some Fnmsub_d)
+  "fnmadd.d" -> Just (Some Fnmadd_d)
+  "fadd.d" -> Just (Some Fadd_d)
+  "fsub.d" -> Just (Some Fsub_d)
+  "fmul.d" -> Just (Some Fmul_d)
+  "fdiv.d" -> Just (Some Fdiv_d)
+  "fsqrt.d" -> Just (Some Fsqrt_d)
+  "fsgnj.d" -> Just (Some Fsgnj_d)
+  "fsgnjn.d" -> Just (Some Fsgnjn_d)
+  "fsgnjx.d" -> Just (Some Fsgnjx_d)
+  "fmin.d" -> Just (Some Fmin_d)
+  "fmax.d" -> Just (Some Fmax_d)
+  "fcvt.s.d" -> Just (Some Fcvt_s_d)
+  "fcvt.d.s" -> Just (Some Fcvt_d_s)
+  "feq.d" -> Just (Some Feq_d)
+  "flt.d" -> Just (Some Flt_d)
+  "fle.d" -> Just (Some Fle_d)
+  "fclass.d" -> Just (Some Fclass_d)
+  "fcvt.w.d" -> Just (Some Fcvt_w_d)
+  "fcvt.wu.d" -> Just (Some Fcvt_wu_d)
+  "fcvt.d.w" -> Just (Some Fcvt_d_w)
+  "fcvt.d.wu" -> Just (Some Fcvt_d_wu)
 
-  "fcvt_l_d" -> Just (Some Fcvt_l_d)
-  "fcvt_lu_d" -> Just (Some Fcvt_lu_d)
-  "fmv_x_d" -> Just (Some Fmv_x_d)
-  "fcvt_d_l" -> Just (Some Fcvt_d_l)
-  "fcvt_d_lu" -> Just (Some Fcvt_d_lu)
-  "fmv_d_x" -> Just (Some Fmv_d_x)
+  "fcvt.l.d" -> Just (Some Fcvt_l_d)
+  "fcvt.lu.d" -> Just (Some Fcvt_lu_d)
+  "fmv.x.d" -> Just (Some Fmv_x_d)
+  "fcvt.d.l" -> Just (Some Fcvt_d_l)
+  "fcvt.d.lu" -> Just (Some Fcvt_d_lu)
+  "fmv.d.x" -> Just (Some Fmv_d_x)
 
   _ -> Nothing
 
@@ -1399,7 +1399,7 @@ instance Pretty (Opcode rv fmt) where
   pPrint Ori    = "ori"
   pPrint Andi   = "andi"
   pPrint Fence  = "fence"
-  pPrint FenceI = "fencei"
+  pPrint FenceI = "fence.i"
   pPrint Csrrw  = "csrrw"
   pPrint Csrrs  = "csrrs"
   pPrint Csrrc  = "csrrc"
@@ -1496,72 +1496,72 @@ instance Pretty (Opcode rv fmt) where
   -- RV32F
   pPrint Flw = "flw"
   pPrint Fsw = "fsw"
-  pPrint Fmadd_s = "fmadd_s"
-  pPrint Fmsub_s = "fmsub_s"
-  pPrint Fnmsub_s = "fnmsub_s"
-  pPrint Fnmadd_s = "fnmadd_s"
-  pPrint Fadd_s = "fadd_s"
-  pPrint Fsub_s = "fsub_s"
-  pPrint Fmul_s = "fmul_s"
-  pPrint Fdiv_s = "fdiv_s"
-  pPrint Fsqrt_s = "fsqrt_s"
-  pPrint Fsgnj_s = "fsgnj_s"
-  pPrint Fsgnjn_s = "fsgnjn_s"
-  pPrint Fsgnjx_s = "fsgnjx_s"
-  pPrint Fmin_s = "fmin_s"
-  pPrint Fmax_s = "fmax_s"
-  pPrint Fcvt_w_s = "fcvt_w_s"
-  pPrint Fcvt_wu_s = "fcvt_wu_s"
-  pPrint Fmv_x_w = "fmv_x_w"
-  pPrint Feq_s = "feq_s"
-  pPrint Flt_s = "flt_s"
-  pPrint Fle_s = "fle_s"
-  pPrint Fclass_s = "fclass_s"
-  pPrint Fcvt_s_w = "fcvt_s_w"
-  pPrint Fcvt_s_wu = "fcvt_s_wu"
-  pPrint Fmv_w_x = "fmv_w_x"
+  pPrint Fmadd_s = "fmadd.s"
+  pPrint Fmsub_s = "fmsub.s"
+  pPrint Fnmsub_s = "fnmsub.s"
+  pPrint Fnmadd_s = "fnmadd.s"
+  pPrint Fadd_s = "fadd.s"
+  pPrint Fsub_s = "fsub.s"
+  pPrint Fmul_s = "fmul.s"
+  pPrint Fdiv_s = "fdiv.s"
+  pPrint Fsqrt_s = "fsqrt.s"
+  pPrint Fsgnj_s = "fsgnj.s"
+  pPrint Fsgnjn_s = "fsgnjn.s"
+  pPrint Fsgnjx_s = "fsgnjx.s"
+  pPrint Fmin_s = "fmin.s"
+  pPrint Fmax_s = "fmax.s"
+  pPrint Fcvt_w_s = "fcvt.w.s"
+  pPrint Fcvt_wu_s = "fcvt.wu.s"
+  pPrint Fmv_x_w = "fmv.x.w"
+  pPrint Feq_s = "feq.s"
+  pPrint Flt_s = "flt.s"
+  pPrint Fle_s = "fle.s"
+  pPrint Fclass_s = "fclass.s"
+  pPrint Fcvt_s_w = "fcvt.s.w"
+  pPrint Fcvt_s_wu = "fcvt.s.wu"
+  pPrint Fmv_w_x = "fmv.w.x"
 
   -- RV64F
-  pPrint Fcvt_l_s = "fcvt_l_s"
-  pPrint Fcvt_lu_s = "fcvt_lu_s"
-  pPrint Fcvt_s_l = "fcvt_s_l"
-  pPrint Fcvt_s_lu = "fcvt_s_lu"
+  pPrint Fcvt_l_s = "fcvt.l.s"
+  pPrint Fcvt_lu_s = "fcvt.lu.s"
+  pPrint Fcvt_s_l = "fcvt.s.l"
+  pPrint Fcvt_s_lu = "fcvt.s.lu"
 
   -- RV32D
   pPrint Fld = "fld"
   pPrint Fsd = "fsd"
-  pPrint Fmadd_d = "fmadd_d"
-  pPrint Fmsub_d = "fmsub_d"
-  pPrint Fnmsub_d = "fnmsub_d"
-  pPrint Fnmadd_d = "fnmadd_d"
-  pPrint Fadd_d = "fadd_d"
-  pPrint Fsub_d = "fsub_d"
-  pPrint Fmul_d = "fmul_d"
-  pPrint Fdiv_d = "fdiv_d"
-  pPrint Fsqrt_d = "fsqrt_d"
-  pPrint Fsgnj_d = "fsgnj_d"
-  pPrint Fsgnjn_d = "fsgnjn_d"
-  pPrint Fsgnjx_d = "fsgnjx_d"
-  pPrint Fmin_d = "fmin_d"
-  pPrint Fmax_d = "fmax_d"
-  pPrint Fcvt_s_d = "fcvt_s_d"
-  pPrint Fcvt_d_s = "fcvt_d_s"
-  pPrint Feq_d = "feq_d"
-  pPrint Flt_d = "flt_d"
-  pPrint Fle_d = "fle_d"
-  pPrint Fclass_d = "fclass_d"
-  pPrint Fcvt_w_d = "fcvt_w_d"
-  pPrint Fcvt_wu_d = "fcvt_wu_d"
-  pPrint Fcvt_d_w = "fcvt_d_w"
-  pPrint Fcvt_d_wu = "fcvt_d_wu"
+  pPrint Fmadd_d = "fmadd.d"
+  pPrint Fmsub_d = "fmsub.d"
+  pPrint Fnmsub_d = "fnmsub.d"
+  pPrint Fnmadd_d = "fnmadd.d"
+  pPrint Fadd_d = "fadd.d"
+  pPrint Fsub_d = "fsub.d"
+  pPrint Fmul_d = "fmul.d"
+  pPrint Fdiv_d = "fdiv.d"
+  pPrint Fsqrt_d = "fsqrt.d"
+  pPrint Fsgnj_d = "fsgnj.d"
+  pPrint Fsgnjn_d = "fsgnjn.d"
+  pPrint Fsgnjx_d = "fsgnjx.d"
+  pPrint Fmin_d = "fmin.d"
+  pPrint Fmax_d = "fmax.d"
+  pPrint Fcvt_s_d = "fcvt.s.d"
+  pPrint Fcvt_d_s = "fcvt.d.s"
+  pPrint Feq_d = "feq.d"
+  pPrint Flt_d = "flt.d"
+  pPrint Fle_d = "fle.d"
+  pPrint Fclass_d = "fclass.d"
+  pPrint Fcvt_w_d = "fcvt.w.d"
+  pPrint Fcvt_wu_d = "fcvt.wu.d"
+  pPrint Fcvt_d_w = "fcvt.d.w"
+  pPrint Fcvt_d_wu = "fcvt.d.wu"
 
   -- RV64D
-  pPrint Fcvt_l_d = "fcvt_l_d"
-  pPrint Fcvt_lu_d = "fcvt_lu_d"
-  pPrint Fmv_x_d = "fmv_x_d"
-  pPrint Fcvt_d_l = "fcvt_d_l"
-  pPrint Fcvt_d_lu = "fcvt_d_lu"
-  pPrint Fmv_d_x = "fmv_d_x"
+  pPrint Fcvt_l_d = "fcvt.l.d"
+  pPrint Fcvt_lu_d = "fcvt.lu.d"
+  pPrint Fmv_x_d = "fmv.x.d"
+  pPrint Fcvt_d_l = "fcvt.d.l"
+  pPrint Fcvt_d_lu = "fcvt.d.lu"
+  pPrint Fmv_d_x = "fmv.d.x"
 
 ----------------------------------------
 -- Instructions

@@ -104,11 +104,11 @@ jump pc = case extsC (rvExts (knownRepr :: RVRepr rv)) of
       $> raiseException InstructionAddressMisaligned pc
 
 -- | NaN-box a 32-bit expression to fit in a floating point register.
-nanBox32 :: forall expr rv . (BVExpr (expr rv), KnownRV rv, FExt << rv)
+nanBox32 :: forall expr rv . (BVExpr (expr rv), KnownRV rv, FExt << rv, AbbrevExpr expr)
          => expr rv 32
          -> SemanticsM expr rv (expr rv (RVFloatWidth rv))
 nanBox32 e = case extsFD (rvExts (knownRepr :: RVRepr rv)) of
-  FDYesRepr   -> return $ (litBV (-1) :: expr rv 32) `concatE` e
+  FDYesRepr   -> return $ abbrevExpr (NanBox32App knownNat e)
   FYesDNoRepr -> return e
   FDNoRepr    -> undefined
 
