@@ -52,7 +52,7 @@ import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map as Map
 import           Data.Map (Map)
-import           Data.Maybe (fromJust)
+import           Data.Maybe (fromJust, fromMaybe)
 import           Data.Parameterized
 import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
@@ -109,14 +109,14 @@ data SimCfg rv = SimCfg
   { simFilenames :: [FilePath]
   , simRepr :: RVRepr rv
   , simSteps :: Int
-  , simHaltPC :: Maybe Word64
+  , simHaltPC :: Maybe Addr
   , simReportType :: ReportType rv
   }
 
 data Opts = Opts { optsFilenames :: [FilePath]
                  , optsRepr :: Some RVRepr
                  , optsSteps :: Int
-                 , optsHaltPC :: Maybe Word64
+                 , optsHaltPC :: Maybe Addr
                  , optsReportType :: ReportType RV64GC
                  }
 
@@ -153,10 +153,7 @@ optsParser = Opts
         <> metavar "STEPS"
         <> value 10000
         <> showDefault )
-  <*> optional ( option auto
-                 ( help "halt PC at value"
-                   <> long "halt-pc"
-                   <> metavar "ADDR" ) )
+  <*> optional (addrParser "halt-pc" "halt PC at address/symbol")
   <*> reportTypeParser
 
 data ReportType rv = MemDump MemDumpRange
@@ -178,32 +175,32 @@ reportTypeParser =
       <> long "inst-coverage"
       <> metavar "OPCODE" ) )
 
-data MemDumpRange = MemDumpRange { dumpLow :: DumpLoc
-                                 , dumpHigh :: DumpLoc
+data MemDumpRange = MemDumpRange { dumpLow :: Addr
+                                 , dumpHigh :: Addr
                                  }
   deriving (Eq, Show)
 
-data DumpLoc = DumpAddr Word64
-             | DumpSymbol String
+data Addr = ConcreteAddr Word64
+          | SymbolAddr String
   deriving (Eq, Show)
 
 memDumpRangeParser :: Parser MemDumpRange
 memDumpRangeParser = MemDumpRange
-  <$> dumpLocParser "mem-dump-begin" "beginning address/symbol of memory dump"
-  <*> dumpLocParser "mem-dump-end" "end address/symbol of memory dump"
+  <$> addrParser "mem-dump-begin" "beginning address/symbol of memory dump"
+  <*> addrParser "mem-dump-end" "end address/symbol of memory dump"
 
-dumpLocParser :: String -> String -> Parser DumpLoc
-dumpLocParser longText helpText =
-  option dumpLocReader
+addrParser :: String -> String -> Parser Addr
+addrParser longText helpText =
+  option addrReader
   ( help helpText
     <> long longText
     <> metavar "ADDR" )
-  where dumpLocReader = do
+  where addrReader = do
           loc <- str
           let locAsAddr :: Maybe Word64 = readMaybe loc
           case locAsAddr of
-            Just addr -> return (DumpAddr addr)
-            Nothing -> return (DumpSymbol loc)
+            Just addr -> return (ConcreteAddr addr)
+            Nothing -> return (SymbolAddr loc)
 
 main :: IO ()
 main = do
@@ -247,16 +244,14 @@ griftSim cfg = do
   elfClassInstances (elfClass e) $
     report cfg covMap m e
 
-resolveDumpLoc :: ElfWidthConstraints w => Elf w -> DumpLoc -> IO Word64
-resolveDumpLoc _ (DumpAddr addr) = return addr
-resolveDumpLoc e (DumpSymbol symbol) = do
+resolveAddr :: ElfWidthConstraints w => Elf w -> Addr -> Maybe Word64
+resolveAddr _ (ConcreteAddr addr) = return addr
+resolveAddr e (SymbolAddr symbol) = do
   let symTabs = elfSymtab e
       entries = toList (V.concat (elfSymbolTableEntries <$> symTabs))
       match ste = steName ste == BS.pack (map (fromIntegral . ord) symbol)
-      mEntry = find match entries
-  case mEntry of
-    Just entry -> return $ fromIntegral (steValue entry)
-    Nothing -> error $ "could not resolve symbol " ++ symbol
+  entry <- find match entries
+  return $ fromIntegral (steValue entry)
 
 report :: ElfWidthConstraints w
        => SimCfg rv
@@ -276,8 +271,10 @@ report cfg covMap m e = withRV (simRepr cfg) $ do
     NoReport -> return ()
     RegDump -> reportRegDump (simRepr cfg) pc gprs fprs csrs
     MemDump (MemDumpRange lo hi) -> do
-      loAddr <- resolveDumpLoc e lo
-      hiAddr <- resolveDumpLoc e hi
+      loAddr <- return $
+        fromMaybe (error $ "could not resolve symbol " ++ show lo) (resolveAddr e lo)
+      hiAddr <- return $
+        fromMaybe (error $ "could not resolve symbol " ++ show hi) (resolveAddr e hi)
       reportMemDump (simRepr cfg) loAddr hiAddr mem
     CoverageReport (SomeOpcode (Some opcode)) -> reportInstCoverage (simRepr cfg) covMap opcode
     CoverageReport AllOpcodes -> reportCovMap covMap
@@ -295,12 +292,13 @@ runElf cfg e covMapRef =
     let trackedOpcode = case simReportType cfg of
           CoverageReport toc -> toc
           _ -> NoOpcode
+    let haltPC = resolveAddr e =<< simHaltPC cfg
     m <- mkLogMachineWithCovMap
          (simRepr cfg)
          (fromIntegral $ elfEntry e)
          0x10000
          byteStrings
-         (bitVector <$> fromIntegral <$> simHaltPC cfg)
+         (bitVector <$> fromIntegral <$> haltPC)
          trackedOpcode
          covMapRef
 
