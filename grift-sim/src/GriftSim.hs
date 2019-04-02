@@ -46,7 +46,7 @@ import           Data.Array.IArray
 import           Data.Bits
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
-import           Data.Char (toUpper)
+import           Data.Char (toUpper, ord)
 import           Data.ElfEdit
 import           Data.Foldable
 import           Data.IORef
@@ -58,6 +58,7 @@ import           Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
 import           Data.Parameterized.Map (MapF)
 import           Data.Traversable (for)
+import qualified Data.Vector as V
 import           Data.Word
 import           GHC.TypeLits
 import           Options.Applicative
@@ -177,27 +178,38 @@ reportTypeParser =
       <> long "inst-coverage"
       <> metavar "OPCODE" ) )
 
-data MemDumpRange = MemDumpRange { dumpLow :: Word64
-                                 , dumpHigh :: Word64
+data MemDumpRange = MemDumpRange { dumpLow :: DumpLoc
+                                 , dumpHigh :: DumpLoc
                                  }
+  deriving (Eq, Show)
+
+data DumpLoc = DumpAddr Word64
+             | DumpSymbol String
   deriving (Eq, Show)
 
 memDumpRangeParser :: Parser MemDumpRange
 memDumpRangeParser = MemDumpRange
-  <$> option auto
-      ( help "start address of post-simulation memory dump"
-        <> long "mem-dump-start"
-        <> metavar "ADDR" )
-  <*> option auto
-      ( help "end address of post-simulation memory dump"
-        <> long "mem-dump-end"
-        <> metavar "ADDR" )
+  <$> dumpLocParser "mem-dump-begin" "beginning address/symbol of memory dump"
+  <*> dumpLocParser "mem-dump-end" "end address/symbol of memory dump"
+
+dumpLocParser :: String -> String -> Parser DumpLoc
+dumpLocParser longText helpText =
+  option dumpLocReader
+  ( help helpText
+    <> long longText
+    <> metavar "ADDR" )
+  where dumpLocReader = do
+          loc <- str
+          let locAsAddr :: Maybe Word64 = readMaybe loc
+          case locAsAddr of
+            Just addr -> return (DumpAddr addr)
+            Nothing -> return (DumpSymbol loc)
 
 main :: IO ()
 main = do
   opts <- execParser optsParserInfo
   case validateOpts opts of
-    Nothing -> undefined
+    Nothing -> error "could not validate options"
     Just (Some cfg) -> griftSim cfg
   where optsParserInfo = info (optsParser <**> helper)
                ( fullDesc
@@ -222,20 +234,37 @@ parseRVElf _ _ d _ = d
 griftSim :: SimCfg rv -> IO ()
 griftSim cfg = do
   covMapRef <- newIORef (buildCTMap (simRepr cfg))
-  ms <- for (simFilenames cfg) $ \filename -> do
+  results <- for (simFilenames cfg) $ \filename -> do
     fileBS <- catchIOError (BS.readFile filename) $ \_ -> do
       putStrLn $ "error: file \"" ++ filename ++ "\" does not exist\n"
       exitFailure
-    parseRVElf (simRepr cfg) fileBS ((putStrLn $ "error: incompatible elf file") >> exitFailure) $ \e ->
-      runElf cfg e covMapRef
+    (m, e) <- parseRVElf (simRepr cfg) fileBS ((putStrLn $ "error: incompatible elf file") >> exitFailure) $ \e -> do
+      m <- runElf cfg e covMapRef
+      return (m, e)
+    return (m, e)
   covMap <- readIORef covMapRef
-  report cfg covMap (last ms)
+  let (m, e) = last results
+  elfClassInstances (elfClass e) $
+    report cfg covMap m e
 
-report :: SimCfg rv
+resolveDumpLoc :: ElfWidthConstraints w => Elf w -> DumpLoc -> IO Word64
+resolveDumpLoc _ (DumpAddr addr) = return addr
+resolveDumpLoc e (DumpSymbol symbol) = do
+  let symTabs = elfSymtab e
+      entries = toList (V.concat (elfSymbolTableEntries <$> symTabs))
+      match ste = steName ste == BS.pack (map (fromIntegral . ord) symbol)
+      mEntry = find match entries
+  case mEntry of
+    Just entry -> return $ fromIntegral (steValue entry)
+    Nothing -> error $ "could not resolve symbol " ++ symbol
+
+report :: ElfWidthConstraints w
+       => SimCfg rv
        -> MapF (Opcode rv) (InstCTList rv)
        -> LogMachine rv
+       -> Elf w
        -> IO ()
-report cfg covMap m = withRV (simRepr cfg) $ do
+report cfg covMap m e = withRV (simRepr cfg) $ do
 
   pc   <- readIORef (lmPC m)
   mem  <- readIORef (lmMemory m)
@@ -246,10 +275,13 @@ report cfg covMap m = withRV (simRepr cfg) $ do
   case simReportType cfg of
     NoReport -> return ()
     RegDump -> reportRegDump (simRepr cfg) pc gprs fprs csrs
-    MemDump (MemDumpRange memLo memHi) -> reportMemDump (simRepr cfg) memLo memHi mem
+    MemDump (MemDumpRange lo hi) -> do
+      loAddr <- resolveDumpLoc e lo
+      hiAddr <- resolveDumpLoc e hi
+      reportMemDump (simRepr cfg) loAddr hiAddr mem
     CoverageReport (SomeOpcode (Some opcode)) -> reportInstCoverage (simRepr cfg) covMap opcode
     CoverageReport AllOpcodes -> reportCovMap covMap
-    _ -> return ()
+    rt -> error $ "Unrecognized report type " ++ show rt
 
 -- | Run a single Elf file in simulation, using a coverage map given to us in simulation.
 runElf :: ElfWidthConstraints (RVWidth rv)
