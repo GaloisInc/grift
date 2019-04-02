@@ -151,11 +151,12 @@ checkCSR write csr rst = do
   let priv = readPriv
   let csrRW = extractE' (knownNat @2) 10 csr
   let csrPriv = extractE' (knownNat @2) 8 csr
-  let csrOK = (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1))
+  -- let csrBad = (notE (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1)))
+  let csrBad = (priv `ltuE` csrPriv) `orE` (write `andE` (notE (csrRW `ltuE` litBV 0b11)))
 
   iw <- instWord
 
-  branch (notE csrOK)
+  branch csrBad
     $> raiseException IllegalInstruction iw
     $> rst
 
