@@ -114,12 +114,11 @@ nanBox32 e = case extsFD (rvExts (knownRepr :: RVRepr rv)) of
 
 -- | Take a value from a floating-point register and get a 32-bit value, checking
 -- that the original value was properly NaN-boxed.
-unBox32 :: forall expr rv . (BVExpr (expr rv), KnownRV rv, FExt << rv)
+unBox32 :: forall expr rv . (BVExpr (expr rv), KnownRV rv, FExt << rv, AbbrevExpr expr)
         => expr rv (RVFloatWidth rv)
         -> SemanticsM expr rv (expr rv 32)
 unBox32 e = case extsFD (rvExts (knownRepr :: RVRepr rv)) of
-  FDYesRepr -> return $
-    iteE (extractE' (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF) (extractE 0 e) canonicalNaN32
+  FDYesRepr -> return $ abbrevExpr (UnNanBox32App knownNat e)
   FYesDNoRepr -> return e
   FDNoRepr -> undefined
 

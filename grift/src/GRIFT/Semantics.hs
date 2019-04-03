@@ -204,6 +204,8 @@ data AbbrevApp (expr :: RV -> Nat -> *) (rv :: RV) (w :: Nat) where
                 NatRepr (RVWidth rv) -> expr rv 12 -> AbbrevApp expr rv (RVWidth rv)
   NanBox32App :: ( BVExpr (expr rv), RVFloatWidth rv ~ 64 ) =>
                  NatRepr (RVFloatWidth rv) -> expr rv 32 -> AbbrevApp expr rv (RVFloatWidth rv)
+  UnNanBox32App :: ( BVExpr (expr rv), RVFloatWidth rv ~ 64 ) =>
+                NatRepr (RVFloatWidth rv) -> expr rv (RVFloatWidth rv) -> AbbrevApp expr rv 32
 
 -- | A type class for expression languages that support 'AbbrevApp' embedding.
 class AbbrevExpr expr where
