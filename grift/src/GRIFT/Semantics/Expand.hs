@@ -36,6 +36,10 @@ expandAbbrevApp (ReadCSRApp _ csr) = cases
   ]
   (rawReadCSR csr)
 expandAbbrevApp (NanBox32App _ e) = (litBV (-1) :: expr rv 32) `concatE` e
+expandAbbrevApp (UnNanBox32App _ e) = iteE
+  (extractE' (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF)
+  (extractE 0 e)
+  canonicalNaN32
 
 -- | Expand an 'AbbrevStmt' into the statement it abbreviates.
 expandAbbrevStmt :: KnownRV rv => AbbrevStmt expr rv -> Seq (Stmt expr rv)

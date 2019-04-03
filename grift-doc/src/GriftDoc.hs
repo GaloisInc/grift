@@ -61,24 +61,6 @@ import GRIFT.Semantics
 import GRIFT.Semantics.Pretty
 import GRIFT.Types
 
--- Utilities
-
-rvReprFromString :: String -> Either String (Some RVRepr)
-rvReprFromString s = case s of
-  "RV32I" -> Right $ Some (knownRepr :: RVRepr RV32I)
-  "RV32IM" -> Right $ Some (knownRepr :: RVRepr RV32IM)
-  "RV32IMA" -> Right $ Some (knownRepr :: RVRepr RV32IMA)
-  "RV32IMAF" -> Right $ Some (knownRepr :: RVRepr RV32IMAF)
-  "RV32G" -> Right $ Some (knownRepr :: RVRepr RV32G)
-  "RV32GC" -> Right $ Some (knownRepr :: RVRepr RV32GC)
-  "RV64I" -> Right $ Some (knownRepr :: RVRepr RV64I)
-  "RV64IM" -> Right $ Some (knownRepr :: RVRepr RV64IM)
-  "RV64IMA" -> Right $ Some (knownRepr :: RVRepr RV64IMA)
-  "RV64IMAF" -> Right $ Some (knownRepr :: RVRepr RV64IMAF)
-  "RV64G" -> Right $ Some (knownRepr :: RVRepr RV64G)
-  "RV64GC" -> Right $ Some (knownRepr :: RVRepr RV64GC)
-  str -> Left $ "Unknown configuration " ++ str
-
 data Opts = Opts { optsRepr :: Some RVRepr
                  , optsAbbrev :: AbbrevLevel
                  , optsOpcode :: Some (Opcode RV64GC)
@@ -193,3 +175,19 @@ pPrintPHList :: [(Int, BitPlaceHolder)] -> String
 pPrintPHList [] = ""
 pPrintPHList ((_,BPOperand _ _):rst) = 'x' : pPrintPHList rst
 pPrintPHList ((_,ph):rst) = pPrintPH ph ++ pPrintPHList rst
+
+rvReprFromString :: String -> Either String (Some RVRepr)
+rvReprFromString s = case s of
+  "RV32I" -> Right $ Some (knownRepr :: RVRepr RV32I)
+  "RV32IM" -> Right $ Some (knownRepr :: RVRepr RV32IM)
+  "RV32IMA" -> Right $ Some (knownRepr :: RVRepr RV32IMA)
+  "RV32IMAF" -> Right $ Some (knownRepr :: RVRepr RV32IMAF)
+  "RV32G" -> Right $ Some (knownRepr :: RVRepr RV32G)
+  "RV32GC" -> Right $ Some (knownRepr :: RVRepr RV32GC)
+  "RV64I" -> Right $ Some (knownRepr :: RVRepr RV64I)
+  "RV64IM" -> Right $ Some (knownRepr :: RVRepr RV64IM)
+  "RV64IMA" -> Right $ Some (knownRepr :: RVRepr RV64IMA)
+  "RV64IMAF" -> Right $ Some (knownRepr :: RVRepr RV64IMAF)
+  "RV64G" -> Right $ Some (knownRepr :: RVRepr RV64G)
+  "RV64GC" -> Right $ Some (knownRepr :: RVRepr RV64GC)
+  str -> Left $ "Unknown configuration " ++ str
