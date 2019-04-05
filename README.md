@@ -98,14 +98,17 @@ application. You can also limit the number of instructions executed in
 simulation by using the `--steps` option.
 
 If you want to view a region of memory after simulation instead of the register
-files, use the `--mem-dump-start` and `--mem-dump-end` options:
+files, use the `--mem-dump-begin` and `--mem-dump-end` options:
 
 ```shell
-grift-sim --halt-pc=0 --mem-dump-start=0x11c90 --mem-dump-end=0x11c93 test/fib/fib
+grift-sim --halt-pc=0 --mem-dump-begin=0x11c90 --mem-dump-end=0x11c93 test/fib/fib
 ```
 
 This will dump the contents of the memory between those memory locations; each
 line will be 8 digits (four bytes).
+
+The --halt-pc and --mem-dump-* options also take symbols, rather than raw
+addresses, as arguments.
 
 ## Analyzing instruction coverage
 
@@ -160,8 +163,8 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
   language.
 - Must have a type-level representation of the major aspects of the RISC-V
   feature model: register width and implemented extensions. To run in
-  simulation, it should be enough to specify this information at the *type
-  level*, and have the appropriate instance of RISC-V automatically.
+  simulation, it should be enough to specify this information at the type
+  level, and have the appropriate instance of RISC-V automatically.
 - Coverage analysis and test generation tooling for RISC-V Compliance Task
   Group.
 

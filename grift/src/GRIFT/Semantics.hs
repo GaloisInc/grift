@@ -205,7 +205,7 @@ data AbbrevApp (expr :: RV -> Nat -> *) (rv :: RV) (w :: Nat) where
   NanBox32App :: ( BVExpr (expr rv), RVFloatWidth rv ~ 64 ) =>
                  NatRepr (RVFloatWidth rv) -> expr rv 32 -> AbbrevApp expr rv (RVFloatWidth rv)
   UnNanBox32App :: ( BVExpr (expr rv), RVFloatWidth rv ~ 64 ) =>
-                NatRepr (RVFloatWidth rv) -> expr rv (RVFloatWidth rv) -> AbbrevApp expr rv 32
+                NatRepr 32 -> expr rv (RVFloatWidth rv) -> AbbrevApp expr rv 32
 
 -- | A type class for expression languages that support 'AbbrevApp' embedding.
 class AbbrevExpr expr where
@@ -216,6 +216,7 @@ abbrevAppWidth :: AbbrevApp expr rv w -> NatRepr w
 abbrevAppWidth (SafeGPRApp wRepr _) = wRepr
 abbrevAppWidth (ReadCSRApp wRepr _) = wRepr
 abbrevAppWidth (NanBox32App wRepr _) = wRepr
+abbrevAppWidth (UnNanBox32App wRepr _) = wRepr
 
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
