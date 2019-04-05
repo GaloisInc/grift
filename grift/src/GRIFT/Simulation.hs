@@ -39,7 +39,7 @@ A type class for simulating RISC-V code.
 -}
 
 module GRIFT.Simulation
-  ( -- * State monad
+  ( -- * Concrete state monad
     RVStateM(..)
   , evalLocApp
   , evalStateApp
