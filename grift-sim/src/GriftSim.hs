@@ -120,18 +120,21 @@ data Opts = Opts { optsFilenames :: [FilePath]
                  , optsReportType :: ReportType RV64GC
                  }
 
-validateOpts :: Opts -> Maybe (Some SimCfg)
+validateOpts :: Opts -> Either String (Some SimCfg)
 validateOpts (Opts filenames (Some rvRepr) steps haltPC reportType) =
   case reportType of
-    NoReport -> Just $ Some $ SimCfg filenames rvRepr steps haltPC NoReport
-    MemDump memRange -> Just $ Some $ SimCfg filenames rvRepr steps haltPC (MemDump memRange)
-    RegDump -> Just $ Some $ SimCfg filenames rvRepr steps haltPC RegDump
+    NoReport -> return $ Some $ SimCfg filenames rvRepr steps haltPC NoReport
+    MemDump memRange -> return $ Some $ SimCfg filenames rvRepr steps haltPC (MemDump memRange)
+    RegDump -> return $ Some $ SimCfg filenames rvRepr steps haltPC RegDump
     CoverageReport NoOpcode ->
-      Just $ Some $ SimCfg filenames rvRepr steps haltPC (CoverageReport NoOpcode)
+      return $ Some $ SimCfg filenames rvRepr steps haltPC (CoverageReport NoOpcode)
     CoverageReport AllOpcodes ->
-      Just $ Some $ SimCfg filenames rvRepr steps haltPC (CoverageReport AllOpcodes)
+      return $ Some $ SimCfg filenames rvRepr steps haltPC (CoverageReport AllOpcodes)
     CoverageReport (SomeOpcode (Some opcode)) -> do
-      (opcode, _) <- opcodeCast rvRepr opcode
+      (opcode, _) <- maybe
+        (Left $ "Opcode " ++ show (pPrint opcode) ++ " not in " ++ show (pPrint rvRepr))
+        return
+        (opcodeCast rvRepr opcode)
       return $ Some $ SimCfg filenames rvRepr steps haltPC (CoverageReport (SomeOpcode (Some opcode)))
 
 optsParser :: Parser Opts
@@ -206,8 +209,9 @@ main :: IO ()
 main = do
   opts <- execParser optsParserInfo
   case validateOpts opts of
-    Nothing -> error "could not validate options"
-    Just (Some cfg) -> griftSim cfg
+    Left e -> do putStrLn e
+                 exitFailure
+    Right (Some cfg) -> griftSim cfg
   where optsParserInfo = info (optsParser <**> helper)
                ( fullDesc
                  <> progDesc "Run RISC-V ELF binary(ies)"
@@ -353,7 +357,7 @@ reportInstCoverage rvRepr covMap opcode = do
   let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
   putStrLn "Instruction semantics"
   putStrLn "====================="
-  print $ withRV rvRepr $ pPrintInstSemantics NoAbbrev sem
+  print $ withRV rvRepr $ pPrintInstSemantics Abbrev sem
   putStrLn ""
   putStrLn "Instruction coverage"
   putStrLn "===================="
