@@ -4,7 +4,9 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
-module GRIFT.Semantics.Crucible where
+module GRIFT.Semantics.Crucible
+  ( translateApp
+  ) where
 
 import Control.Monad (join)
 import Data.BitVector.Sized.App as BV
@@ -86,7 +88,7 @@ translateApp sym trans (SExtApp wRepr e) = withPosNat (exprWidth e) $ withPosNat
 translateApp sym trans (ExtractApp wRepr ixRepr e) = withPosNat wRepr $
   case testLeq (ixRepr `addNat` wRepr) (exprWidth e) of
     Just LeqProof -> join (bvSelect sym ixRepr wRepr <$> trans e)
-    Nothing -> error "extraction exceeded bounds"
+    _ -> error "extraction exceeded bounds"
 translateApp sym trans (ConcatApp _ e1 e2) = withPosNat (exprWidth e1) $ withPosNat (exprWidth e2) $
   join (bvConcat sym <$> trans e1 <*> trans e2)
 translateApp sym trans (IteApp _ t e1 e2) = withPosNat (exprWidth e1) $ do
