@@ -7,11 +7,8 @@
 module GRIFT.Semantics.Crucible where
 
 import Control.Monad (join)
-import Control.Monad.IO.Class
 import Data.BitVector.Sized.App as BV
-import Data.Parameterized.TraversableFC
 import What4.BaseTypes
-import What4.Expr
 import What4.Interface
 
 withPosNat :: NatRepr w -> ((1 <= w) => a) -> a
@@ -86,8 +83,12 @@ translateApp sym trans (SExtApp wRepr e) = withPosNat (exprWidth e) $ withPosNat
     NatLT _ -> join (bvSext sym wRepr <$> trans e)
     NatEQ -> trans e
     NatGT _ -> join (bvTrunc sym wRepr <$> trans e)
-  -- ExtractApp :: NatRepr w' -> Int -> !(expr w) -> BVApp expr w'
-  -- ConcatApp  :: !(NatRepr (w+w')) -> !(expr w) -> !(expr w') -> BVApp expr (w+w')
-
-  -- -- Other operations
-  -- IteApp :: !(NatRepr w) -> !(expr 1) -> !(expr w) -> !(expr w) -> BVApp expr w
+translateApp sym trans (ExtractApp wRepr ixRepr e) = withPosNat wRepr $
+  case testLeq (ixRepr `addNat` wRepr) (exprWidth e) of
+    Just LeqProof -> join (bvSelect sym ixRepr wRepr <$> trans e)
+    Nothing -> error "extraction exceeded bounds"
+translateApp sym trans (ConcatApp _ e1 e2) = withPosNat (exprWidth e1) $ withPosNat (exprWidth e2) $
+  join (bvConcat sym <$> trans e1 <*> trans e2)
+translateApp sym trans (IteApp _ t e1 e2) = withPosNat (exprWidth e1) $ do
+  tBool <- join (bvEq sym <$> trans t <*> bvLit sym knownNat 0)
+  join (bvIte sym tBool <$> trans e1 <*> trans e2)
