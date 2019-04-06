@@ -65,8 +65,8 @@ pPrintBVApp ppExpr _ (SignumApp _ e) = text "signum(" <> ppExpr True e <> text "
 pPrintBVApp ppExpr _ (ZExtApp _ e) = text "zext(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr _ (SExtApp _ e) = text "sext(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr _ (ExtractApp w ix e) =
-  ppExpr False e <> text "[" <> pPrint ix <> text ":" <>
-  pPrint (ix + fromIntegral (natValue w) - 1) <> text "]"
+  ppExpr False e <> text "[" <> pPrint (intValue ix) <> text ":" <>
+  pPrint (intValue ix + intValue w - 1) <> text "]"
 pPrintBVApp ppExpr False e = parens (pPrintBVApp ppExpr True e)
 pPrintBVApp ppExpr _ (AndApp _ e1 e2) = ppExpr False e1 <+> text "&" <+> ppExpr False e2
 pPrintBVApp ppExpr _ (OrApp _  e1 e2) = ppExpr False e1 <+> text "|" <+> ppExpr False e2

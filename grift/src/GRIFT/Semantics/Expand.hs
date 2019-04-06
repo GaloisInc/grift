@@ -25,20 +25,20 @@ expandAbbrevApp (SafeGPRApp wRepr ridE) = iteE
 expandAbbrevApp (ReadCSRApp _ csr) = cases
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
     , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-          flags = extractE' (knownNat @5) 0 fcsr
+          flags = extractE' (knownNat @5) (knownNat @0) fcsr
       in zextE flags
     )
   , (csr `eqE` (litBV $ encodeCSR FRm)
     , let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-          rm = extractE' (knownNat @3) 5 fcsr
+          rm = extractE' (knownNat @3) (knownNat @5) fcsr
       in zextE rm
     )
   ]
   (rawReadCSR csr)
 expandAbbrevApp (NanBox32App _ e) = (litBV (-1) :: expr rv 32) `concatE` e
 expandAbbrevApp (UnNanBox32App _ e) = iteE
-  (extractE' (knownNat @32) 32 e `eqE` litBV 0xFFFFFFFF)
-  (extractE 0 e)
+  (extractE' (knownNat @32) (knownNat @32) e `eqE` litBV 0xFFFFFFFF)
+  (extractE (knownNat @0) e)
   canonicalNaN32
 
 -- | Expand an 'AbbrevStmt' into the statement it abbreviates.
@@ -74,16 +74,16 @@ expandAbbrevStmt (RaiseException code info) = flip (^.) semStmts $ getSemantics 
   assignPC mtVecBase
 expandAbbrevStmt (WriteCSR csr val) = flip (^.) semStmts $ getSemantics $ branches
   [ (csr `eqE` (litBV $ encodeCSR FFlags)
-    , do let val' = extractE' (knownNat @5) 0 val
+    , do let val' = extractE' (knownNat @5) (knownNat @0) val
              fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-             writeVal = extractE' (knownNat @27) 5 fcsr `concatE` val'
+             writeVal = extractE' (knownNat @27) (knownNat @5) fcsr `concatE` val'
          assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
   , (csr `eqE` (litBV $ encodeCSR FRm)
-    , do let val' = extractE' (knownNat @3) 0 val
+    , do let val' = extractE' (knownNat @3) (knownNat @0) val
              fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-             writeVal = extractE' (knownNat @24) 8 fcsr `concatE`
+             writeVal = extractE' (knownNat @24) (knownNat @8) fcsr `concatE`
                         val' `concatE`
-                        extractE' (knownNat @5) 0 fcsr
+                        extractE' (knownNat @5) (knownNat @0) fcsr
          assignCSR (litBV $ encodeCSR FCSR) (zextE writeVal))
   , (csr `eqE` (litBV $ encodeCSR FCSR)
     , do let writeVal = val `andE` (litBV 0xFF)

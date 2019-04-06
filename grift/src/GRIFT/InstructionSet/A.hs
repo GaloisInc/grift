@@ -128,7 +128,7 @@ aSemantics = Map.fromList
       let reserved = checkReserved x_rs1
 
       branch reserved
-        $> do assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2)
+        $> do assignMem (knownNat @4) x_rs1 (extractE (knownNat @0) x_rs2)
               assignGPR rd (litBV 0)
               incrPC
         $> do assignGPR rd (litBV 1) -- TODO: this could be any nonzero value.
@@ -190,7 +190,7 @@ amoOp32 op = do
       let x_rs2 = readGPR rs2
       let mVal  = readMem (knownNat @4) x_rs1
 
-      assignMem (knownNat @4) x_rs1 (extractE 0 x_rs2 `op` mVal)
+      assignMem (knownNat @4) x_rs1 (extractE (knownNat @0) x_rs2 `op` mVal)
       assignGPR rd (sextE mVal)
 
       incrPC
@@ -230,7 +230,7 @@ a64Semantics = Map.fromList
       let reserved = checkReserved x_rs1
 
       branch reserved
-        $> do assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2)
+        $> do assignMem (knownNat @8) x_rs1 (extractE (knownNat @0) x_rs2)
               assignGPR rd (litBV 0)
         $> assignGPR rd (litBV 1) -- TODO: this could be any nonzero value.
   , Pair Amoswapd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
@@ -290,7 +290,7 @@ amoOp64 op = do
       let x_rs2 = readGPR rs2
       let mVal  = readMem (knownNat @8) x_rs1
 
-      assignMem (knownNat @8) x_rs1 (extractE 0 x_rs2 `op` mVal)
+      assignMem (knownNat @8) x_rs1 (extractE (knownNat @0) x_rs2 `op` mVal)
       assignGPR rd (sextE mVal)
 
       incrPC
