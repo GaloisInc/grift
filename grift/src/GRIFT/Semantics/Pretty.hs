@@ -5,9 +5,7 @@
 module GRIFT.Semantics.Pretty
   ( -- ** Pretty printing
     AbbrevLevel(..)
-  , pPrintInstExpr
   , pPrintInstSemantics
-  , pPrintOperandName
   ) where
 
 import Control.Lens ((^.))
@@ -21,6 +19,7 @@ import GRIFT.Semantics
 import GRIFT.Semantics.Expand
 import GRIFT.Types
 
+-- | Flag indicating whether to expand abbreviated statements and expressions.
 data AbbrevLevel = Abbrev | NoAbbrev
   deriving (Eq, Show)
 
@@ -304,10 +303,15 @@ pPrintOperandName Csr = text "csr"
 pPrintOperandName Imm20 = text "imm20"
 pPrintOperandName Imm32 = text "imm32"
 
+-- | Pretty-print an 'InstExpr'.
 pPrintInstExpr :: KnownRV rv
                => List OperandName (OperandTypes fmt)
+               -- ^ Names for each operand of the expression
                -> AbbrevLevel
                -> Bool
+               -- ^ Precedence flag -- 'True' means we don't need parentheses (for
+               -- example, if the expression is already bracketed by a containing
+               -- expression)
                -> InstExpr fmt rv w
                -> Doc
 pPrintInstExpr opNames _ _ (OperandExpr _ (OperandID oid)) = pPrintOperandName (opNames !! oid)
@@ -320,6 +324,8 @@ pPrintInstExpr _ _ _ (InstWord _) = text "inst"
 pPrintInstExpr opNames abbrevLevel top (InstStateApp e) =
   pPrintStateApp (pPrintInstExpr opNames abbrevLevel) top e
 
+-- ^ Pretty-print all the statements in the semantics of an instruction, along with
+-- the comments.
 pPrintInstSemantics :: KnownRV rv => AbbrevLevel -> InstSemantics rv fmt -> Doc
 pPrintInstSemantics abbrevLevel (InstSemantics semantics opNames) =
   pPrintSemantics (pPrintInstExpr opNames abbrevLevel) abbrevLevel semantics
