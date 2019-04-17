@@ -148,8 +148,8 @@ checkCSR :: KnownRV rv
          -> SemanticsM (InstExpr fmt) rv ()
 checkCSR write csr rst = do
   let priv = readPriv
-  let csrRW = extractE' (knownNat @2) 10 csr
-  let csrPriv = extractE' (knownNat @2) 8 csr
+  let csrRW = extractE' (knownNat @2) (knownNat @10) csr
+  let csrPriv = extractE' (knownNat @2) (knownNat @8) csr
   -- let csrBad = (notE (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1)))
   let csrBad = (priv `ltuE` csrPriv) `orE` (write `andE` (notE (csrRW `ltuE` litBV 0b11)))
 
@@ -297,7 +297,7 @@ raiseFPExceptions flags = do
 
 dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 3
 dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-            in extractE 5 fcsr
+            in extractE (knownNat @5) fcsr
 
 -- | Perform a computation that requires a rounding mode by supplying a rounding
 -- mode. This handles the situation where the rounding mode is invalid or dynamic; in

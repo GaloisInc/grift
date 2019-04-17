@@ -125,7 +125,7 @@ fSemantics = Map.fromList
       let x_rs1 = readGPR rs1
       let f_rs2 = readFPR rs2
 
-      assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE 0 f_rs2)
+      assignMem (knownNat @4) (x_rs1 `addE` sextE offset) (extractE (knownNat @0) f_rs2)
       incrPC
   , Pair Fmadd_s $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
       comment "Multiplies the single-precision floats in f[rs1] and f[rs2]."
@@ -277,8 +277,8 @@ fSemantics = Map.fromList
       f_rs1 <- unBox32 (readFPR rs1)
       f_rs2 <- unBox32 (readFPR rs2)
 
-      let res_sign = f32Sgn (extractE 0 f_rs2)
-      let res_rst  = extractE' (knownNat @31) 0 f_rs1
+      let res_sign = f32Sgn (extractE (knownNat @0) f_rs2)
+      let res_rst  = extractE' (knownNat @31) (knownNat @0) f_rs1
       let res' = res_sign `concatE` res_rst
       res <- nanBox32 res'
 
@@ -292,8 +292,8 @@ fSemantics = Map.fromList
       f_rs1 <- unBox32 (readFPR rs1)
       f_rs2 <- unBox32 (readFPR rs2)
 
-      let res_sign = notE (f32Sgn (extractE 0 f_rs2))
-      let res_rst  = extractE' (knownNat @31) 0 f_rs1
+      let res_sign = notE (f32Sgn (extractE (knownNat @0) f_rs2))
+      let res_rst  = extractE' (knownNat @31) (knownNat @0) f_rs1
       let res' = zextE (res_sign `concatE` res_rst)
       res <- nanBox32 res'
 
@@ -307,8 +307,8 @@ fSemantics = Map.fromList
       f_rs1 <- unBox32 (readFPR rs1)
       f_rs2 <- unBox32 (readFPR rs2)
 
-      let res_sign = (f32Sgn (extractE 0 f_rs1) `xorE` f32Sgn (extractE 0 f_rs2))
-      let res_rst  = extractE' (knownNat @31) 0 f_rs1
+      let res_sign = (f32Sgn (extractE (knownNat @0) f_rs1) `xorE` f32Sgn (extractE (knownNat @0) f_rs2))
+      let res_rst  = extractE' (knownNat @31) (knownNat @0) f_rs1
       let res' = zextE (res_sign `concatE` res_rst)
       res <- nanBox32 res'
 
@@ -369,7 +369,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         f_rs1 <- unBox32 (readFPR rs1)
-        let (res, flags) = getFRes $ f32ToI32E rm (extractE 0 f_rs1)
+        let (res, flags) = getFRes $ f32ToI32E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (sextE res)
         raiseFPExceptions flags
@@ -381,7 +381,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         f_rs1 <- unBox32 (readFPR rs1)
-        let (res, flags) = getFRes $ f32ToUi32E rm (extractE 0 f_rs1)
+        let (res, flags) = getFRes $ f32ToUi32E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (sextE res)
         raiseFPExceptions flags
@@ -393,7 +393,7 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
       let f_rs1 = readFPR rs1
 
-      assignGPR rd (sextE (extractE' (knownNat @32) 0 f_rs1))
+      assignGPR rd (sextE (extractE' (knownNat @32) (knownNat @0) f_rs1))
       incrPC
   , Pair Feq_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the single-precision float in f[rs1] equals f[rs2]."
@@ -463,7 +463,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-            (res', flags) = getFResCanonical32 $ i32ToF32E rm (extractE 0 x_rs1)
+            (res', flags) = getFResCanonical32 $ i32ToF32E rm (extractE (knownNat @0) x_rs1)
         res <- nanBox32 res'
 
         assignFPR rd res
@@ -476,7 +476,7 @@ fSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-            (res', flags) = getFResCanonical32 $ ui32ToF32E rm (extractE 0 x_rs1)
+            (res', flags) = getFResCanonical32 $ ui32ToF32E rm (extractE (knownNat @0) x_rs1)
         res <- nanBox32 res'
 
         assignFPR rd res
@@ -489,7 +489,7 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      res <- nanBox32 (extractE' (knownNat @32) 0 x_rs1)
+      res <- nanBox32 (extractE' (knownNat @32) (knownNat @0) x_rs1)
 
       assignFPR rd res
       incrPC
@@ -512,7 +512,7 @@ f64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         f_rs1 <- unBox32 (readFPR rs1)
-        let (res, flags) = getFRes $ f32ToI64E rm (extractE 0 f_rs1)
+        let (res, flags) = getFRes $ f32ToI64E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (sextE res)
         raiseFPExceptions flags
@@ -524,7 +524,7 @@ f64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         f_rs1 <- unBox32 (readFPR rs1)
-        let (res, flags) = getFRes $ f32ToUi64E rm (extractE 0 f_rs1)
+        let (res, flags) = getFRes $ f32ToUi64E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (zextE res)
         raiseFPExceptions flags
@@ -536,7 +536,7 @@ f64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-        let (res', flags) = getFResCanonical32 $ i64ToF32E rm (extractE 0 x_rs1)
+        let (res', flags) = getFResCanonical32 $ i64ToF32E rm (extractE (knownNat @0) x_rs1)
         res <- nanBox32 res'
 
         assignFPR rd res
@@ -549,7 +549,7 @@ f64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-        let (res', flags) = getFResCanonical32 $ ui64ToF32E rm (extractE 0 x_rs1)
+        let (res', flags) = getFResCanonical32 $ ui64ToF32E rm (extractE (knownNat @0) x_rs1)
         res <- nanBox32 res'
 
         assignFPR rd res
@@ -608,7 +608,7 @@ dSemantics = Map.fromList
       let x_rs1 = readGPR rs1
       let f_rs2 = readFPR rs2
 
-      assignMem (knownNat @8) (x_rs1 `addE` sextE offset) (extractE 0 f_rs2)
+      assignMem (knownNat @8) (x_rs1 `addE` sextE offset) (extractE (knownNat @0) f_rs2)
       incrPC
   , Pair Fmadd_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs2 :< Nil) $ do
       comment "Multiplies the double-precision floats in f[rs1] and f[rs2]."
@@ -618,9 +618,9 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
-        let f_rs3 = extractE 0 (readFPR rs3)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
+        let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm f_rs1 f_rs2 f_rs3
 
         assignFPR rd (zextE res)
@@ -634,9 +634,9 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
-        let f_rs3 = extractE 0 (readFPR rs3)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
+        let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm f_rs1 f_rs2 (negate64 f_rs3)
 
         assignFPR rd (zextE res)
@@ -650,9 +650,9 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
-        let f_rs3 = extractE 0 (readFPR rs3)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
+        let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm (negate64 f_rs1) f_rs2 f_rs3
 
         assignFPR rd (zextE res)
@@ -666,9 +666,9 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< rs3 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
-        let f_rs3 = extractE 0 (readFPR rs3)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
+        let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm (negate64 f_rs1) f_rs2 (negate64 f_rs3)
 
         assignFPR rd (zextE res)
@@ -681,8 +681,8 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64AddE rm f_rs1 f_rs2
 
         assignFPR rd (zextE res)
@@ -695,8 +695,8 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64SubE rm f_rs1 f_rs2
 
         assignFPR rd (zextE res)
@@ -709,8 +709,8 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64MulE rm f_rs1 f_rs2
 
         assignFPR rd (zextE res)
@@ -723,8 +723,8 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< rs2 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
-        let f_rs2 = extractE 0 (readFPR rs2)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+        let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64DivE rm f_rs1 f_rs2
 
         assignFPR rd (zextE res)
@@ -737,7 +737,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
 
       withRM rm' $ \rm -> do
-        let f_rs1 = extractE 0 (readFPR rs1)
+        let f_rs1 = extractE (knownNat @0) (readFPR rs1)
         let (res, flags) = getFResCanonical64 $ f64SqrtE rm f_rs1
 
         assignFPR rd (zextE res)
@@ -751,8 +751,8 @@ dSemantics = Map.fromList
       let f_rs1 = readFPR rs1
       let f_rs2 = readFPR rs2
 
-      let res_sign = f64Sgn (extractE 0 f_rs2)
-      let res_rst  = extractE' (knownNat @63) 0 f_rs1
+      let res_sign = f64Sgn (extractE (knownNat @0) f_rs2)
+      let res_rst  = extractE' (knownNat @63) (knownNat @0) f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFPR rd res
@@ -765,8 +765,8 @@ dSemantics = Map.fromList
       let f_rs1 = readFPR rs1
       let f_rs2 = readFPR rs2
 
-      let res_sign = notE (f64Sgn (extractE 0 f_rs2))
-      let res_rst  = extractE' (knownNat @63) 0 f_rs1
+      let res_sign = notE (f64Sgn (extractE (knownNat @0) f_rs2))
+      let res_rst  = extractE' (knownNat @63) (knownNat @0) f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFPR rd res
@@ -779,8 +779,8 @@ dSemantics = Map.fromList
       let f_rs1 = readFPR rs1
       let f_rs2 = readFPR rs2
 
-      let res_sign = (f64Sgn (extractE 0 f_rs1) `xorE` f64Sgn (extractE 0 f_rs2))
-      let res_rst  = extractE' (knownNat @63) 0 f_rs1
+      let res_sign = (f64Sgn (extractE (knownNat @0) f_rs1) `xorE` f64Sgn (extractE (knownNat @0) f_rs2))
+      let res_rst  = extractE' (knownNat @63) (knownNat @0) f_rs1
       let res = zextE (res_sign `concatE` res_rst)
 
       assignFPR rd res
@@ -790,8 +790,8 @@ dSemantics = Map.fromList
       comment "Copies the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = extractE 0 (readFPR rs1)
-      let f_rs2 = extractE 0 (readFPR rs2)
+      let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+      let f_rs2 = extractE (knownNat @0) (readFPR rs2)
       let (cmp, _) = getFRes $ f64LeE f_rs1 f_rs2 -- ignore flags
 
       let res = cases
@@ -813,8 +813,8 @@ dSemantics = Map.fromList
       comment "Copies the result to f[rd]."
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
-      let f_rs1 = extractE 0 (readFPR rs1)
-      let f_rs2 = extractE 0 (readFPR rs2)
+      let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+      let f_rs2 = extractE (knownNat @0) (readFPR rs2)
       let (cmp, _) = getFRes $ f64LeE f_rs1 f_rs2 -- ignore flags
 
       let res = cases
@@ -838,7 +838,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFPR rs1
-        let (res', flags) = getFResCanonical32 $ f64ToF32E rm (extractE 0 f_rs1)
+        let (res', flags) = getFResCanonical32 $ f64ToF32E rm (extractE (knownNat @0) f_rs1)
         res <- nanBox32 res'
 
         assignFPR rd res
@@ -851,7 +851,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFPR rs1
-            (res, flags) = getFResCanonical64 $ f32ToF64E rm (extractE 0 f_rs1)
+            (res, flags) = getFResCanonical64 $ f32ToF64E rm (extractE (knownNat @0) f_rs1)
 
         assignFPR rd (zextE res)
         raiseFPExceptions flags
@@ -862,8 +862,8 @@ dSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let f_rs1 = extractE 0 (readFPR rs1)
-      let f_rs2 = extractE 0 (readFPR rs2)
+      let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+      let f_rs2 = extractE (knownNat @0) (readFPR rs2)
       let (res, flags) = getFRes $ f64EqE f_rs1 f_rs2
 
       assignGPR rd (zextE res)
@@ -875,8 +875,8 @@ dSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let f_rs1 = extractE 0 (readFPR rs1)
-      let f_rs2 = extractE 0 (readFPR rs2)
+      let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+      let f_rs2 = extractE (knownNat @0) (readFPR rs2)
       let (res, flags) = getFRes $ f64LtE f_rs1 f_rs2
 
       assignGPR rd (zextE res)
@@ -888,8 +888,8 @@ dSemantics = Map.fromList
 
       rd :< rs1 :< rs2 :< Nil <- operandEs
 
-      let f_rs1 = extractE 0 (readFPR rs1)
-      let f_rs2 = extractE 0 (readFPR rs2)
+      let f_rs1 = extractE (knownNat @0) (readFPR rs1)
+      let f_rs2 = extractE (knownNat @0) (readFPR rs2)
       let (res, flags) = getFRes $ f64LeE f_rs1 f_rs2
 
       assignGPR rd (zextE res)
@@ -900,7 +900,7 @@ dSemantics = Map.fromList
       comment "Exactly one bit in x[rd] is set. Table not included in this comment."
 
       rd :< rs1 :< Nil <- operandEs
-      let f_rs1 = extractE 0 (readFPR rs1)
+      let f_rs1 = extractE (knownNat @0) (readFPR rs1)
       let res = cases
             [ (f_rs1 `eqE` negInfinity64, litBV 0x1)
             , (f64Sgn f_rs1 `andE` isNormal64 f_rs1, litBV 0x2)
@@ -924,7 +924,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFPR rs1
-            (res, flags) = getFRes $ f64ToI32E rm (extractE 0 f_rs1)
+            (res, flags) = getFRes $ f64ToI32E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (sextE res)
         raiseFPExceptions flags
@@ -936,7 +936,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFPR rs1
-            (res, flags) = getFRes $ f64ToUi32E rm (extractE 0 f_rs1)
+            (res, flags) = getFRes $ f64ToUi32E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (sextE res)
         raiseFPExceptions flags
@@ -948,7 +948,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-            (res, flags) = getFResCanonical64 $ i32ToF64E rm (extractE 0 x_rs1)
+            (res, flags) = getFResCanonical64 $ i32ToF64E rm (extractE (knownNat @0) x_rs1)
 
         assignFPR rd (zextE res)
         raiseFPExceptions flags
@@ -960,7 +960,7 @@ dSemantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-            (res, flags) = getFResCanonical64 $ ui32ToF64E rm (extractE 0 x_rs1)
+            (res, flags) = getFResCanonical64 $ ui32ToF64E rm (extractE (knownNat @0) x_rs1)
 
         assignFPR rd (zextE res)
         raiseFPExceptions flags
@@ -986,7 +986,7 @@ d64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFPR rs1
-            (res, flags) = getFRes $ f64ToI64E rm (extractE 0 f_rs1)
+            (res, flags) = getFRes $ f64ToI64E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (sextE res)
         raiseFPExceptions flags
@@ -998,7 +998,7 @@ d64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let f_rs1 = readFPR rs1
-            (res, flags) = getFRes $ f64ToUi64E rm (extractE 0 f_rs1)
+            (res, flags) = getFRes $ f64ToUi64E rm (extractE (knownNat @0) f_rs1)
 
         assignGPR rd (zextE res)
         raiseFPExceptions flags
@@ -1011,7 +1011,7 @@ d64Semantics = Map.fromList
 
       let f_rs1 = readFPR rs1
 
-      assignGPR rd (sextE (extractE' (knownNat @64) 0 f_rs1))
+      assignGPR rd (sextE (extractE' (knownNat @64) (knownNat @0) f_rs1))
       incrPC
   , Pair Fcvt_d_l $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit signed integer in x[rs1] to a double-precision float."
@@ -1020,7 +1020,7 @@ d64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-            (res, flags) = getFResCanonical64 $ i64ToF64E rm (extractE 0 x_rs1)
+            (res, flags) = getFResCanonical64 $ i64ToF64E rm (extractE (knownNat @0) x_rs1)
 
         assignFPR rd (zextE res)
         raiseFPExceptions flags
@@ -1032,7 +1032,7 @@ d64Semantics = Map.fromList
       rd :< rm' :< rs1 :< Nil <- operandEs
       withRM rm' $ \rm -> do
         let x_rs1 = readGPR rs1
-            (res, flags) = getFResCanonical64 $ ui64ToF64E rm (extractE 0 x_rs1)
+            (res, flags) = getFResCanonical64 $ ui64ToF64E rm (extractE (knownNat @0) x_rs1)
 
         assignFPR rd (zextE res)
         raiseFPExceptions flags
@@ -1045,6 +1045,6 @@ d64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
 
-      assignFPR rd (sextE (extractE' (knownNat @64) 0 x_rs1))
+      assignFPR rd (sextE (extractE' (knownNat @64) (knownNat @0) x_rs1))
       incrPC
   ]
