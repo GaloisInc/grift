@@ -5,6 +5,7 @@
 module GRIFT.Semantics.Pretty
   ( -- ** Pretty printing
     AbbrevLevel(..)
+  , pPrintInstExpr
   , pPrintInstSemantics
   ) where
 

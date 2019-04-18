@@ -1,5 +1,4 @@
-packages: deps/parameterized-utils
-          deps/elf-edit
+packages: deps/elf-edit
           deps/bv-sized
           deps/bv-sized-float
           deps/crucible/what4
@@ -10,3 +9,4 @@ packages: deps/parameterized-utils
           grift
           grift-sim
           grift-doc
+          grift-tv
