@@ -16,6 +16,3 @@
 [submodule "deps/berkeley-softfloat-3"]
 	path = deps/berkeley-softfloat-3
 	url = https://github.com/ucb-bar/berkeley-softfloat-3.git
-[submodule "deps/crucible"]
-	path = deps/crucible
-	url = git@github.com:GaloisInc/crucible.git
