@@ -1,10 +1,6 @@
 packages: deps/elf-edit
           deps/bv-sized
           deps/bv-sized-float
-          deps/crucible/what4
-          deps/crucible/crucible
-          deps/crucible/crucible-llvm
-          deps/crucible/dependencies/llvm-pretty
           deps/softfloat-hs
           grift
           grift-sim
