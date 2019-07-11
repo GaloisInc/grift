@@ -277,6 +277,9 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let x_rs1 = readGPR rs1
 
+      -- FIXME: This is actually slightly incorrect, because if the C extension is
+      -- not present, we should not be setting the destination register before
+      -- raising an exception.
       assignGPR rd $ pc `addE` zextE ib
       jump $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
   , Pair Lb $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
