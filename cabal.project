@@ -5,4 +5,3 @@ packages: deps/elf-edit
           grift
           grift-sim
           grift-doc
-          grift-tv
