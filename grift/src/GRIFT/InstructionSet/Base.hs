@@ -171,7 +171,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let res = x_rs1 `sllE` (x_rs2 `andE` litBV (bitVector (natValue archWidth) - 1))
+      let res = x_rs1 `sllE` (x_rs2 `andE` litBV (bitVector (intValue archWidth) - 1))
 
       assignGPR rd res
       incrPC
@@ -219,7 +219,7 @@ baseSemantics = Map.fromList
 
       archWidth <- getArchWidth
 
-      let mask = litBV (bitVector (natValue archWidth - 1))
+      let mask = litBV (bitVector (intValue archWidth - 1))
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
       let res   = x_rs1 `srlE` (x_rs2 `andE` mask)
@@ -235,7 +235,7 @@ baseSemantics = Map.fromList
 
       archWidth <- getArchWidth
 
-      let mask = litBV (bitVector (natValue archWidth - 1))
+      let mask = litBV (bitVector (intValue archWidth - 1))
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
       let res   = x_rs1 `sraE` (x_rs2 `andE` mask)
@@ -417,7 +417,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readGPR rs1
 
       archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      let shiftBound = litBV (bitVector (intValue archWidth) :: BitVector 7)
       let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
@@ -436,7 +436,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readGPR rs1
 
       archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      let shiftBound = litBV (bitVector (intValue archWidth) :: BitVector 7)
       let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
@@ -455,7 +455,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readGPR rs1
 
       archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (natValue archWidth) :: BitVector 7)
+      let shiftBound = litBV (bitVector (intValue archWidth) :: BitVector 7)
       let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
