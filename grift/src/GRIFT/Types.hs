@@ -429,7 +429,9 @@ type KnownRVFloatWidth rv = (KnownNat (RVFloatWidth rv), 1 <= RVFloatWidth rv)
 -- | Everything we need to know about an 'RV' at compile time.
 type KnownRV rv = ( KnownRepr RVRepr rv
                   , KnownNat (RVWidth rv)
+                  , 1 <= RVWidth rv
                   , KnownNat (RVFloatWidth rv)
+                  , 1 <= RVFloatWidth rv
                   )
 
 -- | Maps a RISC-V configuration to its register width.
