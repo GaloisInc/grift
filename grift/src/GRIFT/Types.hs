@@ -421,15 +421,16 @@ instance Pretty (RVRepr rv) where
   pPrint (RVRepr baseRepr extsRepr) = pPrint baseRepr <> pPrint extsRepr
 
 -- | The width of the GPRs are known at compile time.
-type KnownRVWidth rv = KnownNat (RVWidth rv)
+type KnownRVWidth rv = (KnownNat (RVWidth rv), 1 <= RVWidth rv)
 
 -- | The width of the floating point registers are known at compile time.
-type KnownRVFloatWidth rv = KnownNat (RVFloatWidth rv)
+type KnownRVFloatWidth rv = (KnownNat (RVFloatWidth rv), 1 <= RVFloatWidth rv)
 
 -- | Everything we need to know about an 'RV' at compile time.
 type KnownRV rv = ( KnownRepr RVRepr rv
                   , KnownNat (RVWidth rv)
-                  , KnownNat (RVFloatWidth rv))
+                  , KnownNat (RVFloatWidth rv)
+                  )
 
 -- | Maps a RISC-V configuration to its register width.
 type family RVWidth (rv :: RV) :: Nat where
