@@ -153,7 +153,7 @@ data LocApp (expr :: Nat -> *) (rv :: RV) (w :: Nat) where
   PCApp   :: NatRepr (RVWidth rv) -> LocApp expr rv (RVWidth rv)
   GPRApp  :: NatRepr (RVWidth rv) -> expr 5 -> LocApp expr rv (RVWidth rv)
   FPRApp  :: FExt << rv => NatRepr (RVFloatWidth rv) -> expr 5 -> LocApp expr rv (RVFloatWidth rv)
-  MemApp  :: NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
+  MemApp  :: 1 <= bytes => NatRepr bytes -> expr (RVWidth rv) -> LocApp expr rv (8 T.* bytes)
   ResApp  :: AExt << rv => expr (RVWidth rv) -> LocApp expr rv 1
   CSRApp  :: NatRepr (RVWidth rv) -> expr 12 -> LocApp expr rv (RVWidth rv)
   PrivApp :: LocApp expr rv 2
@@ -444,7 +444,8 @@ readFPR ridE = stateExpr (LocApp (FPRApp knownNat ridE))
 
 -- TODO: We need a wrapper around this to handle access faults.
 -- | Read a variable number of bytes from memory, with an explicit width argument.
-readMem :: StateExpr expr
+readMem :: 1 <= bytes
+        => StateExpr expr
         => NatRepr bytes
         -> expr rv (RVWidth rv)
         -> expr rv (8 T.* bytes)
@@ -483,7 +484,8 @@ assignFPR r e = addStmt (AssignStmt (FPRApp knownNat r) e)
 
 -- TODO: We need a wrapper around this to handle access faults.
 -- | Add a memory location assignment to the semantics, with an explicit width argument.
-assignMem :: NatRepr bytes
+assignMem :: 1 <= bytes
+          => NatRepr bytes
           -> expr rv (RVWidth rv)
           -> expr rv (8 T.* bytes)
           -> SemanticsM expr rv ()
