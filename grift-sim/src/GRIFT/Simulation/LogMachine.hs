@@ -155,11 +155,11 @@ mkLogMachine :: RVRepr rv
              -> Maybe (BitVector (RVWidth rv))
              -> TrackedOpcode rv --Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
-mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
+mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $ do
   pc         <- newIORef entryPoint
-  registers  <- withRV rvRepr $ newArray (1, 31) 0
-  fregisters <- withRV rvRepr $ newArray (0, 31) 0
-  memory     <- newIORef $ Map.fromList [ ] -- withRV rvRepr $ newArray (0, maxAddr) 0
+  registers  <- newArray (1, 31) 0
+  fregisters <- newArray (0, 31) 0
+  memory     <- newIORef $ Map.fromList [ ]
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
   haltPCRef  <- newIORef haltPC
@@ -170,7 +170,7 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = do
   writeArray registers 2 sp
 
   forM_ byteStrings $ \(addr, bs) ->
-    withRV rvRepr $ writeBS addr bs memory
+    writeBS addr bs memory
   return (LogMachine
            rvRepr pc registers fregisters memory csrs
            priv haltPCRef opcodeRef covMapRef)
@@ -184,11 +184,11 @@ mkLogMachineWithCovMap :: RVRepr rv
                        -> TrackedOpcode rv --Maybe (Some (Opcode rv))
                        -> IORef (MapF (Opcode rv) (InstCTList rv))
                        -> IO (LogMachine rv)
-mkLogMachineWithCovMap rvRepr entryPoint sp byteStrings haltPC opcodeCov covMapRef = do
+mkLogMachineWithCovMap rvRepr entryPoint sp byteStrings haltPC opcodeCov covMapRef = withRV rvRepr $ do
   pc         <- newIORef entryPoint
-  registers  <- withRV rvRepr $ newArray (1, 31) 0
-  fregisters <- withRV rvRepr $ newArray (0, 31) 0
-  memory     <- newIORef $ Map.fromList [ ] -- withRV rvRepr $ newArray (0, maxAddr) 0
+  registers  <- newArray (1, 31) 0
+  fregisters <- newArray (0, 31) 0
+  memory     <- newIORef $ Map.fromList [ ]
   csrs       <- newIORef $ Map.fromList [ ]
   priv       <- newIORef 0b11 -- M mode by default.
   haltPCRef  <- newIORef haltPC

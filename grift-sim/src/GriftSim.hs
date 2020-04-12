@@ -47,7 +47,7 @@ import           Data.Bits
 import           Data.BitVector.Sized
 import qualified Data.ByteString as BS
 import           Data.Char (toUpper, ord)
-import           Data.ElfEdit
+import           Data.ElfEdit hiding (header)
 import           Data.Foldable
 import           Data.IORef
 import qualified Data.Map as Map
@@ -352,12 +352,12 @@ reportMemDump rvRepr memDumpStart memDumpEnd mem =
         pad8 s = replicate (8 - length s) '0' ++ s
 
 reportInstCoverage :: RVRepr rv -> MapF (Opcode rv) (InstCTList rv) -> Opcode rv fmt -> IO ()
-reportInstCoverage rvRepr covMap opcode = do
+reportInstCoverage rvRepr covMap opcode = withRV rvRepr $ do
   -- the pattern match below should never fail
   let Just sem = MapF.lookup opcode (isSemanticsMap (knownISetWithRepr rvRepr))
   putStrLn "Instruction semantics"
   putStrLn "====================="
-  print $ withRV rvRepr $ pPrintInstSemantics Abbrev sem
+  print $ pPrintInstSemantics Abbrev sem
   putStrLn ""
   putStrLn "Instruction coverage"
   putStrLn "===================="
