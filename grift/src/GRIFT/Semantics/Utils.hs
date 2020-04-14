@@ -52,6 +52,7 @@ module GRIFT.Semantics.Utils
   , Exception(..)
   , Privilege(..)
   , encodeCSR
+  , decodeCSR
   , resetCSRs
   , checkCSR
   , readCSR
@@ -226,7 +227,7 @@ data CSR = MVendorID
          | FRm
          | FFlags
          | FCSR
-  deriving (Eq, Ord, Bounded, Enum)
+  deriving (Eq, Ord, Show, Bounded, Enum)
 
 -- | Translate a CSR to its 'BitVector' code.
 encodeCSR :: CSR -> BitVector 12
@@ -235,7 +236,6 @@ encodeCSR MVendorID  = 0xF11
 encodeCSR MArchID    = 0xF12
 encodeCSR MImpID     = 0xF13
 encodeCSR MHartID    = 0xF14
-
 encodeCSR MStatus    = 0x300
 encodeCSR MISA       = 0x301
 encodeCSR MEDeleg    = 0x302
@@ -243,21 +243,46 @@ encodeCSR MIDeleg    = 0x303
 encodeCSR MIE        = 0x304
 encodeCSR MTVec      = 0x305
 encodeCSR MCounterEn = 0x306
-
 encodeCSR MScratch   = 0x340
 encodeCSR MEPC       = 0x341
 encodeCSR MCause     = 0x342
 encodeCSR MTVal      = 0x343
 encodeCSR MIP        = 0x344
-
 encodeCSR MCycle     = 0xB00
 encodeCSR MInstRet   = 0xB02
 encodeCSR MCycleh    = 0xB80
 encodeCSR MInstReth  = 0xB82
-
 encodeCSR FFlags     = 0x001
 encodeCSR FRm        = 0x002
 encodeCSR FCSR       = 0x003
+
+-- | Translate a 'BitVector' CSR code into a 'CSR'.
+decodeCSR :: BitVector 12 -> Maybe CSR
+
+decodeCSR 0xF11 = Just MVendorID
+decodeCSR 0xF12 = Just MArchID
+decodeCSR 0xF13 = Just MImpID
+decodeCSR 0xF14 = Just MHartID
+decodeCSR 0x300 = Just MStatus
+decodeCSR 0x301 = Just MISA
+decodeCSR 0x302 = Just MEDeleg
+decodeCSR 0x303 = Just MIDeleg
+decodeCSR 0x304 = Just MIE
+decodeCSR 0x305 = Just MTVec
+decodeCSR 0x306 = Just MCounterEn
+decodeCSR 0x340 = Just MScratch
+decodeCSR 0x341 = Just MEPC
+decodeCSR 0x342 = Just MCause
+decodeCSR 0x343 = Just MTVal
+decodeCSR 0x344 = Just MIP
+decodeCSR 0xB00 = Just MCycle
+decodeCSR 0xB02 = Just MInstRet
+decodeCSR 0xB80 = Just MCycleh
+decodeCSR 0xB82 = Just MInstReth
+decodeCSR 0x001 = Just FFlags
+decodeCSR 0x002 = Just FRm
+decodeCSR 0x003 = Just FCSR
+decodeCSR _ = Nothing
 
 data Privilege = MPriv | SPriv | UPriv
 
