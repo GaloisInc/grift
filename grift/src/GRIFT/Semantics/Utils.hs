@@ -231,7 +231,6 @@ data CSR = MVendorID
 
 -- | Translate a CSR to its 'BitVector' code.
 encodeCSR :: CSR -> BitVector 12
-
 encodeCSR MVendorID  = 0xF11
 encodeCSR MArchID    = 0xF12
 encodeCSR MImpID     = 0xF13
@@ -258,7 +257,6 @@ encodeCSR FCSR       = 0x003
 
 -- | Translate a 'BitVector' CSR code into a 'CSR'.
 decodeCSR :: BitVector 12 -> Maybe CSR
-
 decodeCSR 0xF11 = Just MVendorID
 decodeCSR 0xF12 = Just MArchID
 decodeCSR 0xF13 = Just MImpID
