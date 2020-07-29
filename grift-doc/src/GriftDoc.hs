@@ -133,7 +133,7 @@ griftDoc (Opts (Some rvRepr) abbrevLevel (Some opcode)) = case opcodeCast rvRepr
     putStrLn $ show (pPrint opcode) ++ " semantics"
     putStrLn "====================="
     putStrLn ""
-    print $ withRV rvRepr $ pPrintInstSemantics abbrevLevel sem
+    print (withRV rvRepr $ pPrintInstSemantics abbrevLevel sem :: Doc)
 
   where exitIncompatibleOpcode :: RVRepr rv -> Opcode rv' fmt -> IO ()
         exitIncompatibleOpcode rvRepr opcode = do
