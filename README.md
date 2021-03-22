@@ -201,6 +201,9 @@ The following are a list of mandatory and secondary requirements for *GRIFT*.
 Current Status
 ===
 
+GRIFT is not being actively maintained by Galois at present; it may be
+resurrected in the future, however.
+
 We currently support RV{32|64}IMAFDC, with M-mode privileged instructions. Exceptions
 are modeled incompletely; the bare minimum to run user-level code with traps is
 supported. We are passing all the following tests in simulation:
