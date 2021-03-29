@@ -23,6 +23,8 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
+{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
+
 {-|
 Module      : GRIFT.InstructionSet.Base
 Copyright   : (c) Benjamin Selfridge, 2018
@@ -40,12 +42,11 @@ module GRIFT.InstructionSet.Base
   )
   where
 
-import Data.BitVector.Sized
-import Data.BitVector.Sized.App
 import qualified Data.Parameterized.Map as Map
-import Data.Parameterized
-import Data.Parameterized.List
+import Data.Parameterized ( type (<=), intValue, Pair(Pair) )
+import Data.Parameterized.List ( List(Nil, (:<)) )
 
+import GRIFT.BitVector.BVApp
 import GRIFT.InstructionSet
 import GRIFT.Semantics
 import GRIFT.Semantics.Utils
@@ -53,16 +54,20 @@ import GRIFT.Types
 
 -- | Get the I instruction from an explicit 'RVRepr'.
 baseFromRepr :: RVRepr rv -> InstructionSet rv
-baseFromRepr rv@(RVRepr RV32Repr _) = withRV rv $ base32
-baseFromRepr rv@(RVRepr RV64Repr _) = withRV rv $ base64
+baseFromRepr rv@(RVRepr RV32Repr _) = withRV rv base32
+baseFromRepr rv@(RVRepr RV64Repr _) = withRV rv base64
 baseFromRepr (RVRepr RV128Repr _) = error "RV128 not supported"
 
 -- | RV32I/E base instruction set.
-base32 :: KnownRV rv => InstructionSet rv
+base32 ::
+  ( KnownRV rv, w ~ RVWidth rv, 32 <= w ) =>
+  InstructionSet rv
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 :: (KnownRV rv, 64 <= RVWidth rv) => InstructionSet rv
+base64 ::
+  ( KnownRV rv, w ~ RVWidth rv, 64 <= w ) =>
+  InstructionSet rv
 base64 = base32 <> instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap rv
@@ -135,7 +140,7 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: forall rv . KnownRV rv => SemanticsMap rv
+baseSemantics :: ( KnownRV rv, w ~ RVWidth rv, 32 <= w ) => SemanticsMap rv
 baseSemantics = Map.fromList
   [ Pair Add $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
@@ -171,7 +176,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let res = x_rs1 `sllE` (x_rs2 `andE` litBV (bitVector (intValue archWidth) - 1))
+      let res = x_rs1 `sllE` (x_rs2 `andE` bvInteger (intValue archWidth - 1))
 
       assignGPR rd res
       incrPC
@@ -183,7 +188,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let res   = zextE (ltsE x_rs1 x_rs2)
+      let res   = zextEOrId (ltsE x_rs1 x_rs2)
 
       assignGPR rd res
       incrPC
@@ -195,7 +200,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let res   = zextE (ltuE x_rs1 x_rs2)
+      let res   = zextEOrId (ltuE x_rs1 x_rs2)
 
       assignGPR rd res
       incrPC
@@ -219,7 +224,7 @@ baseSemantics = Map.fromList
 
       archWidth <- getArchWidth
 
-      let mask = litBV (bitVector (intValue archWidth - 1))
+      let mask = bvInteger (intValue archWidth - 1)
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
       let res   = x_rs1 `srlE` (x_rs2 `andE` mask)
@@ -235,7 +240,7 @@ baseSemantics = Map.fromList
 
       archWidth <- getArchWidth
 
-      let mask = litBV (bitVector (intValue archWidth - 1))
+      let mask = bvInteger (intValue archWidth - 1)
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
       let res   = x_rs1 `sraE` (x_rs2 `andE` mask)
@@ -280,8 +285,8 @@ baseSemantics = Map.fromList
       -- FIXME: This is actually slightly incorrect, because if the C extension is
       -- not present, we should not be setting the destination register before
       -- raising an exception.
-      assignGPR rd $ pc `addE` zextE ib
-      jump $ (x_rs1 `addE` sextE offset) `andE` notE (litBV 1)
+      assignGPR rd $ pc `addE` zextEOrId ib
+      jump $ (x_rs1 `addE` sextEOrId offset) `andE` notE (bvInteger 1)
   , Pair Lb $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
       comment "Writes the result to x[rd], sign-extending the result."
@@ -289,10 +294,10 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let addr  = x_rs1 `addE` sextE offset
+      let addr  = x_rs1 `addE` sextEOrId offset
       let mVal  = readMem (knownNat @1) addr
 
-      assignGPR rd (sextE mVal)
+      assignGPR rd (sextEOrId mVal)
       incrPC
   , Pair Lh $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
@@ -301,10 +306,10 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let addr  = x_rs1 `addE` sextE offset
+      let addr  = x_rs1 `addE` sextEOrId offset
       let mVal  = readMem (knownNat @2) addr
 
-      assignGPR rd (sextE mVal)
+      assignGPR rd (sextEOrId mVal)
       incrPC
   , Pair Lw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a word from memory at address x[rs1] + sext(offset)."
@@ -313,10 +318,10 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let addr  = x_rs1 `addE` sextE offset
+      let addr  = x_rs1 `addE` sextEOrId offset
       let mVal  = readMem (knownNat @4) addr
 
-      assignGPR rd (sextE mVal)
+      assignGPR rd (sextEOrId mVal)
       incrPC
   , Pair Lbu $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a byte from memory at address x[rs1] + sext(offset)."
@@ -325,10 +330,10 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let addr  = x_rs1 `addE` sextE offset
+      let addr  = x_rs1 `addE` sextEOrId offset
       let mVal  = readMem (knownNat @1) addr
 
-      assignGPR rd (zextE mVal)
+      assignGPR rd (zextEOrId mVal)
       incrPC
   , Pair Lhu $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a half-word from memory at address x[rs1] + sext(offset)."
@@ -337,10 +342,10 @@ baseSemantics = Map.fromList
       rd :< rs1 :< offset :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let addr = x_rs1 `addE` sextE offset
+      let addr = x_rs1 `addE` sextEOrId offset
       let mVal  = readMem (knownNat @2) addr
 
-      assignGPR rd (zextE mVal)
+      assignGPR rd (zextEOrId mVal)
       incrPC
   , Pair Addi $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Adds the sign-extended immediate to register x[rs1] and writes the result to x[rd]."
@@ -349,7 +354,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = x_rs1 `addE` (sextE imm12)
+      let res   = x_rs1 `addE` sextEOrId imm12
 
       assignGPR rd res
       incrPC
@@ -360,7 +365,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = zextE (ltsE x_rs1 (sextE imm12))
+      let res   = zextEOrId (ltsE x_rs1 (sextEOrId imm12))
 
       assignGPR rd res
       incrPC
@@ -371,7 +376,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = zextE (ltuE x_rs1 (sextE imm12))
+      let res   = zextEOrId (ltuE x_rs1 (sextEOrId imm12))
 
       assignGPR rd res
       incrPC
@@ -382,7 +387,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = x_rs1 `xorE` (sextE imm12)
+      let res   = x_rs1 `xorE` sextEOrId imm12
 
       assignGPR rd res
       incrPC
@@ -393,7 +398,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = x_rs1 `orE` (sextE imm12)
+      let res   = x_rs1 `orE` sextEOrId imm12
 
       assignGPR rd res
       incrPC
@@ -404,7 +409,7 @@ baseSemantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = x_rs1 `andE` (sextE imm12)
+      let res   = x_rs1 `andE` sextEOrId imm12
 
       assignGPR rd res
       incrPC
@@ -417,7 +422,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readGPR rs1
 
       archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (intValue archWidth) :: BitVector 7)
+      let shiftBound = bvInteger (intValue archWidth)
       let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
@@ -436,7 +441,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readGPR rs1
 
       archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (intValue archWidth) :: BitVector 7)
+      let shiftBound = bvInteger (intValue archWidth)
       let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
@@ -455,7 +460,7 @@ baseSemantics = Map.fromList
       let x_rs1 = readGPR rs1
 
       archWidth <- getArchWidth
-      let shiftBound = litBV (bitVector (intValue archWidth) :: BitVector 7)
+      let shiftBound = bvInteger (intValue archWidth)
       let shamtBad = notE (shamt `ltuE` shiftBound)
 
       -- Check that the control bits are all zero.
@@ -469,12 +474,12 @@ baseSemantics = Map.fromList
   , Pair Ecall $ instSemantics Nil $ do
       comment "Makes a request of the execution environment."
 
-      raiseException EnvironmentCall (litBV 0x0)
+      raiseException EnvironmentCall (bvInteger 0x0)
 
   , Pair Ebreak $ instSemantics Nil $ do
       comment "Makes a request to the debugger."
 
-      raiseException Breakpoint (litBV 0x0)
+      raiseException Breakpoint (bvInteger 0x0)
 
   -- TODO: Fence instructions.
   , Pair Fence $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
@@ -494,7 +499,7 @@ baseSemantics = Map.fromList
       let t = readCSR csr
       let x_rs1 = readGPR rs1
 
-      checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
+      checkCSR (bvInteger 0b0 `ltuE` rs1) csr $ do
         writeCSR csr x_rs1
         assignGPR rd t
         incrPC
@@ -507,7 +512,7 @@ baseSemantics = Map.fromList
       let t = readCSR csr
       let x_rs1 = readGPR rs1
 
-      checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
+      checkCSR (bvInteger 0b0 `ltuE` rs1) csr $ do
         writeCSR csr (x_rs1 `orE` t)
         assignGPR rd t
         incrPC
@@ -521,8 +526,8 @@ baseSemantics = Map.fromList
       let t = readCSR csr
       let x_rs1 = readGPR rs1
 
-      checkCSR (litBV 0b0 `ltuE` rs1) csr $ do
-        writeCSR csr ((notE x_rs1) `andE` t)
+      checkCSR (bvInteger 0b0 `ltuE` rs1) csr $ do
+        writeCSR csr (notE x_rs1 `andE` t)
         assignGPR rd t
         incrPC
   , Pair Csrrwi $ instSemantics (Rd :< Imm5 :< Csr :< Nil) $ do
@@ -532,7 +537,7 @@ baseSemantics = Map.fromList
       rd :< zimm :< csr :< Nil <- operandEs
       let t = readCSR csr
 
-      checkCSR (litBV 0b1) csr $ do
+      checkCSR (bvInteger 0b1) csr $ do
         assignGPR rd t
         writeCSR csr (zextE zimm)
         incrPC
@@ -544,7 +549,7 @@ baseSemantics = Map.fromList
       rd :< zimm :< csr :< Nil <- operandEs
       let t = readCSR csr
 
-      checkCSR (litBV 0b1) csr $ do
+      checkCSR (bvInteger 0b1) csr $ do
         writeCSR csr (zextE zimm `orE` t)
         assignGPR rd t
         incrPC
@@ -556,7 +561,7 @@ baseSemantics = Map.fromList
       rd :< zimm :< csr :< Nil <- operandEs
       let t = readCSR csr
 
-      checkCSR (litBV 0b1) csr $ do
+      checkCSR (bvInteger 0b1) csr $ do
         writeCSR csr (notE (zextE zimm) `andE` t)
         assignGPR rd t
         incrPC
@@ -570,7 +575,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let addr = x_rs1 `addE` sextE offset
+      let addr = x_rs1 `addE` sextEOrId offset
 
       assignMem (knownNat @1) addr (extractE (knownNat @0) x_rs2)
       incrPC
@@ -582,7 +587,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let addr  = x_rs1 `addE` sextE offset
+      let addr  = x_rs1 `addE` sextEOrId offset
 
       assignMem (knownNat @2) addr (extractE (knownNat @0) x_rs2)
       incrPC
@@ -594,7 +599,7 @@ baseSemantics = Map.fromList
 
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
-      let addr  = x_rs1 `addE` sextE offset
+      let addr  = x_rs1 `addE` sextEOrId offset
 
       assignMem (knownNat @4) addr (extractE (knownNat @0) x_rs2)
       incrPC
@@ -609,11 +614,11 @@ baseSemantics = Map.fromList
 
       let pc = readPC
       ib <- instBytes
-      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+      let branchOffset = sextE (offset `concatE` (bvInteger 0 :: InstExpr 'B rv 1))
 
       jump (iteE (x_rs1 `eqE` x_rs2)
                 (pc `addE` branchOffset)
-                (pc `addE` zextE ib))
+                (pc `addE` zextEOrId ib))
   , Pair Bne $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] does not equal register x[rs2], add sext(offset) to the pc."
 
@@ -624,11 +629,11 @@ baseSemantics = Map.fromList
 
       let pc = readPC
       ib <- instBytes
-      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+      let branchOffset = sextE (offset `concatE` (bvInteger 0 :: InstExpr 'B rv 1))
 
       jump (iteE (notE (x_rs1 `eqE` x_rs2))
                 (pc `addE` branchOffset)
-                (pc `addE` zextE ib))
+                (pc `addE` zextEOrId ib))
   , Pair Blt $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is less than register x[rs2], add sext(offset) to the pc."
 
@@ -639,11 +644,11 @@ baseSemantics = Map.fromList
 
       let pc = readPC
       ib <- instBytes
-      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+      let branchOffset = sextE (offset `concatE` (bvInteger 0 :: InstExpr 'B rv 1))
 
       jump (iteE (x_rs1 `ltsE` x_rs2)
                 (pc `addE` branchOffset)
-                (pc `addE` zextE ib))
+                (pc `addE` zextEOrId ib))
   , Pair Bge $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2], add sext(offset) to the pc."
 
@@ -654,11 +659,11 @@ baseSemantics = Map.fromList
 
       let pc = readPC
       ib <- instBytes
-      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+      let branchOffset = sextE (offset `concatE` (bvInteger 0 :: InstExpr 'B rv 1))
 
       jump (iteE (notE (x_rs1 `ltsE` x_rs2))
                 (pc `addE` branchOffset)
-                (pc `addE` zextE ib))
+                (pc `addE` zextEOrId ib))
   , Pair Bltu $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is less than register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
@@ -669,11 +674,11 @@ baseSemantics = Map.fromList
 
       let pc = readPC
       ib <- instBytes
-      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+      let branchOffset = sextE (offset `concatE` (bvInteger 0 :: InstExpr 'B rv 1))
 
       jump (iteE (x_rs1 `ltuE` x_rs2)
                 (pc `addE` branchOffset)
-                (pc `addE` zextE ib))
+                (pc `addE` zextEOrId ib))
   , Pair Bgeu $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "If register x[rs1] is greater than or equal to register x[rs2] as unsigned numbers, add sext(offset) to the pc."
 
@@ -684,11 +689,11 @@ baseSemantics = Map.fromList
 
       let pc = readPC
       ib <- instBytes
-      let branchOffset = sextE (offset `concatE` (litBV 0 :: InstExpr 'B rv 1))
+      let branchOffset = sextE (offset `concatE` (bvInteger 0 :: InstExpr 'B rv 1))
 
       jump (iteE (notE (x_rs1 `ltuE` x_rs2))
                 (pc `addE` branchOffset)
-                (pc `addE` zextE ib))
+                (pc `addE` zextEOrId ib))
 
   -- U type
   , Pair Lui $ instSemantics (Rd :< Imm20 :< Nil) $ do
@@ -697,7 +702,7 @@ baseSemantics = Map.fromList
 
       rd :< imm20 :< Nil <- operandEs
 
-      assignGPR rd $ sextE imm20 `sllE` litBV 12
+      assignGPR rd $ sextEOrId imm20 `sllE` bvInteger 12
       incrPC
   , Pair Auipc $ instSemantics (Rd :< Imm20 :< Nil) $ do
       comment "Adds the sign-extended 20-bit immediate, left-shifted by 12 bits, to the pc."
@@ -706,7 +711,7 @@ baseSemantics = Map.fromList
       rd :< imm20 :< Nil <- operandEs
       let pc = readPC
 
-      assignGPR rd $ pc `addE` (sextE imm20 `sllE` litBV 12)
+      assignGPR rd $ pc `addE` (sextEOrId imm20 `sllE` bvInteger 12)
       incrPC
 
   -- J type
@@ -718,8 +723,8 @@ baseSemantics = Map.fromList
       ib <- instBytes
       let pc = readPC
 
-      assignGPR rd $ pc `addE` zextE ib
-      jump $ pc `addE` sextE (imm20 `sllE` litBV 1)
+      assignGPR rd $ pc `addE` zextEOrId ib
+      jump $ pc `addE` sextEOrId (imm20 `sllE` bvInteger 1)
 
   -- X type
   , Pair Illegal $ instSemantics (Imm32 :< Nil) $ do
@@ -745,7 +750,7 @@ base64Encode = Map.fromList
   , Pair Sd    (OpBits SRepr (0b0100011 :< 0b011 :< Nil))
   ]
 
-base64Semantics :: (KnownRV rv, 64 <= RVWidth rv) => SemanticsMap rv
+base64Semantics :: (KnownRV rv, w ~ RVWidth rv, 64 <= w) => SemanticsMap rv
 base64Semantics = Map.fromList
   [ Pair Addw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."
@@ -836,7 +841,7 @@ base64Semantics = Map.fromList
       let x_rs1 = readGPR rs1
       let mVal  = readMem (knownNat @8) (x_rs1 `addE` sextE offset)
 
-      assignGPR rd (sextE mVal)
+      assignGPR rd (sextEOrId mVal)
       incrPC
   , Pair Addiw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Adds the sign-extended immediate to register x[rs1], truncating the result to 32 bits."
@@ -846,7 +851,7 @@ base64Semantics = Map.fromList
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = sextE (extractE' (knownNat @32) (knownNat @0) (x_rs1 `addE` (sextE imm12)))
+      let res   = sextEOrId (extractE' (knownNat @32) (knownNat @0) (x_rs1 `addE` sextEOrId imm12))
 
       assignGPR rd res
       incrPC
@@ -858,14 +863,14 @@ base64Semantics = Map.fromList
       rd :< rs1 :< shamt :< Nil <- operandEs
       let x_rs1'  = extractE' (knownNat @32) (knownNat @0) (readGPR rs1)
 
-      assignGPR rd $ sextE (x_rs1' `sllE` zextE shamt)
+      assignGPR rd $ sextEOrId (x_rs1' `sllE` zextE shamt)
       incrPC
 
   , Pair Srliw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
       rd :< rs1 :< shamt :< Nil <- operandEs
       let x_rs1'  = extractE' (knownNat @32) (knownNat @0) (readGPR rs1)
 
-      assignGPR rd $ sextE (x_rs1' `srlE` zextE shamt)
+      assignGPR rd $ sextEOrId (x_rs1' `srlE` zextE shamt)
       incrPC
 
   , Pair Sraiw $ instSemantics (Rd :< Rs1 :< Shamt5 :< Nil) $ do
@@ -873,7 +878,7 @@ base64Semantics = Map.fromList
       rd :< rs1 :< shamt :< Nil <- operandEs
       let x_rs1'  = extractE' (knownNat @32) (knownNat @0) (readGPR rs1)
 
-      assignGPR rd $ sextE (x_rs1' `sraE` zextE shamt)
+      assignGPR rd $ sextEOrId (x_rs1' `sraE` zextE shamt)
       incrPC
 
   , Pair Sd $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
@@ -885,6 +890,6 @@ base64Semantics = Map.fromList
       let x_rs1 = readGPR rs1
       let x_rs2 = readGPR rs2
 
-      assignMem (knownNat @8) (x_rs1 `addE` sextE offset) (extractE (knownNat @0) x_rs2)
+      assignMem (knownNat @8) (x_rs1 `addE` sextEOrId offset) (extractE (knownNat @0) x_rs2)
       incrPC
   ]

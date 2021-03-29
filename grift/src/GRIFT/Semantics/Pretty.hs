@@ -1,6 +1,8 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 
 module GRIFT.Semantics.Pretty
   ( -- ** Pretty printing
@@ -16,6 +18,8 @@ import Data.Parameterized.List
 import Prelude hiding ((<>), (!!))
 import Text.PrettyPrint.HughesPJClass
 
+import GRIFT.BitVector.BVApp
+import GRIFT.BitVector.BVFloatApp
 import GRIFT.Semantics
 import GRIFT.Semantics.Expand
 import GRIFT.Types
@@ -46,7 +50,7 @@ pPrintAbbrevApp ppExpr _ (ReadCSRApp _ e) = text "CSR[" <> ppExpr True e <> text
 pPrintAbbrevApp ppExpr _ (NanBox32App _ e) = text "NaNBox32(" <> ppExpr True e <> text ")"
 pPrintAbbrevApp ppExpr _ (UnNanBox32App _ e) = text "UnNaNBox32(" <> ppExpr True e <> text ")"
 
-pPrintStateApp :: (forall w' . Bool -> expr w' -> Doc)
+pPrintStateApp :: (forall w'. Bool -> expr w' -> Doc)
                -> Bool
                -> StateApp expr rv w
                -> Doc
@@ -63,7 +67,7 @@ pPrintBVApp ppExpr _ (NegateApp _ e) = text "-" <> ppExpr False e
 pPrintBVApp ppExpr _ (AbsApp _ e) = text "|" <> ppExpr True e <> text "|"
 pPrintBVApp ppExpr _ (SignumApp _ e) = text "signum(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr _ (ZExtApp _ e) = text "zext(" <> ppExpr True e <> text ")"
-pPrintBVApp ppExpr _ (SExtApp _ e) = text "sext(" <> ppExpr True e <> text ")"
+pPrintBVApp ppExpr _ (SExtApp _ _ e) = text "sext(" <> ppExpr True e <> text ")"
 pPrintBVApp ppExpr _ (ExtractApp w ix e) =
   ppExpr False e <> text "[" <> pPrint (intValue ix) <> text ":" <>
   pPrint (intValue ix + intValue w - 1) <> text "]"
@@ -83,8 +87,8 @@ pPrintBVApp ppExpr _ (RemUApp _ e1 e2) = ppExpr False e1 <+> text "%u" <+> ppExp
 pPrintBVApp ppExpr _ (RemSApp _ e1 e2) = ppExpr False e1 <+> text "%s" <+> ppExpr False e2
 pPrintBVApp ppExpr _ (EqApp  e1 e2) = ppExpr False e1 <+> text "==" <+> ppExpr False e2
 pPrintBVApp ppExpr _ (LtuApp e1 e2) = ppExpr False e1 <+> text "<u" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (LtsApp e1 e2) = ppExpr False e1 <+> text "<s" <+> ppExpr False e2
-pPrintBVApp ppExpr _ (ConcatApp _ e1 e2) =
+pPrintBVApp ppExpr _ (LtsApp _ e1 e2) = ppExpr False e1 <+> text "<s" <+> ppExpr False e2
+pPrintBVApp ppExpr _ (ConcatApp _ _ e1 e2) =
   text "{" <> ppExpr True e1 <> text ", " <> ppExpr True e2 <> text "}"
 pPrintBVApp ppExpr _ (IteApp _ e1 e2 e3) =
   text "if" <+> ppExpr True e1 <+>
@@ -262,7 +266,9 @@ pPrintAbbrevStmt ppExpr (RaiseException code info) =
 pPrintAbbrevStmt ppExpr (WriteCSR csr e) =
   text "CSR[" <> ppExpr True csr <> text "] := " <> ppExpr True e
 
-pPrintStmt :: KnownRV rv
+pPrintStmt :: BVExpr (expr rv)
+           => KnownRV rv
+           => (w ~ RVWidth rv, 32 <= w)
            => (forall w' . Bool -> expr rv w' -> Doc)
            -> AbbrevLevel
            -> Stmt expr rv
@@ -278,15 +284,17 @@ pPrintStmt ppExpr abbrevLevel (BranchStmt test s1s s2s) =
   $$ nest 2 (text "ELSE")
   $$ nest 4 (vcat (pPrintStmt ppExpr abbrevLevel <$> toList s2s))
 
-pPrintSemantics :: KnownRV rv
+pPrintSemantics :: BVExpr (expr rv)
+                => KnownRV rv
+                => (w ~ RVWidth rv, 32 <= w)
                 => (forall w' . Bool -> expr rv w' -> Doc)
                 -> AbbrevLevel
                 -> Semantics expr rv
                 -> Doc
 pPrintSemantics ppExpr abbrevLevel semantics =
-  (vcat $ text <$> toList (semantics ^. semComments)) $$
+  vcat (text <$> toList (semantics ^. semComments)) $$
   text "" $$
-  (vcat $ pPrintStmt ppExpr abbrevLevel <$> toList (semantics ^. semStmts))
+  vcat (pPrintStmt ppExpr abbrevLevel <$> toList (semantics ^. semStmts))
 
 pPrintOperandName :: OperandName w -> Doc
 pPrintOperandName Aq = text "aq"
@@ -306,6 +314,8 @@ pPrintOperandName Imm32 = text "imm32"
 
 -- | Pretty-print an 'InstExpr'.
 pPrintInstExpr :: KnownRV rv
+              --  => (w ~ RVWidth rv, 32 <= w)
+               => Num (InstExpr fmt rv 32)
                => List OperandName (OperandTypes fmt)
                -- ^ Names for each operand of the expression
                -> AbbrevLevel
@@ -316,7 +326,7 @@ pPrintInstExpr :: KnownRV rv
                -> InstExpr fmt rv w
                -> Doc
 pPrintInstExpr opNames _ _ (OperandExpr _ (OperandID oid)) = pPrintOperandName (opNames !! oid)
-pPrintInstExpr _ _ _ (InstLitBV bv) = text (show bv)
+pPrintInstExpr _ _ _ (InstLitBV _ bv) = text (show bv)
 pPrintInstExpr opNames abbrevLevel top (InstAbbrevApp abbrevApp)
   | abbrevLevel == Abbrev = pPrintAbbrevApp (pPrintInstExpr opNames abbrevLevel) top abbrevApp
   | otherwise = pPrintInstExpr opNames abbrevLevel top (expandAbbrevApp abbrevApp)
@@ -327,6 +337,10 @@ pPrintInstExpr opNames abbrevLevel top (InstStateApp e) =
 
 -- ^ Pretty-print all the statements in the semantics of an instruction, along with
 -- the comments.
-pPrintInstSemantics :: KnownRV rv => AbbrevLevel -> InstSemantics rv fmt -> Doc
+pPrintInstSemantics ::
+  KnownRV rv =>
+  Num (InstExpr fmt rv 32) =>
+  (w ~ RVWidth rv, 32 <= w) =>
+  AbbrevLevel -> InstSemantics rv fmt -> Doc
 pPrintInstSemantics abbrevLevel (InstSemantics semantics opNames) =
   pPrintSemantics (pPrintInstExpr opNames abbrevLevel) abbrevLevel semantics

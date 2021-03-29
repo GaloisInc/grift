@@ -23,6 +23,8 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
+{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
+
 {-|
 Module      : GRIFT.InstructionSet.FD
 Copyright   : (c) Benjamin Selfridge, 2018
@@ -39,12 +41,12 @@ module GRIFT.InstructionSet.FD
   ( fdFromRepr
   ) where
 
-import Data.BitVector.Sized.App
-import Data.BitVector.Sized.Float.App
 import qualified Data.Parameterized.Map as Map
-import Data.Parameterized
-import Data.Parameterized.List
+import Data.Parameterized ( type (<=), Pair(Pair) )
+import Data.Parameterized.List ( List(Nil, (:<)) )
 
+import GRIFT.BitVector.BVApp
+import GRIFT.BitVector.BVFloatApp
 import GRIFT.InstructionSet
 import GRIFT.Semantics
 import GRIFT.Semantics.Utils
@@ -59,19 +61,31 @@ fdFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ _ _ FDYesRepr _))   = withRV rv
 fdFromRepr _ = mempty
 
 -- | F extension (RV32)
-f32 :: (KnownRV rv, FExt << rv) => InstructionSet rv
+f32 :: (KnownRV rv, w ~ RVWidth rv, 32 <= w, FExt << rv) => InstructionSet rv
 f32 = instructionSet fEncode fSemantics
 
 -- | F extension (RV64)
-f64 :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+f64 :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, FExt << rv) => InstructionSet rv
 f64 = f32 <> instructionSet f64Encode f64Semantics
 
 -- | D extension (RV32)
-d32 :: (KnownRV rv, FExt << rv, DExt << rv) => InstructionSet rv
+d32 ::
+  KnownRV rv =>
+  (w ~ RVWidth rv, 32 <= w) =>
+  (fw ~ RVFloatWidth rv, 64 <= fw) =>
+  FExt << rv =>
+  DExt << rv =>
+  InstructionSet rv
 d32 = instructionSet dEncode dSemantics
 
 -- | D extension (RV64)
-d64 :: (KnownRV rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => InstructionSet rv
+d64 ::
+  KnownRV rv =>
+  (w ~ RVWidth rv, 64 <= w) =>
+  (fw ~ RVFloatWidth rv, 64 <= fw) =>
+  FExt << rv =>
+  DExt << rv =>
+  InstructionSet rv
 d64 = d32 <> instructionSet d64Encode d64Semantics
 
 fEncode :: FExt << rv => EncodeMap rv
@@ -104,7 +118,7 @@ fEncode = Map.fromList
   , Pair Fmv_w_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100000000 :< Nil))
   ]
 
-fSemantics :: forall rv . (KnownRV rv, FExt << rv) => SemanticsMap rv
+fSemantics :: ( KnownRV rv, w ~ RVWidth rv, 32 <= w, FExt << rv) => SemanticsMap rv
 fSemantics = Map.fromList
   [ Pair Flw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a single-precision float from memory address x[rs1] + sext(offset)."
@@ -294,7 +308,7 @@ fSemantics = Map.fromList
 
       let res_sign = notE (f32Sgn (extractE (knownNat @0) f_rs2))
       let res_rst  = extractE' (knownNat @31) (knownNat @0) f_rs1
-      let res' = zextE (res_sign `concatE` res_rst)
+      let res' = zextEOrId (res_sign `concatE` res_rst)
       res <- nanBox32 res'
 
       assignFPR rd res
@@ -307,9 +321,9 @@ fSemantics = Map.fromList
       f_rs1 <- unBox32 (readFPR rs1)
       f_rs2 <- unBox32 (readFPR rs2)
 
-      let res_sign = (f32Sgn (extractE (knownNat @0) f_rs1) `xorE` f32Sgn (extractE (knownNat @0) f_rs2))
+      let res_sign = f32Sgn (extractE (knownNat @0) f_rs1) `xorE` f32Sgn (extractE (knownNat @0) f_rs2)
       let res_rst  = extractE' (knownNat @31) (knownNat @0) f_rs1
-      let res' = zextE (res_sign `concatE` res_rst)
+      let res' = zextEOrId (res_sign `concatE` res_rst)
       res <- nanBox32 res'
 
       assignFPR rd res
@@ -333,7 +347,7 @@ fSemantics = Map.fromList
             $ iteE cmp f_rs1 f_rs2
       res <- nanBox32 res'
       let invalid = isSNaN32 f_rs1 `orE` isSNaN32 f_rs2
-      let flags = iteE invalid (litBV 0x10) (litBV 0x00)
+      let flags = iteE invalid (bvInteger 0x10) (bvInteger 0x00)
 
       assignFPR rd res
       raiseFPExceptions flags
@@ -357,7 +371,7 @@ fSemantics = Map.fromList
             $ iteE cmp f_rs2 f_rs1
       res <- nanBox32 res'
       let invalid = isSNaN32 f_rs1 `orE` isSNaN32 f_rs2
-      let flags = iteE invalid (litBV 0x10) (litBV 0x00)
+      let flags = iteE invalid (bvInteger 0x10) (bvInteger 0x00)
 
       assignFPR rd res
       raiseFPExceptions flags
@@ -371,7 +385,7 @@ fSemantics = Map.fromList
         f_rs1 <- unBox32 (readFPR rs1)
         let (res, flags) = getFRes $ f32ToI32E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (sextE res)
+        assignGPR rd (sextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_wu_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -383,7 +397,7 @@ fSemantics = Map.fromList
         f_rs1 <- unBox32 (readFPR rs1)
         let (res, flags) = getFRes $ f32ToUi32E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (sextE res)
+        assignGPR rd (sextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_x_w $ instSemantics (Rd :< Rs1 :< Nil) $ do
@@ -393,7 +407,7 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
       let f_rs1 = readFPR rs1
 
-      assignGPR rd (sextE (extractE' (knownNat @32) (knownNat @0) f_rs1))
+      assignGPR rd (sextEOrId (extractE' (knownNat @32) (knownNat @0) f_rs1))
       incrPC
   , Pair Feq_s $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Writes 1 to x[rd] if the single-precision float in f[rs1] equals f[rs2]."
@@ -441,18 +455,18 @@ fSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
       f_rs1 <- unBox32 (readFPR rs1)
       let res = cases
-            [ (f_rs1 `eqE` negInfinity32, litBV 0x1)
-            , (f32Sgn f_rs1 `andE` isNormal32 f_rs1, litBV 0x2)
-            , (f32Sgn f_rs1 `andE` isSubnormal32 f_rs1, litBV 0x4)
-            , (f_rs1 `eqE` negZero32, litBV 0x8)
-            , (f_rs1 `eqE` posZero32, litBV 0x10)
-            , (notE (f32Sgn f_rs1) `andE` isSubnormal32 f_rs1, litBV 0x20)
-            , (notE (f32Sgn f_rs1) `andE` isNormal32 f_rs1, litBV 0x40)
-            , (f_rs1 `eqE` posInfinity32, litBV 0x80)
-            , (isSNaN32 f_rs1, litBV 0x100)
-            , (isQNaN32 f_rs1, litBV 0x200)
+            [ (f_rs1 `eqE` negInfinity32, bvInteger 0x1)
+            , (f32Sgn f_rs1 `andE` isNormal32 f_rs1, bvInteger 0x2)
+            , (f32Sgn f_rs1 `andE` isSubnormal32 f_rs1, bvInteger 0x4)
+            , (f_rs1 `eqE` negZero32, bvInteger 0x8)
+            , (f_rs1 `eqE` posZero32, bvInteger 0x10)
+            , (notE (f32Sgn f_rs1) `andE` isSubnormal32 f_rs1, bvInteger 0x20)
+            , (notE (f32Sgn f_rs1) `andE` isNormal32 f_rs1, bvInteger 0x40)
+            , (f_rs1 `eqE` posInfinity32, bvInteger 0x80)
+            , (isSNaN32 f_rs1, bvInteger 0x100)
+            , (isQNaN32 f_rs1, bvInteger 0x200)
             ]
-            (litBV 0x0)
+            (bvInteger 0x0)
 
       assignGPR rd res
       incrPC
@@ -503,7 +517,7 @@ f64Encode = Map.fromList
   , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110100000011 :< Nil))
   ]
 
-f64Semantics :: (KnownRV rv, FExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+f64Semantics :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, FExt << rv) => SemanticsMap rv
 f64Semantics = Map.fromList
   [ Pair Fcvt_l_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 64-bit signed integer."
@@ -514,7 +528,7 @@ f64Semantics = Map.fromList
         f_rs1 <- unBox32 (readFPR rs1)
         let (res, flags) = getFRes $ f32ToI64E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (sextE res)
+        assignGPR rd (sextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_lu_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -526,7 +540,7 @@ f64Semantics = Map.fromList
         f_rs1 <- unBox32 (readFPR rs1)
         let (res, flags) = getFRes $ f32ToUi64E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (zextE res)
+        assignGPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_s_l $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -587,7 +601,13 @@ dEncode = Map.fromList
   , Pair Fcvt_d_wu (OpBits R2Repr (0b1010011 :< 0b110100100001 :< Nil))
   ]
 
-dSemantics :: (KnownRV rv, FExt << rv, DExt << rv) => SemanticsMap rv
+dSemantics ::
+  ( KnownRV rv
+  , w ~ RVWidth rv, 32 <= w
+  , fw ~ RVFloatWidth rv, 64 <= fw
+  , FExt << rv, DExt << rv
+  ) =>
+  SemanticsMap rv
 dSemantics = Map.fromList
   [ Pair Fld $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a double-precision float from memory address x[rs1] + sext(offset)."
@@ -598,7 +618,7 @@ dSemantics = Map.fromList
       let x_rs1 = readGPR rs1
       let mVal  = readMem (knownNat @8) (x_rs1 `addE` sextE offset)
 
-      assignFPR rd (zextE mVal)
+      assignFPR rd (zextEOrId mVal)
       incrPC
   , Pair Fsd $ instSemantics (Rs1 :< Rs2 :< Imm12 :< Nil) $ do
       comment "Stores the double-precision float in register f[rs2] to memory at address x[rs1] + sext(offset)."
@@ -623,7 +643,7 @@ dSemantics = Map.fromList
         let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm f_rs1 f_rs2 f_rs3
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmsub_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
@@ -639,7 +659,7 @@ dSemantics = Map.fromList
         let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm f_rs1 f_rs2 (negate64 f_rs3)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fnmsub_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
@@ -655,7 +675,7 @@ dSemantics = Map.fromList
         let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm (negate64 f_rs1) f_rs2 f_rs3
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fnmadd_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Rs3 :< Nil) $ do
@@ -671,7 +691,7 @@ dSemantics = Map.fromList
         let f_rs3 = extractE (knownNat @0) (readFPR rs3)
         let (res, flags) = getFResCanonical64 $ f64MulAddE rm (negate64 f_rs1) f_rs2 (negate64 f_rs3)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fadd_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
@@ -685,7 +705,7 @@ dSemantics = Map.fromList
         let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64AddE rm f_rs1 f_rs2
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fsub_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
@@ -699,7 +719,7 @@ dSemantics = Map.fromList
         let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64SubE rm f_rs1 f_rs2
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmul_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
@@ -713,7 +733,7 @@ dSemantics = Map.fromList
         let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64MulE rm f_rs1 f_rs2
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fdiv_d $ instSemantics (Rd :< Rm :< Rs1 :< Rs2 :< Nil) $ do
@@ -727,7 +747,7 @@ dSemantics = Map.fromList
         let f_rs2 = extractE (knownNat @0) (readFPR rs2)
         let (res, flags) = getFResCanonical64 $ f64DivE rm f_rs1 f_rs2
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fsqrt_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -740,7 +760,7 @@ dSemantics = Map.fromList
         let f_rs1 = extractE (knownNat @0) (readFPR rs1)
         let (res, flags) = getFResCanonical64 $ f64SqrtE rm f_rs1
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fsgnj_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -753,7 +773,7 @@ dSemantics = Map.fromList
 
       let res_sign = f64Sgn (extractE (knownNat @0) f_rs2)
       let res_rst  = extractE' (knownNat @63) (knownNat @0) f_rs1
-      let res = zextE (res_sign `concatE` res_rst)
+      let res = zextEOrId (res_sign `concatE` res_rst)
 
       assignFPR rd res
       incrPC
@@ -767,7 +787,7 @@ dSemantics = Map.fromList
 
       let res_sign = notE (f64Sgn (extractE (knownNat @0) f_rs2))
       let res_rst  = extractE' (knownNat @63) (knownNat @0) f_rs1
-      let res = zextE (res_sign `concatE` res_rst)
+      let res = zextEOrId (res_sign `concatE` res_rst)
 
       assignFPR rd res
       incrPC
@@ -779,9 +799,9 @@ dSemantics = Map.fromList
       let f_rs1 = readFPR rs1
       let f_rs2 = readFPR rs2
 
-      let res_sign = (f64Sgn (extractE (knownNat @0) f_rs1) `xorE` f64Sgn (extractE (knownNat @0) f_rs2))
+      let res_sign = f64Sgn (extractE (knownNat @0) f_rs1) `xorE` f64Sgn (extractE (knownNat @0) f_rs2)
       let res_rst  = extractE' (knownNat @63) (knownNat @0) f_rs1
-      let res = zextE (res_sign `concatE` res_rst)
+      let res = zextEOrId (res_sign `concatE` res_rst)
 
       assignFPR rd res
       incrPC
@@ -803,9 +823,9 @@ dSemantics = Map.fromList
             ]
             $ iteE cmp f_rs1 f_rs2
       let invalid = isSNaN64 f_rs1 `orE` isSNaN64 f_rs2
-      let flags = iteE invalid (litBV 0x10) (litBV 0x00)
+      let flags = iteE invalid (bvInteger 0x10) (bvInteger 0x00)
 
-      assignFPR rd (zextE res)
+      assignFPR rd (zextEOrId res)
       raiseFPExceptions flags
       incrPC
   , Pair Fmax_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -826,9 +846,9 @@ dSemantics = Map.fromList
             ]
             $ iteE cmp f_rs2 f_rs1
       let invalid = isSNaN64 f_rs1 `orE` isSNaN64 f_rs2
-      let flags = iteE invalid (litBV 0x10) (litBV 0x00)
+      let flags = iteE invalid (bvInteger 0x10) (bvInteger 0x00)
 
-      assignFPR rd (zextE res)
+      assignFPR rd (zextEOrId res)
       raiseFPExceptions flags
       incrPC
   , Pair Fcvt_s_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -853,7 +873,7 @@ dSemantics = Map.fromList
         let f_rs1 = readFPR rs1
             (res, flags) = getFResCanonical64 $ f32ToF64E rm (extractE (knownNat @0) f_rs1)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Feq_d $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -902,18 +922,18 @@ dSemantics = Map.fromList
       rd :< rs1 :< Nil <- operandEs
       let f_rs1 = extractE (knownNat @0) (readFPR rs1)
       let res = cases
-            [ (f_rs1 `eqE` negInfinity64, litBV 0x1)
-            , (f64Sgn f_rs1 `andE` isNormal64 f_rs1, litBV 0x2)
-            , (f64Sgn f_rs1 `andE` isSubnormal64 f_rs1, litBV 0x4)
-            , (f_rs1 `eqE` negZero64, litBV 0x8)
-            , (f_rs1 `eqE` posZero64, litBV 0x10)
-            , (notE (f64Sgn f_rs1) `andE` isSubnormal64 f_rs1, litBV 0x20)
-            , (notE (f64Sgn f_rs1) `andE` isNormal64 f_rs1, litBV 0x40)
-            , (f_rs1 `eqE` posInfinity64, litBV 0x80)
-            , (isSNaN64 f_rs1, litBV 0x100)
-            , (isQNaN64 f_rs1, litBV 0x200)
+            [ (f_rs1 `eqE` negInfinity64, bvInteger 0x1)
+            , (f64Sgn f_rs1 `andE` isNormal64 f_rs1, bvInteger 0x2)
+            , (f64Sgn f_rs1 `andE` isSubnormal64 f_rs1, bvInteger 0x4)
+            , (f_rs1 `eqE` negZero64, bvInteger 0x8)
+            , (f_rs1 `eqE` posZero64, bvInteger 0x10)
+            , (notE (f64Sgn f_rs1) `andE` isSubnormal64 f_rs1, bvInteger 0x20)
+            , (notE (f64Sgn f_rs1) `andE` isNormal64 f_rs1, bvInteger 0x40)
+            , (f_rs1 `eqE` posInfinity64, bvInteger 0x80)
+            , (isSNaN64 f_rs1, bvInteger 0x100)
+            , (isQNaN64 f_rs1, bvInteger 0x200)
             ]
-            (litBV 0x0)
+            (bvInteger 0x0)
 
       assignGPR rd res
       incrPC
@@ -926,7 +946,7 @@ dSemantics = Map.fromList
         let f_rs1 = readFPR rs1
             (res, flags) = getFRes $ f64ToI32E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (sextE res)
+        assignGPR rd (sextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_wu_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -938,7 +958,7 @@ dSemantics = Map.fromList
         let f_rs1 = readFPR rs1
             (res, flags) = getFRes $ f64ToUi32E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (sextE res)
+        assignGPR rd (sextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_d_w $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -950,7 +970,7 @@ dSemantics = Map.fromList
         let x_rs1 = readGPR rs1
             (res, flags) = getFResCanonical64 $ i32ToF64E rm (extractE (knownNat @0) x_rs1)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_d_wu $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -962,7 +982,7 @@ dSemantics = Map.fromList
         let x_rs1 = readGPR rs1
             (res, flags) = getFResCanonical64 $ ui32ToF64E rm (extractE (knownNat @0) x_rs1)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   ]
@@ -977,7 +997,12 @@ d64Encode = Map.fromList
   , Pair Fmv_d_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100100000 :< Nil))
   ]
 
-d64Semantics :: (KnownRV rv, FExt << rv, DExt << rv, 64 <= RVWidth rv) => SemanticsMap rv
+d64Semantics ::
+  KnownRV rv =>
+  (w ~ RVWidth rv, 64 <= w) =>
+  (fw ~ RVFloatWidth rv, 64 <= fw) =>
+  (FExt << rv, DExt << rv) =>
+  SemanticsMap rv
 d64Semantics = Map.fromList
   [ Pair Fcvt_l_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 64-bit signed integer."
@@ -988,7 +1013,7 @@ d64Semantics = Map.fromList
         let f_rs1 = readFPR rs1
             (res, flags) = getFRes $ f64ToI64E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (sextE res)
+        assignGPR rd (sextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_lu_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -1000,7 +1025,7 @@ d64Semantics = Map.fromList
         let f_rs1 = readFPR rs1
             (res, flags) = getFRes $ f64ToUi64E rm (extractE (knownNat @0) f_rs1)
 
-        assignGPR rd (zextE res)
+        assignGPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_x_d $ instSemantics (Rd :< Rs1 :< Nil) $ do
@@ -1011,7 +1036,7 @@ d64Semantics = Map.fromList
 
       let f_rs1 = readFPR rs1
 
-      assignGPR rd (sextE (extractE' (knownNat @64) (knownNat @0) f_rs1))
+      assignGPR rd (sextEOrId (extractE' (knownNat @64) (knownNat @0) f_rs1))
       incrPC
   , Pair Fcvt_d_l $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the 64-bit signed integer in x[rs1] to a double-precision float."
@@ -1022,7 +1047,7 @@ d64Semantics = Map.fromList
         let x_rs1 = readGPR rs1
             (res, flags) = getFResCanonical64 $ i64ToF64E rm (extractE (knownNat @0) x_rs1)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fcvt_d_lu $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
@@ -1034,7 +1059,7 @@ d64Semantics = Map.fromList
         let x_rs1 = readGPR rs1
             (res, flags) = getFResCanonical64 $ ui64ToF64E rm (extractE (knownNat @0) x_rs1)
 
-        assignFPR rd (zextE res)
+        assignFPR rd (zextEOrId res)
         raiseFPExceptions flags
         incrPC
   , Pair Fmv_d_x $ instSemantics (Rd :< Rs1 :< Nil) $ do
@@ -1045,6 +1070,6 @@ d64Semantics = Map.fromList
 
       let x_rs1 = readGPR rs1
 
-      assignFPR rd (sextE (extractE' (knownNat @64) (knownNat @0) x_rs1))
+      assignFPR rd (sextEOrId (extractE' (knownNat @64) (knownNat @0) x_rs1))
       incrPC
   ]

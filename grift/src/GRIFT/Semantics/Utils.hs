@@ -68,13 +68,13 @@ module GRIFT.Semantics.Utils
   ) where
 
 import Data.BitVector.Sized
-import Data.BitVector.Sized.App
-import Data.BitVector.Sized.Float.App
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Parameterized
 import GHC.TypeLits
 
+import GRIFT.BitVector.BVApp
+import GRIFT.BitVector.BVFloatApp
 import GRIFT.Semantics
 import GRIFT.Types
 
@@ -99,7 +99,7 @@ jump :: forall expr rv . (BVExpr (expr rv), StateExpr expr, KnownRV rv)
 jump pc = case extsC (rvExts (knownRepr :: RVRepr rv)) of
   CYesRepr -> assignPC pc
   CNoRepr -> do
-    let addrValid = (pc `andE` litBV 0b11) `eqE` litBV 0
+    let addrValid = (pc `andE` bvInteger 0b11) `eqE` bvInteger 0
     branch addrValid
       $> assignPC pc
       $> raiseException InstructionAddressMisaligned pc
@@ -151,8 +151,8 @@ checkCSR write csr rst = do
   let priv = readPriv
   let csrRW = extractE' (knownNat @2) (knownNat @10) csr
   let csrPriv = extractE' (knownNat @2) (knownNat @8) csr
-  -- let csrBad = (notE (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` litBV 0b11) (litBV 0b1)))
-  let csrBad = (priv `ltuE` csrPriv) `orE` (write `andE` (notE (csrRW `ltuE` litBV 0b11)))
+  -- let csrBad = (notE (notE (priv `ltuE` csrPriv)) `andE` (iteE write (csrRW `ltuE` bvInteger 0b11) (bvInteger 0b1)))
+  let csrBad = (priv `ltuE` csrPriv) `orE` (write `andE` notE (csrRW `ltuE` bvInteger 0b11))
 
   iw <- instWord
 
@@ -162,8 +162,10 @@ checkCSR write csr rst = do
 
 -- | Maps each CSR to an expression representing what value is returned when software
 -- attempts to read it.
-readCSR :: (StateExpr expr, BVExpr (expr rv), AbbrevExpr expr, KnownRV rv)
-        => expr rv 12 -> expr rv (RVWidth rv)
+readCSR ::
+  (w ~ RVWidth rv, 5 <= w) =>
+  (StateExpr expr, BVExpr (expr rv), AbbrevExpr expr, KnownRV rv) =>
+  expr rv 12 -> expr rv (RVWidth rv)
 readCSR csr = abbrevExpr $ ReadCSRApp knownNat csr
 
 -- | Maps each CSR to a function taking a 'BVExpr' expression to a semantic action,
@@ -189,13 +191,13 @@ data Exception = EnvironmentCall
   deriving (Show)
 
 -- | Map an 'Exception' to its 'BitVector' representation.
-getMCause :: KnownNat w => Exception -> BitVector w
-getMCause InstructionAddressMisaligned = 0
-getMCause IllegalInstruction           = 2
-getMCause Breakpoint                   = 3
-getMCause LoadAccessFault              = 5
-getMCause StoreAccessFault             = 7
-getMCause EnvironmentCall              = 11 -- This is only true for M mode.
+getMCause :: KnownNat w => Exception -> BV w
+getMCause InstructionAddressMisaligned = mkBV' 0
+getMCause IllegalInstruction           = mkBV' 2
+getMCause Breakpoint                   = mkBV' 3
+getMCause LoadAccessFault              = mkBV' 5
+getMCause StoreAccessFault             = mkBV' 7
+getMCause EnvironmentCall              = mkBV' 11 -- This is only true for M mode.
 
 -- | Abstract datatype for CSR.
 data CSR = MVendorID
@@ -230,75 +232,75 @@ data CSR = MVendorID
   deriving (Eq, Ord, Show, Bounded, Enum)
 
 -- | Translate a CSR to its 'BitVector' code.
-encodeCSR :: CSR -> BitVector 12
-encodeCSR MVendorID  = 0xF11
-encodeCSR MArchID    = 0xF12
-encodeCSR MImpID     = 0xF13
-encodeCSR MHartID    = 0xF14
-encodeCSR MStatus    = 0x300
-encodeCSR MISA       = 0x301
-encodeCSR MEDeleg    = 0x302
-encodeCSR MIDeleg    = 0x303
-encodeCSR MIE        = 0x304
-encodeCSR MTVec      = 0x305
-encodeCSR MCounterEn = 0x306
-encodeCSR MScratch   = 0x340
-encodeCSR MEPC       = 0x341
-encodeCSR MCause     = 0x342
-encodeCSR MTVal      = 0x343
-encodeCSR MIP        = 0x344
-encodeCSR MCycle     = 0xB00
-encodeCSR MInstRet   = 0xB02
-encodeCSR MCycleh    = 0xB80
-encodeCSR MInstReth  = 0xB82
-encodeCSR FFlags     = 0x001
-encodeCSR FRm        = 0x002
-encodeCSR FCSR       = 0x003
+encodeCSR :: CSR -> BV 12
+encodeCSR MVendorID  = mkBV' 0xF11
+encodeCSR MArchID    = mkBV' 0xF12
+encodeCSR MImpID     = mkBV' 0xF13
+encodeCSR MHartID    = mkBV' 0xF14
+encodeCSR MStatus    = mkBV' 0x300
+encodeCSR MISA       = mkBV' 0x301
+encodeCSR MEDeleg    = mkBV' 0x302
+encodeCSR MIDeleg    = mkBV' 0x303
+encodeCSR MIE        = mkBV' 0x304
+encodeCSR MTVec      = mkBV' 0x305
+encodeCSR MCounterEn = mkBV' 0x306
+encodeCSR MScratch   = mkBV' 0x340
+encodeCSR MEPC       = mkBV' 0x341
+encodeCSR MCause     = mkBV' 0x342
+encodeCSR MTVal      = mkBV' 0x343
+encodeCSR MIP        = mkBV' 0x344
+encodeCSR MCycle     = mkBV' 0xB00
+encodeCSR MInstRet   = mkBV' 0xB02
+encodeCSR MCycleh    = mkBV' 0xB80
+encodeCSR MInstReth  = mkBV' 0xB82
+encodeCSR FFlags     = mkBV' 0x001
+encodeCSR FRm        = mkBV' 0x002
+encodeCSR FCSR       = mkBV' 0x003
 
 -- | Translate a 'BitVector' CSR code into a 'CSR'.
-decodeCSR :: BitVector 12 -> Maybe CSR
-decodeCSR 0xF11 = Just MVendorID
-decodeCSR 0xF12 = Just MArchID
-decodeCSR 0xF13 = Just MImpID
-decodeCSR 0xF14 = Just MHartID
-decodeCSR 0x300 = Just MStatus
-decodeCSR 0x301 = Just MISA
-decodeCSR 0x302 = Just MEDeleg
-decodeCSR 0x303 = Just MIDeleg
-decodeCSR 0x304 = Just MIE
-decodeCSR 0x305 = Just MTVec
-decodeCSR 0x306 = Just MCounterEn
-decodeCSR 0x340 = Just MScratch
-decodeCSR 0x341 = Just MEPC
-decodeCSR 0x342 = Just MCause
-decodeCSR 0x343 = Just MTVal
-decodeCSR 0x344 = Just MIP
-decodeCSR 0xB00 = Just MCycle
-decodeCSR 0xB02 = Just MInstRet
-decodeCSR 0xB80 = Just MCycleh
-decodeCSR 0xB82 = Just MInstReth
-decodeCSR 0x001 = Just FFlags
-decodeCSR 0x002 = Just FRm
-decodeCSR 0x003 = Just FCSR
+decodeCSR :: BV 12 -> Maybe CSR
+decodeCSR (BV 0xF11) = Just MVendorID
+decodeCSR (BV 0xF12) = Just MArchID
+decodeCSR (BV 0xF13) = Just MImpID
+decodeCSR (BV 0xF14) = Just MHartID
+decodeCSR (BV 0x300) = Just MStatus
+decodeCSR (BV 0x301) = Just MISA
+decodeCSR (BV 0x302) = Just MEDeleg
+decodeCSR (BV 0x303) = Just MIDeleg
+decodeCSR (BV 0x304) = Just MIE
+decodeCSR (BV 0x305) = Just MTVec
+decodeCSR (BV 0x306) = Just MCounterEn
+decodeCSR (BV 0x340) = Just MScratch
+decodeCSR (BV 0x341) = Just MEPC
+decodeCSR (BV 0x342) = Just MCause
+decodeCSR (BV 0x343) = Just MTVal
+decodeCSR (BV 0x344) = Just MIP
+decodeCSR (BV 0xB00) = Just MCycle
+decodeCSR (BV 0xB02) = Just MInstRet
+decodeCSR (BV 0xB80) = Just MCycleh
+decodeCSR (BV 0xB82) = Just MInstReth
+decodeCSR (BV 0x001) = Just FFlags
+decodeCSR (BV 0x002) = Just FRm
+decodeCSR (BV 0x003) = Just FCSR
 decodeCSR _ = Nothing
 
 data Privilege = MPriv | SPriv | UPriv
 
 -- | State of CSRs on reset.
-resetCSRs :: KnownNat w => Map (BitVector 12) (BitVector w)
+resetCSRs :: KnownNat w => Map (BV 12) (BV w)
 resetCSRs = Map.mapKeys encodeCSR $ Map.fromList
-  [ (MVendorID, 0x0) -- implementation defined
-  , (MArchID, 0x0) -- implemenation defined
-  , (MImpID, 0x0) -- implementation defined
-  , (MHartID, 0x0) -- implementation defined
+  [ (MVendorID, mkBV' 0x0) -- implementation defined
+  , (MArchID, mkBV' 0x0) -- implemenation defined
+  , (MImpID, mkBV' 0x0) -- implementation defined
+  , (MHartID, mkBV' 0x0) -- implementation defined
 
   -- TODO: Finish this.
   ]
 
-getPrivCode :: Privilege -> BitVector 2
-getPrivCode MPriv = 3
-getPrivCode SPriv = 1
-getPrivCode UPriv = 0
+getPrivCode :: Privilege -> BV 2
+getPrivCode MPriv = mkBV' 3
+getPrivCode SPriv = mkBV' 1
+getPrivCode UPriv = mkBV' 0
 
 -- TODO: It is actually an optional architectural feature to propagate certain values
 -- through to mtval, so this should be a configurable option at the type level.
@@ -311,15 +313,15 @@ raiseException e info = addStmt $ AbbrevStmt (RaiseException (getMCause e) info)
 
 -- | Raise floating point exceptions. This ORs the current fflags with the supplied
 -- 5-bit value.
-raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRV rv)
+raiseFPExceptions :: (BVExpr (expr rv), StateExpr expr, KnownRV rv, 5 <= RVWidth rv)
                   => expr rv 5 -- ^ The exception flags
                   -> SemanticsM expr rv ()
 raiseFPExceptions flags = do
-  let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
-  assignCSR (litBV $ encodeCSR FCSR) (fcsr `orE` (zextE flags))
+  let fcsr = rawReadCSR (litBV knownNat $ encodeCSR FCSR)
+  assignCSR (litBV knownNat $ encodeCSR FCSR) (fcsr `orE` zextEOrId flags)
 
 dynamicRM :: (BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 3
-dynamicRM = let fcsr = rawReadCSR (litBV $ encodeCSR FCSR)
+dynamicRM = let fcsr = rawReadCSR (litBV knownNat $ encodeCSR FCSR)
             in extractE (knownNat @5) fcsr
 
 -- | Perform a computation that requires a rounding mode by supplying a rounding
@@ -331,8 +333,8 @@ withRM :: KnownRV rv
        -> (InstExpr fmt rv 3 -> SemanticsM (InstExpr fmt) rv ())
        -> SemanticsM (InstExpr fmt) rv ()
 withRM rm action = do
-  let rm' = iteE (rm `eqE` litBV 0b111) dynamicRM rm
-  branch ((rm' `eqE` litBV 0b101) `orE` (rm' `eqE` litBV 0b110))
+  let rm' = iteE (rm `eqE` bvInteger 0b111) dynamicRM rm
+  branch ((rm' `eqE` bvInteger 0b101) `orE` (rm' `eqE` bvInteger 0b110))
     $> do iw <- instWord
           raiseException IllegalInstruction iw
     $> action rm
