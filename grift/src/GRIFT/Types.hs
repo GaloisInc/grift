@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
 {-
 This file is part of GRIFT (Galois RISC-V ISA Formal Tools).
 
@@ -30,6 +29,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
@@ -757,6 +757,13 @@ instance (KnownNat w, 1 <= w) => Num (SizedBV w) where
   signum (SizedBV _ bv) = SizedBV knownNat (BV.signum knownNat bv)
   fromInteger = sizedBVInteger
   negate (SizedBV _ bv) = SizedBV knownNat (BV.negate knownNat bv)
+
+instance KnownNat w => Enum (SizedBV w) where
+  fromEnum (SizedBV _ (BV i)) = fromIntegral i
+  toEnum = sizedBVInteger . fromIntegral
+
+instance Ord (SizedBV w) where
+  (SizedBV _ (BV a)) `compare` (SizedBV _ (BV b)) = a `compare` b
 
 sizedBV :: KnownNat w => BV w -> SizedBV w
 sizedBV = SizedBV knownNat

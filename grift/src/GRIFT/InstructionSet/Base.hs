@@ -23,8 +23,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
-
 {-|
 Module      : GRIFT.InstructionSet.Base
 Copyright   : (c) Benjamin Selfridge, 2018
@@ -65,10 +63,12 @@ base32 ::
 base32 = instructionSet baseEncode baseSemantics
 
 -- | RV64I base instruction set.
-base64 ::
+base64 :: forall rv w.
   ( KnownRV rv, w ~ RVWidth rv, 64 <= w ) =>
   InstructionSet rv
-base64 = base32 <> instructionSet base64Encode base64Semantics
+base64 =
+  withLeqTrans (knownNat @32) (knownNat @64) (knownNat @w) base32
+  <> instructionSet base64Encode base64Semantics
 
 baseEncode :: EncodeMap rv
 baseEncode = Map.fromList
@@ -140,8 +140,16 @@ baseEncode = Map.fromList
   , Pair Illegal (OpBits XRepr Nil)
   ]
 
-baseSemantics :: ( KnownRV rv, w ~ RVWidth rv, 32 <= w ) => SemanticsMap rv
-baseSemantics = Map.fromList
+baseSemantics :: forall rv w. ( KnownRV rv, w ~ RVWidth rv, 32 <= w ) => SemanticsMap rv
+baseSemantics =
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @6) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @8) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @12) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @14) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @16) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @20) (knownNat @32) (knownNat @w) $
+  Map.fromList
   [ Pair Add $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds register x[rs2] to register x[rs1] and writes the result to x[rd]."
       comment "Arithmetic overflow is ignored."
@@ -750,8 +758,14 @@ base64Encode = Map.fromList
   , Pair Sd    (OpBits SRepr (0b0100011 :< 0b011 :< Nil))
   ]
 
-base64Semantics :: (KnownRV rv, w ~ RVWidth rv, 64 <= w) => SemanticsMap rv
-base64Semantics = Map.fromList
+base64Semantics :: forall rv w. (KnownRV rv, w ~ RVWidth rv, 64 <= w) => SemanticsMap rv
+base64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  withLeqTrans (knownNat @12) (knownNat @64) (knownNat @w) $
+  withLeqTrans (knownNat @13) (knownNat @64) (knownNat @w) $
+  withLeqTrans (knownNat @32) (knownNat @64) (knownNat @w) $
+  withLeqTrans (knownNat @33) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Addw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Adds x[rs2] to [rs1], truncating the result to 32 bits."
       comment "Writes the sign-extended result to x[rd]."

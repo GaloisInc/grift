@@ -1,6 +1,19 @@
+-- |
+-- Module      : GRIFT.BitVector.BitLayout
+-- Copyright   : (c) Galois Inc. 2018
+-- License     : BSD-3
+-- Maintainer  : benselfridge@galois.com
+-- Stability   : experimental
+-- Portability : portable
+--
+-- This module defines a 'BitLayout' datatype which encodes a chunk-to-chunk mapping (no
+-- overlaps) from a smaller bit vector into a larger one. 'BitLayout's are especially
+-- useful for defining the encoding and decoding of opcodes/operands in an instruction.
+
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -12,19 +25,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
-
--- |
--- Module      : Data.BitVector.Sized.BitLayout
--- Copyright   : (c) Galois Inc. 2018
--- License     : BSD-3
--- Maintainer  : benselfridge@galois.com
--- Stability   : experimental
--- Portability : portable
---
--- This module defines a 'BitLayout' datatype which encodes a chunk-to-chunk mapping (no
--- overlaps) from a smaller bit vector into a larger one. 'BitLayout's are especially
--- useful for defining the encoding and decoding of opcodes/operands in an instruction.
 module GRIFT.BitVector.BitLayout
   ( -- * Chunk
     Chunk (..),
@@ -55,11 +55,15 @@ import Data.Parameterized
   ( type (+),
     LeqProof (LeqProof),
     NatRepr (..),
+    (:~:) (Refl),
     addNat,
     intValue,
     knownNat,
+    leqProof,
     leqTrans,
+    plusComm,
     withKnownNat,
+    withLeqProof, addIsLeq, addPrefixIsLeq
   )
 import Data.Parameterized.List (List, ifoldr, imap, izipWith)
 import Data.Sequence (Seq)
@@ -69,6 +73,7 @@ import GHC.TypeLits (KnownNat, Nat, type (<=))
 import Text.PrettyPrint.HughesPJClass (Pretty (..), text)
 
 import GRIFT.BitVector.BVApp ( zextOrId, ashr' )
+import GRIFT.Semantics.Utils ( withLeqTrans )
 import GRIFT.Types ( SizedBV(SizedBV) )
 
 -- | 'Chunk' type, parameterized by chunk width. The internal 'Int' is the
@@ -204,9 +209,13 @@ singleChunk ::
   KnownNat o =>
   KnownNat t =>
   KnownNat s =>
+  KnownNat (s + o) =>
+  s <= s + o =>
   s + o <= t =>
   BitLayout t s
-singleChunk = chunk @s @o <: empty
+singleChunk =
+  withLeqTrans (knownNat @s) (knownNat @(s + o)) (knownNat @t) $
+  chunk @s @o <: empty
 
 -- TODO: Should this be in Maybe?
 
@@ -215,6 +224,7 @@ singleChunk = chunk @s @o <: empty
 -- that is already in the 'BitLayout', we throw an error.
 (<:) ::
   forall w o s t.
+  (KnownNat s, KnownNat w) =>
   w + o <= t =>
   w + s <= t =>
   -- | chunk to add
@@ -223,6 +233,8 @@ singleChunk = chunk @s @o <: empty
   BitLayout t s ->
   BitLayout t (w + s)
 chk@(Chunk w _) <: bl@(BitLayout t s chunks) =
+  withLeqProof (addPrefixIsLeq (knownNat @w) (knownNat @s) :: LeqProof s (w + s)) $
+  withLeqProof (addIsLeq (knownNat @w) (knownNat @s) :: LeqProof w (w + s)) $
   if chk `chunkFits` bl
     then BitLayout t (w `addNat` s)
          ((validChunkForLargerLayout <$> chunks) S.|> ValidChunk chk)
@@ -298,7 +310,8 @@ asSomeChunk (ValidChunk c) = SomeChunk c
 -- First, extract the appropriate bits as a BitVector t, where the relevant bits
 -- start at the LSB of the vector (so, mask and shiftL). Then, truncate to a
 -- BitVector s, and shift into the starting position.
-extractChunk ::
+extractChunk :: forall w s o t.
+  (KnownNat o, KnownNat t, KnownNat w, KnownNat (w + o)) =>
   w <= s =>
   w + o <= t =>
   -- | width of output
@@ -313,10 +326,18 @@ extractChunk ::
 extractChunk sRepr sStart (Chunk chunkRepr chunkStart) tVec =
   BV.shl sRepr extractedChunk sStart
   where
+
+    extractedChunk :: BV.BV s
     extractedChunk =
       withKnownNat chunkRepr
         (withKnownNat sRepr
-          (zextOrId (BV.select chunkStart chunkRepr tVec)))
+          (withLeqProof byCommutativity
+            (zextOrId (BV.select chunkStart chunkRepr tVec))))
+
+    byCommutativity :: LeqProof (o + w) t
+    byCommutativity =
+      case plusComm (knownNat @w) (knownNat @o) of
+        Refl -> leqProof (knownNat @(o + w)) (knownNat @t)
 
 validChunkForLargerLayout :: forall t s l.
   s <= t =>
@@ -344,7 +365,11 @@ extractAll ::
   BV.BV t ->
   BV.BV s
 extractAll _ s _ [] _ = BV.mkBV s 0
-extractAll t s outStart (ValidChunk chk@(Chunk w _) : chunks) v =
+extractAll t s outStart (ValidChunk chk@(Chunk w o) : chunks) v =
+  withKnownNat o $
+  withKnownNat t $
+  withKnownNat w $
+  withKnownNat (addNat w o) $
   extractChunk s outStart chk v
   `BV.or` extractAll t s (outStart + natValue w) chunks v
 

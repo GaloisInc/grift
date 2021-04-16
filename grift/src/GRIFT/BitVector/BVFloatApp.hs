@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 {-|
-Module      : Data.BitVector.Sized.Float.App
+Module      : GRIFT.BitVector.BVFloatApp
 Copyright   : (c) Benjamin Selfridge, 2018
                   Galois Inc.
 License     : None (yet)

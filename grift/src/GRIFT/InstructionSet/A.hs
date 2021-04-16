@@ -23,8 +23,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
-
 {-|
 Module      : GRIFT.InstructionSet.A
 Copyright   : (c) Benjamin Selfridge, 2018
@@ -62,8 +60,9 @@ a32 :: (KnownRV rv, 32 <= RVWidth rv, AExt << rv) => InstructionSet rv
 a32 = instructionSet aEncode aSemantics
 
 -- | A extension (RV64)
-a64 :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, AExt << rv) => InstructionSet rv
-a64 = a32 <> instructionSet a64Encode a64Semantics
+a64 :: forall rv w. (KnownRV rv, w ~ RVWidth rv, 64 <= w, AExt << rv) => InstructionSet rv
+a64 = withLeqTrans (knownNat @32) (knownNat @64) (knownNat @w) a32
+      <> instructionSet a64Encode a64Semantics
 
 aEncode :: AExt << rv => EncodeMap rv
 aEncode = Map.fromList
@@ -95,12 +94,14 @@ a64Encode = Map.fromList
   , Pair Amomaxud (OpBits ARepr (0b0101111 :< 0b011 :< 0b11100 :< Nil))
   ]
 
-aSemantics ::
+aSemantics :: forall rv w.
   KnownRV rv =>
   (w ~ RVWidth rv, 32 <= w) =>
   AExt << rv =>
   SemanticsMap rv
-aSemantics = Map.fromList
+aSemantics =
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  Map.fromList
   [ Pair Lrw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the four bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
@@ -186,10 +187,13 @@ aSemantics = Map.fromList
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp32 :: (KnownRV rv, w ~ RVWidth rv, 32 <= w)
+amoOp32 :: forall rv w.
+        (KnownRV rv, w ~ RVWidth rv, 32 <= w)
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
         -> SemanticsM (InstExpr A) rv ()
-amoOp32 op = do
+amoOp32 op =
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
@@ -202,12 +206,14 @@ amoOp32 op = do
       incrPC
 
 
-a64Semantics ::
+a64Semantics :: forall rv w.
   KnownRV rv =>
   (w ~ RVWidth rv, 64 <= w) =>
   AExt << rv =>
   SemanticsMap rv
-a64Semantics = Map.fromList
+a64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Lrd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
@@ -290,10 +296,13 @@ a64Semantics = Map.fromList
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp64 :: (KnownRV rv, w ~ RVWidth rv, 64 <= w)
+amoOp64 :: forall rv w.
+        (KnownRV rv, w ~ RVWidth rv, 64 <= w)
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
         -> SemanticsM (InstExpr A) rv ()
-amoOp64 op = do
+amoOp64 op =
+    withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+    do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1

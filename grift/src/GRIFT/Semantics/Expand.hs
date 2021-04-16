@@ -23,8 +23,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
-
 module GRIFT.Semantics.Expand where
 
 import Control.Lens ((^.))
@@ -56,6 +54,7 @@ expandAbbrevApp (ReadCSRApp _ csr) =
   -- if we can get away with a dynamic check until we have a better solution.
   case testLeq (knownNat @5) (knownNat @w) of
     Just LeqProof ->
+      withLeqTrans (knownNat @3) (knownNat @5) (knownNat @w) $
       cases
         [ (csr `eqE` bvExpr (encodeCSR FFlags)
           , let fcsr = rawReadCSR (bvExpr $ encodeCSR FCSR)
@@ -78,6 +77,7 @@ expandAbbrevApp (UnNanBox32App _ e) = iteE
 
 -- | Expand an 'AbbrevStmt' into the statement it abbreviates.
 expandAbbrevStmt ::
+  forall expr rv w.
   BVExpr (expr rv) =>
   KnownRV rv =>
   (w ~ RVWidth rv, 32 <= w) =>
@@ -86,7 +86,11 @@ expandAbbrevStmt (SafeGPRAssign ridE e) = Seq.singleton $
   BranchStmt (ridE `eqE` bvInteger 0)
   $> Seq.empty
   $> Seq.singleton (AssignStmt (GPRApp (exprWidth e) ridE) e)
-expandAbbrevStmt (RaiseException code info) = flip (^.) semStmts $ getSemantics $ do
+expandAbbrevStmt (RaiseException code info) = flip (^.) semStmts $ getSemantics $
+  withLeqTrans (knownNat @1) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @3) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @13) (knownNat @32) (knownNat @w) $
+  do
   -- Exception handling TODO:
   -- - For interrupts, PC should be incremented.
   -- - mtval should be an argument to this function based on the exception

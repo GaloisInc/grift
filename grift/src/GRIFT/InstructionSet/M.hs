@@ -18,12 +18,11 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE BinaryLiterals   #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
-
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
 
 {-|
 Module      : GRIFT.InstructionSet.M
@@ -42,13 +41,14 @@ module GRIFT.InstructionSet.M
   ) where
 
 import qualified Data.Parameterized.Map as Map
-import Data.Parameterized ( type (<=), addNat, Pair(Pair) )
+import Data.Parameterized ( type (<=), LeqProof(LeqProof), Pair(Pair), addIsLeq, addNat )
 import Data.Parameterized.List ( List(Nil, (:<)) )
+import GHC.TypeNats ( type(+) )
 
 import GRIFT.BitVector.BVApp
 import GRIFT.InstructionSet
 import GRIFT.Semantics
-import GRIFT.Semantics.Utils ( getArchWidth, incrPC )
+import GRIFT.Semantics.Utils ( getArchWidth, incrPC, withLeqTrans )
 import GRIFT.Types
 
 -- | Get the M instruction set from an explicit 'RVRepr'.
@@ -62,8 +62,9 @@ m32 :: (KnownRV rv, w ~ RVWidth rv, 5 <= w, MExt << rv) => InstructionSet rv
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, MExt << rv) => InstructionSet rv
-m64 = m32 <> instructionSet m64Encode m64Semantics
+m64 :: forall rv w. (KnownRV rv, w ~ RVWidth rv, 64 <= w, MExt << rv) => InstructionSet rv
+m64 = withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) m32
+      <> instructionSet m64Encode m64Semantics
 
 mEncode :: MExt << rv => EncodeMap rv
 mEncode = Map.fromList
@@ -87,11 +88,19 @@ m64Encode = Map.fromList
   ]
 
 mSemantics ::
+  forall rv w.
   KnownRV rv =>
   (w ~ RVWidth rv, 5 <= w) =>
   MExt << rv =>
   SemanticsMap rv
-mSemantics = Map.fromList
+mSemantics =
+  let withLeqSum :: ((w <= w + w) => a) -> a
+      withLeqSum a =
+        case addIsLeq (knownNat @w) (knownNat @w) of
+          LeqProof -> a
+  in
+  withLeqSum $
+  Map.fromList
   [ Pair Mul $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
       comment "Arithmetic ovexbrflow is ignored."
@@ -220,8 +229,16 @@ mSemantics = Map.fromList
 
   ]
 
-m64Semantics :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, MExt << rv) => SemanticsMap rv
-m64Semantics = Map.fromList
+m64Semantics ::
+  forall rv w.
+  KnownRV rv =>
+  (w ~ RVWidth rv, 64 <= w) =>
+  MExt << rv =>
+  SemanticsMap rv
+m64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  withLeqTrans (knownNat @33) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Mulw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."

@@ -47,6 +47,7 @@ module GRIFT.Semantics.Utils
   , unBox32
   , cases
   , branches
+  , withLeqTrans
     -- * CSRs and Exceptions
   , CSR(..)
   , Exception(..)
@@ -71,7 +72,8 @@ import Data.BitVector.Sized
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Parameterized
-import GHC.TypeLits
+  ( type (<=), KnownRepr(knownRepr), leqProof, leqTrans, withLeqProof )
+import GHC.TypeLits ( KnownNat )
 
 import GRIFT.BitVector.BVApp
 import GRIFT.BitVector.BVFloatApp
@@ -352,3 +354,16 @@ getFResCanonical64 :: BVExpr expr => expr 69 -> (expr 64, expr 5)
 getFResCanonical64 e = let (res, flags) = getFRes e
                            res' = iteE (isNaN64 res) canonicalNaN64 res
                        in (res', flags)
+
+-- | Allows either automatically dispatching an inequality constraint when there
+-- is a transitive mid-point constraint in context, or to call code with a
+-- constraint containing a constant in a context with a stronger inequality with
+-- another constant.  This can also be achieved automatically using GHC plug-ins
+-- for solving arithmetic constraints, but those are still experimental and may
+-- not be maintained regularly.
+withLeqTrans ::
+  (small <= middle, middle <= large) =>
+  NatRepr small -> NatRepr middle -> NatRepr large ->
+  ((small <= large) => a) -> a
+withLeqTrans small middle large =
+  withLeqProof (leqTrans (leqProof small middle) (leqProof middle large))

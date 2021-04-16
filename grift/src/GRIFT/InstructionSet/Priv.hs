@@ -23,8 +23,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
-
 {-|
 Module      : GRIFT.InstructionSet.Priv
 Copyright   : (c) Benjamin Selfridge, 2018

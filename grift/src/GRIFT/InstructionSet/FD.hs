@@ -23,8 +23,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE TypeOperators    #-}
 
-{-# OPTIONS_GHC -fplugin=GHC.TypeLits.Normalise #-}
-
 {-|
 Module      : GRIFT.InstructionSet.FD
 Copyright   : (c) Benjamin Selfridge, 2018
@@ -65,7 +63,7 @@ f32 :: (KnownRV rv, w ~ RVWidth rv, 32 <= w, FExt << rv) => InstructionSet rv
 f32 = instructionSet fEncode fSemantics
 
 -- | F extension (RV64)
-f64 :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, FExt << rv) => InstructionSet rv
+f64 :: (KnownRV rv, w ~ RVWidth rv, 32 <= w, 64 <= w, FExt << rv) => InstructionSet rv
 f64 = f32 <> instructionSet f64Encode f64Semantics
 
 -- | D extension (RV32)
@@ -80,13 +78,15 @@ d32 = instructionSet dEncode dSemantics
 
 -- | D extension (RV64)
 d64 ::
+  forall rv w fw.
   KnownRV rv =>
   (w ~ RVWidth rv, 64 <= w) =>
   (fw ~ RVFloatWidth rv, 64 <= fw) =>
   FExt << rv =>
   DExt << rv =>
   InstructionSet rv
-d64 = d32 <> instructionSet d64Encode d64Semantics
+d64 = withLeqTrans (knownNat @32) (knownNat @64) (knownNat @w) d32
+      <> instructionSet d64Encode d64Semantics
 
 fEncode :: FExt << rv => EncodeMap rv
 fEncode = Map.fromList
@@ -118,8 +118,12 @@ fEncode = Map.fromList
   , Pair Fmv_w_x   (OpBits RXRepr (0b1010011 :< 0b000 :< 0b111100000000 :< Nil))
   ]
 
-fSemantics :: ( KnownRV rv, w ~ RVWidth rv, 32 <= w, FExt << rv) => SemanticsMap rv
-fSemantics = Map.fromList
+fSemantics :: forall rv w. ( KnownRV rv, w ~ RVWidth rv, 32 <= w, FExt << rv) => SemanticsMap rv
+fSemantics =
+  withLeqTrans (knownNat @2) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @13) (knownNat @32) (knownNat @w) $
+  Map.fromList
   [ Pair Flw $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a single-precision float from memory address x[rs1] + sext(offset)."
       comment "Writes the result to f[rd]."
@@ -517,8 +521,10 @@ f64Encode = Map.fromList
   , Pair Fcvt_s_lu (OpBits R2Repr (0b1010011 :< 0b110100000011 :< Nil))
   ]
 
-f64Semantics :: (KnownRV rv, w ~ RVWidth rv, 64 <= w, FExt << rv) => SemanticsMap rv
-f64Semantics = Map.fromList
+f64Semantics :: forall rv w. (KnownRV rv, w ~ RVWidth rv, 64 <= w, FExt << rv) => SemanticsMap rv
+f64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Fcvt_l_s $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the single-precision float in f[rs1] to a 64-bit signed integer."
       comment "Writes the result to x[rd]."
@@ -602,13 +608,17 @@ dEncode = Map.fromList
   ]
 
 dSemantics ::
-  ( KnownRV rv
-  , w ~ RVWidth rv, 32 <= w
-  , fw ~ RVFloatWidth rv, 64 <= fw
-  , FExt << rv, DExt << rv
-  ) =>
+  forall rv w fw.
+  KnownRV rv =>
+  (w ~ RVWidth rv, 32 <= w) =>
+  (fw ~ RVFloatWidth rv, 64 <= fw) =>
+  (FExt << rv, DExt << rv) =>
   SemanticsMap rv
-dSemantics = Map.fromList
+dSemantics =
+  withLeqTrans (knownNat @2) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  withLeqTrans (knownNat @13) (knownNat @32) (knownNat @w) $
+  Map.fromList
   [ Pair Fld $ instSemantics (Rd :< Rs1 :< Imm12 :< Nil) $ do
       comment "Loads a double-precision float from memory address x[rs1] + sext(offset)."
       comment "Writes the result to f[rd]."
@@ -998,12 +1008,15 @@ d64Encode = Map.fromList
   ]
 
 d64Semantics ::
+  forall rv w fw.
   KnownRV rv =>
   (w ~ RVWidth rv, 64 <= w) =>
   (fw ~ RVFloatWidth rv, 64 <= fw) =>
   (FExt << rv, DExt << rv) =>
   SemanticsMap rv
-d64Semantics = Map.fromList
+d64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Fcvt_l_d $ instSemantics (Rd :< Rm :< Rs1 :< Nil) $ do
       comment "Converts the double-precision float in f[rs1] to a 64-bit signed integer."
       comment "Writes the result to x[rd]."
