@@ -425,7 +425,7 @@ sextEOrId' ::
   (BVExpr expr, 1 <= w, w <= w') =>
   NatRepr w -> NatRepr w' -> expr w -> expr w'
 sextEOrId' w w' e =
- case testStrictLeq w w' of
+  case testStrictLeq w w' of
     Left LeqProof -> sextE' w w' e
     Right Refl -> e
 
