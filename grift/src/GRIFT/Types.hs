@@ -132,9 +132,12 @@ module GRIFT.Types
   , OperandID(..)
   , Operands(..)
   , SizedBV(..)
+  , asSignedSized
+  , asUnsignedSized
   , sizedBV
-  , getSizedBV
   , sizedBVInteger
+  , unSized
+  , widthSized
   , OpBitsTypes
   , OpBits(..)
   , Opcode(..)
@@ -742,8 +745,17 @@ data SizedBV w where
   SizedBV :: !(NatRepr w) -> BV w -> SizedBV w
   deriving ( Eq, Show )
 
-getSizedBV :: SizedBV w -> BV w
-getSizedBV (SizedBV _ bv) = bv
+unSized :: SizedBV w -> BV w
+unSized (SizedBV _ bv) = bv
+
+widthSized :: SizedBV w -> NatRepr w
+widthSized (SizedBV w _) = w
+
+asSignedSized :: 1 <= w => SizedBV w -> Integer
+asSignedSized (SizedBV w bv) = asSigned w bv
+
+asUnsignedSized :: SizedBV w -> Integer
+asUnsignedSized (SizedBV _ bv) = asUnsigned bv
 
 instance ShowF SizedBV
 

@@ -35,7 +35,7 @@ import GRIFT.BitVector.BVApp
 import GRIFT.BitVector.BVFloatApp ( canonicalNaN32 )
 import GRIFT.Semantics
 import GRIFT.Semantics.Utils
-import GRIFT.Types ( KnownRV, RVWidth, getSizedBV )
+import GRIFT.Types ( KnownRV, RVWidth, unSized )
 
 -- | Expand an 'AbbrevApp' into its unabbreviated version.
 expandAbbrevApp ::
@@ -69,7 +69,7 @@ expandAbbrevApp (ReadCSRApp _ csr) =
         ]
         (rawReadCSR csr)
     Nothing -> error "TODO"
-expandAbbrevApp (NanBox32App _ e) = (bvExpr (getSizedBV (-1)) :: expr rv 32) `concatE` e
+expandAbbrevApp (NanBox32App _ e) = (bvExpr (unSized (-1)) :: expr rv 32) `concatE` e
 expandAbbrevApp (UnNanBox32App _ e) = iteE
   (extractE' (knownNat @32) (knownNat @32) e `eqE` bvInteger 0xFFFFFFFF)
   (extractE (knownNat @0) e)

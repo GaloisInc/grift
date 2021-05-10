@@ -127,7 +127,7 @@ evalLocApp eval (GPRApp _ ridE) = eval ridE >>= getGPR
 evalLocApp eval (FPRApp _ ridE) = eval ridE >>= getFPR
 evalLocApp eval (MemApp bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
-evalLocApp _ (ResApp _) = return (getSizedBV 1)
+evalLocApp _ (ResApp _) = return (unSized 1)
 evalLocApp eval (CSRApp _ csrE) = eval csrE >>= getCSR
 evalLocApp _ PrivApp = getPriv
 
@@ -157,7 +157,7 @@ evalInstExpr _ _ _ (InstLitBV _ bv) = return bv
 evalInstExpr iset inst ib (InstAbbrevApp abbrevApp) =
   evalInstExpr iset inst ib (expandAbbrevApp abbrevApp)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) =
-  return (getSizedBV (operands !! p))
+  return (unSized (operands !! p))
 evalInstExpr _ _ ib (InstBytes _) = do
   rv <- getRV
   return $ withRV rv $ mkBV' ib
@@ -169,7 +169,7 @@ evalInstExpr iset inst _ (InstWord _) =
     Just LeqProof ->
       do
         rv <- getRV
-        return $ withRV rv $ zextOrId $ getSizedBV $ encode iset inst
+        return $ withRV rv $ zextOrId $ unSized $ encode iset inst
     Nothing -> error "TODO"
 evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset inst ib) e
 
