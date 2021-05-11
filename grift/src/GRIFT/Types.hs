@@ -134,6 +134,7 @@ module GRIFT.Types
   , SizedBV(..)
   , asSignedSized
   , asUnsignedSized
+  , concatSized
   , sizedBV
   , sizedBVInteger
   , unSized
@@ -756,6 +757,10 @@ asSignedSized (SizedBV w bv) = asSigned w bv
 
 asUnsignedSized :: SizedBV w -> Integer
 asUnsignedSized (SizedBV _ bv) = asUnsigned bv
+
+concatSized :: SizedBV a -> SizedBV b -> SizedBV (a + b)
+concatSized (SizedBV a va) (SizedBV b vb) =
+  SizedBV (addNat a b) (BV.concat a b va vb)
 
 instance ShowF SizedBV
 
