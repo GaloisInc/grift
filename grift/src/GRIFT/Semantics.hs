@@ -82,8 +82,8 @@ defined using 'SemanticsBuilder'.
 module GRIFT.Semantics
   ( -- * 'BitVector' semantic expressions
     module Data.BitVector.Sized
-  , module Data.BitVector.Sized.App
-  , module Data.BitVector.Sized.Float.App
+  -- , module Data.BitVector.Sized.App
+  -- , module Data.BitVector.Sized.Float.App
     -- * RISC-V semantic expressions
   , LocApp(..)
   , StateApp(..)
@@ -129,18 +129,18 @@ module GRIFT.Semantics
   ) where
 
 import Control.Lens ( (%=), (^.), Simple, Lens, lens )
-import Control.Monad.Fail
 import Control.Monad.State
 import Data.BitVector.Sized
-import Data.BitVector.Sized.App
-import Data.BitVector.Sized.Float.App
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Sequence as Seq
-import           Data.Sequence (Seq)
-import GHC.TypeLits
+import Data.Sequence ( Seq )
+import GHC.TypeLits ( Nat )
 import qualified GHC.TypeLits as T
-import Prelude hiding ((!!))
+import GRIFT.BitVector.BVApp ( BVApp, BVExpr(..), bvAppWidth )
+import GRIFT.BitVector.BVFloatApp
+    ( BVFloatApp, BVFloatExpr(..), bvFloatAppWidth )
+import Prelude hiding ( (!!) )
 
 import GRIFT.Types
 
@@ -198,13 +198,13 @@ class StateExpr (expr :: RV -> Nat -> *) where
 -- | Abbreviated expressions. These expand into a concrete semantic meaning, but can
 -- be pretty-printed in a nice way without full expansion.
 data AbbrevApp (expr :: RV -> Nat -> *) (rv :: RV) (w :: Nat) where
-  SafeGPRApp :: ( BVExpr (expr rv), StateExpr expr ) =>
+  SafeGPRApp :: ( StateExpr expr ) =>
                 NatRepr (RVWidth rv) -> expr rv 5 -> AbbrevApp expr rv (RVWidth rv)
-  ReadCSRApp :: ( BVExpr (expr rv), StateExpr expr ) =>
+  ReadCSRApp :: ( StateExpr expr ) =>
                 NatRepr (RVWidth rv) -> expr rv 12 -> AbbrevApp expr rv (RVWidth rv)
-  NanBox32App :: ( BVExpr (expr rv), RVFloatWidth rv ~ 64 ) =>
+  NanBox32App :: ( RVFloatWidth rv ~ 64 ) =>
                  NatRepr (RVFloatWidth rv) -> expr rv 32 -> AbbrevApp expr rv (RVFloatWidth rv)
-  UnNanBox32App :: ( BVExpr (expr rv), RVFloatWidth rv ~ 64 ) =>
+  UnNanBox32App :: ( RVFloatWidth rv ~ 64 ) =>
                 NatRepr 32 -> expr rv (RVFloatWidth rv) -> AbbrevApp expr rv 32
 
 -- | A type class for expression languages that support 'AbbrevApp' embedding.
@@ -221,14 +221,14 @@ abbrevAppWidth (UnNanBox32App wRepr _) = wRepr
 -- | Expressions built purely from 'StateExpr's, which are executed outside the
 -- context of an executing instruction (for instance, during exception handling).
 data PureStateExpr (rv :: RV) (w :: Nat)
-  = PureStateLitBV (BitVector w)
+  = PureStateLitBV (NatRepr w) (BV w)
   | PureAbbrevApp (AbbrevApp PureStateExpr rv w)
   | PureStateApp (StateApp (PureStateExpr rv) rv w)
 
 instance BVExpr (PureStateExpr rv) where
   litBV = PureStateLitBV
 
-  exprWidth (PureStateLitBV (BitVector wRepr _)) = wRepr
+  exprWidth (PureStateLitBV w _) = w
   exprWidth (PureAbbrevApp abbrevApp) = abbrevAppWidth abbrevApp
   exprWidth (PureStateApp bvApp) = stateAppWidth bvApp
 
@@ -247,7 +247,7 @@ instance FExt << rv => BVFloatExpr (PureStateExpr rv) where
 -- an executing instruction.
 data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
   -- | Literal BitVector
-  InstLitBV :: !(BitVector w) -> InstExpr fmt rv w
+  InstLitBV :: !(NatRepr w) -> !(BV w) -> InstExpr fmt rv w
   -- | Abbreviation
   InstAbbrevApp :: !(AbbrevApp (InstExpr fmt) rv w) -> InstExpr fmt rv w
   -- | Accessing the instruction operands
@@ -263,7 +263,7 @@ data InstExpr (fmt :: Format) (rv :: RV) (w :: Nat) where
 instance BVExpr (InstExpr fmt rv) where
   litBV = InstLitBV
 
-  exprWidth (InstLitBV (BitVector wRepr _)) = wRepr
+  exprWidth (InstLitBV w _) = w
   exprWidth (InstAbbrevApp abbrevApp) = abbrevAppWidth abbrevApp
   exprWidth (OperandExpr wRepr _) = wRepr
   exprWidth (InstBytes wRepr) = wRepr
@@ -300,15 +300,14 @@ data Stmt (expr :: RV -> Nat -> *) (rv :: RV) where
 -- | An abbreviated statement. Expands into a larger 'Stmt' for simulation, but is a
 -- nice abstraction for pretty printing.
 data AbbrevStmt expr rv where
-  SafeGPRAssign :: BVExpr (expr rv)
-                => !(expr rv 5)
+  SafeGPRAssign :: !(expr rv 5)
                 -> !(expr rv (RVWidth rv))
                 -> AbbrevStmt expr rv
-  RaiseException :: (BVExpr (expr rv), StateExpr expr)
-                 => !(BitVector 12)
+  RaiseException :: (StateExpr expr)
+                 => !(BV 12)
                  -> !(expr rv (RVWidth rv))
                  -> AbbrevStmt expr rv
-  WriteCSR :: (BVExpr (expr rv), StateExpr expr)
+  WriteCSR :: (StateExpr expr)
            => !(expr rv 12)
            -> !(expr rv (RVWidth rv))
            -> AbbrevStmt expr rv
@@ -367,48 +366,48 @@ operandEs = return (operandEsWithRepr knownRepr)
 
 -- | Get the operands for a particular format, where the format is supplied as an
 -- explicit argument.
-operandEsWithRepr :: FormatRepr fmt -> (List (InstExpr fmt rv) (OperandTypes fmt))
+operandEsWithRepr :: FormatRepr fmt -> List (InstExpr fmt rv) (OperandTypes fmt)
 operandEsWithRepr repr = case repr of
-  RRepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :<
-            OperandExpr knownNat (OperandID index2) :< Nil)
-  IRepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :<
-            OperandExpr knownNat (OperandID index2) :< Nil)
-  SRepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :<
-            OperandExpr knownNat (OperandID index2) :< Nil)
-  BRepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :<
-            OperandExpr knownNat (OperandID index2) :< Nil)
-  URepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :< Nil)
-  JRepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :< Nil)
-  HRepr -> (OperandExpr knownNat (OperandID index0) :<
-            OperandExpr knownNat (OperandID index1) :<
-            OperandExpr knownNat (OperandID index2) :< Nil)
+  RRepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :<
+           OperandExpr knownNat (OperandID index2) :< Nil
+  IRepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :<
+           OperandExpr knownNat (OperandID index2) :< Nil
+  SRepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :<
+           OperandExpr knownNat (OperandID index2) :< Nil
+  BRepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :<
+           OperandExpr knownNat (OperandID index2) :< Nil
+  URepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :< Nil
+  JRepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :< Nil
+  HRepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :<
+           OperandExpr knownNat (OperandID index2) :< Nil
   PRepr -> Nil
-  ARepr -> (OperandExpr knownNat (OperandID index0) :<
+  ARepr -> OperandExpr knownNat (OperandID index0) :<
+           OperandExpr knownNat (OperandID index1) :<
+           OperandExpr knownNat (OperandID index2) :<
+           OperandExpr knownNat (OperandID index3) :<
+           OperandExpr knownNat (OperandID index4) :< Nil
+  R2Repr -> OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :< Nil
+  R3Repr -> OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :<
+            OperandExpr knownNat (OperandID index2) :<
+            OperandExpr knownNat (OperandID index3) :< Nil
+  R4Repr -> OperandExpr knownNat (OperandID index0) :<
             OperandExpr knownNat (OperandID index1) :<
             OperandExpr knownNat (OperandID index2) :<
             OperandExpr knownNat (OperandID index3) :<
-            OperandExpr knownNat (OperandID index4) :< Nil)
-  R2Repr -> (OperandExpr knownNat (OperandID index0) :<
-             OperandExpr knownNat (OperandID index1) :<
-             OperandExpr knownNat (OperandID index2) :< Nil)
-  R3Repr -> (OperandExpr knownNat (OperandID index0) :<
-             OperandExpr knownNat (OperandID index1) :<
-             OperandExpr knownNat (OperandID index2) :<
-             OperandExpr knownNat (OperandID index3) :< Nil)
-  R4Repr -> (OperandExpr knownNat (OperandID index0) :<
-             OperandExpr knownNat (OperandID index1) :<
-             OperandExpr knownNat (OperandID index2) :<
-             OperandExpr knownNat (OperandID index3) :<
-             OperandExpr knownNat (OperandID index4) :< Nil)
-  RXRepr -> (OperandExpr knownNat (OperandID index0) :<
-             OperandExpr knownNat (OperandID index1) :< Nil)
-  XRepr -> (OperandExpr knownNat (OperandID index0) :< Nil)
+            OperandExpr knownNat (OperandID index4) :< Nil
+  RXRepr -> OperandExpr knownNat (OperandID index0) :<
+            OperandExpr knownNat (OperandID index1) :< Nil
+  XRepr -> OperandExpr knownNat (OperandID index0) :< Nil
   where index4 = IndexThere index3
 
 -- | Obtain the semantics defined by a 'SemanticsM' action.
@@ -432,12 +431,15 @@ readPC :: (StateExpr expr, KnownRV rv) => expr rv (RVWidth rv)
 readPC = stateExpr (LocApp (PCApp knownNat))
 
 -- | Read a value from a register. Register x0 is hardwired to 0.
-readGPR :: (AbbrevExpr expr, BVExpr (expr rv), StateExpr expr, KnownRV rv) => expr rv 5 -> expr rv (RVWidth rv)
+readGPR ::
+  (AbbrevExpr expr, StateExpr expr, KnownRV rv) =>
+  (w ~ RVWidth rv, 5 <= w) =>
+  expr rv 5 -> expr rv w
 readGPR ridE = abbrevExpr (SafeGPRApp knownNat ridE)
   -- iteE (ridE `eqE` litBV 0) (litBV 0) (stateExpr (LocApp (GPRApp knownNat ridE)))
 
 -- | Read a value from a floating point register.
-readFPR :: (BVExpr (expr rv), StateExpr expr, FExt << rv, KnownRV rv)
+readFPR :: (StateExpr expr, FExt << rv, KnownRV rv)
          => expr rv 5
          -> expr rv (RVFloatWidth rv)
 readFPR ridE = stateExpr (LocApp (FPRApp knownNat ridE))
@@ -469,14 +471,13 @@ assignPC pc = addStmt (AssignStmt (PCApp knownNat) pc)
 
 -- | Add a register assignment to the semantics.
 assignGPR :: KnownRV rv
-          => BVExpr (expr rv)
           => expr rv 5
           -> expr rv (RVWidth rv)
           -> SemanticsM expr rv ()
 assignGPR r e = addStmt $ AbbrevStmt (SafeGPRAssign r e)
 
 -- | Add a register assignment to the semantics.
-assignFPR :: (KnownRV rv, BVExpr (expr rv), FExt << rv)
+assignFPR :: (KnownRV rv, FExt << rv)
            => expr rv 5
            -> expr rv (RVFloatWidth rv)
            -> SemanticsM expr rv ()
@@ -504,7 +505,7 @@ assignPriv priv = addStmt (AssignStmt PrivApp priv)
 
 -- | Reserve a memory location.
 reserve :: (AExt << rv, BVExpr (expr rv)) => expr rv (RVWidth rv) -> SemanticsM expr rv ()
-reserve addr = addStmt (AssignStmt (ResApp addr) (litBV 1))
+reserve addr = addStmt (AssignStmt (ResApp addr) (litBV knownNat (one knownNat)))
 
 -- | Check that a memory location is reserved.
 checkReserved :: (AExt << rv, StateExpr expr) => expr rv (RVWidth rv) -> expr rv 1
@@ -553,17 +554,17 @@ instance TestEquality expr => TestEquality (StateApp expr rv) where
     Nothing -> Nothing
   _ `testEquality` _ = Nothing
 
-instance TestEquality (InstExpr fmt rv) where
-  InstLitBV bv1 `testEquality` InstLitBV bv2 = bv1 `testEquality` bv2
-  OperandExpr _ oid1 `testEquality` OperandExpr _ oid2 = case oid1 `testEquality` oid2 of
-    Just Refl -> Just Refl
-    Nothing -> Nothing
-  InstBytes _ `testEquality` InstBytes _ = Just Refl
-  InstWord _ `testEquality` InstWord _ = Just Refl
-  InstStateApp e1 `testEquality` InstStateApp e2 = case e1 `testEquality` e2 of
-    Just Refl -> Just Refl
-    Nothing -> Nothing
-  _ `testEquality` _ = Nothing
+-- instance TestEquality (InstExpr fmt rv) where
+--   InstLitBV bv1 `testEquality` InstLitBV bv2 = bv1 `testEquality` bv2
+--   OperandExpr _ oid1 `testEquality` OperandExpr _ oid2 = case oid1 `testEquality` oid2 of
+--     Just Refl -> Just Refl
+--     Nothing -> Nothing
+--   InstBytes _ `testEquality` InstBytes _ = Just Refl
+--   InstWord _ `testEquality` InstWord _ = Just Refl
+--   InstStateApp e1 `testEquality` InstStateApp e2 = case e1 `testEquality` e2 of
+--     Just Refl -> Just Refl
+--     Nothing -> Nothing
+--   _ `testEquality` _ = Nothing
 
-instance Eq (InstExpr fmt rv w) where
-  x == y = isJust (testEquality x y)
+-- instance Eq (InstExpr fmt rv w) where
+--   x == y = isJust (testEquality x y)

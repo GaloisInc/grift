@@ -18,6 +18,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE BinaryLiterals   #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies     #-}
@@ -39,14 +40,15 @@ module GRIFT.InstructionSet.M
   ( mFromRepr
   ) where
 
-import Data.BitVector.Sized.App
 import qualified Data.Parameterized.Map as Map
-import Data.Parameterized
-import Data.Parameterized.List
+import Data.Parameterized ( type (<=), LeqProof(LeqProof), Pair(Pair), addIsLeq, addNat )
+import Data.Parameterized.List ( List(Nil, (:<)) )
+import GHC.TypeNats ( type(+) )
 
+import GRIFT.BitVector.BVApp
 import GRIFT.InstructionSet
 import GRIFT.Semantics
-import GRIFT.Semantics.Utils
+import GRIFT.Semantics.Utils ( getArchWidth, incrPC, withLeqTrans )
 import GRIFT.Types
 
 -- | Get the M instruction set from an explicit 'RVRepr'.
@@ -56,12 +58,13 @@ mFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ MYesRepr _ _ _)) = withRV rv m64
 mFromRepr _ = mempty
 
 -- | M extension (RV32)
-m32 :: (KnownRV rv, MExt << rv) => InstructionSet rv
+m32 :: (KnownRV rv, w ~ RVWidth rv, 5 <= w, MExt << rv) => InstructionSet rv
 m32 = instructionSet mEncode mSemantics
 
 -- | M extension (RV64)
-m64 :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => InstructionSet rv
-m64 = m32 <> instructionSet m64Encode m64Semantics
+m64 :: forall rv w. (KnownRV rv, w ~ RVWidth rv, 64 <= w, MExt << rv) => InstructionSet rv
+m64 = withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) m32
+      <> instructionSet m64Encode m64Semantics
 
 mEncode :: MExt << rv => EncodeMap rv
 mEncode = Map.fromList
@@ -84,8 +87,20 @@ m64Encode = Map.fromList
   , Pair Remuw (OpBits RRepr (0b0111011 :< 0b111 :< 0b0000001 :< Nil))
   ]
 
-mSemantics :: forall rv . (KnownRV rv, MExt << rv) => SemanticsMap rv
-mSemantics = Map.fromList
+mSemantics ::
+  forall rv w.
+  KnownRV rv =>
+  (w ~ RVWidth rv, 5 <= w) =>
+  MExt << rv =>
+  SemanticsMap rv
+mSemantics =
+  let withLeqSum :: ((w <= w + w) => a) -> a
+      withLeqSum a =
+        case addIsLeq (knownNat @w) (knownNat @w) of
+          LeqProof -> a
+  in
+  withLeqSum $
+  Map.fromList
   [ Pair Mul $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiplies x[rs1] by x[rs2] and writes the prod to x[rd]."
       comment "Arithmetic ovexbrflow is ignored."
@@ -109,9 +124,9 @@ mSemantics = Map.fromList
 
       archWidth <- getArchWidth
 
-      let mulWidth  = archWidth `addNat` archWidth
-          sext_x_rs1 = sextE' mulWidth x_rs1
-          sext_x_rs2 = sextE' mulWidth x_rs2
+      let mulWidth = archWidth `addNat` archWidth
+          sext_x_rs1 = sextEOrId' archWidth mulWidth x_rs1
+          sext_x_rs2 = sextEOrId' archWidth mulWidth x_rs2
           prod = sext_x_rs1 `mulE` sext_x_rs2
 
       assignGPR rd $ extractE archWidth prod
@@ -130,8 +145,8 @@ mSemantics = Map.fromList
       archWidth <- getArchWidth
 
       let mulWidth  = archWidth `addNat` archWidth
-          sext_x_rs1 = sextE' mulWidth x_rs1
-          zext_x_rs2 = zextE' mulWidth x_rs2
+          sext_x_rs1 = sextEOrId' archWidth mulWidth x_rs1
+          zext_x_rs2 = zextEOrId' archWidth mulWidth x_rs2
           prod = sext_x_rs1 `mulE` zext_x_rs2
 
       assignGPR rd $ extractE archWidth prod
@@ -149,8 +164,8 @@ mSemantics = Map.fromList
       archWidth <- getArchWidth
 
       let mulWidth  = archWidth `addNat` archWidth
-          zext_x_rs1 = zextE' mulWidth x_rs1
-          zext_x_rs2 = zextE' mulWidth x_rs2
+          zext_x_rs1 = zextEOrId' archWidth mulWidth x_rs1
+          zext_x_rs2 = zextEOrId' archWidth mulWidth x_rs2
           prod = zext_x_rs1 `mulE` zext_x_rs2
 
       assignGPR rd $ extractE archWidth prod
@@ -167,7 +182,7 @@ mSemantics = Map.fromList
 
       let q = x_rs1 `quotsE` x_rs2
 
-      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (x_rs2 `eqE` bvInteger 0) (bvInteger (-1)) q
       incrPC
 
   , Pair Divu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -181,7 +196,7 @@ mSemantics = Map.fromList
 
       let q = x_rs1 `quotuE` x_rs2
 
-      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (x_rs2 `eqE` bvInteger 0) (bvInteger (-1)) q
       incrPC
 
   , Pair Rem $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -195,7 +210,7 @@ mSemantics = Map.fromList
 
       let q = x_rs1 `remsE` x_rs2
 
-      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      assignGPR rd $ iteE (x_rs2 `eqE` bvInteger 0) x_rs1 q
       incrPC
 
   , Pair Remu $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
@@ -209,13 +224,21 @@ mSemantics = Map.fromList
 
       let q = x_rs1 `remuE` x_rs2
 
-      assignGPR rd $ iteE (x_rs2 `eqE` litBV 0) x_rs1 q
+      assignGPR rd $ iteE (x_rs2 `eqE` bvInteger 0) x_rs1 q
       incrPC
 
   ]
 
-m64Semantics :: (KnownRV rv, 64 <= RVWidth rv, MExt << rv) => SemanticsMap rv
-m64Semantics = Map.fromList
+m64Semantics ::
+  forall rv w.
+  KnownRV rv =>
+  (w ~ RVWidth rv, 64 <= w) =>
+  MExt << rv =>
+  SemanticsMap rv
+m64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  withLeqTrans (knownNat @33) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Mulw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Multiples x[rs1] by x[rs2], truncating the prod to 32 bits."
       comment "Writes the sign-extended result to x[rd]. Arithmetic overflow is ignored."
@@ -240,7 +263,7 @@ m64Semantics = Map.fromList
 
       let q = sextE (extractE' (knownNat @32) (knownNat @0) (divisor `quotsE` dividend))
 
-      assignGPR rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (dividend `eqE` bvInteger 0) (bvInteger (-1)) q
       incrPC
   , Pair Divuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2] as unsigned integers."
@@ -255,7 +278,7 @@ m64Semantics = Map.fromList
 
       let q = sextE (extractE' (knownNat @32) (knownNat @0) (divisor `quotuE` dividend))
 
-      assignGPR rd $ iteE (dividend `eqE` litBV 0) (litBV (-1)) q
+      assignGPR rd $ iteE (dividend `eqE` bvInteger 0) (bvInteger (-1)) q
       incrPC
   , Pair Remw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as signed integers."
@@ -270,7 +293,7 @@ m64Semantics = Map.fromList
 
       let q = sextE (extractE' (knownNat @32) (knownNat @0) (divisor `remsE` dividend))
 
-      assignGPR rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
+      assignGPR rd $ iteE (dividend `eqE` bvInteger 0) (sextE divisor) q
       incrPC
   , Pair Remuw $ instSemantics (Rd :< Rs1 :< Rs2 :< Nil) $ do
       comment "Divides x[rs1] by x[rs2], rounding towards zero, treating them as unsigned integers."
@@ -285,6 +308,6 @@ m64Semantics = Map.fromList
 
       let q = sextE (extractE' (knownNat @32) (knownNat @0) (divisor `remuE` dividend))
 
-      assignGPR rd $ iteE (dividend `eqE` litBV 0) (sextE divisor) q
+      assignGPR rd $ iteE (dividend `eqE` bvInteger 0) (sextE divisor) q
       incrPC
   ]

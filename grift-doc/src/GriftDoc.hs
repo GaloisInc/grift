@@ -42,13 +42,13 @@ module Main where
 import Control.Monad (when)
 import Data.Bifunctor (bimap)
 import Data.BitVector.Sized
-import Data.BitVector.Sized.BitLayout
 import Data.Char (toUpper, intToDigit)
 import Data.Foldable (forM_)
 import Data.List (sortBy)
 import Data.Parameterized
 import Data.Parameterized.List
 import qualified Data.Parameterized.Map as MapF
+import GRIFT.BitVector.BitLayout
 import Numeric (showHex, showIntAtBase)
 import Options.Applicative
 import System.Exit (exitFailure)
@@ -106,7 +106,8 @@ main = griftDoc =<< execParser opts
 griftDoc :: Opts -> IO ()
 griftDoc (Opts (Some rvRepr) abbrevLevel (Some opcode)) = case opcodeCast rvRepr opcode of
   Nothing -> exitIncompatibleOpcode rvRepr opcode
-  Just (opcode, fmtRepr) -> do
+  Just (opcode, fmtRepr) ->
+    withRVWidth rvRepr $ do
     let iset = knownISetWithRepr rvRepr
     let Just sem@(InstSemantics _ opNames') = MapF.lookup opcode (isSemanticsMap iset)
     let opNames = listSome opNames'
@@ -118,8 +119,8 @@ griftDoc (Opts (Some rvRepr) abbrevLevel (Some opcode)) = case opcodeCast rvRepr
     let operandsPairs = zip operandsLayout opNames
 
     let cmpFst (a,_) (b,_) = compare a b
-    let placeholders = sortBy cmpFst ((concat $ uncurry opbitsPlaceholderList <$> opBitsPairs) ++
-                                      (concat $ uncurry operandsPlaceholderList <$> operandsPairs))
+    let placeholders = sortBy cmpFst ((Prelude.concat $ uncurry opbitsPlaceholderList <$> opBitsPairs) ++
+                                      (Prelude.concat $ uncurry operandsPlaceholderList <$> operandsPairs))
 
     putStrLn ""
     putStrLn $ show (pPrint opcode) ++ " encoding"
@@ -143,10 +144,10 @@ griftDoc (Opts (Some rvRepr) abbrevLevel (Some opcode)) = case opcodeCast rvRepr
 listSome :: List l sh -> [Some l]
 listSome = ifoldr (\_ layout rst -> Some layout : rst) []
 
-data InstructionChunk w = ConcreteBV (BitVector w) | OperandBV (OperandName w)
+data InstructionChunk w = ConcreteBV (BV w) | OperandBV (OperandName w)
 
-pPrintBinary :: BitVector w -> String
-pPrintBinary (BitVector wRepr x) = pad0 (natValue wRepr) $ showIntAtBase 2 intToDigit x ""
+pPrintBinary :: SizedBV w -> String
+pPrintBinary (SizedBV wRepr (BV x)) = pad0 (natValue wRepr) $ showIntAtBase 2 intToDigit x ""
 
 pad0 :: Integral a => a -> String -> String
 pad0 n s = replicate (fromIntegral n - length s) '0' ++ s
@@ -162,16 +163,16 @@ pPrintPH BP0 = "0"
 pPrintPH BP1 = "1"
 pPrintPH (BPOperand (Some on) ix) = show (pPrint on) ++ "[" ++ show ix ++ "]"
 
-opbitsPlaceholderList :: [Int] -> Some BitVector -> [(Int, BitPlaceHolder)]
+opbitsPlaceholderList :: [Integer] -> Some SizedBV -> [(Integer, BitPlaceHolder)]
 opbitsPlaceholderList ixs sbv = zip ixs (bphFromChar <$> viewSome pPrintBinary sbv)
   where bphFromChar '1' = BP1
         bphFromChar _ = BP0
 
-operandsPlaceholderList :: [Int] -> Some OperandName -> [(Int, BitPlaceHolder)]
+operandsPlaceholderList :: [Integer] -> Some OperandName -> [(Integer, BitPlaceHolder)]
 operandsPlaceholderList ixs on = zip ixs (bphFromIx <$> [0..])
   where bphFromIx n = BPOperand on n
 
-pPrintPHList :: [(Int, BitPlaceHolder)] -> String
+pPrintPHList :: [(Integer, BitPlaceHolder)] -> String
 pPrintPHList [] = ""
 pPrintPHList ((_,BPOperand _ _):rst) = 'x' : pPrintPHList rst
 pPrintPHList ((_,ph):rst) = pPrintPH ph ++ pPrintPHList rst
