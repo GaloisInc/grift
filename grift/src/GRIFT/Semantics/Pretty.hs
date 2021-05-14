@@ -314,8 +314,6 @@ pPrintOperandName Imm32 = text "imm32"
 
 -- | Pretty-print an 'InstExpr'.
 pPrintInstExpr :: KnownRV rv
-              --  => (w ~ RVWidth rv, 32 <= w)
-               => Num (InstExpr fmt rv 32)
                => List OperandName (OperandTypes fmt)
                -- ^ Names for each operand of the expression
                -> AbbrevLevel
@@ -339,7 +337,6 @@ pPrintInstExpr opNames abbrevLevel top (InstStateApp e) =
 -- the comments.
 pPrintInstSemantics ::
   KnownRV rv =>
-  Num (InstExpr fmt rv 32) =>
   (w ~ RVWidth rv, 32 <= w) =>
   AbbrevLevel -> InstSemantics rv fmt -> Doc
 pPrintInstSemantics abbrevLevel (InstSemantics semantics opNames) =

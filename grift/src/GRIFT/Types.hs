@@ -69,6 +69,7 @@ module GRIFT.Types
   , rvBaseArch, RVBaseArch
   , rvExts, RVExts
   , withRV
+  , withRVWidth
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
   , RV32I
@@ -506,7 +507,7 @@ withExts (ExtensionsRepr priv m a fd c) b =
   withC c b
 
 -- | Satisfy a 'KnownRVWidth' constraint from an explicit 'RVRepr'.
-withRVWidth :: RVRepr rv -> (KnownRVWidth rv => b) -> b
+withRVWidth :: RVRepr rv -> ((KnownRVWidth rv, 32 <= RVWidth rv) => b) -> b
 withRVWidth (RVRepr RV32Repr _) b = b
 withRVWidth (RVRepr RV64Repr _) b = b
 withRVWidth (RVRepr RV128Repr _) b = b
