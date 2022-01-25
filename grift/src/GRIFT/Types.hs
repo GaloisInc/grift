@@ -790,13 +790,24 @@ sizedBVInteger :: KnownNat w => Integer -> SizedBV w
 sizedBVInteger = sizedBV . mkBV knownNat
 
 instance TestEquality SizedBV where
-  testEquality (SizedBV w1 _) (SizedBV w2 _) =
+  testEquality (SizedBV w1 bv1) (SizedBV w2 bv2) =
     case testEquality w1 w2 of
-      Just Refl -> Just Refl
+      Just Refl ->
+        case bv1 == bv2 of
+          True -> Just Refl
+          False -> Nothing
       Nothing -> Nothing
 
 instance OrdF SizedBV where
-  compareF (SizedBV w1 _) (SizedBV w2 _) = compareF w1 w2
+  compareF (SizedBV w1 bv1) (SizedBV w2 bv2) =
+    let compW = compareF w1 w2 in
+    case compW of
+      EQF ->
+        case compare bv1 bv2 of
+          LT -> LTF
+          EQ -> EQF
+          GT -> GTF
+      _ -> compW
 
 -- | RISC-V Operand lists, parameterized by format.
 data Operands :: Format -> * where
@@ -872,6 +883,9 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
 -- Holds all the bits that are fixed by a particular opcode.
 data OpBits :: Format -> * where
   OpBits :: FormatRepr fmt -> List SizedBV (OpBitsTypes fmt) -> OpBits fmt
+  deriving Show
+
+instance ShowF OpBits
 
 $(return [])
 instance TestEquality OpBits where
