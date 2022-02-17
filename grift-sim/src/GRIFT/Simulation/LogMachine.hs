@@ -40,7 +40,7 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-An IO-based simulation backend for RISC-V machines. We use the 'BitVector' type
+An IO-based simulation backend for RISC-V machines. We use the 'BV' type
 directly for the underlying values, which allows us to keep the architecture width
 unspecified.
 
@@ -72,7 +72,7 @@ import           Control.Monad.Trans
 import           Control.Monad.Trans.Reader hiding (ask)
 import           Data.Array.IArray
 import           Data.Array.IO
-import           Data.BitVector.Sized
+import           Data.BitVector.Sized hiding (concat)
 import qualified Data.ByteString as BS
 import           Data.Char (chr)
 import           Data.Foldable
@@ -88,10 +88,12 @@ import           GHC.TypeLits
 import           Prelude hiding ((<>))
 import           Text.PrettyPrint.HughesPJ
 
+import GRIFT.BitVector.BVApp (BVApp(..))
+import GRIFT.BitVector.BVFloatApp (BVFloatApp(..))
 import GRIFT.InstructionSet
 import GRIFT.InstructionSet.Known
 import GRIFT.Types
-import GRIFT.Semantics
+import GRIFT.Semantics hiding (concat)
 import GRIFT.Semantics.Expand
 import GRIFT.Semantics.Pretty
 import GRIFT.Semantics.Utils
@@ -111,22 +113,22 @@ instance ShowF TrackedOpcode where
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
   { lmRV         :: RVRepr rv
-  , lmPC         :: IORef (BitVector (RVWidth rv))
-  , lmGPRs  :: IOArray (BitVector 5) (BitVector (RVWidth rv))
-  , lmFPRs :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
-  , lmMemory     :: IORef (Map (BitVector (RVWidth rv)) (BitVector 8))
---  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
-  , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
-  , lmPriv       :: IORef (BitVector 2)
---  , lmMaxAddr    :: BitVector (RVWidth rv)
-  , lmHaltPC     :: IORef (Maybe (BitVector (RVWidth rv)))
+  , lmPC         :: IORef (BV (RVWidth rv))
+  , lmGPRs  :: IOArray (BV 5) (BV (RVWidth rv))
+  , lmFPRs :: IOArray (BV 5) (BV (RVFloatWidth rv))
+  , lmMemory     :: IORef (Map (BV (RVWidth rv)) (BV 8))
+--  , lmMemory     :: IOArray (BV (RVWidth rv)) (BV 8)
+  , lmCSRs       :: IORef (Map (BV 12) (BV (RVWidth rv)))
+  , lmPriv       :: IORef (BV 2)
+--  , lmMaxAddr    :: BV (RVWidth rv)
+  , lmHaltPC     :: IORef (Maybe (BV (RVWidth rv)))
   , lmTrackedOpcode  :: IORef (TrackedOpcode rv)
   , lmCovMap     :: IORef (MapF (Opcode rv) (InstCTList rv))
   }
 
 newtype InstCTList rv fmt = InstCTList [InstCT rv fmt]
 
-writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IORef (Map i (BitVector 8)) -> IO ()
+writeBS :: (Enum i, Num i, Ix i, Num (BV 8)) => i -> BS.ByteString -> IORef (Map i (BV 8)) -> IO ()
 writeBS ix bs mapRef = do
   case BS.null bs of
     True -> return ()
@@ -139,20 +141,21 @@ writeBS ix bs mapRef = do
 --      writeBS (ix+1) (BS.tail bs) arr
 
 -- | Construct a complete, unvisited coverage map from an 'RVRepr'.
-buildCTMap :: forall rv . RVRepr rv -> MapF (Opcode rv) (InstCTList rv)
+buildCTMap :: forall rv . (32 <= ArchWidth (RVBaseArch rv)) => RVRepr rv -> MapF (Opcode rv) (InstCTList rv)
 buildCTMap rvRepr =
   let (InstructionSet _ _ semanticsMap) = knownISetWithRepr rvRepr
   in MapF.fromList (pairWithCT <$> MapF.keys semanticsMap)
   where
-    pairWithCT :: Some (Opcode rv) -> Pair (Opcode rv) (InstCTList rv)
+    pairWithCT :: (32 <= ArchWidth (RVBaseArch rv)) => Some (Opcode rv) -> Pair (Opcode rv) (InstCTList rv)
     pairWithCT (Some opcode) = Pair opcode (coverageTreeOpcode rvRepr opcode)
 
 -- | Construct a 'LogMachine'.
-mkLogMachine :: RVRepr rv
-             -> BitVector (RVWidth rv)
-             -> BitVector (RVWidth rv)
-             -> [(BitVector (RVWidth rv), BS.ByteString)]
-             -> Maybe (BitVector (RVWidth rv))
+mkLogMachine :: (32 <= ArchWidth (RVBaseArch rv))
+             => RVRepr rv
+             -> BV (RVWidth rv)
+             -> BV (RVWidth rv)
+             -> [(BV (RVWidth rv), BS.ByteString)]
+             -> Maybe (BV (RVWidth rv))
              -> TrackedOpcode rv --Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
 mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $ do
@@ -177,10 +180,10 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $
 
 -- | Construct a 'LogMachine' with a given coverage map.
 mkLogMachineWithCovMap :: RVRepr rv
-                       -> BitVector (RVWidth rv)
-                       -> BitVector (RVWidth rv)
-                       -> [(BitVector (RVWidth rv), BS.ByteString)]
-                       -> Maybe (BitVector (RVWidth rv))
+                       -> BV (RVWidth rv)
+                       -> BV (RVWidth rv)
+                       -> [(BV (RVWidth rv), BS.ByteString)]
+                       -> Maybe (BV (RVWidth rv))
                        -> TrackedOpcode rv --Maybe (Some (Opcode rv))
                        -> IORef (MapF (Opcode rv) (InstCTList rv))
                        -> IO (LogMachine rv)
@@ -215,7 +218,11 @@ newtype LogMachineM (rv :: RV) a =
            , MonadIO
            )
 
-instance KnownRV rv => RVStateM (LogMachineM rv) rv where
+-- TODO:
+bvConcatMany' = undefined
+bvGetBytesU = undefined
+
+instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM rv) rv where
   getRV = lmRV <$> ask
   getPC = do
     pcRef <- lmPC <$> ask
@@ -260,7 +267,7 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
     liftIO $ writeArray regArray rid regVal
   setMem bytes addr val
     | addr == 100 && natValue bytes == 1 = do
-        liftIO $ putChar (chr $ fromIntegral $ bvIntegerU val)
+        liftIO $ putChar (chr $ fromIntegral $ asUnsigned val)
   setMem bytes addr val = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
@@ -317,20 +324,28 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
 
 -- | Create an immutable copy of the register file.
 freezeGPRs :: LogMachine rv
-                -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
+                -> IO (Array (BV 5) (BV (RVWidth rv)))
 freezeGPRs = freeze . lmGPRs
 
 -- | Create an immutable copy of the floating point register file.
 freezeFPRs :: LogMachine rv
-                 -> IO (Array (BitVector 5) (BitVector (RVFloatWidth rv)))
+                 -> IO (Array (BV 5) (BV (RVFloatWidth rv)))
 freezeFPRs = freeze . lmFPRs
 
 -- | Run the simulator for a given number of steps.
-runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
+runLogMachine :: ( KnownRV rv
+                 , 32 <= ArchWidth (RVBaseArch rv) )
+              => Int
+              -> LogMachine rv
+              -> IO Int
 runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps
 
 -- | Like runLogMachine, but log each instruction.
-runLogMachineLog :: KnownRV rv => Int -> LogMachine rv -> IO Int
+runLogMachineLog :: ( KnownRV rv
+                    , 32 <= ArchWidth (RVBaseArch rv) )
+                 => Int
+                 -> LogMachine rv
+                 -> IO Int
 runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
 
 -- | A 'CTNode' contains an expression and a flag indicating whether or not that
@@ -445,7 +460,10 @@ coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 coverageTreeBVFloatApp :: KnownRV rv => BVFloatApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVFloatApp app = foldMapFC coverageTreeInstExpr app
 
-coverageTreeStmt :: KnownRV rv => Stmt (InstExpr fmt) rv -> [CT (InstExpr fmt rv)]
+coverageTreeStmt :: ( KnownRV rv
+                    , 32 <= ArchWidth (RVBaseArch rv) )
+                 => Stmt (InstExpr fmt) rv
+                 -> [CT (InstExpr fmt rv)]
 coverageTreeStmt (AssignStmt loc e) = coverageTreeLocApp loc ++ coverageTreeInstExpr e
 coverageTreeStmt (AbbrevStmt abbrevStmt) = coverageTreeStmt `concatMap` expandAbbrevStmt abbrevStmt
 coverageTreeStmt (BranchStmt t l r) =
@@ -456,13 +474,19 @@ coverageTreeStmt (BranchStmt t l r) =
 
 newtype InstCT rv fmt = InstCT (CT (InstExpr fmt rv))
 
-coverageTreeSemantics :: KnownRV rv => InstSemantics rv fmt -> [InstCT rv fmt]
+coverageTreeSemantics :: ( KnownRV rv
+                         , 32 <= ArchWidth (RVBaseArch rv) )
+                      => InstSemantics rv fmt
+                      -> [InstCT rv fmt]
 coverageTreeSemantics (InstSemantics sem _) =
   let stmts = sem ^. semStmts
       trees = concat $ toList $ coverageTreeStmt <$> stmts
   in InstCT <$> trees
 
-coverageTreeOpcode :: RVRepr rv -> Opcode rv fmt -> InstCTList rv fmt
+coverageTreeOpcode :: 32 <= ArchWidth (RVBaseArch rv)
+                   => RVRepr rv
+                   -> Opcode rv fmt
+                   -> InstCTList rv fmt
 coverageTreeOpcode rvRepr opcode =
   let iset = knownISetWithRepr rvRepr
   in case MapF.lookup opcode (isSemanticsMap iset) of
