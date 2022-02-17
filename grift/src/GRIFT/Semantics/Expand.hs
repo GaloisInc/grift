@@ -16,7 +16,6 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 -}
 
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -29,6 +28,7 @@ import Control.Lens ((^.))
 import Data.Parameterized ( LeqProof(LeqProof), testLeq )
 import qualified Data.Sequence as Seq
 import Data.Sequence (Seq)
+import GHC.Stack (HasCallStack)
 import GHC.TypeLits ( type (<=) )
 
 import GRIFT.BitVector.BVApp
@@ -41,8 +41,8 @@ import GRIFT.Types ( KnownRV, RVWidth, unSized )
 expandAbbrevApp ::
   forall rv w expr.
   BVExpr (expr rv) =>
-  -- Num (expr rv 32) =>
   KnownRV rv =>
+  HasCallStack =>
   AbbrevApp expr rv w -> expr rv w
 expandAbbrevApp (SafeGPRApp wRepr ridE) = iteE
   (ridE `eqE` bvInteger 0)
@@ -68,7 +68,7 @@ expandAbbrevApp (ReadCSRApp _ csr) =
           )
         ]
         (rawReadCSR csr)
-    Nothing -> error "TODO"
+    Nothing -> error "Expansion of ReadCSRApp with width less than 5 bits is not currently supported"
 expandAbbrevApp (NanBox32App _ e) = (bvExpr (unSized (-1)) :: expr rv 32) `concatE` e
 expandAbbrevApp (UnNanBox32App _ e) = iteE
   (extractE' (knownNat @32) (knownNat @32) e `eqE` bvInteger 0xFFFFFFFF)

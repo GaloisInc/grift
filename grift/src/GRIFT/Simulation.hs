@@ -62,6 +62,7 @@ import Data.Foldable
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
+import GHC.Stack (HasCallStack)
 import qualified GHC.TypeLits as T
 import Prelude hiding ( (!!), concat )
 
@@ -148,7 +149,7 @@ evalPureStateExpr (PureStateApp e) = evalStateApp evalPureStateExpr e
 evalPureStateExpr (PureAbbrevApp abbrevApp) = evalPureStateExpr (expandAbbrevApp abbrevApp)
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
-evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv)
+evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv, HasCallStack)
              => InstructionSet rv
              -> Instruction rv fmt -- ^ instruction
              -> Integer            -- ^ Instruction width (in bytes)
@@ -171,7 +172,7 @@ evalInstExpr iset inst _ (InstWord _) =
       do
         rv <- getRV
         return $ withRV rv $ UnsignedBV $ zextOrId $ unSized $ encode iset inst
-    Nothing -> error "TODO"
+    Nothing -> error "Evaluation of InstWords with widths under 32 bits is not currently supported"
 evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset inst ib) e
 
 -- | This type represents a concrete component of the global state, after all

@@ -82,8 +82,6 @@ defined using 'SemanticsBuilder'.
 module GRIFT.Semantics
   ( -- * 'BitVector' semantic expressions
     module Data.BitVector.Sized
-  -- , module Data.BitVector.Sized.App
-  -- , module Data.BitVector.Sized.Float.App
     -- * RISC-V semantic expressions
   , LocApp(..)
   , StateApp(..)
@@ -553,18 +551,3 @@ instance TestEquality expr => TestEquality (StateApp expr rv) where
     Just Refl -> Just Refl
     Nothing -> Nothing
   _ `testEquality` _ = Nothing
-
--- instance TestEquality (InstExpr fmt rv) where
---   InstLitBV bv1 `testEquality` InstLitBV bv2 = bv1 `testEquality` bv2
---   OperandExpr _ oid1 `testEquality` OperandExpr _ oid2 = case oid1 `testEquality` oid2 of
---     Just Refl -> Just Refl
---     Nothing -> Nothing
---   InstBytes _ `testEquality` InstBytes _ = Just Refl
---   InstWord _ `testEquality` InstWord _ = Just Refl
---   InstStateApp e1 `testEquality` InstStateApp e2 = case e1 `testEquality` e2 of
---     Just Refl -> Just Refl
---     Nothing -> Nothing
---   _ `testEquality` _ = Nothing
-
--- instance Eq (InstExpr fmt rv w) where
---   x == y = isJust (testEquality x y)
