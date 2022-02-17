@@ -884,9 +884,6 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
 -- Holds all the bits that are fixed by a particular opcode.
 data OpBits :: Format -> * where
   OpBits :: FormatRepr fmt -> List SizedBV (OpBitsTypes fmt) -> OpBits fmt
-  deriving Show
-
-instance ShowF OpBits
 
 $(return [])
 instance TestEquality OpBits where

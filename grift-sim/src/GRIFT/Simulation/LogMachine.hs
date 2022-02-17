@@ -40,7 +40,7 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-An IO-based simulation backend for RISC-V machines. We use the 'BV' type
+An IO-based simulation backend for RISC-V machines. We use the 'UnsignedBV' type
 directly for the underlying values, which allows us to keep the architecture width
 unspecified.
 
@@ -220,9 +220,17 @@ newtype LogMachineM (rv :: RV) a =
            , MonadIO
            )
 
--- TODO:
-bvConcatMany :: forall w. NatRepr w -> [UnsignedBV 8] -> UnsignedBV w
-bvConcatMany repr uBvs = UnsignedBV $ foldl' go (zero repr) (zip [0..] uBvs)
+-- | Concatenate a list of 'UnsignedBV's into an 'UnsignedBV' of arbitrary width. The ordering is little endian:
+--
+-- >>> bvConcatMany' [0xAA :: UnsignedBV 8, 0xBB] :: UnsignedBV 16
+-- 0xbbaa
+-- >>> bvConcatMany' [0xAA :: UnsignedBV 8, 0xBB, 0xCC] :: UnsignedBV 16
+-- 0xbbaa
+--
+-- If the sum of the widths of the input 'UnsignedBV's exceeds the output width, we
+-- ignore the tail end of the list.
+bvConcatMany' :: forall w. NatRepr w -> [UnsignedBV 8] -> UnsignedBV w
+bvConcatMany' repr uBvs = UnsignedBV $ foldl' go (zero repr) (zip [0..] uBvs)
   where
     go :: BV w -> (Natural, UnsignedBV 8) -> BV w
     go acc (i, UnsignedBV bv) =
@@ -230,13 +238,17 @@ bvConcatMany repr uBvs = UnsignedBV $ foldl' go (zero repr) (zip [0..] uBvs)
       let bvShifted = shl repr bvExt (i * 8) in
       or acc bvShifted
 
+-- | Given a 'BV' of arbitrary length, decompose it into a list of bytes. Uses
+-- an unsigned interpretation of the input vector, so if you ask for more bytes that
+-- the 'BV' contains, you get zeros. The result is little-endian, so the first
+-- element of the list will be the least significant byte of the input vector.
 bvGetBytesU :: Int -> BV w -> [BV 8]
 bvGetBytesU n _ | n <= 0 = []
 bvGetBytesU n bv = map go [0..n]
   where
     go i = select' ((fromIntegral i) * 8) (knownNat @8) bv
 
-instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM rv) rv where
+instance (KnownRV rv) => RVStateM (LogMachineM rv) rv where
   getRV = lmRV <$> ask
   getPC = do
     pcRef <- lmPC <$> ask
@@ -256,7 +268,7 @@ instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM 
     rv <- lmRV <$> ask
     withRV rv $ do
       let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
-      return (bvConcatMany ((knownNat @8) `natMultiply` bytes) val)
+      return (bvConcatMany' ((knownNat @8) `natMultiply` bytes) val)
   getCSR csr = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef
@@ -347,19 +359,11 @@ freezeFPRs :: LogMachine rv
 freezeFPRs = freeze . lmFPRs
 
 -- | Run the simulator for a given number of steps.
-runLogMachine :: ( KnownRV rv
-                 , 32 <= ArchWidth (RVBaseArch rv) )
-              => Int
-              -> LogMachine rv
-              -> IO Int
+runLogMachine :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachine steps m = flip runReaderT m $ runLogMachineM $ runRV steps
 
 -- | Like runLogMachine, but log each instruction.
-runLogMachineLog :: ( KnownRV rv
-                    , 32 <= ArchWidth (RVBaseArch rv) )
-                 => Int
-                 -> LogMachine rv
-                 -> IO Int
+runLogMachineLog :: KnownRV rv => Int -> LogMachine rv -> IO Int
 runLogMachineLog steps m = flip runReaderT m $ runLogMachineM $ runRVLog steps
 
 -- | A 'CTNode' contains an expression and a flag indicating whether or not that
@@ -474,10 +478,7 @@ coverageTreeBVApp app = foldMapFC coverageTreeInstExpr app
 coverageTreeBVFloatApp :: KnownRV rv => BVFloatApp (InstExpr fmt rv) w -> [CT (InstExpr fmt rv)]
 coverageTreeBVFloatApp app = foldMapFC coverageTreeInstExpr app
 
-coverageTreeStmt :: ( KnownRV rv
-                    , 32 <= ArchWidth (RVBaseArch rv) )
-                 => Stmt (InstExpr fmt) rv
-                 -> [CT (InstExpr fmt rv)]
+coverageTreeStmt :: KnownRV rv => Stmt (InstExpr fmt) rv -> [CT (InstExpr fmt rv)]
 coverageTreeStmt (AssignStmt loc e) = coverageTreeLocApp loc ++ coverageTreeInstExpr e
 coverageTreeStmt (AbbrevStmt abbrevStmt) = coverageTreeStmt `concatMap` expandAbbrevStmt abbrevStmt
 coverageTreeStmt (BranchStmt t l r) =
@@ -488,10 +489,7 @@ coverageTreeStmt (BranchStmt t l r) =
 
 newtype InstCT rv fmt = InstCT (CT (InstExpr fmt rv))
 
-coverageTreeSemantics :: ( KnownRV rv
-                         , 32 <= ArchWidth (RVBaseArch rv) )
-                      => InstSemantics rv fmt
-                      -> [InstCT rv fmt]
+coverageTreeSemantics :: KnownRV rv => InstSemantics rv fmt -> [InstCT rv fmt]
 coverageTreeSemantics (InstSemantics sem _) =
   let stmts = sem ^. semStmts
       trees = concat $ toList $ coverageTreeStmt <$> stmts
