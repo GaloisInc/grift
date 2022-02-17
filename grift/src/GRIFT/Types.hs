@@ -444,6 +444,7 @@ type KnownRV rv = ( KnownRepr RVRepr rv
                   , 1 <= RVWidth rv
                   , KnownNat (RVFloatWidth rv)
                   , 1 <= RVFloatWidth rv
+                  , 32 <= ArchWidth (RVBaseArch rv)
                   )
 
 -- | Maps a RISC-V configuration to its register width.
@@ -507,7 +508,7 @@ withExts (ExtensionsRepr priv m a fd c) b =
   withC c b
 
 -- | Satisfy a 'KnownRVWidth' constraint from an explicit 'RVRepr'.
-withRVWidth :: RVRepr rv -> ((KnownRVWidth rv, 32 <= RVWidth rv) => b) -> b
+withRVWidth :: RVRepr rv -> ((KnownRVWidth rv, 32 <= RVWidth rv, 32 <= ArchWidth (RVBaseArch rv)) => b) -> b
 withRVWidth (RVRepr RV32Repr _) b = b
 withRVWidth (RVRepr RV64Repr _) b = b
 withRVWidth (RVRepr RV128Repr _) b = b

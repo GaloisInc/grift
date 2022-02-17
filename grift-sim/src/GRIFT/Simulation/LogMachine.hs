@@ -142,8 +142,8 @@ writeBS ix bs mapRef = do
 --      writeBS (ix+1) (BS.tail bs) arr
 
 -- | Construct a complete, unvisited coverage map from an 'RVRepr'.
-buildCTMap :: forall rv . (32 <= ArchWidth (RVBaseArch rv)) => RVRepr rv -> MapF (Opcode rv) (InstCTList rv)
-buildCTMap rvRepr =
+buildCTMap :: forall rv . RVRepr rv -> MapF (Opcode rv) (InstCTList rv)
+buildCTMap rvRepr = withRVWidth (rvRepr) $
   let (InstructionSet _ _ semanticsMap) = knownISetWithRepr rvRepr
   in MapF.fromList (pairWithCT <$> MapF.keys semanticsMap)
   where
