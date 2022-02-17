@@ -76,7 +76,7 @@ import           Data.BitVector.Sized hiding (concat)
 import           Data.BitVector.Sized.Unsigned (UnsignedBV(..))
 import qualified Data.ByteString as BS
 import           Data.Char (chr)
-import           Data.Foldable
+import           Data.Foldable hiding (or)
 import           Data.IORef
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
@@ -86,7 +86,8 @@ import qualified Data.Parameterized.Map as MapF
 import           Data.Parameterized.Map (MapF)
 import           Data.Traversable (for)
 import           GHC.TypeLits
-import           Prelude hiding ((<>))
+import           Numeric.Natural (Natural)
+import           Prelude hiding ((<>), or)
 import           Text.PrettyPrint.HughesPJ
 
 import GRIFT.BitVector.BVApp (BVApp(..))
@@ -220,9 +221,14 @@ newtype LogMachineM (rv :: RV) a =
            )
 
 -- TODO:
---bvConcatMany' :: NatRepr w' -> [BV w] -> BV w'
-bvConcatMany' wRepr bvs = undefined
-  --zext wRepr $ foldl' concat zero bvs
+bvConcatMany :: forall w. NatRepr w -> [UnsignedBV 8] -> UnsignedBV w
+bvConcatMany repr uBvs = UnsignedBV $ foldl' go (zero repr) (zip [0..] uBvs)
+  where
+    go :: BV w -> (Natural, UnsignedBV 8) -> BV w
+    go acc (i, UnsignedBV bv) =
+      let bvExt = zresize repr bv in
+      let bvShifted = shl repr bvExt (i * 8) in
+      or acc bvShifted
 
 bvGetBytesU :: Int -> BV w -> [BV 8]
 bvGetBytesU n _ | n <= 0 = []
@@ -250,7 +256,7 @@ instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM 
     rv <- lmRV <$> ask
     withRV rv $ do
       let val = fmap (\a -> Map.findWithDefault 0 a m) [addr..addr+(fromIntegral (natValue bytes-1))]
-      return (bvConcatMany' ((knownNat @8) `natMultiply` bytes) val)
+      return (bvConcatMany ((knownNat @8) `natMultiply` bytes) val)
   getCSR csr = do
     csrsRef <- lmCSRs <$> ask
     csrMap  <- liftIO $ readIORef csrsRef
