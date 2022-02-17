@@ -57,6 +57,7 @@ module GRIFT.Simulation
 
 import Control.Lens ( (^.) )
 import Data.BitVector.Sized hiding ( concat )
+import Data.BitVector.Sized.Unsigned (UnsignedBV(..))
 import Data.Foldable
 import Data.Parameterized
 import Data.Parameterized.List
@@ -84,32 +85,32 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   getRV :: m (RVRepr rv)
 
   -- | Get the current PC.
-  getPC   :: m (BV (RVWidth rv))
+  getPC   :: m (UnsignedBV (RVWidth rv))
   -- | Get the value of a register. This function shouldn't ever be called with an
   -- argument of 0, so there is no need to hardwire it to 0 in an instance of this
   -- class.
-  getGPR  :: BV 5 -> m (BV (RVWidth rv))
+  getGPR  :: UnsignedBV 5 -> m (UnsignedBV (RVWidth rv))
   -- | Read some number of bytes from memory.
-  getMem  :: NatRepr bytes -> BV (RVWidth rv) -> m (BV (8 T.* bytes))
+  getMem  :: NatRepr bytes -> UnsignedBV (RVWidth rv) -> m (UnsignedBV (8 T.* bytes))
   -- | Get the value of a CSR.
-  getCSR  :: BV 12 -> m (BV (RVWidth rv))
+  getCSR  :: UnsignedBV 12 -> m (UnsignedBV (RVWidth rv))
   -- | Get the current privilege level.
-  getPriv :: m (BV 2)
+  getPriv :: m (UnsignedBV 2)
   -- | Get the value of a floating point register.
-  getFPR :: FExt << rv => BV 5 -> m (BV (RVFloatWidth rv))
+  getFPR :: FExt << rv => UnsignedBV 5 -> m (UnsignedBV (RVFloatWidth rv))
 
   -- | Set the PC.
-  setPC   :: BV (RVWidth rv) -> m ()
+  setPC   :: UnsignedBV (RVWidth rv) -> m ()
   -- | Write to a register.
-  setGPR  :: BV 5 -> BV (RVWidth rv) -> m ()
+  setGPR  :: UnsignedBV 5 -> UnsignedBV (RVWidth rv) -> m ()
   -- | Write a single byte to memory.
-  setMem  :: NatRepr bytes -> BV (RVWidth rv) -> BV (8 T.* bytes) -> m ()
+  setMem  :: NatRepr bytes -> UnsignedBV (RVWidth rv) -> UnsignedBV (8 T.* bytes) -> m ()
   -- | Write to a CSR.
-  setCSR  :: BV 12 -> BV (RVWidth rv) -> m ()
+  setCSR  :: UnsignedBV 12 -> UnsignedBV (RVWidth rv) -> m ()
   -- | Set the privilege level.
-  setPriv :: BV 2 -> m ()
+  setPriv :: UnsignedBV 2 -> m ()
   -- | Set the value of a floating point register.
-  setFPR :: FExt << rv => BV 5 -> BV (RVFloatWidth rv) -> m ()
+  setFPR :: FExt << rv => UnsignedBV 5 -> UnsignedBV (RVFloatWidth rv) -> m ()
 
   -- | Condition for halting simulation.
   isHalted :: m Bool
@@ -119,30 +120,30 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocApp', given an 'RVStateM' implementation.
 evalLocApp :: forall m expr rv w . (RVStateM m rv)
-           => (forall w' . expr w' -> m (BV w')) -- ^ evaluator for internal expressions
+           => (forall w' . expr w' -> m (UnsignedBV w')) -- ^ evaluator for internal expressions
            -> LocApp expr rv w
-           -> m (BV w)
+           -> m (UnsignedBV w)
 evalLocApp _ (PCApp _) = getPC
 evalLocApp eval (GPRApp _ ridE) = eval ridE >>= getGPR
 evalLocApp eval (FPRApp _ ridE) = eval ridE >>= getFPR
 evalLocApp eval (MemApp bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
-evalLocApp _ (ResApp _) = return (unSized 1)
+evalLocApp _ (ResApp _) = return (UnsignedBV (unSized 1))
 evalLocApp eval (CSRApp _ csrE) = eval csrE >>= getCSR
 evalLocApp _ PrivApp = getPriv
 
 -- | Evaluate a 'StateApp', given an 'RVStateM' implementation.
 evalStateApp :: forall m expr rv w . (RVStateM m rv)
-              => (forall w'. expr w' -> m (BV w')) -- ^ evaluator for internal expressions
+              => (forall w'. expr w' -> m (UnsignedBV w')) -- ^ evaluator for internal expressions
               -> StateApp expr rv w
-              -> m (BV w)
+              -> m (UnsignedBV w)
 evalStateApp eval (LocApp e) = evalLocApp eval e
-evalStateApp eval (AppExpr e) = evalBVAppM eval e
-evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
+evalStateApp eval (AppExpr e) = UnsignedBV <$> evalBVAppM (\expr -> asBV <$> (eval expr)) e
+evalStateApp eval (FloatAppExpr e) = UnsignedBV <$> evalBVFloatAppM (\expr -> asBV <$> (eval expr)) e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
-evalPureStateExpr :: forall m rv w . (RVStateM m rv, KnownRV rv) => PureStateExpr rv w -> m (BV w)
-evalPureStateExpr (PureStateLitBV _ bv) = return bv
+evalPureStateExpr :: forall m rv w . (RVStateM m rv, KnownRV rv) => PureStateExpr rv w -> m (UnsignedBV w)
+evalPureStateExpr (PureStateLitBV _ bv) = return (UnsignedBV bv)
 evalPureStateExpr (PureStateApp e) = evalStateApp evalPureStateExpr e
 evalPureStateExpr (PureAbbrevApp abbrevApp) = evalPureStateExpr (expandAbbrevApp abbrevApp)
 
@@ -152,15 +153,15 @@ evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv)
              -> Instruction rv fmt -- ^ instruction
              -> Integer            -- ^ Instruction width (in bytes)
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
-             -> m (BV w)
-evalInstExpr _ _ _ (InstLitBV _ bv) = return bv
+             -> m (UnsignedBV w)
+evalInstExpr _ _ _ (InstLitBV _ bv) = return (UnsignedBV bv)
 evalInstExpr iset inst ib (InstAbbrevApp abbrevApp) =
   evalInstExpr iset inst ib (expandAbbrevApp abbrevApp)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) =
-  return (unSized (operands !! p))
+  return (UnsignedBV (unSized (operands !! p)))
 evalInstExpr _ _ ib (InstBytes _) = do
   rv <- getRV
-  return $ withRV rv $ mkBV' ib
+  return $ withRV rv $ UnsignedBV $ mkBV' ib
 evalInstExpr iset inst _ (InstWord _) =
   -- TODO: this is *very* awkward, because we z-extend, which requires '32 <=
   -- w', but adding the constraint makes it akward when 'evalInstExpr' is passed
@@ -169,7 +170,7 @@ evalInstExpr iset inst _ (InstWord _) =
     Just LeqProof ->
       do
         rv <- getRV
-        return $ withRV rv $ zextOrId $ unSized $ encode iset inst
+        return $ withRV rv $ UnsignedBV $ zextOrId $ unSized $ encode iset inst
     Nothing -> error "TODO"
 evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset inst ib) e
 
@@ -179,21 +180,21 @@ evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset ins
 -- the right-hand side of an assignment, only the left-hand side.
 data Loc rv w where
   PC :: Loc rv (RVWidth rv)
-  GPR :: BV 5 -> Loc rv (RVWidth rv)
-  FPR :: FExt << rv => BV 5 -> Loc rv (RVFloatWidth rv)
-  Mem :: NatRepr bytes -> BV (RVWidth rv) -> Loc rv (8 T.* bytes)
-  Res :: BV (RVWidth rv) -> Loc rv 1
-  CSR :: BV 12 -> Loc rv (RVWidth rv)
+  GPR :: UnsignedBV 5 -> Loc rv (RVWidth rv)
+  FPR :: FExt << rv => UnsignedBV 5 -> Loc rv (RVFloatWidth rv)
+  Mem :: NatRepr bytes -> UnsignedBV (RVWidth rv) -> Loc rv (8 T.* bytes)
+  Res :: UnsignedBV (RVWidth rv) -> Loc rv 1
+  CSR :: UnsignedBV 12 -> Loc rv (RVWidth rv)
   Priv :: Loc rv 2
 
 -- | This type represents a concrete assignment statement, where the left-hand side
--- is a known location and the right-hand side is a known BV value.
+-- is a known location and the right-hand side is a known UnsignedBV value.
 data Assignment (rv :: RV) where
-  Assignment :: Loc rv w -> BV w -> Assignment rv
+  Assignment :: Loc rv w -> UnsignedBV w -> Assignment rv
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
 buildAssignment :: (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w, BVExpr (expr rv))
-                => (forall w'. expr rv w' -> m (BV w'))
+                => (forall w'. expr rv w' -> m (UnsignedBV w'))
                 -> Stmt expr rv
                 -> m [Assignment rv]
 buildAssignment eval (AssignStmt (PCApp _) pcE) = do
@@ -228,7 +229,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
   tAssignments <- traverse (buildAssignment eval) tStmts
   fAssignments <- traverse (buildAssignment eval) fStmts
   case condVal of
-    BV 0 -> return $ concat fAssignments
+    UnsignedBV (BV 0) -> return $ concat fAssignments
     _ -> return $ concat tAssignments
 
 -- | Execute an assignment.
@@ -245,7 +246,7 @@ execAssignment (Assignment Priv val) = setPriv val
 
 -- | Execute a formula, given an 'RVStateM' implementation.
 execSemantics :: forall m expr rv w. (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w, BVExpr (expr rv))
-             => (forall w'. expr rv w' -> m (BV w'))
+             => (forall w'. expr rv w' -> m (UnsignedBV w'))
              -> Semantics expr rv
              -> m ()
 execSemantics eval f = do
@@ -270,7 +271,7 @@ stepRV iset = do
   withRV rv $ do
     -- Fetch
     pcVal  <- getPC
-    instBV <- SizedBV knownNat <$> getMem (knownNat @4) pcVal
+    instBV <- SizedBV knownNat <$> asBV <$> getMem (knownNat @4) pcVal
 
     -- Decode
     (iw, Some inst@(Inst opcode _)) <- do
@@ -299,7 +300,7 @@ stepRVLog iset = do
   withRV rv $ do
     -- Fetch
     pcVal  <- getPC
-    instBV <- SizedBV knownNat <$> getMem (knownNat @4) pcVal
+    instBV <- SizedBV knownNat <$> asBV <$> getMem (knownNat @4) pcVal
 
     -- Decode
     (iw, Some inst@(Inst opcode _)) <- do

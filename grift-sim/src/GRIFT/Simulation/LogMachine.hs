@@ -73,6 +73,7 @@ import           Control.Monad.Trans.Reader hiding (ask)
 import           Data.Array.IArray
 import           Data.Array.IO
 import           Data.BitVector.Sized hiding (concat)
+import           Data.BitVector.Sized.Unsigned (UnsignedBV(..))
 import qualified Data.ByteString as BS
 import           Data.Char (chr)
 import           Data.Foldable
@@ -113,22 +114,22 @@ instance ShowF TrackedOpcode where
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
   { lmRV         :: RVRepr rv
-  , lmPC         :: IORef (BV (RVWidth rv))
-  , lmGPRs  :: IOArray (BV 5) (BV (RVWidth rv))
-  , lmFPRs :: IOArray (BV 5) (BV (RVFloatWidth rv))
-  , lmMemory     :: IORef (Map (BV (RVWidth rv)) (BV 8))
---  , lmMemory     :: IOArray (BV (RVWidth rv)) (BV 8)
-  , lmCSRs       :: IORef (Map (BV 12) (BV (RVWidth rv)))
-  , lmPriv       :: IORef (BV 2)
---  , lmMaxAddr    :: BV (RVWidth rv)
-  , lmHaltPC     :: IORef (Maybe (BV (RVWidth rv)))
+  , lmPC         :: IORef (UnsignedBV (RVWidth rv))
+  , lmGPRs  :: IOArray (UnsignedBV 5) (UnsignedBV (RVWidth rv))
+  , lmFPRs :: IOArray (UnsignedBV 5) (UnsignedBV (RVFloatWidth rv))
+  , lmMemory     :: IORef (Map (UnsignedBV (RVWidth rv)) (UnsignedBV 8))
+--  , lmMemory     :: IOArray (UnsignedBV (RVWidth rv)) (UnsignedBV 8)
+  , lmCSRs       :: IORef (Map (UnsignedBV 12) (UnsignedBV (RVWidth rv)))
+  , lmPriv       :: IORef (UnsignedBV 2)
+--  , lmMaxAddr    :: UnsignedBV (RVWidth rv)
+  , lmHaltPC     :: IORef (Maybe (UnsignedBV (RVWidth rv)))
   , lmTrackedOpcode  :: IORef (TrackedOpcode rv)
   , lmCovMap     :: IORef (MapF (Opcode rv) (InstCTList rv))
   }
 
 newtype InstCTList rv fmt = InstCTList [InstCT rv fmt]
 
-writeBS :: (Enum i, Num i, Ix i, Num (BV 8)) => i -> BS.ByteString -> IORef (Map i (BV 8)) -> IO ()
+writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IORef (Map i (UnsignedBV 8)) -> IO ()
 writeBS ix bs mapRef = do
   case BS.null bs of
     True -> return ()
@@ -152,10 +153,10 @@ buildCTMap rvRepr =
 -- | Construct a 'LogMachine'.
 mkLogMachine :: (32 <= ArchWidth (RVBaseArch rv))
              => RVRepr rv
-             -> BV (RVWidth rv)
-             -> BV (RVWidth rv)
-             -> [(BV (RVWidth rv), BS.ByteString)]
-             -> Maybe (BV (RVWidth rv))
+             -> UnsignedBV (RVWidth rv)
+             -> UnsignedBV (RVWidth rv)
+             -> [(UnsignedBV (RVWidth rv), BS.ByteString)]
+             -> Maybe (UnsignedBV (RVWidth rv))
              -> TrackedOpcode rv --Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
 mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $ do
@@ -180,10 +181,10 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $
 
 -- | Construct a 'LogMachine' with a given coverage map.
 mkLogMachineWithCovMap :: RVRepr rv
-                       -> BV (RVWidth rv)
-                       -> BV (RVWidth rv)
-                       -> [(BV (RVWidth rv), BS.ByteString)]
-                       -> Maybe (BV (RVWidth rv))
+                       -> UnsignedBV (RVWidth rv)
+                       -> UnsignedBV (RVWidth rv)
+                       -> [(UnsignedBV (RVWidth rv), BS.ByteString)]
+                       -> Maybe (UnsignedBV (RVWidth rv))
                        -> TrackedOpcode rv --Maybe (Some (Opcode rv))
                        -> IORef (MapF (Opcode rv) (InstCTList rv))
                        -> IO (LogMachine rv)
@@ -219,8 +220,15 @@ newtype LogMachineM (rv :: RV) a =
            )
 
 -- TODO:
-bvConcatMany' = undefined
-bvGetBytesU = undefined
+--bvConcatMany' :: NatRepr w' -> [BV w] -> BV w'
+bvConcatMany' wRepr bvs = undefined
+  --zext wRepr $ foldl' concat zero bvs
+
+bvGetBytesU :: Int -> BV w -> [BV 8]
+bvGetBytesU n _ | n <= 0 = []
+bvGetBytesU n bv = map go [0..n]
+  where
+    go i = select' ((fromIntegral i) * 8) (knownNat @8) bv
 
 instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM rv) rv where
   getRV = lmRV <$> ask
@@ -265,17 +273,17 @@ instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM 
   setFPR rid regVal = do
     regArray <- lmFPRs <$> ask
     liftIO $ writeArray regArray rid regVal
-  setMem bytes addr val
+  setMem bytes addr (UnsignedBV val)
     | addr == 100 && natValue bytes == 1 = do
         liftIO $ putChar (chr $ fromIntegral $ asUnsigned val)
-  setMem bytes addr val = do
+  setMem bytes addr (UnsignedBV val) = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
     rv <- lmRV <$> ask
     withRV rv $
       let addrValPairs = zip
             [addr..addr+(fromIntegral (natValue bytes-1))]
-            (bvGetBytesU (fromIntegral (natValue bytes)) val)
+            (UnsignedBV <$> bvGetBytesU (fromIntegral (natValue bytes)) val)
           m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
       in liftIO $ writeIORef memRef m'
   setCSR csr csrVal = do
@@ -324,12 +332,12 @@ instance (KnownRV rv, 32 <= ArchWidth (RVBaseArch rv)) => RVStateM (LogMachineM 
 
 -- | Create an immutable copy of the register file.
 freezeGPRs :: LogMachine rv
-                -> IO (Array (BV 5) (BV (RVWidth rv)))
+                -> IO (Array (UnsignedBV 5) (UnsignedBV (RVWidth rv)))
 freezeGPRs = freeze . lmGPRs
 
 -- | Create an immutable copy of the floating point register file.
 freezeFPRs :: LogMachine rv
-                 -> IO (Array (BV 5) (BV (RVFloatWidth rv)))
+                 -> IO (Array (UnsignedBV 5) (UnsignedBV (RVFloatWidth rv)))
 freezeFPRs = freeze . lmFPRs
 
 -- | Run the simulator for a given number of steps.
