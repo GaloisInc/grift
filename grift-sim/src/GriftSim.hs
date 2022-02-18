@@ -323,18 +323,18 @@ reportRegDump :: (KnownRV rv)
               -> IO ()
 reportRegDump rvRepr pc gprs fprs csrs = do
   putStrLn $ "MInstRet = " ++
-    show (Map.findWithDefault 0 (UnsignedBV (encodeCSR MInstRet)) csrs)
-  putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (UnsignedBV (encodeCSR MEPC)) csrs)
-  putStrLn $ "MTVal = " ++ show (Map.findWithDefault  0 (UnsignedBV (encodeCSR MTVal)) csrs)
-  putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (UnsignedBV (encodeCSR MCause)) csrs)
-  putStrLn $ "FCSR = " ++ show (Map.findWithDefault 0 (UnsignedBV (encodeCSR FCSR)) csrs)
-  putStrLn $ "Final PC: " ++ show pc
+    show (asUnsigned (asBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR MInstRet)) csrs)))
+  putStrLn $ "MEPC = " ++ show (asUnsigned (asBV ((Map.findWithDefault 0 (UnsignedBV (encodeCSR MEPC)) csrs))))
+  putStrLn $ "MTVal = " ++ show (asUnsigned (asBV (Map.findWithDefault  0 (UnsignedBV (encodeCSR MTVal)) csrs)))
+  putStrLn $ "MCause = " ++ show (asUnsigned (asBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR MCause)) csrs)))
+  putStrLn $ "FCSR = " ++ show (asUnsigned (asBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR FCSR)) csrs)))
+  putStrLn $ "Final PC: " ++ show (asUnsigned (asBV pc))
   putStrLn "Final register state:"
   forM_ (assocs gprs) $ \(r, v) ->
-    putStrLn $ "  x[" ++ show r ++ "] = " ++ show v
+    putStrLn $ "  x[" ++ show (asUnsigned (asBV r)) ++ "] = " ++ show (asUnsigned (asBV v))
   putStrLn "Final FP register state:"
   forM_ (assocs fprs) $ \(r, v) ->
-    putStrLn $ "  f[" ++ show r ++ "] = " ++ show v
+    putStrLn $ "  f[" ++ show (asUnsigned (asBV r)) ++ "] = " ++ show (asUnsigned (asBV v))
 
 reportMemDump :: (KnownRV rv)
               => RVRepr rv
