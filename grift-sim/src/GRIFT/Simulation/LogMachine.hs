@@ -244,7 +244,7 @@ bvConcatMany' repr uBvs = UnsignedBV $ foldl' go (zero repr) (zip [0..] uBvs)
 -- element of the list will be the least significant byte of the input vector.
 bvGetBytesU :: Int -> BV w -> [BV 8]
 bvGetBytesU n _ | n <= 0 = []
-bvGetBytesU n bv = map go [0..n]
+bvGetBytesU n bv = map go [0..(n-1)]
   where
     go i = select' ((fromIntegral i) * 8) (knownNat @8) bv
 
