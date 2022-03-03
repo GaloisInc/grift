@@ -746,7 +746,10 @@ instance OrdF (OperandID fmt) where
 -- this wrapper adds it.
 data SizedBV w where
   SizedBV :: !(NatRepr w) -> BV w -> SizedBV w
-  deriving ( Eq, Show )
+  deriving ( Eq )
+
+instance Show (SizedBV w) where
+  show (SizedBV _ bv) = show bv
 
 unSized :: SizedBV w -> BV w
 unSized (SizedBV _ bv) = bv

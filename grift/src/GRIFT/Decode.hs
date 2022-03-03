@@ -58,7 +58,7 @@ import GRIFT.InstructionSet
     ( opBitsFromOpcode, opcodeFromOpBits, InstructionSet )
 import GRIFT.Types
 import GHC.TypeNats ( KnownNat )
-import GRIFT.BitVector.BVApp ( zextOrId )
+import GRIFT.BitVector.BVApp ( sextOrId, zextOrId )
 
 type OpBitsLayout fmt = List (BitLayout 32) (OpBitsTypes fmt)
 type OperandsLayout fmt = List (BitLayout 32) (OperandTypes fmt)
@@ -251,6 +251,15 @@ szext :: forall i o.
   SizedBV i -> SizedBV o
 szext (SizedBV _ bv) = SizedBV (knownNat @o) (zextOrId bv)
 
+-- | 'sextOrId' over 'SizedBV's.
+ssext :: forall i o.
+  KnownNat i =>
+  KnownNat o =>
+  i <= o =>
+  1 <= i =>
+  SizedBV i -> SizedBV o
+ssext (SizedBV _ bv) = SizedBV (knownNat @o) (sextOrId bv)
+
 -- | Attempt to decode a compressed 16-bit instruction word. This is only for the C
 -- extension.
 decodeC :: CExt << rv => RVRepr rv -> SizedBV 16 -> Maybe (Some (Instruction rv))
@@ -332,35 +341,35 @@ decodeC rv bv =
       0b000 -> js $
         let rd  = bv ^. layoutLens slice7_11
             rs1 = bv ^. layoutLens slice7_11
-            imm = szext (bv ^. layoutLens imm6)
+            imm = ssext (bv ^. layoutLens imm6)
         in Inst Addi (Operands IRepr (rd :< rs1 :< imm :< Nil))
       0b001 -> case rv of
         RVRepr RV32Repr _ -> js $
           let rd = 0b00001
               imm' = bv ^. layoutLens j_imm
-              offset  = szext imm' -- ???
+              offset  = ssext imm' -- ???
           in Inst Jal (Operands JRepr (rd :< offset :< Nil))
         RVRepr RV64Repr _ -> js $
           let rd  = bv ^. layoutLens slice7_11
               rs1 = bv ^. layoutLens slice7_11
-              imm = szext (bv ^. layoutLens imm6)
+              imm = ssext (bv ^. layoutLens imm6)
           in Inst Addiw (Operands IRepr (rd :< rs1 :< imm :< Nil))
         _ -> js illegal
       0b010 -> js $
         let rd  = bv ^. layoutLens slice7_11
             rs1 = 0b00000
-            imm = szext (bv ^. layoutLens imm6)
+            imm = ssext (bv ^. layoutLens imm6)
         in Inst Addi (Operands IRepr (rd :< rs1 :< imm :< Nil))
       0b011 -> case bv ^. layoutLens slice7_11 of
         2 -> js $
           let rd   = 0b00010
               rs1  = 0b00010
               imm' = bv ^. layoutLens addi16sp_imm
-              imm  = szext $ sconcat imm' (0 :: SizedBV 4)
+              imm  = ssext $ sconcat imm' (0 :: SizedBV 4)
           in Inst Addi (Operands IRepr (rd :< rs1 :< imm :< Nil))
         rd -> js $
           let imm' = bv ^. layoutLens imm6
-              imm  = szext imm'
+              imm  = ssext imm'
           in Inst Lui (Operands URepr (rd :< imm :< Nil))
       0b100 -> case bv ^. layoutLens slice10_11 of
         0b00 -> js $
@@ -376,7 +385,7 @@ decodeC rv bv =
         0b10 -> js $
           let rd  = szext (bv ^. layoutLens slice7_9) + 0x8
               rs1 = szext (bv ^. layoutLens slice7_9) + 0x8
-              imm = szext (bv ^. layoutLens imm6)
+              imm = ssext (bv ^. layoutLens imm6)
           in Inst Andi (Operands IRepr (rd :< rs1 :< imm :< Nil))
         0b11 -> case bv ^. layoutLens arithCtrl of
           0b000 -> js $
@@ -418,19 +427,19 @@ decodeC rv bv =
       0b101 -> js $
         let rd = 0b00000
             imm' = bv ^. layoutLens j_imm
-            offset  = szext imm'
+            offset  = ssext imm'
         in Inst Jal (Operands JRepr (rd :< offset :< Nil))
       0b110 -> js $
         let rs1 = szext (bv ^. layoutLens slice7_9) + 0x8
             rs2 = 0b00000
             imm' = bv ^. layoutLens b_imm
-            offset = szext imm'
+            offset = ssext imm'
         in Inst Beq (Operands BRepr (rs1 :< rs2 :< offset :< Nil))
       0b111 -> js $
         let rs1 = szext (bv ^. layoutLens slice7_9) + 0x8
             rs2 = 0b00000
             imm' = bv ^. layoutLens b_imm
-            offset = szext imm'
+            offset = ssext imm'
         in Inst Bne (Operands BRepr (rs1 :< rs2 :< offset :< Nil))
       _ -> js illegal
     0b10 -> case bv ^. layoutLens slice13_15 of

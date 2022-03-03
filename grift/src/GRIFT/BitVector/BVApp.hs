@@ -67,7 +67,7 @@ module GRIFT.BitVector.BVApp
   , ltsE
   -- ** Width-changing
   , ashr'
-  , sextE, sextE', sextEOrId, sextEOrId'
+  , sextE, sextE', sextOrId, sextEOrId, sextEOrId'
   , zextE, zextE', zextOrId, zextEOrId, zextEOrId'
   , extractE, extractE'
   , concatE
@@ -86,6 +86,8 @@ import Data.Parameterized.TH.GADT
     )
 import GHC.Natural ( Natural )
 import GHC.TypeLits ( KnownNat, Nat )
+
+import Debug.Trace
 
 -- | Represents the application of a 'BitVector' operation to one or more
 -- subexpressions.
@@ -398,6 +400,15 @@ zextEOrId' w w' e =
   case testStrictLeq w w' of
     Left LeqProof -> appExpr (ZExtApp w' e)
     Right Refl -> e
+
+-- | Sign-extension when the sizes differ, identity otherwise
+sextOrId :: forall w w'.
+  (KnownNat w, KnownNat w', w <= w', 1 <= w) =>
+  BV.BV w -> BV.BV w'
+sextOrId v =
+  case testStrictLeq @w @w' knownNat knownNat of
+    Left LeqProof -> BV.sext knownNat knownNat v
+    Right Refl -> v
 
 -- | Sign-extension
 sextE :: forall expr w w'.

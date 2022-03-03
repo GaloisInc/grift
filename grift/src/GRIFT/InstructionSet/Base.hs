@@ -50,6 +50,8 @@ import GRIFT.Semantics
 import GRIFT.Semantics.Utils
 import GRIFT.Types
 
+import Debug.Trace
+
 -- | Get the I instruction from an explicit 'RVRepr'.
 baseFromRepr :: RVRepr rv -> InstructionSet rv
 baseFromRepr rv@(RVRepr RV32Repr _) = withRV rv base32
@@ -362,7 +364,7 @@ baseSemantics =
       rd :< rs1 :< imm12 :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
-      let res   = x_rs1 `addE` sextEOrId imm12
+      let res   = x_rs1 `addE` (trace "in addi" $ sextEOrId imm12)
 
       assignGPR rd res
       incrPC
