@@ -101,8 +101,6 @@ import GRIFT.Semantics.Pretty
 import GRIFT.Semantics.Utils
 import GRIFT.Simulation
 
-import Debug.Trace (traceM, trace)
-
 data TrackedOpcode rv = NoOpcode | AllOpcodes | SomeOpcode (Some (Opcode rv))
 
 deriving instance Show (TrackedOpcode rv)
@@ -300,7 +298,13 @@ instance (KnownRV rv) => RVStateM (LogMachineM rv) rv where
     rv <- lmRV <$> ask
     withRV rv $
       let addrValPairs = zip
-            [addr..addr+(fromIntegral (natValue bytes-1))]
+            -- NOTE: This list comprehension cannot be simplified to
+            -- @[addr..addr+(fromIntegral (natValue bytes-1))]]@.  The @[x..y]@
+            -- list producer expands to @map toEnum [fromEnum x..fromEnum y]@,
+            -- but large addresses will overflow the signed Int value returned
+            -- by @fromEnum@ resulting in negative addresses that then cause a
+            -- panic in the UnsignedBV @toEnum@ implementation.
+            [addr + (fromIntegral i) | i <- [0..(natValue bytes-1)]]
             (UnsignedBV <$> bvGetBytesU (fromIntegral (natValue bytes)) val)
           m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
       in liftIO $ writeIORef memRef m'
