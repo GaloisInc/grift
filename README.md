@@ -84,7 +84,7 @@ Running `grift-sim`
 on the executable at `test/fib`:
 
 ```shell
-grift-sim --halt-pc=0 test/fib/fib
+grift-sim --halt-pc=0 --reg-dump test/fib/fib
 ```
 
 This will run the executable and dump the contents of some registers. You should
