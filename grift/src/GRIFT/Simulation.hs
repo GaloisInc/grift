@@ -76,9 +76,6 @@ import GRIFT.Semantics.Expand
 import GRIFT.Semantics.Utils
 import GRIFT.Types
 
-import GRIFT.Semantics.Pretty
-import Debug.Trace
-
 -- TODO: Should getMem/setMem return a possibly exceptional value, so that we can
 -- handle the actual exception handling in this module rather than on the
 -- implementation side? How would that work? Punting on this until we need to go
@@ -158,14 +155,14 @@ evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv, HasCallStack)
              -> Integer            -- ^ Instruction width (in bytes)
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
              -> m (UnsignedBV w)
-evalInstExpr _ _ _ (InstLitBV _ bv) = return $ UnsignedBV bv
+evalInstExpr _ _ _ (InstLitBV _ bv) = return (UnsignedBV bv)
 evalInstExpr iset inst ib (InstAbbrevApp abbrevApp) =
   evalInstExpr iset inst ib (expandAbbrevApp abbrevApp)
 evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) =
-  return $ (UnsignedBV (unSized (operands !! p)))
+  return (UnsignedBV (unSized (operands !! p)))
 evalInstExpr _ _ ib (InstBytes _) = do
   rv <- getRV
-  return $  withRV rv $ UnsignedBV $ mkBV' ib
+  return $ withRV rv $ UnsignedBV $ mkBV' ib
 evalInstExpr iset inst _ (InstWord _) =
   -- TODO: this is *very* awkward, because we z-extend, which requires '32 <=
   -- w', but adding the constraint makes it akward when 'evalInstExpr' is passed
@@ -238,28 +235,15 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
 
 -- | Execute an assignment.
 execAssignment :: RVStateM m rv => Assignment rv -> m ()
-execAssignment (Assignment PC val) = do
-  traceM ("setPC " ++ (show val))
-  setPC val
-execAssignment (Assignment (GPR rid) val) = do
-  traceM ("setGPR " ++ (show rid) ++ " " ++ (show val))
-  setGPR rid val
-execAssignment (Assignment (FPR rid) val) = do
-  traceM ("setFPR " ++ (show rid) ++ " " ++ (show val))
-  setFPR rid val
-execAssignment (Assignment (Mem bytes addr) val) = do
-  traceM ("setMem " ++ (show bytes) ++ " " ++ (show addr) ++ " " ++ (show val))
-  setMem bytes addr val
+execAssignment (Assignment PC val) = setPC val
+execAssignment (Assignment (GPR rid) val) = setGPR rid val
+execAssignment (Assignment (FPR rid) val) = setFPR rid val
+execAssignment (Assignment (Mem bytes addr) val) = setMem bytes addr val
 -- TODO: When we do SMP, implement memory reservations.
-execAssignment (Assignment (Res _) _) = do
-  traceM "res"
-  return ()
+execAssignment (Assignment (Res _) _) = return ()
 execAssignment (Assignment (CSR csr) val) = do
-  traceM ("setCSR " ++ (show csr) ++ " " ++ (show val))
   setCSR csr val
-execAssignment (Assignment Priv val) = do
-  traceM ("setPriv " ++ (show val))
-  setPriv val
+execAssignment (Assignment Priv val) = setPriv val
 
 -- | Execute a formula, given an 'RVStateM' implementation.
 execSemantics :: forall m expr rv w. (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w, BVExpr (expr rv))
@@ -301,11 +285,7 @@ stepRV iset = do
         _ -> return (4, decode iset instBV)
 
     -- Execute
-    let instSem = semanticsFromOpcode iset opcode
-    traceM "\n"
-    traceShowM inst
-    traceShowM $ pPrintInstSemantics NoAbbrev instSem
-    execSemantics (evalInstExpr iset inst iw) (getInstSemantics instSem)
+    execSemantics (evalInstExpr iset inst iw) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
     -- Record cycle count
     execSemantics evalPureStateExpr $ getSemantics $ do
@@ -337,9 +317,7 @@ stepRVLog iset = do
     logInstruction iset inst iw
 
     -- Execute
-    let instSem = semanticsFromOpcode iset opcode
-    traceShowM $ pPrintInstSemantics NoAbbrev instSem
-    execSemantics (evalInstExpr iset inst iw) (getInstSemantics instSem)
+    execSemantics (evalInstExpr iset inst iw) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
     -- Record cycle count
     execSemantics evalPureStateExpr $ getSemantics $ do

@@ -87,8 +87,6 @@ import Data.Parameterized.TH.GADT
 import GHC.Natural ( Natural )
 import GHC.TypeLits ( KnownNat, Nat )
 
-import Debug.Trace
-
 -- | Represents the application of a 'BitVector' operation to one or more
 -- subexpressions.
 data BVApp (expr :: Nat -> *) (w :: Nat) where
