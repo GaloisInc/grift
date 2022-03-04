@@ -29,6 +29,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE StandaloneDeriving     #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeApplications       #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
@@ -68,6 +69,7 @@ module GRIFT.Types
   , rvBaseArch, RVBaseArch
   , rvExts, RVExts
   , withRV
+  , withRVWidth
     -- ** Common RISC-V Configurations
     -- | Provided for convenience.
   , RV32I
@@ -130,6 +132,14 @@ module GRIFT.Types
   , OperandName(..)
   , OperandID(..)
   , Operands(..)
+  , SizedBV(..)
+  , asSignedSized
+  , asUnsignedSized
+  , concatSized
+  , sizedBV
+  , sizedBVInteger
+  , unSized
+  , widthSized
   , OpBitsTypes
   , OpBits(..)
   , Opcode(..)
@@ -139,16 +149,18 @@ module GRIFT.Types
   , readOpcode
   ) where
 
-import Control.Monad
-import Data.BitVector.Sized
-import Data.Char
+import Control.Monad ( join )
+import Data.BitVector.Sized as BV
+import Data.Char ( toLower )
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Parameterized.TH.GADT
-import GHC.TypeLits
-import Numeric
+import GHC.TypeLits ( KnownNat, Nat )
+import Numeric ( showHex )
 import Prelude hiding ((<>))
 import Text.PrettyPrint.HughesPJClass
+
+import GRIFT.BitVector.BVApp ( zextOrId )
 
 ----------------------------------------
 -- Architecture types
@@ -203,7 +215,7 @@ instance Pretty (BaseArchRepr rv) where
 
 -- | This data structure describes the RISC-V extensions that are enabled in a
 -- particular type context.
-data Extensions = Exts (PrivConfig, MConfig, AConfig, FDConfig, CConfig)
+newtype Extensions = Exts (PrivConfig, MConfig, AConfig, FDConfig, CConfig)
 
 type Exts = 'Exts
 
@@ -392,7 +404,7 @@ type family ExtensionsContains (exts :: Extensions) (e :: Extension) :: Bool whe
 ----------------------------------------
 -- | RISC-V Configuration data kind. This is mainly provided as a wrapper for the
 -- arch and exts type variables, to keep them in one place.
-data RV = RVConfig (BaseArch, Extensions)
+newtype RV = RVConfig (BaseArch, Extensions)
 
 type RVConfig = 'RVConfig
 
@@ -432,6 +444,7 @@ type KnownRV rv = ( KnownRepr RVRepr rv
                   , 1 <= RVWidth rv
                   , KnownNat (RVFloatWidth rv)
                   , 1 <= RVFloatWidth rv
+                  , 32 <= ArchWidth (RVBaseArch rv)
                   )
 
 -- | Maps a RISC-V configuration to its register width.
@@ -457,7 +470,7 @@ type family RVCConfig (rv :: RV) :: CConfig where
 
 -- | 'ExtensionsContains' in constraint form.
 type family (<<) (e :: Extension) (rv :: RV) where
-  e << RVConfig '(_, exts)= ExtensionsContains exts e ~ 'True
+  e << RVConfig '(_, exts) = ExtensionsContains exts e ~ 'True
 
 withBaseArch :: BaseArchRepr arch -> (KnownRepr BaseArchRepr arch => b) -> b
 withBaseArch RV32Repr b = b
@@ -495,7 +508,7 @@ withExts (ExtensionsRepr priv m a fd c) b =
   withC c b
 
 -- | Satisfy a 'KnownRVWidth' constraint from an explicit 'RVRepr'.
-withRVWidth :: RVRepr rv -> (KnownRVWidth rv => b) -> b
+withRVWidth :: RVRepr rv -> ((KnownRVWidth rv, 32 <= RVWidth rv, 32 <= ArchWidth (RVBaseArch rv)) => b) -> b
 withRVWidth (RVRepr RV32Repr _) b = b
 withRVWidth (RVRepr RV64Repr _) b = b
 withRVWidth (RVRepr RV128Repr _) b = b
@@ -729,17 +742,85 @@ instance TestEquality (OperandID fmt) where
 instance OrdF (OperandID fmt) where
   OperandID ix1 `compareF` OperandID ix2 = ix1 `compareF` ix2
 
+-- BV no longer contains a width witness, but we need it for some purposes, so
+-- this wrapper adds it.
+data SizedBV w where
+  SizedBV :: !(NatRepr w) -> BV w -> SizedBV w
+  deriving ( Eq, Show )
+
+unSized :: SizedBV w -> BV w
+unSized (SizedBV _ bv) = bv
+
+widthSized :: SizedBV w -> NatRepr w
+widthSized (SizedBV w _) = w
+
+asSignedSized :: 1 <= w => SizedBV w -> Integer
+asSignedSized (SizedBV w bv) = asSigned w bv
+
+asUnsignedSized :: SizedBV w -> Integer
+asUnsignedSized (SizedBV _ bv) = asUnsigned bv
+
+concatSized :: SizedBV a -> SizedBV b -> SizedBV (a + b)
+concatSized (SizedBV a va) (SizedBV b vb) =
+  SizedBV (addNat a b) (BV.concat a b va vb)
+
+instance ShowF SizedBV
+
+-- | Mostly for the convenience of numeric literals
+instance (KnownNat w, 1 <= w) => Num (SizedBV w) where
+  (+) (SizedBV _ bva) (SizedBV _ bvb) =
+    SizedBV knownNat (add knownNat (zextOrId bva) (zextOrId bvb))
+  (*) (SizedBV _ bva) (SizedBV _ bvb) =
+    SizedBV knownNat (mul knownNat (zextOrId bva) (zextOrId bvb))
+  abs (SizedBV _ bv) = SizedBV knownNat (BV.abs knownNat bv)
+  signum (SizedBV _ bv) = SizedBV knownNat (BV.signum knownNat bv)
+  fromInteger = sizedBVInteger
+  negate (SizedBV _ bv) = SizedBV knownNat (BV.negate knownNat bv)
+
+instance KnownNat w => Enum (SizedBV w) where
+  fromEnum (SizedBV _ (BV i)) = fromIntegral i
+  toEnum = sizedBVInteger . fromIntegral
+
+instance Ord (SizedBV w) where
+  (SizedBV _ (BV a)) `compare` (SizedBV _ (BV b)) = a `compare` b
+
+sizedBV :: KnownNat w => BV w -> SizedBV w
+sizedBV = SizedBV knownNat
+
+sizedBVInteger :: KnownNat w => Integer -> SizedBV w
+sizedBVInteger = sizedBV . mkBV knownNat
+
+instance TestEquality SizedBV where
+  testEquality (SizedBV w1 bv1) (SizedBV w2 bv2) =
+    case testEquality w1 w2 of
+      Just Refl ->
+        case bv1 == bv2 of
+          True -> Just Refl
+          False -> Nothing
+      Nothing -> Nothing
+
+instance OrdF SizedBV where
+  compareF (SizedBV w1 bv1) (SizedBV w2 bv2) =
+    let compW = compareF w1 w2 in
+    case compW of
+      EQF ->
+        case compare bv1 bv2 of
+          LT -> LTF
+          EQ -> EQF
+          GT -> GTF
+      _ -> compW
+
 -- | RISC-V Operand lists, parameterized by format.
 data Operands :: Format -> * where
-  Operands :: FormatRepr fmt -> List BitVector (OperandTypes fmt) -> Operands fmt
+  Operands :: FormatRepr fmt -> List SizedBV (OperandTypes fmt) -> Operands fmt
 
-prettyReg :: BitVector 5 -> Doc
-prettyReg bv = text "x" <> integer (bvIntegerU bv)
+prettyReg :: SizedBV 5 -> Doc
+prettyReg (SizedBV _ bv) = text "x" <> integer (asUnsigned bv)
 
-prettyImm :: BitVector w -> Doc
-prettyImm bv = text $ "0x" ++ showHex (bvIntegerS bv) ""
+prettyImm :: (KnownNat w, 1 <= w) => SizedBV w -> Doc
+prettyImm (SizedBV _ bv) = text $ "0x" ++ showHex (asSigned knownNat bv) ""
 
-_prettyAddr :: BitVector w -> BitVector 5 -> Doc
+_prettyAddr :: (KnownNat w, 1 <= w) => SizedBV w -> SizedBV 5 -> Doc
 _prettyAddr offset reg = prettyImm offset <> parens (prettyReg reg)
 
 commas :: [Doc] -> Doc
@@ -802,7 +883,7 @@ type family OpBitsTypes (fmt :: Format) :: [Nat] where
 -- | Bits fixed by an opcode.
 -- Holds all the bits that are fixed by a particular opcode.
 data OpBits :: Format -> * where
-  OpBits :: FormatRepr fmt -> List BitVector (OpBitsTypes fmt) -> OpBits fmt
+  OpBits :: FormatRepr fmt -> List SizedBV (OpBitsTypes fmt) -> OpBits fmt
 
 $(return [])
 instance TestEquality OpBits where
@@ -1574,7 +1655,9 @@ data Instruction (rv :: RV) (fmt :: Format) =
   Inst (Opcode rv fmt) (Operands fmt)
 
 -- | Create a new instruction with an associated operand list.
-mkInst :: KnownRepr FormatRepr fmt => Opcode rv fmt -> List BitVector (OperandTypes fmt) -> Instruction rv fmt
+mkInst ::
+  KnownRepr FormatRepr fmt =>
+  Opcode rv fmt -> List SizedBV (OperandTypes fmt) -> Instruction rv fmt
 mkInst opcode operands = Inst opcode (Operands knownRepr operands)
 
 -- Instances

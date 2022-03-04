@@ -39,14 +39,15 @@ module GRIFT.InstructionSet.Priv
   ( privmFromRepr
   ) where
 
-import Data.BitVector.Sized.App
 import qualified Data.Parameterized.Map as Map
-import Data.Parameterized
-import Data.Parameterized.List
+import Data.Parameterized ( type (<=), Pair(Pair) )
+import Data.Parameterized.List ( List(Nil, (:<)) )
 
+import GRIFT.BitVector.BVApp ( bvExpr )
 import GRIFT.InstructionSet
-import GRIFT.Semantics
-import GRIFT.Semantics.Utils
+  ( instructionSet, EncodeMap, InstructionSet, SemanticsMap )
+import GRIFT.Semantics ( comment, instSemantics, rawReadCSR )
+import GRIFT.Semantics.Utils ( encodeCSR, incrPC, jump, CSR(MEPC) )
 import GRIFT.Types
 
 -- | Get the privileged instruction set from an explicit 'RVRepr'.
@@ -65,13 +66,13 @@ privmEncode = Map.fromList
   , Pair Wfi  (OpBits PRepr (0b00010000010100000000000001110011 :< Nil))
   ]
 
-privmSemantics :: KnownRV rv => SemanticsMap rv
+privmSemantics :: ( KnownRV rv, w ~ RVWidth rv, 1 <= w) => SemanticsMap rv
 privmSemantics = Map.fromList
   [ Pair Mret $ instSemantics Nil $ do
       comment "Returns from a machine-mode exception handler."
 
       -- TODO: Need to add the rest of the behavior here.
-      let mepc = rawReadCSR (litBV $ encodeCSR MEPC)
+      let mepc = rawReadCSR (bvExpr $ encodeCSR MEPC)
 
       jump mepc
   , Pair Wfi $ instSemantics Nil $ do

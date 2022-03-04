@@ -40,7 +40,7 @@ Maintainer  : benselfridge@galois.com
 Stability   : experimental
 Portability : portable
 
-An IO-based simulation backend for RISC-V machines. We use the 'BitVector' type
+An IO-based simulation backend for RISC-V machines. We use the 'UnsignedBV' type
 directly for the underlying values, which allows us to keep the architecture width
 unspecified.
 
@@ -72,10 +72,11 @@ import           Control.Monad.Trans
 import           Control.Monad.Trans.Reader hiding (ask)
 import           Data.Array.IArray
 import           Data.Array.IO
-import           Data.BitVector.Sized
+import           Data.BitVector.Sized hiding (concat)
+import           Data.BitVector.Sized.Unsigned (UnsignedBV(..))
 import qualified Data.ByteString as BS
 import           Data.Char (chr)
-import           Data.Foldable
+import           Data.Foldable hiding (or)
 import           Data.IORef
 import qualified Data.Map.Strict as Map
 import           Data.Map.Strict (Map)
@@ -85,19 +86,20 @@ import qualified Data.Parameterized.Map as MapF
 import           Data.Parameterized.Map (MapF)
 import           Data.Traversable (for)
 import           GHC.TypeLits
-import           Prelude hiding ((<>))
+import           Numeric.Natural (Natural)
+import           Prelude hiding ((<>), or)
 import           Text.PrettyPrint.HughesPJ
 
+import GRIFT.BitVector.BVApp (BVApp(..))
+import GRIFT.BitVector.BVFloatApp (BVFloatApp(..))
 import GRIFT.InstructionSet
 import GRIFT.InstructionSet.Known
 import GRIFT.Types
-import GRIFT.Semantics
+import GRIFT.Semantics hiding (concat)
 import GRIFT.Semantics.Expand
 import GRIFT.Semantics.Pretty
 import GRIFT.Semantics.Utils
 import GRIFT.Simulation
-
-import Debug.Trace (traceM, trace)
 
 data TrackedOpcode rv = NoOpcode | AllOpcodes | SomeOpcode (Some (Opcode rv))
 
@@ -111,22 +113,22 @@ instance ShowF TrackedOpcode where
 -- | IO-based machine state.
 data LogMachine (rv :: RV) = LogMachine
   { lmRV         :: RVRepr rv
-  , lmPC         :: IORef (BitVector (RVWidth rv))
-  , lmGPRs  :: IOArray (BitVector 5) (BitVector (RVWidth rv))
-  , lmFPRs :: IOArray (BitVector 5) (BitVector (RVFloatWidth rv))
-  , lmMemory     :: IORef (Map (BitVector (RVWidth rv)) (BitVector 8))
---  , lmMemory     :: IOArray (BitVector (RVWidth rv)) (BitVector 8)
-  , lmCSRs       :: IORef (Map (BitVector 12) (BitVector (RVWidth rv)))
-  , lmPriv       :: IORef (BitVector 2)
---  , lmMaxAddr    :: BitVector (RVWidth rv)
-  , lmHaltPC     :: IORef (Maybe (BitVector (RVWidth rv)))
+  , lmPC         :: IORef (UnsignedBV (RVWidth rv))
+  , lmGPRs  :: IOArray (UnsignedBV 5) (UnsignedBV (RVWidth rv))
+  , lmFPRs :: IOArray (UnsignedBV 5) (UnsignedBV (RVFloatWidth rv))
+  , lmMemory     :: IORef (Map (UnsignedBV (RVWidth rv)) (UnsignedBV 8))
+--  , lmMemory     :: IOArray (UnsignedBV (RVWidth rv)) (UnsignedBV 8)
+  , lmCSRs       :: IORef (Map (UnsignedBV 12) (UnsignedBV (RVWidth rv)))
+  , lmPriv       :: IORef (UnsignedBV 2)
+--  , lmMaxAddr    :: UnsignedBV (RVWidth rv)
+  , lmHaltPC     :: IORef (Maybe (UnsignedBV (RVWidth rv)))
   , lmTrackedOpcode  :: IORef (TrackedOpcode rv)
   , lmCovMap     :: IORef (MapF (Opcode rv) (InstCTList rv))
   }
 
 newtype InstCTList rv fmt = InstCTList [InstCT rv fmt]
 
-writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IORef (Map i (BitVector 8)) -> IO ()
+writeBS :: (Enum i, Num i, Ix i) => i -> BS.ByteString -> IORef (Map i (UnsignedBV 8)) -> IO ()
 writeBS ix bs mapRef = do
   case BS.null bs of
     True -> return ()
@@ -140,19 +142,20 @@ writeBS ix bs mapRef = do
 
 -- | Construct a complete, unvisited coverage map from an 'RVRepr'.
 buildCTMap :: forall rv . RVRepr rv -> MapF (Opcode rv) (InstCTList rv)
-buildCTMap rvRepr =
+buildCTMap rvRepr = withRVWidth (rvRepr) $
   let (InstructionSet _ _ semanticsMap) = knownISetWithRepr rvRepr
   in MapF.fromList (pairWithCT <$> MapF.keys semanticsMap)
   where
-    pairWithCT :: Some (Opcode rv) -> Pair (Opcode rv) (InstCTList rv)
+    pairWithCT :: (32 <= ArchWidth (RVBaseArch rv)) => Some (Opcode rv) -> Pair (Opcode rv) (InstCTList rv)
     pairWithCT (Some opcode) = Pair opcode (coverageTreeOpcode rvRepr opcode)
 
 -- | Construct a 'LogMachine'.
-mkLogMachine :: RVRepr rv
-             -> BitVector (RVWidth rv)
-             -> BitVector (RVWidth rv)
-             -> [(BitVector (RVWidth rv), BS.ByteString)]
-             -> Maybe (BitVector (RVWidth rv))
+mkLogMachine :: (32 <= ArchWidth (RVBaseArch rv))
+             => RVRepr rv
+             -> UnsignedBV (RVWidth rv)
+             -> UnsignedBV (RVWidth rv)
+             -> [(UnsignedBV (RVWidth rv), BS.ByteString)]
+             -> Maybe (UnsignedBV (RVWidth rv))
              -> TrackedOpcode rv --Maybe (Some (Opcode rv))
              -> IO (LogMachine rv)
 mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $ do
@@ -177,10 +180,10 @@ mkLogMachine rvRepr entryPoint sp byteStrings haltPC opcodeCov = withRV rvRepr $
 
 -- | Construct a 'LogMachine' with a given coverage map.
 mkLogMachineWithCovMap :: RVRepr rv
-                       -> BitVector (RVWidth rv)
-                       -> BitVector (RVWidth rv)
-                       -> [(BitVector (RVWidth rv), BS.ByteString)]
-                       -> Maybe (BitVector (RVWidth rv))
+                       -> UnsignedBV (RVWidth rv)
+                       -> UnsignedBV (RVWidth rv)
+                       -> [(UnsignedBV (RVWidth rv), BS.ByteString)]
+                       -> Maybe (UnsignedBV (RVWidth rv))
                        -> TrackedOpcode rv --Maybe (Some (Opcode rv))
                        -> IORef (MapF (Opcode rv) (InstCTList rv))
                        -> IO (LogMachine rv)
@@ -215,7 +218,35 @@ newtype LogMachineM (rv :: RV) a =
            , MonadIO
            )
 
-instance KnownRV rv => RVStateM (LogMachineM rv) rv where
+-- | Concatenate a list of 'UnsignedBV's into an 'UnsignedBV' of arbitrary width. The ordering is little endian:
+--
+-- >>> bvConcatMany' [0xAA :: UnsignedBV 8, 0xBB] :: UnsignedBV 16
+-- 0xbbaa
+-- >>> bvConcatMany' [0xAA :: UnsignedBV 8, 0xBB, 0xCC] :: UnsignedBV 16
+-- 0xbbaa
+--
+-- If the sum of the widths of the input 'UnsignedBV's exceeds the output width, we
+-- ignore the tail end of the list.
+bvConcatMany' :: forall w. NatRepr w -> [UnsignedBV 8] -> UnsignedBV w
+bvConcatMany' repr uBvs = UnsignedBV $ foldl' go (zero repr) (zip [0..] uBvs)
+  where
+    go :: BV w -> (Natural, UnsignedBV 8) -> BV w
+    go acc (i, UnsignedBV bv) =
+      let bvExt = zresize repr bv in
+      let bvShifted = shl repr bvExt (i * 8) in
+      or acc bvShifted
+
+-- | Given a 'BV' of arbitrary length, decompose it into a list of bytes. Uses
+-- an unsigned interpretation of the input vector, so if you ask for more bytes that
+-- the 'BV' contains, you get zeros. The result is little-endian, so the first
+-- element of the list will be the least significant byte of the input vector.
+bvGetBytesU :: Int -> BV w -> [BV 8]
+bvGetBytesU n _ | n <= 0 = []
+bvGetBytesU n bv = map go [0..(n-1)]
+  where
+    go i = select' ((fromIntegral i) * 8) (knownNat @8) bv
+
+instance (KnownRV rv) => RVStateM (LogMachineM rv) rv where
   getRV = lmRV <$> ask
   getPC = do
     pcRef <- lmPC <$> ask
@@ -258,17 +289,23 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
   setFPR rid regVal = do
     regArray <- lmFPRs <$> ask
     liftIO $ writeArray regArray rid regVal
-  setMem bytes addr val
+  setMem bytes addr (UnsignedBV val)
     | addr == 100 && natValue bytes == 1 = do
-        liftIO $ putChar (chr $ fromIntegral $ bvIntegerU val)
-  setMem bytes addr val = do
+        liftIO $ putChar (chr $ fromIntegral $ asUnsigned val)
+  setMem bytes addr (UnsignedBV val) = do
     memRef <- lmMemory <$> ask
     m <- liftIO $ readIORef memRef
     rv <- lmRV <$> ask
     withRV rv $
       let addrValPairs = zip
-            [addr..addr+(fromIntegral (natValue bytes-1))]
-            (bvGetBytesU (fromIntegral (natValue bytes)) val)
+            -- NOTE: This list comprehension cannot be simplified to
+            -- @[addr..addr+(fromIntegral (natValue bytes-1))]]@.  The @[x..y]@
+            -- list producer expands to @map toEnum [fromEnum x..fromEnum y]@,
+            -- but large addresses will overflow the signed Int value returned
+            -- by @fromEnum@ resulting in negative addresses that then cause a
+            -- panic in the UnsignedBV @toEnum@ implementation.
+            [addr + (fromIntegral i) | i <- [0..(natValue bytes-1)]]
+            (UnsignedBV <$> bvGetBytesU (fromIntegral (natValue bytes)) val)
           m' = foldr (\(a, byte) mem -> Map.insert a byte mem) m addrValPairs
       in liftIO $ writeIORef memRef m'
   setCSR csr csrVal = do
@@ -317,12 +354,12 @@ instance KnownRV rv => RVStateM (LogMachineM rv) rv where
 
 -- | Create an immutable copy of the register file.
 freezeGPRs :: LogMachine rv
-                -> IO (Array (BitVector 5) (BitVector (RVWidth rv)))
+                -> IO (Array (UnsignedBV 5) (UnsignedBV (RVWidth rv)))
 freezeGPRs = freeze . lmGPRs
 
 -- | Create an immutable copy of the floating point register file.
 freezeFPRs :: LogMachine rv
-                 -> IO (Array (BitVector 5) (BitVector (RVFloatWidth rv)))
+                 -> IO (Array (UnsignedBV 5) (UnsignedBV (RVFloatWidth rv)))
 freezeFPRs = freeze . lmFPRs
 
 -- | Run the simulator for a given number of steps.
@@ -462,7 +499,10 @@ coverageTreeSemantics (InstSemantics sem _) =
       trees = concat $ toList $ coverageTreeStmt <$> stmts
   in InstCT <$> trees
 
-coverageTreeOpcode :: RVRepr rv -> Opcode rv fmt -> InstCTList rv fmt
+coverageTreeOpcode :: 32 <= ArchWidth (RVBaseArch rv)
+                   => RVRepr rv
+                   -> Opcode rv fmt
+                   -> InstCTList rv fmt
 coverageTreeOpcode rvRepr opcode =
   let iset = knownISetWithRepr rvRepr
   in case MapF.lookup opcode (isSemanticsMap iset) of

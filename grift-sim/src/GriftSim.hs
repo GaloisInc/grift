@@ -23,6 +23,7 @@ along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 {-|
 Module      : MainSimulator
@@ -45,6 +46,7 @@ import           Control.Monad.Trans.State
 import           Data.Array.IArray
 import           Data.Bits
 import           Data.BitVector.Sized
+import           Data.BitVector.Sized.Unsigned (UnsignedBV(..))
 import qualified Data.ByteString as BS
 import           Data.Char (toUpper, ord)
 import           Data.ElfEdit hiding (header)
@@ -302,7 +304,7 @@ runElf cfg e covMapRef =
          (fromIntegral $ elfEntry e)
          0x10000
          byteStrings
-         (bitVector <$> fromIntegral <$> haltPC)
+         (fromIntegral <$> haltPC)
          trackedOpcode
          covMapRef
 
@@ -314,36 +316,38 @@ runElf cfg e covMapRef =
 
 reportRegDump :: (KnownRV rv)
               => RVRepr rv
-              -> BitVector (RVWidth rv)
-              -> Array (BitVector 5) (BitVector (RVWidth rv))
-              -> Array (BitVector 5) (BitVector (RVFloatWidth rv))
-              -> Map (BitVector 12) (BitVector (RVWidth rv))
+              -> UnsignedBV (RVWidth rv)
+              -> Array (UnsignedBV 5) (UnsignedBV (RVWidth rv))
+              -> Array (UnsignedBV 5) (UnsignedBV (RVFloatWidth rv))
+              -> Map (UnsignedBV 12) (UnsignedBV (RVWidth rv))
               -> IO ()
 reportRegDump rvRepr pc gprs fprs csrs = do
   putStrLn $ "MInstRet = " ++
-    show (bvIntegerU (Map.findWithDefault 0 (encodeCSR MInstRet) csrs))
-  putStrLn $ "MEPC = " ++ show (Map.findWithDefault 0 (encodeCSR MEPC) csrs)
-  putStrLn $ "MTVal = " ++ show (Map.findWithDefault  0 (encodeCSR MTVal) csrs)
-  putStrLn $ "MCause = " ++ show (Map.findWithDefault 0 (encodeCSR MCause) csrs)
-  putStrLn $ "FCSR = " ++ show (Map.findWithDefault 0 (encodeCSR FCSR) csrs)
-  putStrLn $ "Final PC: " ++ show pc
+    show (asUnsigned (asBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR MInstRet)) csrs)))
+  putStrLn $ "MEPC = " ++ showHexUBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR MEPC)) csrs)
+  putStrLn $ "MTVal = " ++ showHexUBV (Map.findWithDefault  0 (UnsignedBV (encodeCSR MTVal)) csrs)
+  putStrLn $ "MCause = " ++ showHexUBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR MCause)) csrs)
+  putStrLn $ "FCSR = " ++ showHexUBV (Map.findWithDefault 0 (UnsignedBV (encodeCSR FCSR)) csrs)
+  putStrLn $ "Final PC: " ++ showHexUBV pc
   putStrLn "Final register state:"
   forM_ (assocs gprs) $ \(r, v) ->
-    putStrLn $ "  x[" ++ show (bvIntegerU r) ++ "] = " ++ show v
+    putStrLn $ "  x[" ++ show (asUnsigned (asBV r)) ++ "] = " ++ showHexUBV v
   putStrLn "Final FP register state:"
   forM_ (assocs fprs) $ \(r, v) ->
-    putStrLn $ "  f[" ++ show (bvIntegerU r) ++ "] = " ++ show v
+    putStrLn $ "  f[" ++ show (asUnsigned (asBV r)) ++ "] = " ++ showHexUBV v
+  where
+    showHexUBV (UnsignedBV bv) = "0x" ++ (showHex (asUnsigned bv) "")
 
 reportMemDump :: (KnownRV rv)
               => RVRepr rv
               -> Word64
               -> Word64
-              -> Map (BitVector (RVWidth rv)) (BitVector 8)
+              -> Map (UnsignedBV (RVWidth rv)) (UnsignedBV 8)
               -> IO ()
 reportMemDump rvRepr memDumpStart memDumpEnd mem =
   forM_ (enumFromThenTo memDumpStart (memDumpStart+4) (memDumpEnd-4)) $ \addr -> do
     let [byte0, byte1, byte2, byte3] = fmap
-          (\a -> (fromIntegral $ bvIntegerU (Map.findWithDefault 0 (bitVector $ fromIntegral a) mem) :: Word32))
+          (\a -> (fromIntegral $ asUnsigned $ asBV $ (Map.findWithDefault 0 (fromIntegral a) mem) :: Word32))
           [addr, addr+1, addr+2, addr+3]
         val = (byte3 `shiftL` 24 .|. byte2 `shiftL` 16 .|. byte1 `shiftL` 8 .|. byte0)
     putStrLn $ pad8 (showHex val "")
@@ -386,7 +390,7 @@ reportCovMap covMap = do
 
 -- | From an Elf file, get a list of the byte strings to load into memory along with
 -- their starting addresses.
-elfBytes :: (KnownNat w, ElfWidthConstraints w) => Elf w -> [(BitVector w, BS.ByteString)]
+elfBytes :: (KnownNat w, ElfWidthConstraints w) => Elf w -> [(UnsignedBV w, BS.ByteString)]
 elfBytes e = pairWithAddr <$> filter memoryMapped sections
   where sections = e ^.. elfSections
         memoryMapped section = elfSectionAddr section > 0

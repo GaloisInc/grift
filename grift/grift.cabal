@@ -1,6 +1,6 @@
 
 name:                grift
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:
 description:
 license:             BSD3
@@ -14,7 +14,10 @@ cabal-version:       >=1.10
 extra-source-files:  README.md
 
 library
-  exposed-modules:     GRIFT.Decode
+  exposed-modules:     GRIFT.BitVector.BitLayout
+                     , GRIFT.BitVector.BVApp
+                     , GRIFT.BitVector.BVFloatApp
+                     , GRIFT.Decode
                      , GRIFT.InstructionSet.Known
                      , GRIFT.InstructionSet
                      , GRIFT.Semantics
@@ -31,15 +34,16 @@ library
                      , GRIFT.InstructionSet.Priv
   build-depends:       array >= 0.5 && < 0.6
                      , base >= 4.7 && < 5
-                     , bv-sized >= 0.7 && < 0.8
-                     , bv-sized-float
-                     , bytestring >= 0.10.8 && < 0.10.9
+                     , bv-sized >= 1.0.2 && < 1.0.4
+                     , bv-sized-float >= 0.2 && < 0.3
+                     , bytestring >= 0.10.8 && < 0.10.13
                      , containers >= 0.5.11 && < 0.7
                      -- , crucible
                      -- , crucible-llvm
                      , elf-edit
                      , filepath >= 1.4 && < 1.5
-                     , lens >= 4 && < 5
+                     , ghc-typelits-natnormalise
+                     , lens >= 4 && < 6
                      , mtl >= 2.2 && < 2.3
                      , parameterized-utils
                      , pretty

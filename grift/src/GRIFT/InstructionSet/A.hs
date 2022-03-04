@@ -15,13 +15,13 @@ You should have received a copy of the GNU Affero Public License
 along with GRIFT.  If not, see <https://www.gnu.org/licenses/>.
 -}
 
-{-# Language BinaryLiterals   #-}
-{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE BinaryLiterals #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies     #-}
-{-# LANGUAGE TypeOperators    #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 {-|
 Module      : GRIFT.InstructionSet.A
@@ -39,11 +39,11 @@ module GRIFT.InstructionSet.A
   ( aFromRepr
   ) where
 
-import Data.BitVector.Sized.App
 import qualified Data.Parameterized.Map as Map
-import Data.Parameterized
-import Data.Parameterized.List
+import Data.Parameterized ( type (<=), Pair(Pair) )
+import Data.Parameterized.List ( List(Nil, (:<)) )
 
+import GRIFT.BitVector.BVApp
 import GRIFT.InstructionSet
 import GRIFT.Semantics
 import GRIFT.Semantics.Utils
@@ -56,12 +56,13 @@ aFromRepr rv@(RVRepr RV64Repr (ExtensionsRepr _ _ AYesRepr _ _)) = withRV rv a64
 aFromRepr _ = mempty
 
 -- | A extension (RV32)
-a32 :: (KnownRV rv, AExt << rv) => InstructionSet rv
+a32 :: (KnownRV rv, 32 <= RVWidth rv, AExt << rv) => InstructionSet rv
 a32 = instructionSet aEncode aSemantics
 
 -- | A extension (RV64)
-a64 :: (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => InstructionSet rv
-a64 = a32 <> instructionSet a64Encode a64Semantics
+a64 :: forall rv w. (KnownRV rv, w ~ RVWidth rv, 64 <= w, AExt << rv) => InstructionSet rv
+a64 = withLeqTrans (knownNat @32) (knownNat @64) (knownNat @w) a32
+      <> instructionSet a64Encode a64Semantics
 
 aEncode :: AExt << rv => EncodeMap rv
 aEncode = Map.fromList
@@ -93,8 +94,14 @@ a64Encode = Map.fromList
   , Pair Amomaxud (OpBits ARepr (0b0101111 :< 0b011 :< 0b11100 :< Nil))
   ]
 
-aSemantics :: forall rv . (KnownRV rv, AExt << rv) => SemanticsMap rv
-aSemantics = Map.fromList
+aSemantics :: forall rv w.
+  KnownRV rv =>
+  (w ~ RVWidth rv, 32 <= w) =>
+  AExt << rv =>
+  SemanticsMap rv
+aSemantics =
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  Map.fromList
   [ Pair Lrw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the four bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
@@ -103,7 +110,7 @@ aSemantics = Map.fromList
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       -- Check that rs2 is zero
-      let illegal = notE (rs2 `eqE` litBV 0)
+      let illegal = notE (rs2 `eqE` bvInteger 0)
 
       let x_rs1 = readGPR rs1
       let mVal  = readMem (knownNat @4) x_rs1
@@ -111,7 +118,7 @@ aSemantics = Map.fromList
       branch illegal
         $> do iw <- instWord
               raiseException IllegalInstruction iw
-        $> do assignGPR rd (sextE mVal)
+        $> do assignGPR rd (sextEOrId mVal)
               reserve x_rs1
               incrPC
 
@@ -129,9 +136,9 @@ aSemantics = Map.fromList
 
       branch reserved
         $> do assignMem (knownNat @4) x_rs1 (extractE (knownNat @0) x_rs2)
-              assignGPR rd (litBV 0)
+              assignGPR rd (bvInteger 0)
               incrPC
-        $> do assignGPR rd (litBV 1) -- TODO: this could be any nonzero value.
+        $> do assignGPR rd (bvInteger 1) -- TODO: this could be any nonzero value.
               incrPC
   , Pair Amoswapw $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
@@ -180,10 +187,13 @@ aSemantics = Map.fromList
       amoOp32 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp32 :: KnownRV rv
+amoOp32 :: forall rv w.
+        (KnownRV rv, w ~ RVWidth rv, 32 <= w)
         => (InstExpr A rv 32 -> InstExpr A rv 32 -> InstExpr A rv 32)
         -> SemanticsM (InstExpr A) rv ()
-amoOp32 op = do
+amoOp32 op =
+  withLeqTrans (knownNat @5) (knownNat @32) (knownNat @w) $
+  do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
@@ -191,13 +201,19 @@ amoOp32 op = do
       let mVal  = readMem (knownNat @4) x_rs1
 
       assignMem (knownNat @4) x_rs1 (extractE (knownNat @0) x_rs2 `op` mVal)
-      assignGPR rd (sextE mVal)
+      assignGPR rd (sextEOrId mVal)
 
       incrPC
 
 
-a64Semantics :: forall rv . (KnownRV rv, 64 <= RVWidth rv, AExt << rv) => SemanticsMap rv
-a64Semantics = Map.fromList
+a64Semantics :: forall rv w.
+  KnownRV rv =>
+  (w ~ RVWidth rv, 64 <= w) =>
+  AExt << rv =>
+  SemanticsMap rv
+a64Semantics =
+  withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+  Map.fromList
   [ Pair Lrd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Loads the eight bytes from memory at address x[rs1]."
       comment "Writes them to x[rd], sign-extending the result."
@@ -206,7 +222,7 @@ a64Semantics = Map.fromList
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       -- Check that rs2 is zero
-      let illegal = notE (rs2 `eqE` litBV 0)
+      let illegal = notE (rs2 `eqE` bvInteger 0)
 
       let x_rs1 = readGPR rs1
       let mVal  = readMem (knownNat @8) x_rs1
@@ -214,7 +230,7 @@ a64Semantics = Map.fromList
       branch illegal
         $> do iw <- instWord
               raiseException IllegalInstruction iw
-        $> do assignGPR rd (sextE mVal)
+        $> do assignGPR rd (sextEOrId mVal)
               reserve x_rs1
 
   , Pair Scd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
@@ -231,8 +247,8 @@ a64Semantics = Map.fromList
 
       branch reserved
         $> do assignMem (knownNat @8) x_rs1 (extractE (knownNat @0) x_rs2)
-              assignGPR rd (litBV 0)
-        $> assignGPR rd (litBV 1) -- TODO: this could be any nonzero value.
+              assignGPR rd (bvInteger 0)
+        $> assignGPR rd (bvInteger 1) -- TODO: this could be any nonzero value.
   , Pair Amoswapd $ instSemantics (Rd :< Rs1 :< Rs2 :< Rl :< Aq :< Nil) $ do
       comment "Atomically, let t be the value of the memory word at address x[rs1]."
       comment "Set that memory word to x[rs2]. Set x[rd] to the sign extension of t."
@@ -280,10 +296,13 @@ a64Semantics = Map.fromList
       amoOp64 $ \e1 e2 -> iteE (e1 `ltuE` e2) e2 e1
   ]
 
-amoOp64 :: KnownRV rv
+amoOp64 :: forall rv w.
+        (KnownRV rv, w ~ RVWidth rv, 64 <= w)
         => (InstExpr A rv 64 -> InstExpr A rv 64 -> InstExpr A rv 64)
         -> SemanticsM (InstExpr A) rv ()
-amoOp64 op = do
+amoOp64 op =
+    withLeqTrans (knownNat @5) (knownNat @64) (knownNat @w) $
+    do
       rd :< rs1 :< rs2 :< _rl :< _aq :< Nil <- operandEs
 
       let x_rs1 = readGPR rs1
@@ -291,6 +310,6 @@ amoOp64 op = do
       let mVal  = readMem (knownNat @8) x_rs1
 
       assignMem (knownNat @8) x_rs1 (extractE (knownNat @0) x_rs2 `op` mVal)
-      assignGPR rd (sextE mVal)
+      assignGPR rd (sextEOrId mVal)
 
       incrPC

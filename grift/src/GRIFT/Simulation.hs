@@ -56,20 +56,22 @@ module GRIFT.Simulation
   ) where
 
 import Control.Lens ( (^.) )
-import Data.BitVector.Sized
-import Data.BitVector.Sized.App
-import Data.BitVector.Sized.Float.App
+import Data.BitVector.Sized hiding ( concat )
+import Data.BitVector.Sized.Unsigned (UnsignedBV(..))
 import Data.Foldable
 import Data.Parameterized
 import Data.Parameterized.List
 import Data.Traversable
+import GHC.Stack (HasCallStack)
 import qualified GHC.TypeLits as T
-import Prelude hiding ((!!))
+import Prelude hiding ( (!!), concat )
 
+import GRIFT.BitVector.BVApp
+import GRIFT.BitVector.BVFloatApp
 import GRIFT.Decode
 import GRIFT.InstructionSet
 import GRIFT.InstructionSet.Known
-import GRIFT.Semantics
+import GRIFT.Semantics hiding ( concat )
 import GRIFT.Semantics.Expand
 import GRIFT.Semantics.Utils
 import GRIFT.Types
@@ -84,32 +86,32 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
   getRV :: m (RVRepr rv)
 
   -- | Get the current PC.
-  getPC   :: m (BitVector (RVWidth rv))
+  getPC   :: m (UnsignedBV (RVWidth rv))
   -- | Get the value of a register. This function shouldn't ever be called with an
   -- argument of 0, so there is no need to hardwire it to 0 in an instance of this
   -- class.
-  getGPR  :: BitVector 5 -> m (BitVector (RVWidth rv))
+  getGPR  :: UnsignedBV 5 -> m (UnsignedBV (RVWidth rv))
   -- | Read some number of bytes from memory.
-  getMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> m (BitVector (8 T.* bytes))
+  getMem  :: NatRepr bytes -> UnsignedBV (RVWidth rv) -> m (UnsignedBV (8 T.* bytes))
   -- | Get the value of a CSR.
-  getCSR  :: BitVector 12 -> m (BitVector (RVWidth rv))
+  getCSR  :: UnsignedBV 12 -> m (UnsignedBV (RVWidth rv))
   -- | Get the current privilege level.
-  getPriv :: m (BitVector 2)
+  getPriv :: m (UnsignedBV 2)
   -- | Get the value of a floating point register.
-  getFPR :: FExt << rv => BitVector 5 -> m (BitVector (RVFloatWidth rv))
+  getFPR :: FExt << rv => UnsignedBV 5 -> m (UnsignedBV (RVFloatWidth rv))
 
   -- | Set the PC.
-  setPC   :: BitVector (RVWidth rv) -> m ()
+  setPC   :: UnsignedBV (RVWidth rv) -> m ()
   -- | Write to a register.
-  setGPR  :: BitVector 5 -> BitVector (RVWidth rv) -> m ()
+  setGPR  :: UnsignedBV 5 -> UnsignedBV (RVWidth rv) -> m ()
   -- | Write a single byte to memory.
-  setMem  :: NatRepr bytes -> BitVector (RVWidth rv) -> BitVector (8 T.* bytes) -> m ()
+  setMem  :: NatRepr bytes -> UnsignedBV (RVWidth rv) -> UnsignedBV (8 T.* bytes) -> m ()
   -- | Write to a CSR.
-  setCSR  :: BitVector 12 -> BitVector (RVWidth rv) -> m ()
+  setCSR  :: UnsignedBV 12 -> UnsignedBV (RVWidth rv) -> m ()
   -- | Set the privilege level.
-  setPriv :: BitVector 2 -> m ()
+  setPriv :: UnsignedBV 2 -> m ()
   -- | Set the value of a floating point register.
-  setFPR :: FExt << rv => BitVector 5 -> BitVector (RVFloatWidth rv) -> m ()
+  setFPR :: FExt << rv => UnsignedBV 5 -> UnsignedBV (RVFloatWidth rv) -> m ()
 
   -- | Condition for halting simulation.
   isHalted :: m Bool
@@ -119,49 +121,58 @@ class Monad m => RVStateM m (rv :: RV) | m -> rv where
 -- TODO: Is there some way to wher ein (FExt << rv) => RVFStateM m rv) to the below signature?
 -- | Evaluate a 'LocApp', given an 'RVStateM' implementation.
 evalLocApp :: forall m expr rv w . (RVStateM m rv)
-           => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
+           => (forall w' . expr w' -> m (UnsignedBV w')) -- ^ evaluator for internal expressions
            -> LocApp expr rv w
-           -> m (BitVector w)
+           -> m (UnsignedBV w)
 evalLocApp _ (PCApp _) = getPC
 evalLocApp eval (GPRApp _ ridE) = eval ridE >>= getGPR
 evalLocApp eval (FPRApp _ ridE) = eval ridE >>= getFPR
 evalLocApp eval (MemApp bytes addrE) = eval addrE >>= getMem bytes
 -- TODO: When we do SMP, implement memory reservations.
-evalLocApp _ (ResApp _) = return 1
+evalLocApp _ (ResApp _) = return (UnsignedBV (unSized 1))
 evalLocApp eval (CSRApp _ csrE) = eval csrE >>= getCSR
 evalLocApp _ PrivApp = getPriv
 
 -- | Evaluate a 'StateApp', given an 'RVStateM' implementation.
 evalStateApp :: forall m expr rv w . (RVStateM m rv)
-              => (forall w' . expr w' -> m (BitVector w')) -- ^ evaluator for internal expressions
+              => (forall w'. expr w' -> m (UnsignedBV w')) -- ^ evaluator for internal expressions
               -> StateApp expr rv w
-              -> m (BitVector w)
+              -> m (UnsignedBV w)
 evalStateApp eval (LocApp e) = evalLocApp eval e
-evalStateApp eval (AppExpr e) = evalBVAppM eval e
-evalStateApp eval (FloatAppExpr e) = evalBVFloatAppM eval e
+evalStateApp eval (AppExpr e) = UnsignedBV <$> evalBVAppM (\expr -> asBV <$> (eval expr)) e
+evalStateApp eval (FloatAppExpr e) = UnsignedBV <$> evalBVFloatAppM (\expr -> asBV <$> (eval expr)) e
 
 -- | Evaluate a 'PureStateExpr', given an 'RVStateM' implementation.
-evalPureStateExpr :: forall m rv w . (RVStateM m rv, KnownRV rv) => PureStateExpr rv w -> m (BitVector w)
-evalPureStateExpr (PureStateLitBV bv) = return bv
+evalPureStateExpr :: forall m rv w . (RVStateM m rv, KnownRV rv) => PureStateExpr rv w -> m (UnsignedBV w)
+evalPureStateExpr (PureStateLitBV _ bv) = return (UnsignedBV bv)
 evalPureStateExpr (PureStateApp e) = evalStateApp evalPureStateExpr e
 evalPureStateExpr (PureAbbrevApp abbrevApp) = evalPureStateExpr (expandAbbrevApp abbrevApp)
 
 -- | Evaluate an 'InstExpr', given an 'RVStateM' implementation and the instruction context.
-evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv)
+evalInstExpr :: forall m rv fmt w . (RVStateM m rv, KnownRV rv, HasCallStack)
              => InstructionSet rv
              -> Instruction rv fmt -- ^ instruction
              -> Integer            -- ^ Instruction width (in bytes)
              -> InstExpr fmt rv w  -- ^ Expression to be evaluated
-             -> m (BitVector w)
-evalInstExpr _ _ _ (InstLitBV bv) = return bv
-evalInstExpr iset inst ib (InstAbbrevApp abbrevApp) = evalInstExpr iset inst ib (expandAbbrevApp abbrevApp)
-evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) = return (operands !! p)
+             -> m (UnsignedBV w)
+evalInstExpr _ _ _ (InstLitBV _ bv) = return (UnsignedBV bv)
+evalInstExpr iset inst ib (InstAbbrevApp abbrevApp) =
+  evalInstExpr iset inst ib (expandAbbrevApp abbrevApp)
+evalInstExpr _ (Inst _ (Operands _ operands)) _ (OperandExpr _ (OperandID p)) =
+  return (UnsignedBV (unSized (operands !! p)))
 evalInstExpr _ _ ib (InstBytes _) = do
   rv <- getRV
-  return $ withRV rv $ bitVector ib
-evalInstExpr iset inst _ (InstWord _) = do
-  rv <- getRV
-  return $ (withRV rv $ bvZext $ encode iset inst)
+  return $ withRV rv $ UnsignedBV $ mkBV' ib
+evalInstExpr iset inst _ (InstWord _) =
+  -- TODO: this is *very* awkward, because we z-extend, which requires '32 <=
+  -- w', but adding the constraint makes it akward when 'evalInstExpr' is passed
+  -- to 'evalStateApp' in the next case.
+  case testLeq (knownNat @32) (knownNat @w) of
+    Just LeqProof ->
+      do
+        rv <- getRV
+        return $ withRV rv $ UnsignedBV $ zextOrId $ unSized $ encode iset inst
+    Nothing -> error "Evaluation of InstWords with widths under 32 bits is not currently supported"
 evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset inst ib) e
 
 -- | This type represents a concrete component of the global state, after all
@@ -170,21 +181,21 @@ evalInstExpr iset inst ib (InstStateApp e) = evalStateApp (evalInstExpr iset ins
 -- the right-hand side of an assignment, only the left-hand side.
 data Loc rv w where
   PC :: Loc rv (RVWidth rv)
-  GPR :: BitVector 5 -> Loc rv (RVWidth rv)
-  FPR :: FExt << rv => BitVector 5 -> Loc rv (RVFloatWidth rv)
-  Mem :: NatRepr bytes -> BitVector (RVWidth rv) -> Loc rv (8 T.* bytes)
-  Res :: BitVector (RVWidth rv) -> Loc rv 1
-  CSR :: BitVector 12 -> Loc rv (RVWidth rv)
+  GPR :: UnsignedBV 5 -> Loc rv (RVWidth rv)
+  FPR :: FExt << rv => UnsignedBV 5 -> Loc rv (RVFloatWidth rv)
+  Mem :: NatRepr bytes -> UnsignedBV (RVWidth rv) -> Loc rv (8 T.* bytes)
+  Res :: UnsignedBV (RVWidth rv) -> Loc rv 1
+  CSR :: UnsignedBV 12 -> Loc rv (RVWidth rv)
   Priv :: Loc rv 2
 
 -- | This type represents a concrete assignment statement, where the left-hand side
--- is a known location and the right-hand side is a known BitVector value.
+-- is a known location and the right-hand side is a known UnsignedBV value.
 data Assignment (rv :: RV) where
-  Assignment :: Loc rv w -> BitVector w -> Assignment rv
+  Assignment :: Loc rv w -> UnsignedBV w -> Assignment rv
 
 -- | Convert a 'Stmt' into an 'Assignment' by evaluating its right-hand sides.
-buildAssignment :: (RVStateM m rv, KnownRV rv)
-                => (forall w . expr rv w -> m (BitVector w))
+buildAssignment :: (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w, BVExpr (expr rv))
+                => (forall w'. expr rv w' -> m (UnsignedBV w'))
                 -> Stmt expr rv
                 -> m [Assignment rv]
 buildAssignment eval (AssignStmt (PCApp _) pcE) = do
@@ -219,7 +230,7 @@ buildAssignment eval (BranchStmt condE tStmts fStmts) = do
   tAssignments <- traverse (buildAssignment eval) tStmts
   fAssignments <- traverse (buildAssignment eval) fStmts
   case condVal of
-    0 -> return $ concat fAssignments
+    UnsignedBV (BV 0) -> return $ concat fAssignments
     _ -> return $ concat tAssignments
 
 -- | Execute an assignment.
@@ -235,16 +246,25 @@ execAssignment (Assignment (CSR csr) val) = do
 execAssignment (Assignment Priv val) = setPriv val
 
 -- | Execute a formula, given an 'RVStateM' implementation.
-execSemantics :: forall m expr rv . (RVStateM m rv, KnownRV rv)
-             => (forall w . expr rv w -> m (BitVector w))
+execSemantics :: forall m expr rv w. (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w, BVExpr (expr rv))
+             => (forall w'. expr rv w' -> m (UnsignedBV w'))
              -> Semantics expr rv
              -> m ()
 execSemantics eval f = do
   assignments <- concat <$> traverse (buildAssignment eval) (f ^. semStmts)
   traverse_ execAssignment assignments
 
+-- | 'select' over 'SizedBV's
+sselect :: forall w w' idx.
+  T.KnownNat w =>
+  T.KnownNat w' =>
+  idx + w' <= w =>
+  NatRepr idx -> SizedBV w -> SizedBV w'
+sselect idx (SizedBV _ bv) =
+  SizedBV knownNat (select idx knownNat bv)
+
 -- | Fetch, decode, and execute a single instruction.
-stepRV :: forall m rv . (RVStateM m rv, KnownRV rv)
+stepRV :: forall m rv w. (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w)
        => InstructionSet rv
        -> m ()
 stepRV iset = do
@@ -252,28 +272,28 @@ stepRV iset = do
   withRV rv $ do
     -- Fetch
     pcVal  <- getPC
-    instBV <- getMem (knownNat @4) pcVal
+    instBV <- SizedBV knownNat <$> asBV <$> getMem (knownNat @4) pcVal
 
     -- Decode
     (iw, Some inst@(Inst opcode _)) <- do
       case rv of
         RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr) -> do
-          let cinst = decodeC rv (bvExtract 0 instBV)
+          let cinst = decodeC rv (sselect (knownNat @0) instBV)
           case cinst of
             Just i -> return (2, i)
-            _ -> return $ (4, decode iset instBV)
-        _ -> return $ (4, decode iset instBV)
+            _ -> return (4, decode iset instBV)
+        _ -> return (4, decode iset instBV)
 
     -- Execute
     execSemantics (evalInstExpr iset inst iw) (getInstSemantics $ semanticsFromOpcode iset opcode)
 
     -- Record cycle count
     execSemantics evalPureStateExpr $ getSemantics $ do
-      let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
-      assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
+      let minstret = rawReadCSR (bvExpr $ encodeCSR MInstRet)
+      assignCSR (bvExpr $ encodeCSR MInstRet) (minstret `addE` bvInteger 1)
 
 -- | Like stepRV, but also log the instruction.
-stepRVLog :: forall m rv . (RVStateM m rv, KnownRV rv)
+stepRVLog :: forall m rv w. (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w)
           => InstructionSet rv
           -> m ()
 stepRVLog iset = do
@@ -281,17 +301,17 @@ stepRVLog iset = do
   withRV rv $ do
     -- Fetch
     pcVal  <- getPC
-    instBV <- getMem (knownNat @4) pcVal
+    instBV <- SizedBV knownNat <$> asBV <$> getMem (knownNat @4) pcVal
 
     -- Decode
     (iw, Some inst@(Inst opcode _)) <- do
       case rv of
         RVRepr _ (ExtensionsRepr _ _ _ _ CYesRepr) -> do
-          let cinst = decodeC rv (bvExtract 0 instBV)
+          let cinst = decodeC rv (sselect (knownNat @0) instBV)
           case cinst of
             Just i -> return (2, i)
-            _ -> return $ (4, decode iset instBV)
-        _ -> return $ (4, decode iset instBV)
+            _ -> return (4, decode iset instBV)
+        _ -> return (4, decode iset instBV)
 
     -- Log instruction BEFORE execution
     logInstruction iset inst iw
@@ -301,33 +321,41 @@ stepRVLog iset = do
 
     -- Record cycle count
     execSemantics evalPureStateExpr $ getSemantics $ do
-      let minstret = rawReadCSR (litBV $ encodeCSR MInstRet)
-      assignCSR (litBV $ encodeCSR MInstRet) (minstret `addE` litBV 1)
+      let minstret = rawReadCSR (bvExpr $ encodeCSR MInstRet)
+      assignCSR (bvExpr $ encodeCSR MInstRet) (minstret `addE` bvInteger 1)
 
-runRV' :: forall m rv . (RVStateM m rv, KnownRV rv) => InstructionSet rv -> Int -> Int -> m Int
+runRV' ::
+  (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w) =>
+  InstructionSet rv -> Int -> Int -> m Int
 runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
 runRV' iset currSteps maxSteps = do
   halted <- isHalted
-  case halted of
-    True  -> return currSteps
-    False -> stepRV iset >> runRV' iset (currSteps+1) maxSteps
+  if halted
+    then return currSteps
+    else stepRV iset >> runRV' iset (currSteps+1) maxSteps
 
 -- | Run for a given number of steps.
-runRV :: forall m rv . (RVStateM m rv, KnownRV rv) => Int -> m Int
+runRV ::
+  (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w) =>
+  Int -> m Int
 runRV steps = do
   rv <- getRV
   withRV rv $ runRV' (knownISetWithRepr rv) 0 steps
 
-runRVLog' :: forall m rv . (RVStateM m rv, KnownRV rv) => InstructionSet rv -> Int -> Int -> m Int
+runRVLog' ::
+  (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w) =>
+  InstructionSet rv -> Int -> Int -> m Int
 runRVLog' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
 runRVLog' iset currSteps maxSteps = do
   halted <- isHalted
-  case halted of
-    True  -> return currSteps
-    False -> stepRVLog iset >> runRVLog' iset (currSteps+1) maxSteps
+  if halted
+    then return currSteps
+    else stepRVLog iset >> runRVLog' iset (currSteps+1) maxSteps
 
 -- | Like runRV, but log each instruction.
-runRVLog :: forall m rv . (RVStateM m rv, KnownRV rv) => Int -> m Int
+runRVLog ::
+  (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w) =>
+  Int -> m Int
 runRVLog steps = do
   rv <- getRV
   withRV rv $ runRVLog' (knownISetWithRepr rv) 0 steps
