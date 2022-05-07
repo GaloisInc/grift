@@ -69,14 +69,14 @@ data InstructionSet (rv :: RV)
                    }
 
 instance Semigroup (InstructionSet rv) where
-  (<>) = mappend
+  InstructionSet em1 dm1 sm1 <> InstructionSet em2 dm2 sm2
+    = InstructionSet (em1 `Map.union` em2) (dm1 `Map.union` dm2) (sm1 `Map.union` sm2)
 
 instance Monoid (InstructionSet rv) where
   -- RV32 is the default/minimum, so that should be mempty.
   mempty = InstructionSet Map.empty Map.empty Map.empty
 
-  InstructionSet em1 dm1 sm1 `mappend` InstructionSet em2 dm2 sm2
-    = InstructionSet (em1 `Map.union` em2) (dm1 `Map.union` dm2) (sm1 `Map.union` sm2)
+  mappend = (<>)
 
 -- | Construct an instructionSet from an EncodeMap and a SemanticsMap
 instructionSet :: EncodeMap rv -> SemanticsMap rv -> InstructionSet rv
