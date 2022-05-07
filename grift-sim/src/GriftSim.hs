@@ -254,7 +254,7 @@ resolveAddr :: ElfWidthConstraints w => Elf w -> Addr -> Maybe Word64
 resolveAddr _ (ConcreteAddr addr) = return addr
 resolveAddr e (SymbolAddr symbol) = do
   let symTabs = elfSymtab e
-      entries = toList (V.concat (elfSymbolTableEntries <$> symTabs))
+      entries = toList (V.concat (symtabEntries <$> symTabs))
       match ste = steName ste == BS.pack (map (fromIntegral . ord) symbol)
   entry <- find match entries
   return $ fromIntegral (steValue entry)
