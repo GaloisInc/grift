@@ -36,7 +36,7 @@ library
                      , base >= 4.7 && < 5
                      , bv-sized >= 1.0.2 && < 1.0.5
                      , bv-sized-float >= 0.2 && < 0.3
-                     , bytestring >= 0.10.8 && < 0.10.13
+                     , bytestring >= 0.10.8 && < 0.12
                      , containers >= 0.5.11 && < 0.7
                      -- , crucible
                      -- , crucible-llvm
@@ -45,7 +45,7 @@ library
                      , ghc-typelits-natnormalise
                      , lens >= 4 && < 6
                      , mtl >= 2.2 && < 2.3
-                     , parameterized-utils
+                     , parameterized-utils >= 2.1.5.0
                      , pretty
                      , softfloat-hs
                      , transformers >= 0.5 && < 0.6

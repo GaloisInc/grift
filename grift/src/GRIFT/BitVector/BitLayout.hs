@@ -61,6 +61,7 @@ import Data.Parameterized
     knownNat,
     leqProof,
     leqTrans,
+    leqZero,
     plusComm,
     withKnownNat,
     withLeqProof, addIsLeq, addPrefixIsLeq
@@ -200,8 +201,9 @@ instance Pretty (BitLayout t s) where
 deriving instance Show (BitLayout t s)
 
 -- | Construct an empty 'BitLayout'.
-empty :: KnownNat t => BitLayout t 0
-empty = BitLayout knownNat knownNat S.empty
+empty :: forall t. KnownNat t => BitLayout t 0
+empty = case leqZero @t of
+          LeqProof -> BitLayout knownNat knownNat S.empty
 
 -- | Construct a 'BitLayout' with one chunk.
 singleChunk ::
