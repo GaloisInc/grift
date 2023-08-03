@@ -4,9 +4,6 @@
 [submodule "deps/elf-edit"]
 	path = deps/elf-edit
 	url = https://github.com/GaloisInc/elf-edit.git
-[submodule "deps/parameterized-utils"]
-	path = deps/parameterized-utils
-	url = https://github.com/GaloisInc/parameterized-utils.git
 [submodule "deps/softfloat-hs"]
 	path = deps/softfloat-hs
 	url = https://github.com/GaloisInc/softfloat-hs.git
