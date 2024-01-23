@@ -327,7 +327,7 @@ stepRVLog iset = do
 runRV' ::
   (RVStateM m rv, KnownRV rv, w ~ RVWidth rv, 32 <= w) =>
   InstructionSet rv -> Int -> Int -> m Int
-runRV' _ currSteps maxSteps | currSteps >= maxSteps = return currSteps
+runRV' _ currSteps maxSteps | maxSteps /= 0 && currSteps >= maxSteps = return currSteps
 runRV' iset currSteps maxSteps = do
   halted <- isHalted
   if halted
